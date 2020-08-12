@@ -1,0 +1,225 @@
+#include "pn532.h"
+#include <stddef.h>
+#include <esp_log.h>
+#include "driver/uart.h"
+#include <string.h>
+//#define LOG_LOCAL_LEVEL ESP_LOG_DEBUG
+
+
+
+
+int pn532_serial_send(uart_port_t port, uint8_t *cmd, uint8_t cmdlen, TickType_t timeout)
+{
+    uint8_t buffer[cmdlen + 8];
+    buffer[0] = PN532_PREAMBLE;
+    buffer[1] = PN532_STARTCODE1;
+    buffer[2] = PN532_STARTCODE2;
+    buffer[3] = cmdlen + 1;
+    buffer[4] = ~buffer[3] + 1;
+    buffer[5] = PN532_HOSTTOPN532;
+
+    uint8_t checksum = PN532_PREAMBLE + PN532_STARTCODE1 + PN532_STARTCODE2 + PN532_HOSTTOPN532;
+
+    for (uint8_t i = 0; i < cmdlen; i++)
+    {
+        buffer[i+6] = cmd[i];
+        checksum += cmd[i];
+    }
+
+    buffer[cmdlen + 6] = ~checksum;
+    buffer[cmdlen + 7] = PN532_POSTAMBLE;
+
+    const uint8_t wake[] = {0x55, 0x55, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+
+    // flush the RX buffer
+    uart_flush(port);
+
+    //wake up the chip
+    uart_write_bytes(port, (const char*) wake, sizeof(wake));
+
+    // write and block until transmission is finished (or timeout time expired)
+    uart_write_bytes(port, (const char*) buffer, sizeof(buffer));
+    uart_wait_tx_done(port, timeout);
+    ESP_LOG_BUFFER_HEX_LEVEL(PN532_LOG_SENT_DATA, buffer, sizeof(buffer), ESP_LOG_INFO);
+    return ESP_OK;
+}
+
+int pn532_serial_readack(uart_port_t port, TickType_t timeout)
+{
+    uint8_t ackbuff[6];
+    size_t size=0;
+    BaseType_t tWrite = xTaskGetTickCount();
+    ESP_LOGD(PN532_LOG, "waiting for ACK");
+    while( size < 6 ){
+        if(xTaskGetTickCount() - tWrite > timeout){
+            ESP_LOGE(PN532_LOG, "NO ACK received");
+            return ESP_FAIL;
+        }
+        uart_get_buffered_data_len(port, &size);
+        vTaskDelay(10/portTICK_PERIOD_MS);
+    }
+
+    uart_read_bytes(port, ackbuff, sizeof(ackbuff), 1000/portTICK_PERIOD_MS);
+
+    const char ack_message[] = PN532_ACK;
+    if(!memcmp(ackbuff, ack_message, sizeof(ackbuff)) == 0)
+    {
+        ESP_LOGE(PN532_LOG, "Received a NACK");
+        ESP_LOGI(PN532_LOG_RECEIVED_DATA, "NACK");
+        ESP_LOG_BUFFER_HEXDUMP(PN532_LOG, ackbuff, sizeof(ackbuff), ESP_LOG_ERROR);
+        return ESP_OK;
+    }
+    ESP_LOGI(PN532_LOG_RECEIVED_DATA, "ACK");
+    ESP_LOGD(PN532_LOG, "Received ACK");
+    //uart_flush_input(port);
+    return ESP_OK;
+}
+
+int pn532_serial_sendandcheck(uart_port_t port, uint8_t *cmd, uint8_t cmdlen, TickType_t timeout)
+{
+    pn532_serial_send(port, cmd, cmdlen, timeout);
+    return pn532_serial_readack(port, timeout);
+}
+
+int pn532_serial_read(uart_port_t port, uint8_t *buffer, uint8_t len, TickType_t timeout)
+{
+    uint8_t preamble[] = {PN532_PREAMBLE, PN532_STARTCODE1, PN532_STARTCODE2};
+    uint8_t message_buffer[len + 7];
+    size_t size=0;
+    BaseType_t tWrite = xTaskGetTickCount();
+
+    //wait until atlest until the size is know
+    while( size < 5){
+        if(xTaskGetTickCount() - tWrite > timeout){
+            ESP_LOGE(PN532_LOG, "NO message received before timeout");
+            return ESP_FAIL;
+        }
+        uart_get_buffered_data_len(port, &size);
+        vTaskDelay(10/portTICK_PERIOD_MS);
+    }
+    uart_read_bytes(port, message_buffer, sizeof(message_buffer), timeout);
+
+    if(memcmp(message_buffer, preamble, sizeof(preamble)) != 0)
+    {
+        ESP_LOGE(PN532_LOG, "Message doesn't start with the expected preable");
+        ESP_LOG_BUFFER_HEXDUMP(PN532_LOG,message_buffer,sizeof(message_buffer), ESP_LOG_ERROR);
+        return ESP_FAIL;
+    }
+
+    ESP_LOGD(PN532_LOG, "Message received");
+
+    // SIZE checksum
+    if(((message_buffer[3] + message_buffer[4]) & 0xFF) != 0x00)
+    {
+        ESP_LOGE(PN532_LOG, "Size checksum failed");
+        ESP_LOG_BUFFER_HEXDUMP(PN532_LOG,message_buffer,sizeof(message_buffer), ESP_LOG_ERROR);
+        return ESP_FAIL;
+    }
+
+    // check if the buffer buffer is large enough
+    if(len < message_buffer[3] - 1)
+    {
+        ESP_LOGE(PN532_LOG, "Buffer[size %d] is smaller than the received message[size:%d]", len, message_buffer[3] - 1);
+        return ESP_FAIL;
+    }
+
+    // wait the rest of the message
+    while(size < message_buffer[3] + 7){
+        if(xTaskGetTickCount() - tWrite > timeout){
+            ESP_LOGE(PN532_LOG, "Partial message received before timeout");
+            return ESP_FAIL;
+        }
+        ESP_LOGE(PN532_LOG, "waiting for: %d Bytes ", message_buffer[3] + 7 - size);
+        uart_get_buffered_data_len(port, &size);
+        vTaskDelay(10/portTICK_PERIOD_MS);
+    }
+
+    // DATA checksum
+    // TFI + DATA + checksum = 0x00
+    uint8_t data_checksum=0;
+
+    for(uint8_t i=0; i <= message_buffer[3]; i++ )
+        data_checksum += message_buffer[i+5];
+
+    if((data_checksum & 0xFF) != 0x00)
+    {
+        ESP_LOGE(PN532_LOG, "Data checksum failed: %d", (data_checksum & 0xFF));
+        ESP_LOG_BUFFER_HEXDUMP(PN532_LOG,message_buffer,message_buffer[3] + 8,ESP_LOG_ERROR);
+        return ESP_FAIL;
+    }
+
+    // Return the message
+    memcpy(buffer, message_buffer + 6, (message_buffer[3] - 1) * sizeof(uint8_t));
+    uart_flush_input(port);
+    ESP_LOG_BUFFER_HEX_LEVEL(PN532_LOG_RECEIVED_DATA, message_buffer, message_buffer[3] + 8, ESP_LOG_INFO);
+    return message_buffer[3] - 1;
+
+}
+
+int pn532_serial_SAMconfig(uart_port_t port, TickType_t timeout)
+{
+    ESP_LOGI(PN532_LOG, "Configuring pn532 SAM as not used");
+    uint8_t ackbuff[4] = {
+        PN532_COMMAND_SAMCONFIGURATION,
+        0x01,   // normal mode
+        0x14,   // timeout 50ms * 20 = 1 second
+        0x01    // use IRQ pin
+    };
+    return pn532_serial_sendandcheck(port, ackbuff, sizeof(ackbuff), timeout);
+
+}
+
+int pn532_serial_wakeUp(uart_port_t port)
+{
+    const char buffer[] = {0x55, 0x55, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x02, 0xfe, 0xd4, 0x02, 0x2a, 0x00};
+    uart_write_bytes(port, buffer, sizeof(buffer));
+    return pn532_serial_readack(port, 1000/portTICK_PERIOD_MS);
+    return ESP_OK;
+}
+
+void pn532_serial_init(uart_port_t port)
+{
+    pn532_serial_wakeUp(port);
+    ESP_LOGE(PN532_LOG,"init sucessfull");
+}
+
+int pn532_serial_list(uart_port_t port, uint8_t *buffer, uint8_t len, TickType_t timeout)
+{
+    uint8_t cmd[] = {
+        PN532_COMMAND_INLISTPASSIVETARGET,
+        0x01,   //initializate only 1 tag
+        0x03,   // check only for ISO/IEC14443-3B
+        0x00,   // preselect the PICC
+        0x01    // poll in a probabilistc way
+        };
+
+    pn532_serial_sendandcheck(port, cmd, sizeof(cmd), timeout);
+    pn532_serial_read(port, buffer, len, timeout);
+    return ESP_OK;
+}
+
+int pn532_serial_exchange(uart_port_t port, uint8_t *in_data, uint8_t in_len, uint8_t *out_data, uint8_t out_len, TickType_t timeout)
+{
+    // todo check fro task time > 0
+    BaseType_t tWrite = xTaskGetTickCount();
+    if(pn532_serial_sendandcheck(port, in_data, in_len, timeout) >= 0)
+        return pn532_serial_read(port, out_data, out_len, timeout);
+    ESP_LOGE(PN532_LOG, "EXCHANGE FAILED");
+    uart_flush_input(port);
+    return ESP_FAIL;
+}
+
+int pn532_serial_data_exchange(uart_port_t port, uint8_t tagID, uint8_t *in_data, uint8_t in_len, uint8_t *out_data, uint8_t out_len, TickType_t timeout)
+{
+    const uint8_t exchangecmd[]={
+        PN532_COMMAND_INDATAEXCHANGE,
+        tagID
+    };
+    uint8_t in_buff[2 + in_len];
+    memcpy(in_buff, exchangecmd, sizeof(exchangecmd));
+    memcpy(in_buff + sizeof(exchangecmd), in_data, in_len);
+
+
+    // return pn532_serial_exchange(port, in_buff, 2 + in_len, out_data, out_len, timeout);
+    return pn532_serial_exchange(port, in_buff, 2 + in_len, out_data, out_len, timeout);
+}

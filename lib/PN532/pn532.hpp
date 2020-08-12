@@ -145,7 +145,7 @@ static const std::array<uint8_t, 6> PN532_NACK = {PN532_PREAMBLE, PN532_STARTCOD
 template<class T>
 class PN532 : public T{
     public:
-        PN532(auto device): T(device){};
+        using T::T;
         int cmd(const uint8_t cmd, const std::vector<uint8_t> param = {}, TickType_t timeout = PN532_DEFAULT_TIMEOUT);
         int data_exchange(const uint8_t command, const std::vector<uint8_t> param, std::vector<uint8_t> data, TickType_t timeout = PN532_DEFAULT_TIMEOUT);
         int sam_config(TickType_t timeout = PN532_DEFAULT_TIMEOUT);

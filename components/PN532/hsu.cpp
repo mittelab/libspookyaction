@@ -6,10 +6,15 @@
 
 
 
-
 HSU::HSU(uart_port_t port)
 {
     device = port;
+}
+
+int HSU::wake_up(TickType_t timeout)
+{
+    std::array<uint8_t, 5> wake= {0x55, 0x55, 0x00, 0x00, 0x00};
+    return uart_write_bytes(device, (const char *) wake.data(), wake.size());
 }
 
 int HSU::receive(std::vector<uint8_t> &data, TickType_t timeout)
@@ -90,8 +95,8 @@ int HSU::send(const uint8_t cmd, const std::vector<uint8_t> param, TickType_t ti
             PN532_PREAMBLE,
             PN532_STARTCODE1,
             PN532_STARTCODE2,
-            static_cast<uint8_t>(param.size() + 1),
-            static_cast<uint8_t>(~(param.size() + 1) + 1),
+            static_cast<uint8_t>(param.size() + 2),
+            static_cast<uint8_t>(~(param.size() + 2) + 1),
             PN532_HOSTTOPN532,
     };
 

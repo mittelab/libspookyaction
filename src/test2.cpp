@@ -61,6 +61,7 @@ void echo_task(void *pvParameters)
     uart_set_pin(UART_NUM_1, ECHO_TEST_TXD, ECHO_TEST_RXD, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
 
     PN532<HSU> test(UART_NUM_1);
+    test.wake_up();
 
 
     while(1)

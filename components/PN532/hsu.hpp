@@ -3,6 +3,7 @@
 
 
 #include <vector>
+#include "instructions.hpp"
 #define PN532_DEFAULT_TIMEOUT (1000/portTICK_PERIOD_MS)
 
 
@@ -25,9 +26,12 @@ class HSU{
     uart_port_t device;
 
     HSU(uart_port_t port);
+    int wake_up(TickType_t timeout = PN532_DEFAULT_TIMEOUT);
     int receive(std::vector<uint8_t> &data, TickType_t timeout = PN532_DEFAULT_TIMEOUT);
     int send(const uint8_t cmd, const std::vector<uint8_t> param = {}, TickType_t timeout = PN532_DEFAULT_TIMEOUT);
     int wait_ack(TickType_t timeout = 1000/portTICK_PERIOD_MS);
     int send_ack(bool ack=true, TickType_t timeout = 1000/portTICK_PERIOD_MS);
 };
+#include "hsu.cpp"
+
 #endif

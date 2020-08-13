@@ -4,6 +4,14 @@
 
 
 template<class T>
+void PN532<T>::begin(TickType_t timeout)
+{
+    BaseType_t tWrite = xTaskGetTickCount();
+    T::wake_up(xTaskGetTickCount() - tWrite);
+    sam_config(xTaskGetTickCount() - tWrite);
+}
+
+template<class T>
 int PN532<T>::cmd(const uint8_t cmd, const std::vector<uint8_t> param, TickType_t timeout)
 {
     BaseType_t tWrite = xTaskGetTickCount();

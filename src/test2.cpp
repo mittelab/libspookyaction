@@ -62,12 +62,15 @@ void echo_task(void *pvParameters)
 
     PN532<HSU> test(UART_NUM_1);
     test.begin();
-
+    test.sam_config();
 
     while(1)
     {
 
-        test.sam_config();
+        if(test.readGpio(PN532_GPIO_P71))
+            ESP_LOGE("main", "BUTTON PRESSED");
+        else
+            ESP_LOGE("main", "BUTTON NOT PRESSED");
         ESP_LOGE("main", "DONE");
         vTaskDelay(1000/portTICK_PERIOD_MS);
     }
@@ -78,9 +81,10 @@ void echo_task(void *pvParameters)
 extern "C" void app_main()
 {
     esp_log_level_set(PN532_LOG, ESP_LOG_NONE);
-    esp_log_level_set(PN532_LOG_RECEIVED_DATA, ESP_LOG_NONE);
-    esp_log_level_set(PN532_LOG_SENT_DATA, ESP_LOG_NONE);
-    esp_log_level_set("desfire", ESP_LOG_VERBOSE);
+    esp_log_level_set(PN532_LOG_RECEIVED_DATA, ESP_LOG_ERROR);
+    esp_log_level_set(PN532_LOG_SENT_DATA, ESP_LOG_ERROR);
+    esp_log_level_set("desfire", ESP_LOG_NONE);
+    esp_log_level_set("FILL", ESP_LOG_DEBUG);
     //esp_log_level_set("desfire", ESP_LOG_NONE);
     xTaskCreate(echo_task, "uart_echo_task", 2048 * 2, NULL, 10, NULL);
 }

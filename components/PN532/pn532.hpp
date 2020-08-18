@@ -6,6 +6,8 @@
 #include <stddef.h>
 #include "instructions.hpp"
 
+#define PN532_POLLING_PERIOD_MS 150
+
 enum SAM_mode : uint8_t{
     normal_mode=0x01,
     virtual_card=0x02,
@@ -37,27 +39,26 @@ typedef struct{
     card_t card_supported;
 } pn532_info_t;
 
-typedef struct{
-    bool P30:1, P31:1,P32:1,P33:1,P34:1,P35:1,:2;
-} p3_t;
-
-typedef struct{
-    bool :1,P71:1, P72:1,:5;
-}p7_t;
-
-typedef struct{
-    p3_t P3;
-    p7_t P7;
-} gpio_t;
-
+enum rfConfigItem: uint8_t{
+    rf_field = 0x01,
+    various_timings = 0x02,
+    maxRtyCOM = 0x04,
+    maxRetries = 0x05,
+    analog_settings_typeA= 0x0A,
+    analog_settings_212_424kbps= 0x0B,
+    analog_settings_typeB= 0x0C,
+    analog_settings_ISO14443_4= 0x0D
+};
 
 template<class T>
 class PN532 : private T{
     public:
         using T::T;
         void begin(TickType_t timeout = PN532_DEFAULT_TIMEOUT);
+        int cmd(const uint8_t cmd, std::initializer_list<uint8_t> param_literal, TickType_t timeout = PN532_DEFAULT_TIMEOUT);
         int cmd(const uint8_t cmd, const std::vector<uint8_t>& param = {}, TickType_t timeout = PN532_DEFAULT_TIMEOUT);
         int read(const uint8_t command, std::vector<uint8_t>& data, TickType_t timeout = PN532_DEFAULT_TIMEOUT);
+        int data_exchange(const uint8_t command, std::initializer_list<uint8_t> param_literal, std::vector<uint8_t>& data, TickType_t timeout = PN532_DEFAULT_TIMEOUT);
         int data_exchange(const uint8_t command, const std::vector<uint8_t>& param, std::vector<uint8_t>& data, TickType_t timeout = PN532_DEFAULT_TIMEOUT);
         int sam_config(SAM_mode mode=normal_mode, uint8_t time=0x14, uint8_t irq=0x01, TickType_t timeout = PN532_DEFAULT_TIMEOUT);
         //int wake_up(TickType_t timeout);
@@ -65,8 +66,18 @@ class PN532 : private T{
         pn532_info_t getFirmwareVersion(TickType_t timeout = PN532_DEFAULT_TIMEOUT);
         uint8_t readRegister(const uint16_t address ,TickType_t timeout = PN532_DEFAULT_TIMEOUT);
         void writeRegister(const uint16_t address, const uint8_t data ,TickType_t timeout = PN532_DEFAULT_TIMEOUT);
-        void readGpio(gpio_t& gpio, TickType_t timeout);
-        void writeGpio(gpio_t& gpio, TickType_t timeout);
+        bool readGpio(uint8_t gpio, TickType_t timeout = PN532_DEFAULT_TIMEOUT);
+        bool writeGpio(uint8_t gpio, bool value, TickType_t timeout = PN532_DEFAULT_TIMEOUT);
+        bool InSelect(uint8_t tagID, TickType_t timeout = PN532_DEFAULT_TIMEOUT);
+        bool InRelease(uint8_t tagID, TickType_t timeout = PN532_DEFAULT_TIMEOUT);
+        bool InDeselect(uint8_t tagID, TickType_t timeout = PN532_DEFAULT_TIMEOUT);
+        bool InAutoPoll(uint8_t polling_number, uint8_t period, uint8_t tag_type, std::vector<uint8_t>& data);
+        bool InAutoPoll(uint8_t polling_number, uint8_t period, std::initializer_list<uint8_t> tag_types_literal, std::vector<uint8_t>& data);
+        bool InAutoPoll(uint8_t polling_number, uint8_t period, std::vector<uint8_t>& tag_types, std::vector<uint8_t>& data);
+        bool setParameters(bool fNADUsed, bool fDIDUsed, bool fAutomaticATR_RES, bool fAutomaticRATS, bool fISO14443_4_PICC, bool fRemovePrePostAmble, TickType_t timeout = PN532_DEFAULT_TIMEOUT);
+        bool setParameters(uint8_t flags, TickType_t timeout = PN532_DEFAULT_TIMEOUT);
+        bool rfConfiguration(uint8_t cfgItem, std::initializer_list<uint8_t> configData_literal, TickType_t timeout = PN532_DEFAULT_TIMEOUT);
+        bool rfConfiguration(uint8_t cfgItem, std::vector<uint8_t>& configData, TickType_t timeout = PN532_DEFAULT_TIMEOUT);
 
 };
 #include "pn532.cpp"

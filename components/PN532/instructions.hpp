@@ -126,13 +126,18 @@ static const std::array<uint8_t, 6> PN532_NACK = {PN532_PREAMBLE, PN532_STARTCOD
 #define NDEF_URIPREFIX_URN_EPC              (0x22)
 #define NDEF_URIPREFIX_URN_NFC              (0x23)
 
-#define PN532_GPIO_VALIDATIONBIT            (0x80)
 #define PN532_GPIO_P30                      (0)
 #define PN532_GPIO_P31                      (1)
 #define PN532_GPIO_P32                      (2)
 #define PN532_GPIO_P33                      (3)
 #define PN532_GPIO_P34                      (4)
 #define PN532_GPIO_P35                      (5)
+
+#define PN532_GPIO_P71                      (9)
+#define PN532_GPIO_P72                      (10)
+
+#define PN532_GPIO_I0                       (16)
+#define PN532_GPIO_I1                       (17)
 
 
 

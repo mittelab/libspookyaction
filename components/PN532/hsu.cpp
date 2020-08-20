@@ -48,7 +48,8 @@ int HSU::wake_up(TickType_t timeout)
     return uart_write_bytes(device, (const char *) wake.data(), wake.size());
 }
 
-int HSU::receive(std::vector<uint8_t> &data, TickType_t timeout)
+template<typename Container>
+int HSU::receive(Container &data, TickType_t timeout)
 {
     std::array<uint8_t, 3> preamble = {PN532_PREAMBLE, PN532_STARTCODE1, PN532_STARTCODE2};
     std::vector<uint8_t> message_buffer;
@@ -100,7 +101,8 @@ int HSU::receive(std::vector<uint8_t> &data, TickType_t timeout)
     return ESP_OK;
 }
 
-int HSU::send(const uint8_t cmd, const std::vector<uint8_t> param, TickType_t timeout)
+template<typename Container>
+int HSU::send(const uint8_t cmd, Container param, TickType_t timeout)
 {
     std::vector<uint8_t> buffer = {
             PN532_PREAMBLE,

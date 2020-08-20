@@ -24,7 +24,8 @@ int PN532<T>::cmd(const uint8_t cmd, std::initializer_list<uint8_t> param_litera
 }
 
 template<class T>
-int PN532<T>::cmd(const uint8_t cmd, const std::vector<uint8_t>& param, TickType_t timeout)
+template<typename Container>
+int PN532<T>::cmd(const uint8_t cmd, Container& param, TickType_t timeout)
 {
     BaseType_t tStart = xTaskGetTickCount();
     T::send(cmd, param, timeout);
@@ -45,7 +46,8 @@ int PN532<T>::sam_config(SAM_mode mode, uint8_t time, uint8_t irq, TickType_t ti
 }
 
 template<class T>
-int PN532<T>::read(const uint8_t command, std::vector<uint8_t>& data, TickType_t timeout)
+template<typename Container>
+int PN532<T>::read(const uint8_t command, Container& data, TickType_t timeout)
 {
     BaseType_t tStart = xTaskGetTickCount();
     T::send(command, std::vector<uint8_t>(), timeout);
@@ -64,11 +66,21 @@ int PN532<T>::data_exchange(const uint8_t command, std::initializer_list<uint8_t
 }
 
 template<class T>
-int PN532<T>::data_exchange(const uint8_t command, const std::vector<uint8_t>& param, std::vector<uint8_t>& data, TickType_t timeout)
+template<typename Container>
+int PN532<T>::data_exchange(const uint8_t command, Container& param, Container& data, TickType_t timeout)
 {
+    std:deque<uint8_t> data_buffer;
     BaseType_t tWrite = xTaskGetTickCount();
-    if(cmd(command, param, xTaskGetTickCount() - tWrite) >= 0)
-        return T::receive(data, xTaskGetTickCount() - tWrite);
+    if(cmd(command, param, timeout - xTaskGetTickCount() + tWrite) >= 0)
+    {
+        if(T::receive(data_buffer, timeout - xTaskGetTickCount() + tWrite) >= 0)
+        {
+            if(data_buffer.front() == command + 1)
+            data_buffer.pop_front();
+            data.insert(data.begin(), data_buffer.begin(), data_buffer.end());
+            return ESP_OK;
+        }
+    }  
     return ESP_FAIL;
 }
 
@@ -192,7 +204,10 @@ bool PN532<T>::rfConfiguration(uint8_t cfgItem, std::vector<uint8_t>& configData
 // int PN532<T>::InPSL(){}
 
 // template<class T>
-// int PN532<T>::InDataExchange(){}
+// bool PN532<T>::InDataExchange(std::vector<uint8_t>& host2tag, std::vector<uint8_t>& tag2host, TickType_t timeout)
+// {
+//     data_exchange()
+// }
 
 // template<class T>
 // int PN532<T>::InCommunicateThru(){}
@@ -256,8 +271,11 @@ bool PN532<T>::InAutoPoll(uint8_t polling_number, uint8_t period, std::vector<ui
     param.reserve(tag_types.size() + 2);
     param.insert(param.end(), tag_types.begin(), tag_types.end());
 
-    if(! data_exchange(PN532_COMMAND_INAUTOPOLL, param, data, polling_time))
+    if(! data_exchange(PN532_COMMAND_INAUTOPOLL, param, data, polling_time)){
         T::send_ack(); //abort
+        return false;
+    }
+        
 
     return true;
 }

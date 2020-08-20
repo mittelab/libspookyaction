@@ -51,15 +51,28 @@ enum rfConfigItem: uint8_t{
 };
 
 template<class T>
-class PN532 : private T{
+class NFC final: public PN532<T>{
+    using PN532<T>::PN532;
+};
+
+template<class T>
+class PN532{
+    public:
+        virtual int wake_up(TickType_t timeout = PN532_DEFAULT_TIMEOUT);
+        virtual int receive(std::vector<uint8_t> &data, TickType_t timeout = PN532_DEFAULT_TIMEOUT);
+        virtual int send(const uint8_t cmd, const std::vector<uint8_t> param = {}, TickType_t timeout = PN532_DEFAULT_TIMEOUT);
+        virtual int wait_ack(TickType_t timeout = 1000/portTICK_PERIOD_MS);
+        virtual int send_ack(bool ack=true, TickType_t timeout = 1000/portTICK_PERIOD_MS);
+
     public:
         using T::T;
         void begin(TickType_t timeout = PN532_DEFAULT_TIMEOUT);
+        
+        template<typename Container> int cmd(const uint8_t cmd, Container& param = {}, TickType_t timeout = PN532_DEFAULT_TIMEOUT);
         int cmd(const uint8_t cmd, std::initializer_list<uint8_t> param_literal, TickType_t timeout = PN532_DEFAULT_TIMEOUT);
-        int cmd(const uint8_t cmd, const std::vector<uint8_t>& param = {}, TickType_t timeout = PN532_DEFAULT_TIMEOUT);
-        int read(const uint8_t command, std::vector<uint8_t>& data, TickType_t timeout = PN532_DEFAULT_TIMEOUT);
+        template<typename Container> int read(const uint8_t command, Container& data, TickType_t timeout = PN532_DEFAULT_TIMEOUT);
         int data_exchange(const uint8_t command, std::initializer_list<uint8_t> param_literal, std::vector<uint8_t>& data, TickType_t timeout = PN532_DEFAULT_TIMEOUT);
-        int data_exchange(const uint8_t command, const std::vector<uint8_t>& param, std::vector<uint8_t>& data, TickType_t timeout = PN532_DEFAULT_TIMEOUT);
+        template<typename Container> int data_exchange(const uint8_t command, Container& param, Container& data, TickType_t timeout = PN532_DEFAULT_TIMEOUT);
         int sam_config(SAM_mode mode=normal_mode, uint8_t time=0x14, uint8_t irq=0x01, TickType_t timeout = PN532_DEFAULT_TIMEOUT);
         //int wake_up(TickType_t timeout);
 

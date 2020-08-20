@@ -9,7 +9,6 @@
 HSU::HSU(uart_port_t port)
 {
     device = port;
-    //uart_enable_pattern_det_baud_intr(device,0x00, 2, 70, 10,10);
 }
 
 template<typename Iter>
@@ -158,7 +157,7 @@ int HSU::wait_ack(TickType_t timeout)
 
 int HSU::send_ack(bool ack, TickType_t timeout)
 {
-    std::array<uint8_t, 6> frame = ack? PN532_ACK :  PN532_NACK;
+    std::array<uint8_t, 6> frame = ack? PN532_ACK : PN532_NACK;
 
     // write and block until transmission is finished (or timeout time expired)
     uart_write_bytes(device, (const char *)frame.data(), frame.size());

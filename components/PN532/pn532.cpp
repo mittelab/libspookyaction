@@ -1,6 +1,7 @@
 #include "pn532.hpp"
 #include <array>
 #include <bitset>
+#include <deque>
 #define PN532_DEFAULT_TIMEOUT (1000/portTICK_PERIOD_MS)
 
 
@@ -69,7 +70,7 @@ template<class T>
 template<typename Container>
 int PN532<T>::data_exchange(const uint8_t command, Container& param, Container& data, TickType_t timeout)
 {
-    std:deque<uint8_t> data_buffer;
+    std::deque<uint8_t> data_buffer;
     BaseType_t tWrite = xTaskGetTickCount();
     if(cmd(command, param, timeout - xTaskGetTickCount() + tWrite) >= 0)
     {

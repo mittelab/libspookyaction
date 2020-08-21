@@ -67,12 +67,17 @@ void echo_task(void *pvParameters)
     while(1)
     {
 
-        if(test.readGpio(PN532_GPIO_P71))
-            ESP_LOGE("main", "BUTTON PRESSED");
-        else
-            ESP_LOGE("main", "BUTTON NOT PRESSED");
-        ESP_LOGE("main", "DONE");
+        // if(test.readGpio(PN532_GPIO_P71))
+        //     ESP_LOGE("main", "BUTTON PRESSED");
+        // else
+        //     ESP_LOGE("main", "BUTTON NOT PRESSED");
+        
+
+        std::vector<uint8_t> buff;
+        test.InAutoPoll(10,0x14,0x00,buff);
+        //test.InDataExchange();
         vTaskDelay(1000/portTICK_PERIOD_MS);
+        ESP_LOGE("main", "DONE");
     }
 
 }

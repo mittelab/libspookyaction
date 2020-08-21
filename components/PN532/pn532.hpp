@@ -5,6 +5,11 @@
 #include <vector>
 #include <stddef.h>
 #include "instructions.hpp"
+extern "C"{
+    #include "freertos/FreeRTOS.h"
+    #include "freertos/task.h"
+    #include <esp_log.h>
+}
 
 #define PN532_POLLING_PERIOD_MS 150
 
@@ -57,16 +62,16 @@ class PN532: public T{
     public:
         using T::T;
         void begin(TickType_t timeout = PN532_DEFAULT_TIMEOUT);
-        
+
         template<typename Container> int cmd(const uint8_t cmd, Container& param = {}, TickType_t timeout = PN532_DEFAULT_TIMEOUT);
         int cmd(const uint8_t cmd, std::initializer_list<uint8_t> param_literal, TickType_t timeout = PN532_DEFAULT_TIMEOUT);
         template<typename Container> int read(const uint8_t command, Container& data, TickType_t timeout = PN532_DEFAULT_TIMEOUT);
-        int data_exchange(const uint8_t command, std::initializer_list<uint8_t> param_literal, std::vector<uint8_t>& data, TickType_t timeout = PN532_DEFAULT_TIMEOUT);
-        template<typename Container> int data_exchange(const uint8_t command, Container& param, Container& data, TickType_t timeout = PN532_DEFAULT_TIMEOUT);
+        bool data_exchange(const uint8_t command, std::initializer_list<uint8_t> param_literal, std::vector<uint8_t>& data, TickType_t timeout = PN532_DEFAULT_TIMEOUT);
+        template<typename Container> bool data_exchange(const uint8_t command, Container& param, Container& data, TickType_t timeout = PN532_DEFAULT_TIMEOUT);
         int sam_config(SAM_mode mode=normal_mode, uint8_t time=0x14, uint8_t irq=0x01, TickType_t timeout = PN532_DEFAULT_TIMEOUT);
         //int wake_up(TickType_t timeout);
 
-        pn532_info_t getFirmwareVersion(TickType_t timeout = PN532_DEFAULT_TIMEOUT);
+        bool getFirmwareVersion(pn532_info_t& chipVersion, TickType_t timeout = PN532_DEFAULT_TIMEOUT);
         uint8_t readRegister(const uint16_t address ,TickType_t timeout = PN532_DEFAULT_TIMEOUT);
         void writeRegister(const uint16_t address, const uint8_t data ,TickType_t timeout = PN532_DEFAULT_TIMEOUT);
         bool readGpio(uint8_t gpio, TickType_t timeout = PN532_DEFAULT_TIMEOUT);
@@ -81,6 +86,8 @@ class PN532: public T{
         bool setParameters(uint8_t flags, TickType_t timeout = PN532_DEFAULT_TIMEOUT);
         bool rfConfiguration(uint8_t cfgItem, std::initializer_list<uint8_t> configData_literal, TickType_t timeout = PN532_DEFAULT_TIMEOUT);
         bool rfConfiguration(uint8_t cfgItem, std::vector<uint8_t>& configData, TickType_t timeout = PN532_DEFAULT_TIMEOUT);
+        template<typename Container> bool InDataExchange(uint8_t tagID, Container& host2tag, Container& tag2host, TickType_t timeout = PN532_DEFAULT_TIMEOUT);
+        template<typename Container> bool InDataExchange(uint8_t tagID, std::initializer_list<uint8_t> host2tag, Container& tag2host, TickType_t timeout = PN532_DEFAULT_TIMEOUT);
 
 };
 #include "pn532.cpp"

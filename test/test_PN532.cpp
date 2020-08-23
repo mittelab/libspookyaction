@@ -4,6 +4,7 @@
 
 #include <pn532.hpp>
 #include <hsu.hpp>
+#include <desfire.hpp>
 
 #define ECHO_TEST_TXD  (GPIO_NUM_4)
 #define ECHO_TEST_RXD  (GPIO_NUM_36)
@@ -81,5 +82,4 @@ extern "C" void app_main()
     RUN_TEST(test_InDataExchange);
     UNITY_END();
 }
-
-
+ 

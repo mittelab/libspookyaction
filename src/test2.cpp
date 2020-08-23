@@ -20,6 +20,7 @@ extern "C" {
 }
 #include <pn532.hpp>
 #include <hsu.hpp>
+#include <desfire.hpp>
 
 
 

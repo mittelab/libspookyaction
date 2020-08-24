@@ -132,55 +132,57 @@ class AppKey;
 template<>
 class AppKey<KEY_2K3DES>{
     keyType E;
-    uint8_t keyID;
     std::vector<uint8_t> key;
     mbedtls_des_context context;
     std::array<uint8_t, 8> iv;
 
     public:
+    uint8_t keyID=0x00;
     AppKey(uint8_t id=0x00, std::vector<uint8_t> desfireKey = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00});
-    template<typename Container> void encrypt(Container& dataIn, Container& dataOut);
-    template<typename Container> void decrypt(Container& dataIn, Container& dataOut);
+    template<typename Container> void encrypt(Container& data);
+    template<typename Container> void decrypt(Container& data);
 
 };
 
 template<>
 class AppKey<KEY_3K3DES>{
     keyType E;
-    uint8_t keyID;
     std::vector<uint8_t> key;
     mbedtls_des3_context context;
     std::array<uint8_t, 8> iv;
 
     public:
+    uint8_t keyID=0x00;
     AppKey(uint8_t id=0x00, std::vector<uint8_t> desfireKey = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00});
-    template<typename Container> void encrypt(Container& dataIn, Container& dataOut);
-    template<typename Container> void decrypt(Container& dataIn, Container& dataOut);
+    template<typename Container> void encrypt(Container& data);
+    template<typename Container> void decrypt(Container& data);
 };
 
 
 template<>
 class AppKey<KEY_AES>{
     keyType E;
-    uint8_t keyID;
     std::vector<uint8_t> key;
     mbedtls_aes_context context;
 
     public:
+    uint8_t keyID=0x00;
     AppKey(uint8_t id=0x00, std::vector<uint8_t> desfireKey = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00});
-    template<typename Container> void encrypt(Container& dataIn, Container& dataOut);
-    template<typename Container> void decrypt(Container& dataIn, Container& dataOut);
+    template<typename Container> void encrypt(Container& data);
+    template<typename Container> void decrypt(Container& data);
 };
 
 template<keyType E>
 class DesfireApp
 {
-    std::array<uint8_t, 3> appID;
-    AppKey<E> appKey;
+    
+    
 
     bool isAuth = false;
 
     public:
+    AppKey<E> appKey;
+    std::array<uint8_t, 3> appID;
     DesfireApp(uint32_t id = 0x000000, AppKey<E> key= AppKey<E>());
     void getFileIDs();
     void getFileSetting();
@@ -192,14 +194,16 @@ class DesfireApp
 template <class T>
 class Desfire: public T
 {
-    uint8_t tagID;
+    uint8_t tagID=0x01;
+
 
     public:
-
-    template<keyType E, typename Container>
-    void tagCommand(uint8_t command, Container& param, Container& data);
-    template<keyType E, typename Container>
-    void tagCommand(uint8_t command, std::initializer_list<uint8_t> param, Container& data);
+    using T::T;
+    void selectTag(uint8_t id);
+    template<typename ContainerIN, typename ContainerOUT>
+    void tagCommand(uint8_t command, ContainerIN& param, ContainerOUT& data);
+    template<typename ContainerIN=std::initializer_list<uint8_t>, typename ContainerOUT>
+    void tagCommand(uint8_t command, std::initializer_list<uint8_t> param, ContainerOUT& data);
 
     template<keyType E> void selectApp(DesfireApp<E>& application);
     template<keyType E> void autenticate(DesfireApp<E>& application = DesfireApp<E>());

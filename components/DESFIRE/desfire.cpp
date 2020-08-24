@@ -1,5 +1,7 @@
 
 #include <vector>
+#include <deque>
+#include <algorithm>
 
 AppKey<KEY_2K3DES>::AppKey(uint8_t id, std::vector<uint8_t> desfireKey)
 {
@@ -12,19 +14,17 @@ AppKey<KEY_2K3DES>::AppKey(uint8_t id, std::vector<uint8_t> desfireKey)
 }
 
 template<typename Container>
-void AppKey<KEY_2K3DES>::encrypt(Container& dataIn, Container& dataOut)
+void AppKey<KEY_2K3DES>::encrypt(Container& data)
 {
     //TODO: implement padding
-    dataOut.resize(dataIn.size());
-    mbedtls_des_crypt_cbc(&context, MBEDTLS_DES_ENCRYPT, dataIn.size() ,iv.data(), dataIn.data(), dataOut.data());
+    mbedtls_des_crypt_cbc(&context, MBEDTLS_DES_ENCRYPT, data.size() ,iv.data(), data.data(), data.data());
 }
 
 template<typename Container>
-void AppKey<KEY_2K3DES>::decrypt(Container& dataIn, Container& dataOut)
+void AppKey<KEY_2K3DES>::decrypt(Container& data)
 {
     //TODO: implement padding strip
-    dataOut.resize(dataIn.size());
-    mbedtls_des_crypt_cbc(&context, MBEDTLS_DES_DECRYPT, dataIn.size() ,iv.data(), dataIn.data(), dataOut.data());
+    mbedtls_des_crypt_cbc(&context, MBEDTLS_DES_DECRYPT, data.size() ,iv.data(), data.data(), data.data());
 }
 
 
@@ -60,19 +60,25 @@ DesfireApp<E>::DesfireApp(uint32_t id, AppKey<E> key)
 ///////////////////////////////////////////////////////////////////////////////
 
 template <class T>
-template<keyType E, typename Container>
-void Desfire<T>::tagCommand(uint8_t command, std::initializer_list<uint8_t> param, Container& data)
+void Desfire<T>::selectTag(uint8_t id)
 {
-    Container sendBuffer = {command};
+    tagID = id;
+}
+
+template <class T>
+template<typename ContainerIN, typename ContainerOUT>
+void Desfire<T>::tagCommand(uint8_t command, std::initializer_list<uint8_t> param, ContainerOUT& data)
+{
+    std::vector<uint8_t> sendBuffer = {command};
     sendBuffer.insert(sendBuffer.end(), param.begin(), param.end());
     T::InDataExchange(tagID, sendBuffer, data);
 }
 
 template <class T>
-template<keyType E, typename Container>
-void Desfire<T>::tagCommand(uint8_t command, Container& param, Container& data)
+template<typename ContainerIN, typename ContainerOUT>
+void Desfire<T>::tagCommand(uint8_t command, ContainerIN& param, ContainerOUT& data)
 {
-    Container sendBuffer = {command};
+    std::vector<uint8_t> sendBuffer = {command};
     sendBuffer.insert(sendBuffer.end(), param.begin(), param.end());
     T::InDataExchange(tagID, sendBuffer, data);
 }
@@ -81,5 +87,34 @@ template <class T>
 template<keyType E>
 void Desfire<T>::selectApp(DesfireApp<E>& application)
 {
-    T::tagCommand(DESFIRE_SELECT_APPLICATION,application.appID);
+    std::vector<uint8_t> test;
+    tagCommand(DESFIRE_SELECT_APPLICATION,application.appID, test);
+}
+
+template <class T>
+template<keyType E>
+void Desfire<T>::autenticate(DesfireApp<E>& application)
+{
+    uint8_t authType = DFEV1_INS_AUTHENTICATE_ISO;
+    std::vector<uint8_t> challenge;
+    std::vector<uint8_t> response;
+    tagCommand(authType,{application.appKey.keyID},challenge);
+    if(challenge.front() != 0xAF)
+        return;
+
+
+    // //pop status byte
+    std::rotate(challenge.begin(), challenge.begin() + 1, challenge.end());
+    challenge.pop_back();
+
+    //decode and calculate response
+
+    application.appKey.decrypt(challenge);
+    std::rotate(challenge.begin(), challenge.begin() + 1, challenge.end());
+    size_t key_size = challenge.size();
+    challenge.resize(key_size*2); //double space for make space for the new response
+    std::rotate(challenge.begin(), challenge.begin() + key_size, challenge.end());
+    esp_fill_random(challenge.data(), key_size);
+    application.appKey.encrypt(challenge);
+    tagCommand(0xAF,challenge, response);
 }

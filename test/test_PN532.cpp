@@ -14,6 +14,7 @@
 
 
 PN532<HSU> test_pn532(UART_DUT);
+Desfire<PN532<HSU>> tag_test(UART_DUT);
 uint8_t tagID;
 
 
@@ -67,7 +68,20 @@ void test_InDataExchange()
     std::vector<uint8_t> data;
     TEST_ASSERT_TRUE(test_pn532.InDataExchange(tagID,{0x5A,0x00,0x00,0x00},data));
     ESP_LOG_BUFFER_HEX_LEVEL(PN532_LOG,data.data(),data.size(), ESP_LOG_ERROR);
-    TEST_ASSERT_EQUAL_HEX8(0x00,data[2]);
+    TEST_ASSERT_EQUAL_HEX8(0x00,data[0]);
+}
+
+//////////////////////////////////////////////////////////////
+void test_desfire_select()
+{
+    DesfireApp<KEY_2K3DES> app(0x00);
+    tag_test.selectApp(app);
+}
+
+void test_desfire_auth()
+{
+    DesfireApp<KEY_2K3DES> app(0x00);
+    tag_test.autenticate(app);
 }
 
 extern "C" void app_main()
@@ -80,6 +94,9 @@ extern "C" void app_main()
     RUN_TEST(test_InAutoPoll);
     RUN_TEST(test_InSelect);
     RUN_TEST(test_InDataExchange);
+    //////////////////////////////
+    RUN_TEST(test_desfire_select);
+    RUN_TEST(test_desfire_auth);
     UNITY_END();
 }
  

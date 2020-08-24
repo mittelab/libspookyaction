@@ -224,7 +224,7 @@ bool PN532<T>::InDataExchange(uint8_t tagID, Container& host2tag, Container& tag
     data_exchange_cmd.reserve(host2tag.size() + 1);
     data_exchange_cmd.insert(data_exchange_cmd.end(), host2tag.begin(), host2tag.end());
     if(data_exchange(PN532_COMMAND_INDATAEXCHANGE, data_exchange_cmd, data_exchange_receive_buffer, timeout)){
-        tag2host.insert(tag2host.begin(), data_exchange_receive_buffer.begin() - 1, data_exchange_receive_buffer.end());
+        tag2host.insert(tag2host.begin(), data_exchange_receive_buffer.begin() + 1, data_exchange_receive_buffer.end());
         return true;
     }
     return false;

@@ -1,8 +1,8 @@
 #include "pn532.hpp"
 #include <array>
 #include <bitset>
-#include <deque>
 #include <esp_log.h>
+#include <rom/crc.h>
 
 #define PN532_DEFAULT_TIMEOUT (1000/portTICK_PERIOD_MS)
 
@@ -73,24 +73,20 @@ template<class T>
 template<typename Container>
 bool PN532<T>::data_exchange(const uint8_t command, Container& param, Container& data, TickType_t timeout)
 {
-    std::deque<uint8_t> data_buffer;
+    std::vector<uint8_t> data_buffer;
     BaseType_t tWrite = xTaskGetTickCount();
     if(cmd(command, param, timeout - xTaskGetTickCount() + tWrite))
     {
-        if(T::receive(data_buffer, timeout - xTaskGetTickCount() + tWrite))
+        if(T::receive(data, timeout - xTaskGetTickCount() + tWrite))
         {
-            if(data_buffer.front() == command + 1)
-            data_buffer.pop_front();
-            data.insert(data.begin(), data_buffer.begin(), data_buffer.end());
+            if(data.front() == command + 1)
+            data.erase(data.begin());
             return true;
         }
     }
     ESP_LOGE(PN532_LOG,"DATA EXCHANGE FAILED");
     return false;
 }
-
-// template<class T>
-// int PN532<T>::Diagnose(){}
 
 template<class T>
 bool PN532<T>::getFirmwareVersion(pn532_info_t& chipVersion,TickType_t timeout)
@@ -215,6 +211,21 @@ bool PN532<T>::InDataExchange(uint8_t tagID, std::initializer_list<uint8_t> host
     return InDataExchange(tagID, host2tag, tag2host,timeout);
 }
 
+// template<class T>
+// template<typename Container>
+// bool PN532<T>::InDataExchange(uint8_t tagID, Container& host2tag, Container& tag2host, TickType_t timeout)
+// {
+//     std::vector<uint8_t> data_exchange_cmd={tagID};
+//     std::vector<uint8_t> data_exchange_receive_buffer;
+//     data_exchange_cmd.reserve(host2tag.size() + 1);
+//     data_exchange_cmd.insert(data_exchange_cmd.end(), host2tag.begin(), host2tag.end());
+//     if(data_exchange(PN532_COMMAND_INDATAEXCHANGE, data_exchange_cmd, data_exchange_receive_buffer, timeout)){
+//         tag2host.insert(tag2host.begin(), data_exchange_receive_buffer.begin() + 1, data_exchange_receive_buffer.end());
+//         return true;
+//     }
+//     return false;
+// }
+
 template<class T>
 template<typename Container>
 bool PN532<T>::InDataExchange(uint8_t tagID, Container& host2tag, Container& tag2host, TickType_t timeout)
@@ -223,8 +234,8 @@ bool PN532<T>::InDataExchange(uint8_t tagID, Container& host2tag, Container& tag
     std::vector<uint8_t> data_exchange_receive_buffer;
     data_exchange_cmd.reserve(host2tag.size() + 1);
     data_exchange_cmd.insert(data_exchange_cmd.end(), host2tag.begin(), host2tag.end());
-    if(data_exchange(PN532_COMMAND_INDATAEXCHANGE, data_exchange_cmd, data_exchange_receive_buffer, timeout)){
-        tag2host.insert(tag2host.begin(), data_exchange_receive_buffer.begin() + 1, data_exchange_receive_buffer.end());
+    if(data_exchange(PN532_COMMAND_INDATAEXCHANGE, data_exchange_cmd, tag2host, timeout)){
+        if(tag2host.size() > 0) tag2host.erase(tag2host.begin());
         return true;
     }
     return false;

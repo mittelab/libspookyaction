@@ -14,6 +14,8 @@ extern "C"{
     #include "mbedtls/aes.h"
 }
 
+#define DESFIRE_LOG "desfire"
+
 #define DESFIRE_AUTHENTICATE_LEGACY        0x0A
 #define DESFIRE_CHANGE_KEY_SETTINGS        0x54
 #define DESFIRE_GET_KEY_SETTINGS           0x45
@@ -135,12 +137,16 @@ class AppKey<KEY_2K3DES>{
     std::vector<uint8_t> key;
     mbedtls_des_context context;
     std::array<uint8_t, 8> iv;
+    std::array<uint8_t, 8> sessionKey;
 
     public:
     uint8_t keyID=0x00;
     AppKey(uint8_t id=0x00, std::vector<uint8_t> desfireKey = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00});
     template<typename Container> void encrypt(Container& data);
     template<typename Container> void decrypt(Container& data);
+    template<typename Container> void setSessionKey(Container& data);
+    template<typename Container> uint32_t cmac(Container& data);
+    template<typename Iter> void random(Iter start, Iter end);
 
 };
 
@@ -156,6 +162,7 @@ class AppKey<KEY_3K3DES>{
     AppKey(uint8_t id=0x00, std::vector<uint8_t> desfireKey = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00});
     template<typename Container> void encrypt(Container& data);
     template<typename Container> void decrypt(Container& data);
+    template<typename Container> void setSessionKey(Container& data);
 };
 
 
@@ -175,13 +182,10 @@ class AppKey<KEY_AES>{
 template<keyType E>
 class DesfireApp
 {
-    
-    
-
-    bool isAuth = false;
-
     public:
+    bool isAuth = false;
     AppKey<E> appKey;
+    std::array<uint8_t, 8> sessionKey;
     std::array<uint8_t, 3> appID;
     DesfireApp(uint32_t id = 0x000000, AppKey<E> key= AppKey<E>());
     void getFileIDs();
@@ -189,6 +193,7 @@ class DesfireApp
     void setFileSettings();
     void createFile();
     void deleteFile();
+
 };
 
 template <class T>
@@ -206,7 +211,8 @@ class Desfire: public T
     void tagCommand(uint8_t command, std::initializer_list<uint8_t> param, ContainerOUT& data);
 
     template<keyType E> void selectApp(DesfireApp<E>& application);
-    template<keyType E> void autenticate(DesfireApp<E>& application = DesfireApp<E>());
+    template<keyType E> bool authenticate(DesfireApp<E>& application = DesfireApp<E>());
+    template<keyType E> bool createApp(DesfireApp<E>& application);
 };
 
 #include "desfire.cpp"

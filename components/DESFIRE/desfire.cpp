@@ -1,6 +1,5 @@
 
 #include <vector>
-#include <deque>
 #include <algorithm>
 
 AppKey<KEY_2K3DES>::AppKey(uint8_t id, std::vector<uint8_t> desfireKey)
@@ -93,28 +92,81 @@ void Desfire<T>::selectApp(DesfireApp<E>& application)
 
 template <class T>
 template<keyType E>
-void Desfire<T>::autenticate(DesfireApp<E>& application)
+bool Desfire<T>::authenticate(DesfireApp<E>& application)
 {
+    std::array<uint8_t, 8> randomNum;
     uint8_t authType = DFEV1_INS_AUTHENTICATE_ISO;
     std::vector<uint8_t> challenge;
     std::vector<uint8_t> response;
     tagCommand(authType,{application.appKey.keyID},challenge);
     if(challenge.front() != 0xAF)
-        return;
+        return false;
 
 
     // //pop status byte
-    std::rotate(challenge.begin(), challenge.begin() + 1, challenge.end());
-    challenge.pop_back();
+    challenge.erase(challenge.begin());
+
 
     //decode and calculate response
 
     application.appKey.decrypt(challenge);
+    std::copy(challenge.begin(),challenge.begin() + 4, application.sessionKey.begin() + 4); //store second half of session key
     std::rotate(challenge.begin(), challenge.begin() + 1, challenge.end());
     size_t key_size = challenge.size();
     challenge.resize(key_size*2); //double space for make space for the new response
     std::rotate(challenge.begin(), challenge.begin() + key_size, challenge.end());
-    esp_fill_random(challenge.data(), key_size);
+    //esp_fill_random(challenge.data(), key_size);
+    application.appKey.random(challenge.begin(), challenge.begin() + key_size);
+    std::copy(challenge.begin(),challenge.begin() + 8, randomNum.begin());
+    std::copy(challenge.begin(),challenge.begin() + 4, application.sessionKey.begin()); //store first half of session key
+    std::for_each(application.sessionKey.begin(), application.sessionKey.end(), [](uint8_t byte){ byte &= 0xFE; }); //clear first bit of each byte of the session key
     application.appKey.encrypt(challenge);
     tagCommand(0xAF,challenge, response);
+
+
+
+    if(response.front() != 0x00)
+        return false;
+    response.erase(response.begin());
+    application.appKey.decrypt(response);
+    std::rotate(response.begin(), response.end() - 1, response.end());
+
+    if(! std::equal(randomNum.begin(),randomNum.end(), response.begin()))
+        return false;
+
+    ESP_LOGI(DESFIRE_LOG, "AUTH OK");
+    //set session key
+    application.appKey.setSessionKey(application.sessionKey);
+    application.isAuth = true;
+    return true;
+}
+
+
+template <class T>
+template<keyType E>
+bool Desfire<T>::createApp(DesfireApp<E>& application)
+{
+    tagCommand();
+}
+
+
+
+
+
+template<typename Container>
+void AppKey<KEY_2K3DES>::setSessionKey(Container& data)
+{
+    std::copy(data.begin(), data.begin() + 8, iv.begin());
+}
+
+template<typename Container>
+uint32_t AppKey<KEY_2K3DES>::cmac(Container& data)
+{
+    return crc32_le(0, data.data(), data.size());
+}
+
+template<typename Iter>
+void AppKey<KEY_2K3DES>::random(Iter start, Iter end)
+{
+    esp_fill_random(&(*start), std::distance(start,end));
 }

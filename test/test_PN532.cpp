@@ -81,7 +81,7 @@ void test_desfire_select()
 void test_desfire_auth()
 {
     DesfireApp<KEY_2K3DES> app(0x00);
-    tag_test.autenticate(app);
+    TEST_ASSERT_TRUE(tag_test.autenticate(app));
 }
 
 extern "C" void app_main()

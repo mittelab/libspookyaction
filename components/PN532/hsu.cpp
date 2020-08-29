@@ -52,34 +52,34 @@ template<typename Container>
 bool HSU::receive(Container &data, TickType_t timeout)
 {
     std::array<uint8_t, 3> preamble = {PN532_PREAMBLE, PN532_STARTCODE1, PN532_STARTCODE2};
-    std::vector<uint8_t> message_buffer;
-    message_buffer.reserve(256);
-    message_buffer.resize(5);
+    data.clear();
+    data.reserve(256);
+    data.resize(5);
     BaseType_t tStart = xTaskGetTickCount();
 
-    if(! fill_buffer(message_buffer.begin(),message_buffer.begin() + 5, timeout - xTaskGetTickCount() + tStart))
+    if(! fill_buffer(data.begin(),data.begin() + 5, timeout - xTaskGetTickCount() + tStart))
     {
         ESP_LOGE(PN532_LOG, "No Preamble found before timeout");
         return false;
     }
     // ESP_LOGE(PN532_LOG, "Preable found");
-    if(! std::equal(message_buffer.begin(), message_buffer.begin() + preamble.size(), preamble.begin()))
+    if(! std::equal(data.begin(), data.begin() + preamble.size(), preamble.begin()))
     {
         ESP_LOGE(PN532_LOG, "Message doesn't start with the expected preable");
-        ESP_LOGE(PN532_LOG, "%#02x %#02x %#02x",message_buffer[0],message_buffer[1],message_buffer[2]);
-        // ESP_LOG_BUFFER_HEX_LEVEL(PN532_LOG,message_buffer.data(), message_buffer.size(), ESP_LOG_ERROR);
+        ESP_LOGE(PN532_LOG, "%#02x %#02x %#02x",data[0],data[1],data[2]);
+        // ESP_LOG_BUFFER_HEX_LEVEL(PN532_LOG,data.data(), data.size(), ESP_LOG_ERROR);
         return false;
     }
     // SIZE checksum
-    if(((message_buffer[3] + message_buffer[4]) & 0xFF) != 0x00)
+    if(((data.at(3) + data.at(4)) & 0xFF) != 0x00)
     {
-        ESP_LOGE(PN532_LOG, "Size checksum failed, sum: %d, %d", message_buffer[3] ,message_buffer[4]);
+        ESP_LOGE(PN532_LOG, "Size checksum failed, sum: %d, %d", data[3] ,data[4]);
         return false;
     }
     // ESP_LOGE(PN532_LOG, "Correct checksum");
-    message_buffer.resize(message_buffer[3]+7);
+    data.resize(data[3]+7);
 
-    if(! fill_buffer(message_buffer.begin() + 5 ,message_buffer.begin() + message_buffer[3] + 7, timeout - xTaskGetTickCount() + tStart))
+    if(! fill_buffer(data.begin() + 5 ,data.begin() + data[3] + 7, timeout - xTaskGetTickCount() + tStart))
     {
         ESP_LOGE(PN532_LOG, "mwssage isn't arrived before timeout");
         return false;
@@ -87,19 +87,79 @@ bool HSU::receive(Container &data, TickType_t timeout)
 
     // DATA checksum
     // TFI + DATA + checksum = 0x00
-    const uint32_t data_checksum = std::accumulate(message_buffer.begin() + 5, message_buffer.end(),0);
+    const uint32_t data_checksum = std::accumulate(data.begin() + 5, data.end(),0);
 
-    ESP_LOG_BUFFER_HEX_LEVEL(PN532_LOG_RECEIVED_DATA, message_buffer.data(), message_buffer.size(), ESP_LOG_ERROR);
+    ESP_LOG_BUFFER_HEX_LEVEL(PN532_LOG_RECEIVED_DATA, data.data(), data.size(), ESP_LOG_ERROR);
     if((data_checksum & 0xFF) != 0x00)
     {
         ESP_LOGE(PN532_LOG, "Data checksum failed: %d", (data_checksum & 0xFF));
         return false;
     }
-    data.resize(message_buffer[3] - 1);
-    // Return the message
-    std::copy(message_buffer.begin() + 6, message_buffer.end() - 2, data.begin());
+    if(data.back() != 0x00)
+    {   
+        ESP_LOGE(PN532_LOG, "No postamble received");
+        return false;
+    }
+
+    // Trim message
+    data.pop_back();
+    data.pop_back();
+    data.erase(data.begin(),data.begin()+6);
     return true;
 }
+
+// template<typename Container>
+// bool HSU::receive(Container &data, TickType_t timeout)
+// {
+//     std::array<uint8_t, 3> preamble = {PN532_PREAMBLE, PN532_STARTCODE1, PN532_STARTCODE2};
+//     std::vector<uint8_t> message_buffer;
+//     message_buffer.reserve(256);
+//     message_buffer.resize(5);
+//     BaseType_t tStart = xTaskGetTickCount();
+
+//     if(! fill_buffer(message_buffer.begin(),message_buffer.begin() + 5, timeout - xTaskGetTickCount() + tStart))
+//     {
+//         ESP_LOGE(PN532_LOG, "No Preamble found before timeout");
+//         return false;
+//     }
+//     // ESP_LOGE(PN532_LOG, "Preable found");
+//     if(! std::equal(message_buffer.begin(), message_buffer.begin() + preamble.size(), preamble.begin()))
+//     {
+//         ESP_LOGE(PN532_LOG, "Message doesn't start with the expected preable");
+//         ESP_LOGE(PN532_LOG, "%#02x %#02x %#02x",message_buffer[0],message_buffer[1],message_buffer[2]);
+//         // ESP_LOG_BUFFER_HEX_LEVEL(PN532_LOG,message_buffer.data(), message_buffer.size(), ESP_LOG_ERROR);
+//         return false;
+//     }
+//     // SIZE checksum
+//     if(((message_buffer[3] + message_buffer[4]) & 0xFF) != 0x00)
+//     {
+//         ESP_LOGE(PN532_LOG, "Size checksum failed, sum: %d, %d", message_buffer[3] ,message_buffer[4]);
+//         return false;
+//     }
+//     // ESP_LOGE(PN532_LOG, "Correct checksum");
+//     message_buffer.resize(message_buffer[3]+7);
+
+//     if(! fill_buffer(message_buffer.begin() + 5 ,message_buffer.begin() + message_buffer[3] + 7, timeout - xTaskGetTickCount() + tStart))
+//     {
+//         ESP_LOGE(PN532_LOG, "mwssage isn't arrived before timeout");
+//         return false;
+//     }
+
+//     // DATA checksum
+//     // TFI + DATA + checksum = 0x00
+//     const uint32_t data_checksum = std::accumulate(message_buffer.begin() + 5, message_buffer.end(),0);
+
+//     ESP_LOG_BUFFER_HEX_LEVEL(PN532_LOG_RECEIVED_DATA, message_buffer.data(), message_buffer.size(), ESP_LOG_ERROR);
+//     if((data_checksum & 0xFF) != 0x00)
+//     {
+//         ESP_LOGE(PN532_LOG, "Data checksum failed: %d", (data_checksum & 0xFF));
+//         return false;
+//     }
+//     data.resize(message_buffer[3] - 1);
+//     // Return the message
+//     std::copy(message_buffer.begin() + 6, message_buffer.end() - 2, data.begin());
+//     return true;
+// }
 
 template<typename Container>
 bool HSU::send(const uint8_t cmd, Container param, TickType_t timeout)

@@ -17,7 +17,7 @@
 
 PN532<HSU> test_pn532(UART_DUT);
 AppKey<KEY_2K3DES> dfk(0x00);
-DesfireApp<PN532<HSU>,AppKey<KEY_2K3DES>> tag_test(test_pn532,0x00,0x00000000,dfk);
+DesfireApp<PN532<HSU>,AppKey<KEY_2K3DES>> tag_test(0x01,0);
 uint8_t tagID;
 
 
@@ -77,12 +77,12 @@ void test_InDataExchange()
 //////////////////////////////////////////////////////////////
 void test_desfire_select()
 {
-    //tag_test.selectApp();
+    tag_test.selectApp();
 }
 
 void test_desfire_auth()
 {
-    //TEST_ASSERT_TRUE(tag_test.authenticate());
+    TEST_ASSERT_TRUE(tag_test.authenticate());
 }
 
 

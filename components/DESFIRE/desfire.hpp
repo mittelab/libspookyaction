@@ -235,18 +235,23 @@ class AppKey<KEY_AES>{
     uint8_t getKeySize();
 };
 
+
+#include <pn532.hpp>
+#include <hsu.hpp>
+#include <desfire.hpp>
+#include "driver/gpio.h"
 template<class T, class E>
 class DesfireApp
 {
     uint8_t tagID;
-    T tagReader;
-    E appKey;
+    PN532<HSU> tagReader{UART_NUM_1};
+    AppKey<KEY_2K3DES> appKey{};
 
     public:
     bool isAuth = false;
     std::array<uint8_t, 8> sessionKey;
     std::array<uint8_t, 3> appID;
-    DesfireApp(T device, uint8_t tag_id, uint32_t id, E key);
+    DesfireApp(/*T& device,*/ uint8_t tag_id, uint32_t id/*, E& key*/);
     // DesfireApp(T device, uint8_t tag_id = 0, uint32_t id = 0x000000, AppKey<E> key= AppKey<E>());
     template<typename ContainerIN, typename ContainerOUT>
     bool tagCommand(uint8_t command, std::initializer_list<uint8_t> param, ContainerOUT& data, macConfig mac=MAC_None);

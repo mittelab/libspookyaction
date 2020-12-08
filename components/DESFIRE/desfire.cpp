@@ -178,14 +178,14 @@ void AppKey<KEY_AES>::setSessionKey(Container& data)
 // DESFIRE APP //
 /////////////////
 template<class T, class E>
-DesfireApp<T, E>::DesfireApp(T device, uint8_t tag_id, uint32_t id, E key)
+DesfireApp<T, E>::DesfireApp(/*T device,*/ uint8_t tag_id, uint32_t id/*, E key*/)
 {
-    tagReader = device;
+    // tagReader = device;
     tagID = tag_id;
     appID[0] = (id >> 16) & 0xFF;
     appID[1] = (id >> 8) & 0xFF;
     appID[2] = id & 0xFF;
-    appKey = key;
+    // appKey = key;
 }
 
 template<class T, class E>

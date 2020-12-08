@@ -96,7 +96,7 @@ bool HSU::receive(Container &data, TickType_t timeout)
         return false;
     }
     if(data.back() != 0x00)
-    {   
+    {
         ESP_LOGE(PN532_LOG, "No postamble received");
         return false;
     }

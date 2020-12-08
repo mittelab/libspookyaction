@@ -39,9 +39,10 @@ extern "C" {
  * - Pin assignment: see defines below
  */
 
-#define ECHO_TEST_TXD  (GPIO_NUM_4)
-#define ECHO_TEST_RXD  (GPIO_NUM_36)
-
+// #define ECHO_TEST_TXD  (GPIO_NUM_4)
+// #define ECHO_TEST_RXD  (GPIO_NUM_36)
+#define ECHO_TEST_TXD  (GPIO_NUM_17)
+#define ECHO_TEST_RXD  (GPIO_NUM_16)
 
 #define BUF_SIZE (1024)
 

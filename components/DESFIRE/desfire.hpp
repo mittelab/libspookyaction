@@ -108,28 +108,59 @@ extern "C"{
 
 
 enum keyType{
-    KEY_2K3DES=0x00,
-    KEY_3K3DES=0x40,
-    KEY_AES=0x80,
+    KEY_2K3DES  = 0x00,
+    KEY_3K3DES  = 0x40,
+    KEY_AES     = 0x80,
     KEY_INVALID = 0xFF
 };
+
+enum keySettings{
+    FACTORY_DEFAULT                = 0x0F,
+    // ------------ BITS 0-3 ---------------
+    ALLOW_CHANGE_MK                = 0x01, // If this bit is set, the MK can be changed, otherwise it is frozen.
+    LISTING_WITHOUT_MK             = 0x02, // Picc key: If this bit is set, GetApplicationIDs, GetKeySettings do not require MK authentication.
+                                           // App  key: If this bit is set, GetFileIDs, GetFileSettings, GetKeySettings do not require MK authentication.
+    CREATE_DELETE_WITHOUT_MK       = 0x04, // Picc key: If this bit is set, CreateApplication does not require MK authentication.
+                                           // App  key: If this bit is set, CreateFile, DeleteFile do not require MK authentication.
+    CONFIGURATION_CHANGEABLE       = 0x08, // If this bit is set, the configuration settings of the MK can be changed, otherwise they are frozen.
+
+    // ------------ BITS 4-7 (not used for the PICC master key) -------------
+    CHANGE_KEY_WITH_MK             = 0x00, // A key change requires MK authentication
+    CHANGE_KEY_WITH_KEY_1          = 0x10, // A key change requires authentication with key 1
+    CHANGE_KEY_WITH_KEY_2          = 0x20, // A key change requires authentication with key 2
+    CHANGE_KEY_WITH_KEY_3          = 0x30, // A key change requires authentication with key 3
+    CHANGE_KEY_WITH_KEY_4          = 0x40, // A key change requires authentication with key 4
+    CHANGE_KEY_WITH_KEY_5          = 0x50, // A key change requires authentication with key 5
+    CHANGE_KEY_WITH_KEY_6          = 0x60, // A key change requires authentication with key 6
+    CHANGE_KEY_WITH_KEY_7          = 0x70, // A key change requires authentication with key 7
+    CHANGE_KEY_WITH_KEY_8          = 0x80, // A key change requires authentication with key 8
+    CHANGE_KEY_WITH_KEY_9          = 0x90, // A key change requires authentication with key 9
+    CHANGE_KEY_WITH_KEY_A          = 0xA0, // A key change requires authentication with key 10
+    CHANGE_KEY_WITH_KEY_B          = 0xB0, // A key change requires authentication with key 11
+    CHANGE_KEY_WITH_KEY_C          = 0xC0, // A key change requires authentication with key 12
+    CHANGE_KEY_WITH_KEY_D          = 0xD0, // A key change requires authentication with key 13
+    CHANGE_KEY_WITH_TARGETED_KEY   = 0xE0, // A key change requires authentication with the same key that is to be changed
+    CHANGE_KEY_FROZEN              = 0xF0, // All keys are frozen
+};
+
+enum macConfig{
+    MAC_None = 0x00,
+    calculate_TX_CMAC = 0x01,
+    encrypt_TX = 0x02,
+
+    calculate_RX_CMAC = 0x04,
+    decrypt_RX = 0x08,
+
+    noEncription = calculate_TX_CMAC | calculate_RX_CMAC,
+    RX_Encripted = calculate_TX_CMAC | decrypt_RX,
+    TX_Encripted = encrypt_TX | calculate_RX_CMAC,
+
+};
+
 
 
 template<keyType E>
 class AppKey;
-// {
-//     public:
-//     keyType E;
-//     uint8_t keyID;
-//     std::vector<uint8_t> key;
-//     // std::conditional<type==KEY_AES,mbedtls_aes_context,std::conditional<type==KEY_3K3DES,mbedtls_des3_context,mbedtls_des_context>::type>::type context;
-
-//     AppKey(uint8_t id=0x00, std::vector<uint8_t> desfireKey = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00});
-//     template<typename Container> void encrypt(Container& dataIn, Container& dataOut);
-//     template<typename Container> void decrypt(Container& dataIn, Container& dataOut);
-
-// };
-
 
 template<>
 class AppKey<KEY_2K3DES>{
@@ -138,82 +169,117 @@ class AppKey<KEY_2K3DES>{
     mbedtls_des_context context;
     std::array<uint8_t, 8> iv;
     std::array<uint8_t, 8> sessionKey;
+    static const uint8_t authType = DFEV1_INS_AUTHENTICATE_ISO;
+    uint8_t keyID;
+    static const uint8_t keySize = 8;
 
     public:
-    uint8_t keyID=0x00;
     AppKey(uint8_t id=0x00, std::vector<uint8_t> desfireKey = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00});
     template<typename Container> void encrypt(Container& data);
     template<typename Container> void decrypt(Container& data);
     template<typename Container> void setSessionKey(Container& data);
     template<typename Container> uint32_t cmac(Container& data);
-    template<typename Iter> void random(Iter start, Iter end);
 
+    void padding(std::vector<uint8_t> data);
+    template<typename Iter> void random(Iter start, Iter end);
+    uint8_t getKeyID();
+    uint8_t getAuthType();
+    uint8_t getKeySize();
 };
 
 template<>
 class AppKey<KEY_3K3DES>{
     keyType E;
+    uint8_t keyID;
     std::vector<uint8_t> key;
     mbedtls_des3_context context;
     std::array<uint8_t, 8> iv;
+    static const size_t keySize = 16;
+    static const uint8_t authType = DFEV1_INS_AUTHENTICATE_ISO;
 
     public:
-    uint8_t keyID=0x00;
     AppKey(uint8_t id=0x00, std::vector<uint8_t> desfireKey = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00});
     template<typename Container> void encrypt(Container& data);
     template<typename Container> void decrypt(Container& data);
     template<typename Container> void setSessionKey(Container& data);
+
+    void padding(std::vector<uint8_t> data);
+    template<typename Iter> void random(Iter start, Iter end);
+    uint8_t getKeyID();
+    uint8_t getAuthType();
+    uint8_t getKeySize();
+
 };
 
 
 template<>
 class AppKey<KEY_AES>{
     keyType E;
+    uint8_t keyID;
     std::vector<uint8_t> key;
+    std::array<uint8_t, 16> iv;
     mbedtls_aes_context context;
+    static const size_t keySize = 16;
+    static const uint8_t authType = DFEV1_INS_AUTHENTICATE_AES;
 
     public:
-    uint8_t keyID=0x00;
     AppKey(uint8_t id=0x00, std::vector<uint8_t> desfireKey = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00});
     template<typename Container> void encrypt(Container& data);
     template<typename Container> void decrypt(Container& data);
+    template<typename Container> void setSessionKey(Container& data);
+
+    void padding(std::vector<uint8_t> data);
+    template<typename Iter> void random(Iter start, Iter end);
+    uint8_t getKeyID();
+    uint8_t getAuthType();
+    uint8_t getKeySize();
 };
 
-template<keyType E>
+template<class T, class E>
 class DesfireApp
 {
+    uint8_t tagID;
+    T tagReader;
+    E appKey;
+
     public:
     bool isAuth = false;
-    AppKey<E> appKey;
     std::array<uint8_t, 8> sessionKey;
     std::array<uint8_t, 3> appID;
-    DesfireApp(uint32_t id = 0x000000, AppKey<E> key= AppKey<E>());
+    DesfireApp(T device, uint8_t tag_id, uint32_t id, E key);
+    // DesfireApp(T device, uint8_t tag_id = 0, uint32_t id = 0x000000, AppKey<E> key= AppKey<E>());
+    template<typename ContainerIN, typename ContainerOUT>
+    bool tagCommand(uint8_t command, std::initializer_list<uint8_t> param, ContainerOUT& data, macConfig mac=MAC_None);
+    template<typename ContainerIN=std::initializer_list<uint8_t>, typename ContainerOUT>
+    bool tagCommand(uint8_t command, ContainerIN& param, ContainerOUT& data, macConfig mac=MAC_None);
+
+    void selectApp();
+
+    bool authenticate();
     void getFileIDs();
     void getFileSetting();
     void setFileSettings();
     void createFile();
     void deleteFile();
-
 };
 
-template <class T>
-class Desfire: public T
-{
-    uint8_t tagID=0x01;
+// template <class T>
+// class Desfire: public T
+// {
+//     uint8_t tagID=0x01;
 
+//     public:
+//     using T::T;
+//     void selectTag(uint8_t id);
+//     template<typename ContainerIN, typename ContainerOUT>
+//     bool tagCommand(uint8_t tagID, uint8_t command, std::initializer_list<uint8_t> param, ContainerOUT& data, macConfig mac=MAC_None);
+//     template<typename ContainerIN=std::initializer_list<uint8_t>, typename ContainerOUT>
+//     bool tagCommand(uint8_t tagID, uint8_t command, ContainerIN& param, ContainerOUT& data, macConfig mac=MAC_None);
 
-    public:
-    using T::T;
-    void selectTag(uint8_t id);
-    template<typename ContainerIN, typename ContainerOUT>
-    void tagCommand(uint8_t command, ContainerIN& param, ContainerOUT& data);
-    template<typename ContainerIN=std::initializer_list<uint8_t>, typename ContainerOUT>
-    void tagCommand(uint8_t command, std::initializer_list<uint8_t> param, ContainerOUT& data);
-
-    template<keyType E> void selectApp(DesfireApp<E>& application);
-    template<keyType E> bool authenticate(DesfireApp<E>& application = DesfireApp<E>());
-    template<keyType E> bool createApp(DesfireApp<E>& application);
-};
+//     template<keyType E> void selectApp();
+//     template<keyType E> bool authenticate();
+//     template<keyType E> bool createApp();
+// };
 
 #include "desfire.cpp"
 #endif

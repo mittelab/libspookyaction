@@ -244,15 +244,20 @@ template<class T, class E>
 class DesfireApp
 {
     uint8_t tagID;
-    PN532<HSU> tagReader{UART_NUM_1};
-    AppKey<KEY_2K3DES> appKey{};
+    T* tagReader;
+    E appKey;
 
     public:
     bool isAuth = false;
     std::array<uint8_t, 8> sessionKey;
     std::array<uint8_t, 3> appID;
-    DesfireApp(/*T& device,*/ uint8_t tag_id, uint32_t id/*, E& key*/);
-    // DesfireApp(T device, uint8_t tag_id = 0, uint32_t id = 0x000000, AppKey<E> key= AppKey<E>());
+    DesfireApp(T& device, uint8_t tag_id = 0x01, uint32_t app_id = 0, E key = E()): appKey{std::move(key)} {
+        tagReader = &device;
+        appID[0] = (app_id >> 16) & 0xFF;
+        appID[1] = (app_id >> 8) & 0xFF;
+        appID[2] = app_id & 0xFF;
+        tagID = tag_id;
+    };
     template<typename ContainerIN, typename ContainerOUT>
     bool tagCommand(uint8_t command, std::initializer_list<uint8_t> param, ContainerOUT& data, macConfig mac=MAC_None);
     template<typename ContainerIN=std::initializer_list<uint8_t>, typename ContainerOUT>

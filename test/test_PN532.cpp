@@ -17,7 +17,7 @@
 
 PN532<HSU> test_pn532(UART_DUT);
 AppKey<KEY_2K3DES> dfk(0x00);
-DesfireApp<PN532<HSU>,AppKey<KEY_2K3DES>> tag_test(0x01,0);
+DesfireApp<PN532<HSU>,AppKey<KEY_2K3DES>> tag_test(test_pn532,0x01,0,dfk);
 uint8_t tagID;
 
 

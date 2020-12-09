@@ -177,16 +177,7 @@ void AppKey<KEY_AES>::setSessionKey(Container& data)
 /////////////////
 // DESFIRE APP //
 /////////////////
-template<class T, class E>
-DesfireApp<T, E>::DesfireApp(/*T device,*/ uint8_t tag_id, uint32_t id/*, E key*/)
-{
-    // tagReader = device;
-    tagID = tag_id;
-    appID[0] = (id >> 16) & 0xFF;
-    appID[1] = (id >> 8) & 0xFF;
-    appID[2] = id & 0xFF;
-    // appKey = key;
-}
+
 
 template<class T, class E>
 template<typename ContainerIN, typename ContainerOUT>
@@ -194,7 +185,7 @@ bool DesfireApp<T, E>::tagCommand(uint8_t command, std::initializer_list<uint8_t
 {
     std::vector<uint8_t> sendBuffer = {command};
     sendBuffer.insert(sendBuffer.end(), param.begin(), param.end());
-    T::InDataExchange(tagID, sendBuffer, data);
+    tagReader->InDataExchange(tagID, sendBuffer, data);
     return true;
 }
 
@@ -203,8 +194,9 @@ template<typename ContainerIN, typename ContainerOUT>
 bool DesfireApp<T, E>::tagCommand(uint8_t command, ContainerIN& param, ContainerOUT& data, macConfig mac)
 {
     std::vector<uint8_t> sendBuffer = {command};
+
     sendBuffer.insert(sendBuffer.end(), param.begin(), param.end());
-    tagReader.InDataExchange(tagID, sendBuffer, data);
+    tagReader->InDataExchange(tagID, sendBuffer, data);
     return true;
 }
 

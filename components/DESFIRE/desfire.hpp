@@ -12,6 +12,9 @@ extern "C"{
     #include <esp_log.h>
     #include "mbedtls/des.h"
     #include "mbedtls/aes.h"
+    #include "mbedtls/cipher.h"
+    #include "mbedtls/cmac.h"
+    #include "mbedtls/cmac.h"
 }
 
 #define DESFIRE_LOG "desfire"
@@ -144,16 +147,16 @@ enum keySettings{
 };
 
 enum macConfig{
-    MAC_None = 0x00,
-    calculate_TX_CMAC = 0x01,
-    encrypt_TX = 0x02,
+    CMAC_None = 0x00,
+    CMAC_CALC_TX = 0x01,
+    CMAC_ENC_TX = 0x02,
 
-    calculate_RX_CMAC = 0x04,
-    decrypt_RX = 0x08,
+    CMAC_CALC_RX = 0x04,
+    CMAC_DEC_RX = 0x08,
 
-    noEncription = calculate_TX_CMAC | calculate_RX_CMAC,
-    RX_Encripted = calculate_TX_CMAC | decrypt_RX,
-    TX_Encripted = encrypt_TX | calculate_RX_CMAC,
+    CMAC_NO_ENCRYPT = CMAC_CALC_TX | CMAC_CALC_RX,
+    CMAC_RX_ENCRYPT = CMAC_CALC_TX | CMAC_DEC_RX,
+    CMAC_TX_ENCRYPT = CMAC_ENC_TX | CMAC_CALC_RX,
 
 };
 
@@ -167,20 +170,31 @@ class AppKey<KEY_2K3DES>{
     keyType E;
     std::vector<uint8_t> key;
     mbedtls_des_context context;
-    std::array<uint8_t, 8> iv;
+    //std::array<uint8_t, 8> iv;
     std::array<uint8_t, 8> sessionKey;
     static const uint8_t authType = DFEV1_INS_AUTHENTICATE_ISO;
     uint8_t keyID;
     static const uint8_t keySize = 8;
 
+    template<typename Container>
+    bool GenerateCmacSubkeys(uint8_t block_size, Container& K1, Container& K2);
+
     public:
+    std::array<uint8_t, 8> iv;
     AppKey(uint8_t id=0x00, std::vector<uint8_t> desfireKey = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00});
     template<typename Container> void encrypt(Container& data);
+    template<typename IterStart, typename IterEnd, typename IterOut> void encrypt(IterStart start, IterEnd end, IterOut out);
+    template<typename IterStart, typename IterEnd, typename IterOut> void decrypt(IterStart start, IterEnd end, IterOut out);
     template<typename Container> void decrypt(Container& data);
     template<typename Container> void setSessionKey(Container& data);
-    template<typename Container> uint32_t cmac(Container& data);
+    template<typename IterStart, typename IterEnd, typename IterOut> void cmac(IterStart start, IterEnd end, IterOut cmac);
+    template<typename ContainerIn, typename ContainerOut> void cmac(ContainerIn& data, ContainerOut& cmac);
+    // template<typename Container> void cmac(Container& data);
+    template<typename Container> uint32_t crc32(Container& data);
 
-    void padding(std::vector<uint8_t> data);
+
+
+    void padding(std::vector<uint8_t>& data);
     template<typename Iter> void random(Iter start, Iter end);
     uint8_t getKeyID();
     uint8_t getAuthType();
@@ -199,9 +213,14 @@ class AppKey<KEY_3K3DES>{
 
     public:
     AppKey(uint8_t id=0x00, std::vector<uint8_t> desfireKey = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00});
+    template<typename IterStart, typename IterEnd, typename IterOut> void encrypt(IterStart start, IterEnd end, IterOut out);
+    template<typename IterStart, typename IterEnd, typename IterOut> void decrypt(IterStart start, IterEnd end, IterOut out);
     template<typename Container> void encrypt(Container& data);
     template<typename Container> void decrypt(Container& data);
     template<typename Container> void setSessionKey(Container& data);
+    template<typename Container> void cmac(Container& data, Container& cmac);
+    template<typename Container> void cmac(Container& data);
+    template<typename Container> uint32_t crc32(Container& data);
 
     void padding(std::vector<uint8_t> data);
     template<typename Iter> void random(Iter start, Iter end);
@@ -224,9 +243,14 @@ class AppKey<KEY_AES>{
 
     public:
     AppKey(uint8_t id=0x00, std::vector<uint8_t> desfireKey = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00});
+    template<typename IterStart, typename IterEnd, typename IterOut> void encrypt(IterStart start, IterEnd end, IterOut out);
+    template<typename IterStart, typename IterEnd, typename IterOut> void decrypt(IterStart start, IterEnd end, IterOut out);
     template<typename Container> void encrypt(Container& data);
     template<typename Container> void decrypt(Container& data);
     template<typename Container> void setSessionKey(Container& data);
+    template<typename Container> void cmac(Container& data, Container& cmac);
+    template<typename Container> void cmac(Container& data);
+    template<typename Container> uint32_t crc32(Container& data);
 
     void padding(std::vector<uint8_t> data);
     template<typename Iter> void random(Iter start, Iter end);
@@ -235,19 +259,15 @@ class AppKey<KEY_AES>{
     uint8_t getKeySize();
 };
 
-
-#include <pn532.hpp>
-#include <hsu.hpp>
-#include <desfire.hpp>
-#include "driver/gpio.h"
 template<class T, class E>
 class DesfireApp
 {
     uint8_t tagID;
     T* tagReader;
-    E appKey;
+    
 
     public:
+    E appKey;
     bool isAuth = false;
     std::array<uint8_t, 8> sessionKey;
     std::array<uint8_t, 3> appID;
@@ -258,12 +278,15 @@ class DesfireApp
         appID[2] = app_id & 0xFF;
         tagID = tag_id;
     };
-    template<typename ContainerIN, typename ContainerOUT>
-    bool tagCommand(uint8_t command, std::initializer_list<uint8_t> param, ContainerOUT& data, macConfig mac=MAC_None);
     template<typename ContainerIN=std::initializer_list<uint8_t>, typename ContainerOUT>
-    bool tagCommand(uint8_t command, ContainerIN& param, ContainerOUT& data, macConfig mac=MAC_None);
+    bool tagCommand(uint8_t command, std::initializer_list<uint8_t> param, ContainerOUT& data, macConfig mac=CMAC_None);
+    template<typename ContainerIN, typename ContainerOUT>
+    bool tagCommand(uint8_t command, ContainerIN& param, ContainerOUT& data, macConfig mac=CMAC_None);
+
+
 
     void selectApp();
+    void createApp(uint32_t app, uint8_t key_count = 1, keyType type = KEY_2K3DES, keySettings settings = FACTORY_DEFAULT);
 
     bool authenticate();
     void getFileIDs();
@@ -271,7 +294,12 @@ class DesfireApp
     void setFileSettings();
     void createFile();
     void deleteFile();
+    void formatCard();
+    void listApplication(std::vector<uint32_t> ids);
 };
+
+template <class T, class E>
+DesfireApp<T, E> build_desfire(T &device, uint8_t tag_id = 0x01, uint32_t app_id = 0, E key = E());
 
 // template <class T>
 // class Desfire: public T

@@ -17,7 +17,7 @@
 
 PN532<HSU> test_pn532(UART_DUT);
 AppKey<KEY_2K3DES> dfk(0x00);
-DesfireApp<PN532<HSU>,AppKey<KEY_2K3DES>> tag_test(test_pn532,0x01,0,dfk);
+auto tag_test = build_desfire(test_pn532,0x01,0,dfk);
 uint8_t tagID;
 
 
@@ -85,8 +85,33 @@ void test_desfire_auth()
     TEST_ASSERT_TRUE(tag_test.authenticate());
 }
 
+void test_desfire_list_application()
+{
+    std::vector<uint32_t> ids;
+    tag_test.listApplication(ids);
+    ESP_LOG_BUFFER_HEX_LEVEL(PN532_LOG,ids.data(),ids.size(), ESP_LOG_ERROR);
+}
+
+// void test_desfire_cmac()
+// {
+//     std::vector<uint32_t> ids;
+//     std::array<uint8_t, 8> sk = {0xDC, 0xB0, 0x96, 0xC2, 0xA4, 0x0E, 0x78, 0xE0};
+//     tag_test.appKey.setSessionKey(sk);
+//     tag_test.appKey.iv = {0x9B, 0x97, 0xC2, 0xA1, 0xE4, 0x7B, 0x96, 0xDD};
+//     std::vector<uint8_t> cmd = {0x64, 0x00};
+//     std::array<uint8_t, 8> cmac;
+//     tag_test.appKey.cmac(cmd.begin(),cmd.end(), cmac.begin());
+//     ESP_LOG_BUFFER_HEX_LEVEL(PN532_LOG,cmac.data(),cmac.size(), ESP_LOG_ERROR);
+// }
 
 ////////////////////////////////////////////////////////////
+
+void test_desfire_cerate_app()
+{
+    std::vector<uint32_t> ids;
+    tag_test.createApp(0x00DEAD);
+    ESP_LOG_BUFFER_HEX_LEVEL(PN532_LOG,ids.data(),ids.size(), ESP_LOG_ERROR);
+}
 
 
 extern "C" void app_main()
@@ -102,6 +127,9 @@ extern "C" void app_main()
     //////////////////////////////
     RUN_TEST(test_desfire_select);
     RUN_TEST(test_desfire_auth);
+    RUN_TEST(test_desfire_list_application);
+    // RUN_TEST(test_desfire_cmac);
+    // RUN_TEST(test_desfire_cerate_app);
     UNITY_END();
 }
  

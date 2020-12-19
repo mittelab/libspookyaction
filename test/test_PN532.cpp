@@ -28,7 +28,9 @@ void initialize_PN532()
         .data_bits = UART_DATA_8_BITS,
         .parity    = UART_PARITY_DISABLE,
         .stop_bits = UART_STOP_BITS_1,
-        .flow_ctrl = UART_HW_FLOWCTRL_DISABLE
+        .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
+        .rx_flow_ctrl_thresh = 122,
+        .source_clk = UART_SCLK_APB,
     };
     uart_param_config(UART_DUT, &uart_config);
     uart_driver_install(UART_DUT, BUF_SIZE, BUF_SIZE, 0, NULL, 0);
@@ -132,4 +134,3 @@ extern "C" void app_main()
     // RUN_TEST(test_desfire_cerate_app);
     UNITY_END();
 }
- 

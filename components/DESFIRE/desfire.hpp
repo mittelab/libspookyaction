@@ -55,8 +55,6 @@ extern "C"{
 #define DESFIRE_COMMIT_TRANSACTION         0xC7
 #define DESFIRE_ABORT_TRANSACTION          0xA7
 
-#define DESFIRE_ADDITIONAL_FRAME           0xAF // data did not fit into a frame, another frame will follow
-
 // -------- Desfire EV1 instructions ----------
 
 #define DFEV1_INS_AUTHENTICATE_ISO        0x1A

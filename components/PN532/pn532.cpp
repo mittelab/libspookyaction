@@ -2,7 +2,7 @@
 #include <array>
 #include <bitset>
 #include <esp_log.h>
-#include <rom/crc.h>
+#include <esp32/rom/crc.h>
 
 #define PN532_DEFAULT_TIMEOUT (1000/portTICK_PERIOD_MS)
 

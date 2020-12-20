@@ -90,5 +90,6 @@ class PN532: public T{
         template<typename Container> bool InDataExchange(uint8_t tagID, std::initializer_list<uint8_t> host2tag, Container& tag2host, TickType_t timeout = PN532_DEFAULT_TIMEOUT);
 
 };
-#include "pn532.cpp"
+
+#include "pn532_impl.hpp"
 #endif

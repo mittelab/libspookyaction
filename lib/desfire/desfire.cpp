@@ -1,7 +1,7 @@
-
 #include <vector>
 #include <algorithm>
 #include <functional>
+#include "desfire.hpp"
 
 // #define PN532_LOG "APP"
 // #define PN532_LOG "CRYPTO"
@@ -114,7 +114,7 @@ AppKey<KEY_2K3DES>::AppKey(uint8_t id, std::vector<uint8_t> desfireKey)
     std::copy(key.begin(), key.begin() + sessionKey.size(), sessionKey.begin());
     mbedtls_des_init(&context);
     mbedtls_des_setkey_dec(&context, sessionKey.data());
-    
+
 }
 
 template<typename IterStart, typename IterEnd, typename IterOut>
@@ -183,7 +183,7 @@ bool  AppKey<KEY_2K3DES>::GenerateCmacSubkeys(uint8_t block_size, Container& K1,
     leftshift(K1);
     if (u8_Data[0] & 0x80)
         K1[block_size-1] ^= u8_R;
-    
+
     K2 = K1;
     leftshift(K2);
     if (K2[0] & 0x80)
@@ -215,7 +215,7 @@ bool  AppKey<KEY_2K3DES>::GenerateCmacSubkeys(uint8_t block_size, Container& K1,
 
 //     encrypt(padded.end() - keySize, padded.end(), padded.end() - keySize); //encrypt the last block
 //     if(std::equal(padded.end() - keySize,padded.end(), iv.begin())) ESP_LOGE(PN532_LOG, "IV == cmac");
-    
+
 //     std::copy(iv.begin(),iv.end(), cmac);
 // }
 
@@ -433,7 +433,7 @@ bool DesfireApp<T, E>::tagCommand(uint8_t command, ContainerIN& param, Container
 template<class T, class E>
 bool DesfireApp<T, E>::authenticate()
 {
-    
+
     uint8_t key_size = appKey.getKeySize();
     std::vector<uint8_t> randomNum;
     randomNum.reserve(key_size);

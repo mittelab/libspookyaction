@@ -3,7 +3,7 @@
 
 #include <array>
 #include <vector>
-#include <stddef.h>
+#include <cstddef>
 #include "instructions.hpp"
 
 extern "C"{
@@ -262,7 +262,7 @@ class DesfireApp
 {
     uint8_t tagID;
     T* tagReader;
-    
+
 
     public:
     E appKey;
@@ -317,5 +317,4 @@ DesfireApp<T, E> build_desfire(T &device, uint8_t tag_id = 0x01, uint32_t app_id
 //     template<keyType E> bool createApp();
 // };
 
-#include "desfire.cpp"
 #endif

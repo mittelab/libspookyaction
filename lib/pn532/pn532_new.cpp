@@ -5,7 +5,7 @@
 #include <tuple>
 #include "pn532_new.hpp"
 #include "bin_data.hpp"
-#include "hsu.hpp"
+#include "log.h"
 
 namespace pn532 {
 
@@ -84,7 +84,7 @@ namespace pn532 {
 
     std::pair<bin_data, bool> nfc::read_body(frames::header const &hdr, std::chrono::milliseconds timeout) {
         if (not hdr.checksum_pass) {
-            // TODO LOG("Cannot parse frame body if frame length compute_checksum failed.")
+            LOGE("Cannot parse frame body if frame length compute_checksum failed.");
             return {bin_data{}, false};
         } else if (hdr.length == 0) {
             return {bin_data{}, true};
@@ -100,10 +100,10 @@ namespace pn532 {
             if (header_success.second) {
                 // Make sure to consume the command
                 if (header_success.first.type == frames::frame_type::other) {
-                    // TODO LOG("Expected ack/nack, got a standard command instead; will consume the command now.")
+                    LOGE("Expected ack/nack, got a standard command instead; will consume the command now.");
                     const auto data_success = read_body(header_success.first, rt.remaining());
                     if (data_success.second and frames::test_error(header_success.first, data_success.first)) {
-                        // TODO LOG("Received an error instead of an ack")
+                        LOGE("Received an error instead of an ack");
                         return {false, result::error};
                     }
                     return {false, result::malformed};
@@ -125,23 +125,23 @@ namespace pn532 {
                     const auto data_success = read_body(header_success.first, rt.remaining());
                     if (data_success.second) {
                         if (frames::test_error(header_success.first, data_success.first)) {
-                            // TODO LOG("Received an error instead of info.")
+                            LOGE("Received an error instead of info.");
                             return std::make_tuple(pieces::command::diagnose, bin_data{}, result::error);
                         }
                         const frames::information_body body = frames::parse_body(header_success.first,
                                                                                  data_success.first);
                         bin_data copy{std::begin(body.payload), std::end(body.payload)};
                         if (not body.checksum_pass) {
-                            // TODO LOG("Body did not checksum.")
+                            LOGE("Body did not checksum.");
                             return std::make_tuple(body.command, std::move(copy), result::checksum_fail);
                         } else if (body.transport != pieces::transport::pn532_to_host) {
-                            // TODO LOG("Received a message from the host instead of pn532.")
+                            LOGE("Received a message from the host instead of pn532.");
                             return std::make_tuple(body.command, std::move(copy), result::malformed);
                         }
                         return std::make_tuple(body.command, std::move(copy), result::success);
                     }
                 } else {
-                    // TODO LOG("Expected info command, got ack/nack.")
+                    LOGE("Expected info command, got ack/nack.");
                     return std::make_tuple(pieces::command::diagnose, bin_data{}, result::malformed);
                 }
             }
@@ -161,13 +161,13 @@ namespace pn532 {
     frames::information_body frames::parse_body(frames::header const &hdr, bin_data const &data) {
         frames::information_body retval{};
         if (hdr.type != frame_type::other) {
-            // TODO LOG("Ack and nack frames do not have body.")
+            LOGE("Ack and nack frames do not have body.");
         } else if (not hdr.checksum_pass) {
-            // TODO LOG("Cannot parse frame body if frame length compute_checksum failed.")
+            LOGE("Cannot parse frame body if frame length compute_checksum failed.");
         } else if (hdr.length < 2) {
-            // TODO LOG("Cannot parse frame body if frame length is less than 2.")
+            LOGE("Cannot parse frame body if frame length is less than 2.");
         } else if (data.size() != hdr.length + 1) {
-            // TODO LOG("Cannot parse frame body if expected frame length differs from actual data.")
+            LOGE("Cannot parse frame body if expected frame length differs from actual data.");
         } else {
             retval.checksum_pass = pieces::checksum(std::begin(data), std::end(data));
             retval.transport = static_cast<pieces::transport>(data[0]);

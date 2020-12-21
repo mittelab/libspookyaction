@@ -7,6 +7,7 @@
 
 #include <chrono>
 #include <algorithm>
+#include <array>
 #include "bin_data.hpp"
 
 namespace pn532 {

@@ -24,10 +24,11 @@ namespace pn532 {
     enum struct result {
         success,
         timeout,
-        checksum_fail,
-        error,
-        malformed,
-        nack
+        comm_checksum_fail,
+        comm_error,
+        comm_malformed,
+        nack,
+        failure
     };
 
     class nfc {
@@ -35,9 +36,10 @@ namespace pn532 {
 
         inline channel &chn() const;
 
-        bool await_frame(std::chrono::milliseconds timeout);
-        std::pair<frames::header, bool> read_header(std::chrono::milliseconds timeout);
-        std::pair<bin_data, bool> read_body(frames::header const &hdr, std::chrono::milliseconds timeout);
+        bool await_frame(ms timeout);
+        std::pair<frames::header, bool> read_header(ms timeout);
+        std::pair<bin_data, bool> read_body(frames::header const &hdr, ms timeout);
+
     public:
         inline explicit nfc(channel &chn);
 
@@ -47,20 +49,47 @@ namespace pn532 {
         nfc &operator=(nfc const &) = delete;
         nfc &operator=(nfc &&) = default;
 
-        result raw_send_ack(bool ack = true, std::chrono::milliseconds timeout = one_sec);
-        result raw_send_command(pieces::command cmd, bin_data const &payload, std::chrono::milliseconds timeout = one_sec);
+        result raw_send_ack(bool ack = true, ms timeout = one_sec);
+        result raw_send_command(pieces::command cmd, bin_data const &payload, ms timeout = one_sec);
 
-        std::pair<bool, result> raw_await_ack(std::chrono::milliseconds timeout = one_sec);
-        std::tuple<pieces::command, bin_data, result> raw_await_response(std::chrono::milliseconds timeout = one_sec);
+        std::pair<bool, result> raw_await_ack(ms timeout = one_sec);
+        std::tuple<pieces::command, bin_data, result> raw_await_response(ms timeout = one_sec);
 
-        result command(pieces::command cmd, bin_data const &payload, std::chrono::milliseconds timeout = one_sec);
-        std::pair<bin_data, result> command_response(pieces::command cmd, bin_data const &payload, std::chrono::milliseconds timeout = one_sec);
+        result command(pieces::command cmd, bin_data const &payload, ms timeout = one_sec);
+        std::pair<bin_data, result> command_response(pieces::command cmd, bin_data const &payload, ms timeout = one_sec);
+
+        std::pair<bin_data, result> diagnose(pieces::test test, bin_data const &payload, ms timeout = one_sec);
+
+        result diagnose_rom(ms timeout = one_sec);
+        result diagnose_ram(ms timeout = one_sec);
+        result diagnose_attention_req_or_card_presence(ms timeout = one_sec);
+
+        result diagnose_comm_line(ms timeout = one_sec);
+        /**
+         *
+         * @param timeout
+         * @return Number of fails (<128) at 212 kbps, number of fails (<128) as 424 kbps, command result.
+         */
+        std::tuple<unsigned, unsigned, result> diagnose_poll_target(ms timeout = one_sec);
+
+        /**
+         * @param tx_mode
+         * @param rx_mode
+         * @todo Figure out what these should be (page 70)
+         */
+        result diagnose_echo_back(ms reply_delay, std::uint8_t tx_mode, std::uint8_t rx_mode, ms timeout = one_sec);
+        /**
+         * @param threshold
+         * @todo Figure out the bit packing for this (page 72)
+         */
+        result diagnose_self_antenna(std::uint8_t threshold, ms timeout = one_sec);
     };
 
 
 
     nfc::nfc(channel &chn) : _channel{&chn} {}
     channel &nfc::chn() const { return *_channel; }
+
 
 }
 

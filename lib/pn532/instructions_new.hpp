@@ -29,6 +29,8 @@ namespace pn532 {
 
         static constexpr std::size_t max_firmware_data_length = 265;
 
+        static constexpr unsigned echo_back_reply_delay_steps_per_ms = 2;
+
         inline std::uint8_t compute_checksum(std::uint8_t byte);
 
         template<class ByteIterator>
@@ -83,6 +85,24 @@ namespace pn532 {
             tg_get_target_status = 0x8a
         };
 
+        enum struct test : std::uint8_t {
+            comm_line = 0x0,
+            rom = 0x1,
+            ram = 0x2,
+            poll_target = 0x4,
+            echo_back = 0x5,
+            attention_req_or_card_presence = 0x6,
+            self_antenna = 0x6
+        };
+
+        enum struct speed : std::uint8_t {
+            kbps212 = 0x1,
+            kbps424 = 0x2
+        };
+
+        inline std::uint8_t host_to_pn532_command(command cmd);
+        inline command pn532_to_host_command(std::uint8_t cmd);
+
 
         std::uint8_t compute_checksum(std::uint8_t byte) {
             return ~byte + 1;
@@ -119,6 +139,14 @@ namespace pn532 {
         std::pair<std::uint16_t, bool> check_length_checksum(std::array<std::uint8_t, 3> const &data) {
             return {(std::uint16_t(data[0]) << 8) | data[1],
                     compute_checksum(std::begin(data), std::begin(data) + 2) == data[3]};
+        }
+
+
+        inline std::uint8_t host_to_pn532_command(command cmd) {
+            return static_cast<std::uint8_t>(cmd);
+        }
+        inline command pn532_to_host_command(std::uint8_t cmd) {
+            return static_cast<command>(cmd - 1);
         }
     }
 }

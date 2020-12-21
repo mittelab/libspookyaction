@@ -18,7 +18,6 @@ namespace pn532 {
         if (not ensure_ready_to_receive(rt.remaining())) {
             return {0, false};
         }
-        _buffer.clear();
         if (not receive_raw(_buffer, 1, rt.remaining())) {
             return {0, false};
         }

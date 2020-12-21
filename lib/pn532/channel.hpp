@@ -44,7 +44,7 @@ namespace pn532 {
          */
         virtual bool send_raw(bin_data const &data, std::chrono::milliseconds timeout) = 0;
 
-        /**
+        /** Overwrites the content of @p data with a sequence of length @p length.
          * Should receive data from the channel, can assume @ref prepare_receive has been called once and since then
          * only receive operations have been performed.
          */
@@ -59,6 +59,9 @@ namespace pn532 {
 
         std::pair<bin_data, bool> receive(std::size_t length, std::chrono::milliseconds timeout);
         std::pair<std::uint8_t, bool> receive(std::chrono::milliseconds timeout);
+        /**
+         * Overwrites @p data with a sequence of length @p length
+         */
         bool receive(bin_data &data, std::size_t length, std::chrono::milliseconds timeout);
         bool send(bin_data const &data, std::chrono::milliseconds timeout);
 

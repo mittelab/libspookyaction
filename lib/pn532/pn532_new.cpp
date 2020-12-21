@@ -39,11 +39,11 @@ namespace pn532 {
     }
 
 
-    result nfc::send_ack(bool ack, std::chrono::milliseconds timeout) {
+    result nfc::raw_send_ack(bool ack, std::chrono::milliseconds timeout) {
         return chn().send(ack ? frames::get_ack() : frames::get_nack(), timeout) ? result::success : result::timeout;
     }
 
-    result nfc::send_cmd(pieces::command cmd, bin_data const &payload, std::chrono::milliseconds timeout) {
+    result nfc::raw_send_command(pieces::command cmd, bin_data const &payload, std::chrono::milliseconds timeout) {
         return chn().send(frames::get_information(cmd, payload), timeout) ? result::success : result::timeout;
     }
 
@@ -94,7 +94,7 @@ namespace pn532 {
     }
 
 
-    std::pair<bool, result> nfc::await_ack(std::chrono::milliseconds timeout) {
+    std::pair<bool, result> nfc::raw_await_ack(std::chrono::milliseconds timeout) {
         reduce_timeout rt{timeout};
         if (await_frame(rt.remaining())) {
             const auto header_success = read_header(rt.remaining());
@@ -116,7 +116,7 @@ namespace pn532 {
         return {false, result::timeout};
     }
 
-    std::tuple<pieces::command, bin_data, result> nfc::await_cmd(std::chrono::milliseconds timeout) {
+    std::tuple<pieces::command, bin_data, result> nfc::raw_await_response(std::chrono::milliseconds timeout) {
         reduce_timeout rt{timeout};
         if (await_frame(rt.remaining())) {
             const auto header_success = read_header(rt.remaining());
@@ -148,6 +148,38 @@ namespace pn532 {
             }
         }
         return std::make_tuple(pieces::command::diagnose, bin_data{}, result::timeout);
+    }
+
+    result nfc::command(pieces::command cmd, bin_data const &payload, std::chrono::milliseconds timeout) {
+        reduce_timeout rt{timeout};
+        const auto res_cmd = raw_send_command(cmd, payload, rt.remaining());
+        if (res_cmd != result::success) {
+            return res_cmd;
+        }
+        const auto res_ack = raw_await_ack(rt.remaining());
+        if (res_ack.second == result::success) {
+            return res_ack.first ? result::success : result::nack;
+        }
+        return res_ack.second;
+    }
+
+    std::pair<bin_data, result> nfc::command_response(pieces::command cmd, bin_data const &payload, std::chrono::milliseconds timeout)
+    {
+        reduce_timeout rt{timeout};
+        const auto res_cmd = command(cmd, payload, rt.remaining());
+        if (res_cmd != result::success) {
+            return {bin_data{}, res_cmd};
+        }
+        auto res_response = raw_await_response(rt.remaining());
+        if (std::get<2>(res_response) != result::success) {
+            return {std::get<1>(res_response), std::get<2>(res_response)};
+        } else if (std::get<0>(res_response) != cmd) {
+            LOGW("Got a reply with command code %d instead of requested %d.",
+                 static_cast<int>(std::get<0>(res_response)), static_cast<int>(cmd));
+        }
+        // Accept and send reply, ignore timeout
+        raw_send_ack(true, rt.remaining());
+        return {std::move(std::get<1>(res_response)), result::success};
     }
 
     bool frames::is_error_frame(header const &hdr, bin_data const &data) {

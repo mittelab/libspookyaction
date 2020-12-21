@@ -26,7 +26,8 @@ namespace pn532 {
         timeout,
         checksum_fail,
         error,
-        malformed
+        malformed,
+        nack
     };
 
     class nfc {
@@ -46,12 +47,14 @@ namespace pn532 {
         nfc &operator=(nfc const &) = delete;
         nfc &operator=(nfc &&) = default;
 
-        result send_ack(bool ack = true, std::chrono::milliseconds timeout = one_sec);
-        result send_cmd(pieces::command cmd, bin_data const &payload, std::chrono::milliseconds timeout = one_sec);
+        result raw_send_ack(bool ack = true, std::chrono::milliseconds timeout = one_sec);
+        result raw_send_command(pieces::command cmd, bin_data const &payload, std::chrono::milliseconds timeout = one_sec);
 
-        std::pair<bool, result> await_ack(std::chrono::milliseconds timeout = one_sec);
-        std::tuple<pieces::command, bin_data, result> await_cmd(std::chrono::milliseconds timeout = one_sec);
+        std::pair<bool, result> raw_await_ack(std::chrono::milliseconds timeout = one_sec);
+        std::tuple<pieces::command, bin_data, result> raw_await_response(std::chrono::milliseconds timeout = one_sec);
 
+        result command(pieces::command cmd, bin_data const &payload, std::chrono::milliseconds timeout = one_sec);
+        std::pair<bin_data, result> command_response(pieces::command cmd, bin_data const &payload, std::chrono::milliseconds timeout = one_sec);
     };
 
 

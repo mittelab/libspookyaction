@@ -32,18 +32,19 @@ namespace pn532 {
         bin_data get_information(pieces::command cmd, bin_data const &payload);
         bin_data const &get_ack();
         bin_data const &get_nack();
-        information_body parse_body(header const &hdr, bin_data const &data);
-        bool test_error(header const &hdr, bin_data const &data);
+
+        information_body parse_information_body(header const &hdr, bin_data const &data);
+        bool is_error_frame(header const &hdr, bin_data const &data);
 
     }
 
 
     result nfc::send_ack(bool ack, std::chrono::milliseconds timeout) {
-        return chn().write(ack ? frames::get_ack() : frames::get_nack(), timeout) ? result::success : result::timeout;
+        return chn().send(ack ? frames::get_ack() : frames::get_nack(), timeout) ? result::success : result::timeout;
     }
 
     result nfc::send_cmd(pieces::command cmd, bin_data const &payload, std::chrono::milliseconds timeout) {
-        return chn().write(frames::get_information(cmd, payload), timeout) ? result::success : result::timeout;
+        return chn().send(frames::get_information(cmd, payload), timeout) ? result::success : result::timeout;
     }
 
     bool nfc::await_frame(std::chrono::milliseconds timeout) {
@@ -55,7 +56,7 @@ namespace pn532 {
         frames::header hdr{};
         reduce_timeout rt{timeout};
         std::array<std::uint8_t, 2> code_or_length{};
-        if (chn().read(code_or_length, rt.remaining())) {
+        if (chn().receive(code_or_length, rt.remaining())) {
             if (code_or_length == pieces::ack_packet_code) {
                 hdr.type = frames::frame_type::ack;
                 hdr.length = 0;
@@ -67,7 +68,7 @@ namespace pn532 {
             } else if (code_or_length == pieces::fixed_extended_packet_length) {
                 hdr.type = frames::frame_type::other;
                 std::array<std::uint8_t, 3> ext_length{};
-                if (chn().read(ext_length, rt.remaining())) {
+                if (chn().receive(ext_length, rt.remaining())) {
                     std::tie(hdr.length, hdr.checksum_pass) = pieces::check_length_checksum(ext_length);
                 } else {
                     success = false;
@@ -89,7 +90,7 @@ namespace pn532 {
         } else if (hdr.length == 0) {
             return {bin_data{}, true};
         }
-        return chn().read(hdr.length + 1, timeout);  // Includes checksum
+        return chn().receive(hdr.length + 1, timeout);  // Includes checksum
     }
 
 
@@ -102,7 +103,7 @@ namespace pn532 {
                 if (header_success.first.type == frames::frame_type::other) {
                     LOGE("Expected ack/nack, got a standard command instead; will consume the command now.");
                     const auto data_success = read_body(header_success.first, rt.remaining());
-                    if (data_success.second and frames::test_error(header_success.first, data_success.first)) {
+                    if (data_success.second and frames::is_error_frame(header_success.first, data_success.first)) {
                         LOGE("Received an error instead of an ack");
                         return {false, result::error};
                     }
@@ -124,12 +125,12 @@ namespace pn532 {
                 if (header_success.first.type == frames::frame_type::other) {
                     const auto data_success = read_body(header_success.first, rt.remaining());
                     if (data_success.second) {
-                        if (frames::test_error(header_success.first, data_success.first)) {
+                        if (frames::is_error_frame(header_success.first, data_success.first)) {
                             LOGE("Received an error instead of info.");
                             return std::make_tuple(pieces::command::diagnose, bin_data{}, result::error);
                         }
-                        const frames::information_body body = frames::parse_body(header_success.first,
-                                                                                 data_success.first);
+                        const frames::information_body body = frames::parse_information_body(header_success.first,
+                                                                                             data_success.first);
                         bin_data copy{std::begin(body.payload), std::end(body.payload)};
                         if (not body.checksum_pass) {
                             LOGE("Body did not checksum.");
@@ -149,7 +150,7 @@ namespace pn532 {
         return std::make_tuple(pieces::command::diagnose, bin_data{}, result::timeout);
     }
 
-    bool frames::test_error(header const &hdr, bin_data const &data) {
+    bool frames::is_error_frame(header const &hdr, bin_data const &data) {
         return hdr.checksum_pass
             and hdr.length == 1
             and data.size() == 2
@@ -158,7 +159,7 @@ namespace pn532 {
     }
 
 
-    frames::information_body frames::parse_body(frames::header const &hdr, bin_data const &data) {
+    frames::information_body frames::parse_information_body(frames::header const &hdr, bin_data const &data) {
         frames::information_body retval{};
         if (hdr.type != frame_type::other) {
             LOGE("Ack and nack frames do not have body.");

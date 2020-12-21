@@ -26,27 +26,49 @@ namespace pn532 {
     };
 
     class channel {
+        bool _ready_to_receive = false;
+    protected:
+        inline bool is_ready_to_receive() const;
+        inline void set_ready_to_receive(bool v);
+
+        /**
+         * Should just wait for the channel to be ready for receiving, should not check for @ref is_ready_to_receive
+         * nor set @ref set_ready_to_receive; this is called only once when necessary by @ref ensure_ready_to_receive.
+         */
+        virtual bool prepare_receive(std::chrono::milliseconds timeout) = 0;
+
+        /**
+         * Should put the channel in the appropriate state and send the data. Does not need to call
+         * @ref set_ready_to_receive, the methods calling @ref send_raw must take care of marking the class as not
+         * ready to receive.
+         */
+        virtual bool send_raw(bin_data const &data, std::chrono::milliseconds timeout) = 0;
+
+        /**
+         * Should receive data from the channel, can assume @ref prepare_receive has been called once and since then
+         * only receive operations have been performed.
+         */
+        virtual bool receive_raw(bin_data &data, std::size_t length, std::chrono::milliseconds timeout) = 0;
+
+        /**
+         * Calls @ref prepare_receive if and only if @ref is_ready_to_receive is false; if @ref prepare_receive does
+         * not time out, it sets the class as ready to receive with @ref set_ready_to_receive;
+         */
+        bool ensure_ready_to_receive(std::chrono::milliseconds timeout);
     public:
-        inline virtual std::pair<bin_data, bool> read(std::size_t length, std::chrono::milliseconds timeout);
-        virtual bool read(bin_data &data, std::size_t length, std::chrono::milliseconds timeout) = 0;
-        virtual bool write(bin_data const &data, std::chrono::milliseconds timeout) = 0;
-        virtual std::pair<std::uint8_t, bool> read(std::chrono::milliseconds timeout) = 0;
+
+        std::pair<bin_data, bool> receive(std::size_t length, std::chrono::milliseconds timeout);
+        std::pair<std::uint8_t, bool> receive(std::chrono::milliseconds timeout);
+        bool receive(bin_data &data, std::size_t length, std::chrono::milliseconds timeout);
+        bool send(bin_data const &data, std::chrono::milliseconds timeout);
 
         template <std::size_t Length>
         bool await_sequence(std::array<std::uint8_t, Length> const &match_seq, std::chrono::milliseconds timeout);
         template <std::size_t Length>
-        bool read(std::array<std::uint8_t, Length> &buffer, std::chrono::milliseconds timeout);
-
+        bool receive(std::array<std::uint8_t, Length> &buffer, std::chrono::milliseconds timeout);
 
         virtual ~channel() = default;
     };
-
-
-    std::pair<bin_data, bool> channel::read(std::size_t length, std::chrono::milliseconds timeout) {
-        std::pair<bin_data, bool> retval{bin_data{}, false};
-        retval.second = read(retval.first, length, timeout);
-        return retval;
-    }
 
     reduce_timeout::reduce_timeout(std::chrono::milliseconds timeout) :
         _timeout{timeout},
@@ -68,6 +90,12 @@ namespace pn532 {
         return std::chrono::duration_cast<std::chrono::milliseconds>(elapsed);
     }
 
+    bool channel::is_ready_to_receive() const {
+        return _ready_to_receive;
+    }
+    void channel::set_ready_to_receive(bool v) {
+        _ready_to_receive = v;
+    }
 
     template <std::size_t Length>
     bool channel::await_sequence(std::array<std::uint8_t, Length> const &match_seq, std::chrono::milliseconds timeout) {
@@ -75,7 +103,7 @@ namespace pn532 {
         std::size_t seq_length = 0;
         std::array<std::uint8_t, Length> read_seq{};
         while (rt) {
-            const auto byte_success = read(rt.remaining());
+            const auto byte_success = receive(rt.remaining());
             if (byte_success.second) {
                 if (seq_length < Length) {
                     read_seq[seq_length++] = byte_success.first;
@@ -94,11 +122,11 @@ namespace pn532 {
     }
 
     template <std::size_t Length>
-    bool channel::read(std::array<std::uint8_t, Length> &buffer, std::chrono::milliseconds timeout) {
+    bool channel::receive(std::array<std::uint8_t, Length> &buffer, std::chrono::milliseconds timeout) {
         reduce_timeout rt{timeout};
         auto it = std::begin(buffer);
         while (rt and it != std::end(buffer)) {
-            const auto byte_success = read(rt.remaining());
+            const auto byte_success = receive(rt.remaining());
             if (byte_success.first) {
                 *(it++) = byte_success.second;
             }

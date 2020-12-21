@@ -95,7 +95,7 @@ bool HSU::send_ack(bool ack, TickType_t timeout)
 {
     std::array<uint8_t, 6> frame = ack? PN532_ACK : PN532_NACK;
 
-    // write and block until transmission is finished (or timeout time expired)
+    // send and block until transmission is finished (or timeout time expired)
     uart_write_bytes(device, (const char *)frame.data(), frame.size());
     ESP_LOGI(PN532_LOG_SENT_DATA, "ACK");
     return true;

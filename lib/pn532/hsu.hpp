@@ -162,7 +162,7 @@ bool HSU::send(const uint8_t cmd, Container param, TickType_t timeout)
     // flush the RX buffer
     uart_flush_input(device);
 
-    // write and block until transmission is finished (or timeout time expired)
+    // send and block until transmission is finished (or timeout time expired)
     uart_write_bytes(device, (const char*) buffer.data(), buffer.size());
     ESP_LOG_BUFFER_HEX_LEVEL(PN532_LOG_SENT_DATA, buffer.data(), buffer.size(), ESP_LOG_ERROR);
     //return uart_wait_tx_done(device, timeout);

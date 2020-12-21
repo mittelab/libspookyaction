@@ -37,16 +37,17 @@ namespace pn532 {
         bin_data const &get_ack();
         bin_data const &get_nack();
         information_body parse_body(header const &hdr, bin_data const &data);
+        bool test_error(header const &hdr, bin_data const &data);
 
     }
 
 
-    bool nfc::send_ack(bool ack, std::chrono::milliseconds timeout) {
-        return chn().write(ack ? frames::get_ack() : frames::get_nack(), timeout);
+    result nfc::send_ack(bool ack, std::chrono::milliseconds timeout) {
+        return chn().write(ack ? frames::get_ack() : frames::get_nack(), timeout) ? result::success : result::timeout;
     }
 
-    bool nfc::send_cmd(pieces::command cmd, bin_data const &payload, std::chrono::milliseconds timeout) {
-        return chn().write(frames::get_information(cmd, payload), timeout);
+    result nfc::send_cmd(pieces::command cmd, bin_data const &payload, std::chrono::milliseconds timeout) {
+        return chn().write(frames::get_information(cmd, payload), timeout) ? result::success : result::timeout;
     }
 
     bool nfc::await_frame(std::chrono::milliseconds timeout) {
@@ -93,6 +94,68 @@ namespace pn532 {
             return {bin_data{}, true};
         }
         return chn().read(hdr.length + 1, timeout);  // Includes checksum
+    }
+
+
+    std::pair<bool, result> nfc::await_ack(std::chrono::milliseconds timeout) {
+        reduce_timeout rt{timeout};
+        if (await_frame(rt.remaining())) {
+            const auto header_success = read_header(rt.remaining());
+            if (header_success.second) {
+                // Make sure to consume the command
+                if (header_success.first.type == frames::type::other) {
+                    // TODO LOG("Expected ack/nack, got a standard command instead; will consume the command now.")
+                    const auto data_success = read_body(header_success.first, rt.remaining());
+                    if (data_success.second and frames::test_error(header_success.first, data_success.first)) {
+                        // TODO LOG("Received an error instead of an ack")
+                        return {false, result::error};
+                    }
+                    return {false, result::malformed};
+                } else {
+                    return {header_success.first.type == frames::type::ack, result::success};
+                }
+            }
+        }
+        return {false, result::timeout};
+    }
+
+    std::tuple<pieces::command, bin_data, result> nfc::await_cmd(std::chrono::milliseconds timeout) {
+        reduce_timeout rt{timeout};
+        if (await_frame(rt.remaining())) {
+            const auto header_success = read_header(rt.remaining());
+            if (header_success.second) {
+                // Make sure to consume the command
+                if (header_success.first.type == frames::type::other) {
+                    const auto data_success = read_body(header_success.first, rt.remaining());
+                    if (data_success.second) {
+                        if (frames::test_error(header_success.first, data_success.first)) {
+                            // TODO LOG("Received an error instead of info.")
+                            return std::make_tuple(pieces::command::diagnose, bin_data{}, result::error);
+                        }
+                        const frames::information_body body = frames::parse_body(header_success.first,
+                                                                                 data_success.first);
+                        bin_data copy{std::begin(body.payload), std::end(body.payload)};
+                        if (not body.checksum_pass) {
+                            // TODO LOG("Body did not checksum.")
+                            return std::make_tuple(body.command, std::move(copy), result::checksum_fail);
+                        }
+                        return std::make_tuple(body.command, std::move(copy), result::success);
+                    }
+                } else {
+                    // TODO LOG("Expected info command, got ack/nack.")
+                    return std::make_tuple(pieces::command::diagnose, bin_data{}, result::malformed);
+                }
+            }
+        }
+        return std::make_tuple(pieces::command::diagnose, bin_data{}, result::timeout);
+    }
+
+    bool frames::test_error(header const &hdr, bin_data const &data) {
+        return hdr.checksum_pass
+            and hdr.length == 1
+            and data.size() == 2
+            and pieces::checksum(std::begin(data), std::end(data))
+            and data[0] == pieces::specific_app_level_err_code;
     }
 
 

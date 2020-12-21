@@ -17,10 +17,17 @@ namespace pn532 {
 
     namespace frames {
         struct header;
-        struct body;
     }
 
     class bin_data;
+
+    enum struct result {
+        success,
+        timeout,
+        checksum_fail,
+        error,
+        malformed
+    };
 
     class nfc {
         channel *_channel;
@@ -39,8 +46,11 @@ namespace pn532 {
         nfc &operator=(nfc const &) = delete;
         nfc &operator=(nfc &&) = default;
 
-        bool send_ack(bool ack = true, std::chrono::milliseconds timeout = one_sec);
-        bool send_cmd(pieces::command cmd, bin_data const &payload, std::chrono::milliseconds timeout = one_sec);
+        result send_ack(bool ack = true, std::chrono::milliseconds timeout = one_sec);
+        result send_cmd(pieces::command cmd, bin_data const &payload, std::chrono::milliseconds timeout = one_sec);
+
+        std::pair<bool, result> await_ack(std::chrono::milliseconds timeout = one_sec);
+        std::tuple<pieces::command, bin_data, result> await_cmd(std::chrono::milliseconds timeout = one_sec);
 
     };
 

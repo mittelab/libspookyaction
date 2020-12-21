@@ -10,18 +10,14 @@
 namespace pn532 {
 
     namespace frames {
-        enum struct type {
+        enum struct frame_type {
             ack,
             nack,
             other
         };
 
-        enum struct direction {
-            host_to_pn532
-        };
-
         struct header {
-            type type = type::other;
+            frame_type type = frame_type::other;
             std::size_t length = 0;
             bool checksum_pass = false;
         };
@@ -61,15 +57,15 @@ namespace pn532 {
         std::array<std::uint8_t, 2> code_or_length{};
         if (chn().read(code_or_length, rt.remaining())) {
             if (code_or_length == pieces::ack_packet_code) {
-                hdr.type = frames::type::ack;
+                hdr.type = frames::frame_type::ack;
                 hdr.length = 0;
                 hdr.checksum_pass = true;
             } else if (code_or_length == pieces::nack_packet_code) {
-                hdr.type = frames::type::nack;
+                hdr.type = frames::frame_type::nack;
                 hdr.length = 0;
                 hdr.checksum_pass = true;
             } else if (code_or_length == pieces::fixed_extended_packet_length) {
-                hdr.type = frames::type::other;
+                hdr.type = frames::frame_type::other;
                 std::array<std::uint8_t, 3> ext_length{};
                 if (chn().read(ext_length, rt.remaining())) {
                     std::tie(hdr.length, hdr.checksum_pass) = pieces::check_length_checksum(ext_length);
@@ -77,7 +73,7 @@ namespace pn532 {
                     success = false;
                 }
             } else {
-                hdr.type = frames::type::other;
+                hdr.type = frames::frame_type::other;
                 std::tie(hdr.length, hdr.checksum_pass) = pieces::check_length_checksum(code_or_length);
             }
         } else {
@@ -103,7 +99,7 @@ namespace pn532 {
             const auto header_success = read_header(rt.remaining());
             if (header_success.second) {
                 // Make sure to consume the command
-                if (header_success.first.type == frames::type::other) {
+                if (header_success.first.type == frames::frame_type::other) {
                     // TODO LOG("Expected ack/nack, got a standard command instead; will consume the command now.")
                     const auto data_success = read_body(header_success.first, rt.remaining());
                     if (data_success.second and frames::test_error(header_success.first, data_success.first)) {
@@ -112,7 +108,7 @@ namespace pn532 {
                     }
                     return {false, result::malformed};
                 } else {
-                    return {header_success.first.type == frames::type::ack, result::success};
+                    return {header_success.first.type == frames::frame_type::ack, result::success};
                 }
             }
         }
@@ -125,7 +121,7 @@ namespace pn532 {
             const auto header_success = read_header(rt.remaining());
             if (header_success.second) {
                 // Make sure to consume the command
-                if (header_success.first.type == frames::type::other) {
+                if (header_success.first.type == frames::frame_type::other) {
                     const auto data_success = read_body(header_success.first, rt.remaining());
                     if (data_success.second) {
                         if (frames::test_error(header_success.first, data_success.first)) {
@@ -138,6 +134,9 @@ namespace pn532 {
                         if (not body.checksum_pass) {
                             // TODO LOG("Body did not checksum.")
                             return std::make_tuple(body.command, std::move(copy), result::checksum_fail);
+                        } else if (body.transport != pieces::transport::pn532_to_host) {
+                            // TODO LOG("Received a message from the host instead of pn532.")
+                            return std::make_tuple(body.command, std::move(copy), result::malformed);
                         }
                         return std::make_tuple(body.command, std::move(copy), result::success);
                     }
@@ -161,7 +160,7 @@ namespace pn532 {
 
     frames::information_body frames::parse_body(frames::header const &hdr, bin_data const &data) {
         frames::information_body retval{};
-        if (hdr.type != type::other) {
+        if (hdr.type != frame_type::other) {
             // TODO LOG("Ack and nack frames do not have body.")
         } else if (not hdr.checksum_pass) {
             // TODO LOG("Cannot parse frame body if frame length compute_checksum failed.")

@@ -38,8 +38,8 @@ namespace pn532 {
         inline const_iterator begin() const;
         inline const_iterator end() const;
 
-        [[nodiscard]] inline std::size_t size() const;
-        [[nodiscard]] inline std::uint8_t operator[](std::size_t i) const;
+        inline std::size_t size() const;
+        inline std::uint8_t operator[](std::size_t i) const;
 
         inline range<const_iterator> view(std::size_t start = 0,
                                           std::size_t length = std::numeric_limits<std::size_t>::max()) const;

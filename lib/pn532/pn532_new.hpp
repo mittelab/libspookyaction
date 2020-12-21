@@ -32,7 +32,7 @@ namespace pn532 {
     class nfc {
         channel *_channel;
 
-        [[nodiscard]] inline channel &chn() const;
+        inline channel &chn() const;
 
         bool await_frame(std::chrono::milliseconds timeout);
         std::pair<frames::header, bool> read_header(std::chrono::milliseconds timeout);

@@ -17,11 +17,11 @@ namespace pn532 {
     class reduce_timeout {
         std::chrono::milliseconds _timeout;
         std::chrono::time_point<std::chrono::high_resolution_clock> _timestamp;
-        [[nodiscard]] inline std::chrono::milliseconds elapsed() const;
+        inline std::chrono::milliseconds elapsed() const;
     public:
         inline explicit reduce_timeout(std::chrono::milliseconds timeout);
-        [[nodiscard]] inline std::chrono::milliseconds remaining() const;
-        [[nodiscard]] inline explicit operator bool() const;
+        inline std::chrono::milliseconds remaining() const;
+        inline explicit operator bool() const;
     };
 
     class channel {

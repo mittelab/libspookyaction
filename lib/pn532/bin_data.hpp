@@ -39,6 +39,7 @@ namespace pn532 {
         inline const_iterator end() const;
 
         [[nodiscard]] inline std::size_t size() const;
+        [[nodiscard]] inline std::uint8_t operator[](std::size_t i) const;
 
         inline range<const_iterator> view(std::size_t start = 0,
                                           std::size_t length = std::numeric_limits<std::size_t>::max()) const;
@@ -96,6 +97,10 @@ namespace pn532 {
 
     std::size_t bin_data::size() const {
         return _data.size();
+    }
+
+    std::uint8_t bin_data::operator[](std::size_t i) const {
+        return _data.at(i);
     }
 
     namespace impl {

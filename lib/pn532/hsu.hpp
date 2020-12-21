@@ -95,13 +95,13 @@ bool HSU::receive(Container &data, TickType_t timeout)
         // ESP_LOG_BUFFER_HEX_LEVEL(PN532_LOG,data.data(), data.size(), ESP_LOG_ERROR);
         return false;
     }
-    // SIZE checksum
+    // SIZE compute_checksum
     if(((data.at(3) + data.at(4)) & 0xFF) != 0x00)
     {
-        ESP_LOGE(PN532_LOG, "Size checksum failed, sum: %d, %d", data[3] ,data[4]);
+        ESP_LOGE(PN532_LOG, "Size compute_checksum failed, sum: %d, %d", data[3] ,data[4]);
         return false;
     }
-    // ESP_LOGE(PN532_LOG, "Correct checksum");
+    // ESP_LOGE(PN532_LOG, "Correct compute_checksum");
     data.resize(data[3]+7);
 
     if(! fill_buffer(data.begin() + 5 ,data.begin() + data[3] + 7, timeout - xTaskGetTickCount() + tStart))
@@ -110,14 +110,14 @@ bool HSU::receive(Container &data, TickType_t timeout)
         return false;
     }
 
-    // DATA checksum
-    // TFI + DATA + checksum = 0x00
+    // DATA compute_checksum
+    // TFI + DATA + compute_checksum = 0x00
     const uint32_t data_checksum = std::accumulate(data.begin() + 5, data.end(),0);
 
     ESP_LOG_BUFFER_HEX_LEVEL(PN532_LOG_RECEIVED_DATA, data.data(), data.size(), ESP_LOG_ERROR);
     if((data_checksum & 0xFF) != 0x00)
     {
-        ESP_LOGE(PN532_LOG, "Data checksum failed: %d", (data_checksum & 0xFF));
+        ESP_LOGE(PN532_LOG, "Data compute_checksum failed: %d", (data_checksum & 0xFF));
         return false;
     }
     if(data.back() != 0x00)
@@ -150,9 +150,9 @@ bool HSU::send(const uint8_t cmd, Container param, TickType_t timeout)
     buffer.insert(buffer.end(), param.begin(), param.end());
 
 
-    // uint8_t checksum = PN532_PREAMBLE + PN532_STARTCODE1 + PN532_STARTCODE2 + PN532_HOSTTOPN532 + cmd;
+    // uint8_t compute_checksum = PN532_PREAMBLE + PN532_STARTCODE1 + PN532_STARTCODE2 + PN532_HOSTTOPN532 + cmd;
     // for (auto value: param)
-    //     checksum += value & 0xFF;
+    //     compute_checksum += value & 0xFF;
 
     const uint8_t checksum  = std::accumulate(param.begin(), param.end(), PN532_PREAMBLE + PN532_STARTCODE1 + PN532_STARTCODE2 + PN532_HOSTTOPN532 + cmd);
 

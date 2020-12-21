@@ -39,13 +39,13 @@ bool HSU::wake_up(TickType_t timeout)
 //         // ESP_LOG_BUFFER_HEX_LEVEL(PN532_LOG,message_buffer.data(), message_buffer.size(), ESP_LOG_ERROR);
 //         return false;
 //     }
-//     // SIZE checksum
+//     // SIZE compute_checksum
 //     if(((message_buffer[3] + message_buffer[4]) & 0xFF) != 0x00)
 //     {
-//         ESP_LOGE(PN532_LOG, "Size checksum failed, sum: %d, %d", message_buffer[3] ,message_buffer[4]);
+//         ESP_LOGE(PN532_LOG, "Size compute_checksum failed, sum: %d, %d", message_buffer[3] ,message_buffer[4]);
 //         return false;
 //     }
-//     // ESP_LOGE(PN532_LOG, "Correct checksum");
+//     // ESP_LOGE(PN532_LOG, "Correct compute_checksum");
 //     message_buffer.resize(message_buffer[3]+7);
 
 //     if(! fill_buffer(message_buffer.begin() + 5 ,message_buffer.begin() + message_buffer[3] + 7, timeout - xTaskGetTickCount() + tStart))
@@ -54,14 +54,14 @@ bool HSU::wake_up(TickType_t timeout)
 //         return false;
 //     }
 
-//     // DATA checksum
-//     // TFI + DATA + checksum = 0x00
+//     // DATA compute_checksum
+//     // TFI + DATA + compute_checksum = 0x00
 //     const uint32_t data_checksum = std::accumulate(message_buffer.begin() + 5, message_buffer.end(),0);
 
 //     ESP_LOG_BUFFER_HEX_LEVEL(PN532_LOG_RECEIVED_DATA, message_buffer.data(), message_buffer.size(), ESP_LOG_ERROR);
 //     if((data_checksum & 0xFF) != 0x00)
 //     {
-//         ESP_LOGE(PN532_LOG, "Data checksum failed: %d", (data_checksum & 0xFF));
+//         ESP_LOGE(PN532_LOG, "Data compute_checksum failed: %d", (data_checksum & 0xFF));
 //         return false;
 //     }
 //     data.resize(message_buffer[3] - 1);

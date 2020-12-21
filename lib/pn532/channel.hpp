@@ -33,6 +33,9 @@ namespace pn532 {
 
         template <std::size_t Length>
         bool await_sequence(std::array<std::uint8_t, Length> const &match_seq, std::chrono::milliseconds timeout);
+        template <std::size_t Length>
+        bool read(std::array<std::uint8_t, Length> &buffer, std::chrono::milliseconds timeout);
+
 
         virtual ~channel() = default;
     };
@@ -69,7 +72,7 @@ namespace pn532 {
     bool channel::await_sequence(std::array<std::uint8_t, Length> const &match_seq, std::chrono::milliseconds timeout) {
         reduce_timeout rt{timeout};
         std::size_t seq_length = 0;
-        std::array<std::uint8_t, Length> read_seq;
+        std::array<std::uint8_t, Length> read_seq{};
         while (rt) {
             const auto byte_success = read(rt.remaining());
             if (byte_success.second) {
@@ -87,6 +90,19 @@ namespace pn532 {
             }
         }
         return false;
+    }
+
+    template <std::size_t Length>
+    bool channel::read(std::array<std::uint8_t, Length> &buffer, std::chrono::milliseconds timeout) {
+        reduce_timeout rt{timeout};
+        auto it = std::begin(buffer);
+        while (rt and it != std::end(buffer)) {
+            const auto byte_success = read(rt.remaining());
+            if (byte_success.first) {
+                *(it++) = byte_success.second;
+            }
+        }
+        return it == std::end(buffer);
     }
 
 }

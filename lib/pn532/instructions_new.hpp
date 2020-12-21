@@ -29,6 +29,10 @@ namespace pn532 {
 
         static constexpr std::size_t max_firmware_data_length = 265;
 
+        static constexpr std::uint8_t firmware_iso_18092_mask = 0x1 << 2;
+        static constexpr std::uint8_t firmware_iso_iec_14443_typea_mask = 0x1 << 2;
+        static constexpr std::uint8_t firmware_iso_iec_14443_typeb_mask = 0x1 << 2;
+
         static constexpr unsigned echo_back_reply_delay_steps_per_ms = 2;
 
         inline std::uint8_t compute_checksum(std::uint8_t byte);
@@ -96,8 +100,49 @@ namespace pn532 {
         };
 
         enum struct speed : std::uint8_t {
+            kbps106 = 0x0,
             kbps212 = 0x1,
             kbps424 = 0x2
+        };
+
+        enum struct modulation : std::uint8_t {
+            mifare_iso_iec_14443_3_type_ab_iso_iec_18092_passive_kbps_106 = 0x00,
+            felica_iso_iec_18092_kbps_212_424 = 0x10,
+            iso_iec_18092_active = 0x01,
+            innovision_jewel_tag = 0x02
+        };
+
+        static constexpr std::uint8_t error_nad_mask = 0x1 << 7;
+        static constexpr std::uint8_t error_mi_mask = 0x1 << 6;
+        static constexpr std::uint8_t error_code_mask = 0b00111111;
+
+        enum struct error : std::uint8_t {
+            timeout = 0x01,
+            crc_error = 0x02,
+            parity_error = 0x3,
+            erroneous_bit_count = 0x04,
+            framing_error = 0x05,
+            bit_collision = 0x06,
+            buffer_size_insufficient = 0x07,
+            rf_buffer_overflow = 0x09,
+            counterpart_rf_off = 0x0a,
+            rf_protocol_error = 0x0b,
+            temperature_error = 0x0d,
+            buffer_overflow = 0x0e,
+            invalid_parameter = 0x10,
+            dep_unsupported_command = 0x12,
+            dep_specification_mismatch = 0x13,
+            mifare_auth_error = 0x14,
+            wrong_uid_check_byte = 0x23,
+            dep_invalid_device_state = 0x25,
+            operation_not_allowed = 0x26,
+            command_not_acceptable = 0x27,
+            released_by_initiator = 0x29,
+            card_exchanged = 0x2a,
+            card_disappeared = 0x2b,
+            nfcid3_initiator_target_mismatch = 0x2c,
+            overcurrent = 0x2d,
+            nad_missing_in_dep_frame = 0x2e
         };
 
         inline std::uint8_t host_to_pn532_command(command cmd);

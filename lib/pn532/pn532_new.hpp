@@ -31,6 +31,31 @@ namespace pn532 {
         failure
     };
 
+    struct firmware_version {
+        std::uint8_t ic = std::numeric_limits<std::uint8_t>::max();
+        std::uint8_t version = std::numeric_limits<std::uint8_t>::max();
+        std::uint8_t revision = std::numeric_limits<std::uint8_t>::max();
+        bool iso_18092 = false;
+        bool iso_iec_14443_typeb = false;
+        bool iso_iec_14443_typea = false;
+    };
+
+    struct target_status {
+        std::uint8_t logical_index;
+        pieces::speed bitrate_rx;
+        pieces::speed bitrate_tx;
+        pieces::modulation modulation_type;
+    };
+
+    struct general_status {
+        bool nad_present;
+        bool mi_set;
+        pieces::error last_error;
+        bool rf_field_present;
+        std::vector<target_status> targets;
+        std::uint8_t sam_status;
+    };
+
     class nfc {
         channel *_channel;
 
@@ -83,6 +108,10 @@ namespace pn532 {
          * @todo Figure out the bit packing for this (page 72)
          */
         result diagnose_self_antenna(std::uint8_t threshold, ms timeout = one_sec);
+
+        std::pair<firmware_version, result> get_firmware_version(ms timeout = one_sec);
+
+        std::pair<general_status, result> get_general_status(ms timeout = one_sec);
     };
 
 

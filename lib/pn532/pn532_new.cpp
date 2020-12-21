@@ -278,6 +278,61 @@ namespace pn532 {
         return nfc_diagnose_simple(*this, pieces::test::self_antenna, 0x00, timeout, threshold);
     }
 
+    std::pair<firmware_version, result> nfc::get_firmware_version(ms timeout) {
+        const auto res_cmd = command_response(pieces::command::get_firmware_version, bin_data{}, timeout);
+        if (res_cmd.second != result::success) {
+            return {firmware_version{}, res_cmd.second};
+        } else if (res_cmd.first.size() != 4) {
+            LOGW("Get firmware version: expected 4 bytes of data, not %ull.", res_cmd.first.size());
+            return {firmware_version{}, result::comm_malformed};
+        }
+        // Unpack
+        firmware_version fw{};
+        fw.ic = res_cmd.first[0];
+        fw.version = res_cmd.first[1];
+        fw.revision = res_cmd.first[2];
+        fw.iso_18092 = 0 != (res_cmd.first[3] & pieces::firmware_iso_18092_mask);
+        fw.iso_iec_14443_typea = 0 != (res_cmd.first[3] & pieces::firmware_iso_iec_14443_typea_mask);
+        fw.iso_iec_14443_typeb = 0 != (res_cmd.first[3] & pieces::firmware_iso_iec_14443_typeb_mask);
+        return {fw, result::success};
+    }
+
+    std::pair<general_status, result> nfc::get_general_status(ms timeout) {
+        const auto res_cmd = command_response(pieces::command::get_general_status, bin_data{}, timeout);
+        if (res_cmd.second != result::success) {
+            return {general_status{}, res_cmd.second};
+        } else if (res_cmd.first.size() != 12) {
+            LOGW("Get status: expected 12 bytes of data, not %ull.", res_cmd.first.size());
+            return {general_status{}, result::comm_malformed};
+        }
+        // Unpack
+        auto parse_target_status = [](bin_data const &d, std::size_t ofs) -> target_status {
+            target_status retval{};
+            retval.logical_index = d[ofs];
+            retval.bitrate_rx = static_cast<pieces::speed>(d[ofs + 1]);
+            retval.bitrate_tx = static_cast<pieces::speed>(d[ofs + 2]);
+            retval.modulation_type = static_cast<pieces::modulation>(d[ofs + 3]);
+            return retval;
+        };
+
+        auto const &b = res_cmd.first;
+        general_status s{};
+        s.nad_present = 0 != (b[0] & pieces::error_nad_mask);
+        s.mi_set = 0 != (b[0] & pieces::error_mi_mask);
+        s.last_error = static_cast<pieces::error>(b[0] & pieces::error_code_mask);
+        s.rf_field_present = b[1] != 0x00;
+        s.sam_status = b[11];
+        if (b[2] > 2) {
+            LOGE("Detected more than two targets handled by PN532, most likely an error.");
+        }
+        const std::size_t num_targets = std::min(std::size_t(b[2]), 2u);
+        s.targets.reserve(num_targets);
+        for (std::size_t i = 0; i < num_targets; ++i) {
+            s.targets.push_back(parse_target_status(b, 3 + 4 * i));
+        }
+        return {s, result::success};
+    }
+
     bool frames::is_error_frame(header const &hdr, bin_data const &data) {
         return hdr.checksum_pass
             and hdr.length == 1

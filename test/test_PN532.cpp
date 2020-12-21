@@ -1,5 +1,6 @@
 #include "unity.h"
 #include "driver/gpio.h"
+#include "driver/uart.h"
 
 
 #include <pn532.hpp>

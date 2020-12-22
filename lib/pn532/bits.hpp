@@ -25,7 +25,7 @@ namespace pn532 {
         static constexpr std::array<std::uint8_t, 2> nack_packet_code = {0xff, 0x00};
         static constexpr std::array<std::uint8_t, 2> fixed_extended_packet_length = {0xff, 0xff};
 
-        static constexpr std::size_t max_firmware_data_length = 265;
+        static constexpr std::size_t max_firmware_data_length = 263;
 
         static constexpr std::uint8_t firmware_iso_18092_mask = 0x1 << 2;
         static constexpr std::uint8_t firmware_iso_iec_14443_typea_mask = 0x1 << 2;

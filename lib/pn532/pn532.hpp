@@ -82,9 +82,19 @@ namespace pn532 {
 
         r<general_status> get_general_status(ms timeout = one_sec);
 
-        r<std::vector<uint8_t>> read_register(std::vector<reg_addr> const &addresses, ms timeout = one_sec);
+        /**
+         * @param addresses Max 131 elements.
+         */
+        r<std::vector<uint8_t>> read_registers(std::vector<reg_addr> const &addresses, ms timeout = one_sec);
 
-        r<> write_register(std::vector<std::pair<reg_addr, std::uint8_t>> const &addr_value_pairs, ms timeout = one_sec);
+        inline r<uint8_t> read_register(reg_addr const &addr, ms timeout = one_sec);
+
+        /**
+         * @param addr_value_pairs Max 87 elements.
+         */
+        r<> write_registers(std::vector<std::pair<reg_addr, std::uint8_t>> const &addr_value_pairs, ms timeout = one_sec);
+
+        inline r<> write_register(reg_addr const &addr, std::uint8_t val, ms timeout = one_sec);
 
         r<gpio_status> read_gpio(ms timeout = one_sec);
 
@@ -128,6 +138,17 @@ namespace pn532 {
     nfc::nfc(channel &chn) : _channel{&chn} {}
     channel &nfc::chn() const { return *_channel; }
 
+    nfc::r<uint8_t> nfc::read_register(reg_addr const &addr, ms timeout) {
+        const auto res_cmd = read_registers({addr}, timeout);
+        if (res_cmd) {
+            return res_cmd->at(0);
+        }
+        return res_cmd.error();
+    }
+
+    nfc::r<> nfc::write_register(reg_addr const &addr, std::uint8_t val, ms timeout) {
+        return write_registers({{addr, val}}, timeout);
+    }
 
 }
 

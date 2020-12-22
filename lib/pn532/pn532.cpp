@@ -367,27 +367,38 @@ namespace pn532 {
         return s;
     }
 
-    nfc::r<std::vector<uint8_t>> nfc::read_register(std::vector<reg_addr> const &addresses, ms timeout) {
+
+    nfc::r<std::vector<uint8_t>> nfc::read_registers(std::vector<reg_addr> const &addresses, ms timeout) {
+        static constexpr std::size_t max_addr_count = bits::max_firmware_data_length / 2;
+        if (addresses.size() > max_addr_count) {
+            LOGW("Read register: requested %ul addresses, but can read at most %ul in a single batch.",
+                 addresses.size(), max_addr_count);
+        }
+        const std::size_t effective_length = std::min(addresses.size(), max_addr_count);
         bin_data payload{};
-        // TODO limit number of registries that can be read
-        for (reg_addr const &addr : addresses) {
-            payload << addr;
+        for (std::size_t i = 0; i < effective_length; ++i) {
+            payload << addresses[i];
         }
         auto res_cmd = command_response(command_code::read_register, payload, timeout);
         if (not res_cmd) {
             return res_cmd.error();
         }
-        if (res_cmd->size() != addresses.size()) {
+        if (res_cmd->size() != effective_length) {
             LOGW("Read register: requested %ul registers, got %ul instead.", addresses.size(), res_cmd->size());
         }
         return std::move(*res_cmd);
     }
 
-    nfc::r<> nfc::write_register(std::vector<std::pair<reg_addr, std::uint8_t>> const &addr_value_pairs, ms timeout) {
+    nfc::r<> nfc::write_registers(std::vector<std::pair<reg_addr, std::uint8_t>> const &addr_value_pairs, ms timeout) {
+        static constexpr std::size_t max_avp_count = bits::max_firmware_data_length / 3;
+        if (addr_value_pairs.size() > max_avp_count) {
+            LOGW("Write register: requested %ul addresses, but can read at most %ul in a single batch.",
+                 addr_value_pairs.size(), max_avp_count);
+        }
+        const std::size_t effective_length = std::min(addr_value_pairs.size(), max_avp_count);
         bin_data payload{};
-        // TODO limit number of registries that can be read
-        for (auto const &addr_value : addr_value_pairs) {
-            payload << addr_value.first << addr_value.second;
+        for (std::size_t i = 0; i < effective_length; ++i) {
+            payload << addr_value_pairs[i].first << addr_value_pairs[i].second;
         }
         return command_response(command_code::write_register, payload, timeout);
     }
@@ -436,7 +447,7 @@ namespace pn532 {
         const auto transport_byte = static_cast<std::uint8_t>(bits::transport::host_to_pn532);
         // "2" because must count transport info and command_code
         const bool use_extended_format = (payload.size() > 0xff - 2);
-        const std::uint8_t length = std::min(payload.size(), bits::max_firmware_data_length - 2);
+        const std::uint8_t length = std::min(payload.size(), bits::max_firmware_data_length);
         // Make sure data gets truncated and nothing too weird happens
         const auto truncated_data = payload.view(0, length);
         // Precompute transport info + cmd byte + info compute_checksum

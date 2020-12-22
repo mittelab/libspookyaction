@@ -17,6 +17,7 @@ namespace pn532 {
     using controller_error = bits::error;
     using sfr_register = bits::sfr_register;
     using command_code = bits::command;
+    using baud_rate = bits::baud_rate;
 
     enum struct gpio_loc {
         p3, p7, i0i1

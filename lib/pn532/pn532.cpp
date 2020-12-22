@@ -471,6 +471,10 @@ namespace pn532 {
         return write_gpio(*res_read, write_p3, write_p7, rt.remaining());
     }
 
+    nfc::r<> nfc::set_serial_baud_rate(baud_rate br, ms timeout) {
+        return command_response(command_code::set_serial_baudrate, {static_cast<std::uint8_t>(br)}, timeout);
+    }
+
     bin_data nfc::get_command_info_frame(command_code cmd, bin_data const &payload) {
         const auto cmd_byte = bits::host_to_pn532_command(cmd);
         const auto transport_byte = static_cast<std::uint8_t>(bits::transport::host_to_pn532);

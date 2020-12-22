@@ -102,6 +102,7 @@ namespace pn532 {
 
         r<> set_gpio_pin(gpio_loc loc, std::uint8_t pin_idx, bool value, ms timeout = one_sec);
 
+        r<> set_serial_baud_rate(baud_rate br, ms timeout = one_sec);
         /*
 - (SetSerialBaudRate)
 - SAMConfiguration

@@ -78,6 +78,18 @@ namespace pn532 {
             self_antenna = 0x7
         };
 
+        enum struct baud_rate : std::uint8_t {
+            kbaud9_6 = 0x00,
+            kbaud19_2 = 0x01,
+            kbaud38_4 = 0x02,
+            kbaud57_6 = 0x03,
+            kbaud115_2 = 0x04,
+            kbaud230_4 = 0x05,
+            kbaud460_8 = 0x06,
+            kbaud921_6 = 0x07,
+            kbaud1288 = 0x08
+        };
+
         enum struct speed : std::uint8_t {
             kbps106 = 0x0,
             kbps212 = 0x1,

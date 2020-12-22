@@ -333,6 +333,65 @@ namespace pn532 {
         return {s, result::success};
     }
 
+    std::pair<std::vector<uint8_t>, result> nfc::read_register(std::vector<reg_addr> const &addresses, ms timeout) {
+        bin_data payload{};
+        for (reg_addr const &addr : addresses) {
+            payload << addr;
+        }
+        auto res_cmd = command_response(pieces::command::read_register, payload, timeout);
+        if (res_cmd.first.size() != addresses.size()) {
+            LOGW("Read register: requested %ul registers, got %ul instead.", addresses.size(), res_cmd.first.size());
+        }
+        return {res_cmd.first.release(), res_cmd.second};
+    }
+
+    result nfc::write_register(std::vector<std::pair<reg_addr, std::uint8_t>> const &addr_value_pairs, ms timeout) {
+        bin_data payload{};
+        for (auto const &addr_value : addr_value_pairs) {
+            payload << addr_value.first << addr_value.second;
+        }
+        return command_response(pieces::command::write_register, payload, timeout).second;
+    }
+
+    std::pair<gpio_status, result> nfc::read_gpio(ms timeout) {
+        auto res_cmd = command_response(pieces::command::read_gpio, bin_data{}, timeout);
+        if (res_cmd.second == result::success) {
+            if (res_cmd.first.size() != 3) {
+                LOGW("Read GPIO: got %ul bytes, expected 3.", res_cmd.first.size());
+                return {gpio_status{}, result::comm_malformed};
+            }
+            return {gpio_status{res_cmd.first[0], res_cmd.first[1], res_cmd.first[2]}, result::success};
+        }
+        return {gpio_status{}, res_cmd.second};
+    }
+
+    result nfc::write_gpio(gpio_status const &status, bool write_p3, bool write_p7, ms timeout) {
+        bin_data payload;
+        if (write_p3) {
+            payload << std::uint8_t(pieces::gpio_write_validate_max | status.mask(gpio_loc::p3));
+        } else {
+            payload << std::uint8_t{0x00};
+        }
+        if (write_p7) {
+            payload << std::uint8_t(pieces::gpio_write_validate_max | status.mask(gpio_loc::p7));
+        } else {
+            payload << std::uint8_t{0x00};
+        }
+        return command_response(pieces::command::write_gpio, payload, timeout).second;
+    }
+
+    result nfc::set_gpio_pin(gpio_loc loc, std::uint8_t pin_idx, bool value, ms timeout) {
+        reduce_timeout rt{timeout};
+        auto res_read = read_gpio(rt.remaining());
+        if (res_read.second != result::success) {
+            return res_read.second;
+        }
+        res_read.first[{loc, pin_idx}] = value;
+        const bool write_p3 = (loc == gpio_loc::p3);
+        const bool write_p7 = (loc == gpio_loc::p7);
+        return write_gpio(res_read.first, write_p3, write_p7, rt.remaining());
+    }
+
     bool frames::is_error_frame(header const &hdr, bin_data const &data) {
         return hdr.checksum_pass
             and hdr.length == 1
@@ -359,12 +418,6 @@ namespace pn532 {
             retval.payload = data.view(2, data.size() - 3);  // Checksum byte
         }
         return retval;
-    }
-
-    std::pair<bin_data, result> nfc::diagnose(pieces::test test, bin_data const &payload, ms timeout)
-    {
-        const bin_data full_body = bin_data::chain(static_cast<std::uint8_t>(test), payload);
-        return command_response(pieces::command::diagnose, full_body, timeout);
     }
 
 

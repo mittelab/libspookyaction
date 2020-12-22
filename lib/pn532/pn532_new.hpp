@@ -56,6 +56,40 @@ namespace pn532 {
         std::uint8_t sam_status;
     };
 
+    struct reg_addr : public std::array<std::uint8_t, 2> {
+        inline reg_addr(pieces::sfr_registers sfr_register);
+        inline reg_addr(std::uint16_t xram_mmap_register);
+    };
+
+    enum struct gpio_loc {
+        p3, p7, i0i1
+    };
+
+    struct bit_ref {
+        std::uint8_t &byte;
+        const std::uint8_t index;
+        const std::uint8_t write_mask;
+
+        inline bit_ref &operator=(bool v);
+        inline operator bool() const;
+    };
+
+    struct gpio_status {
+    private:
+        std::uint8_t _p3_mask = 0x00;
+        std::uint8_t _p7_mask = 0x00;
+        std::uint8_t _i0i1_mask = 0x00;
+    public:
+        gpio_status() = default;
+        inline gpio_status(std::uint8_t p3_mask, std::uint8_t p7_mask, std::uint8_t i0i1_mask);
+
+        inline std::uint8_t mask(gpio_loc loc) const;
+        inline void set_mask(gpio_loc loc, std::uint8_t mask);
+
+        inline bool operator[](std::pair<gpio_loc, std::uint8_t> const &gpio_idx) const;
+        inline bit_ref operator[](std::pair<gpio_loc, std::uint8_t> const &gpio_idx);
+    };
+
     class nfc {
         channel *_channel;
 
@@ -82,8 +116,6 @@ namespace pn532 {
 
         result command(pieces::command cmd, bin_data const &payload, ms timeout = one_sec);
         std::pair<bin_data, result> command_response(pieces::command cmd, bin_data const &payload, ms timeout = one_sec);
-
-        std::pair<bin_data, result> diagnose(pieces::test test, bin_data const &payload, ms timeout = one_sec);
 
         result diagnose_rom(ms timeout = one_sec);
         result diagnose_ram(ms timeout = one_sec);
@@ -112,12 +144,92 @@ namespace pn532 {
         std::pair<firmware_version, result> get_firmware_version(ms timeout = one_sec);
 
         std::pair<general_status, result> get_general_status(ms timeout = one_sec);
+
+        std::pair<std::vector<uint8_t>, result> read_register(std::vector<reg_addr> const &addresses, ms timeout = one_sec);
+
+        result write_register(std::vector<std::pair<reg_addr, std::uint8_t>> const &addr_value_pairs, ms timeout = one_sec);
+
+        std::pair<gpio_status, result> read_gpio(ms timeout = one_sec);
+
+        result write_gpio(gpio_status const &status, bool write_p3 = true, bool write_p7 = true, ms timeout = one_sec);
+
+        result set_gpio_pin(gpio_loc loc, std::uint8_t pin_idx, bool value, ms timeout = one_sec);
+
+        /*
+- (SetSerialBaudRate)
+- SAMConfiguration
+
+- RFConfiguration
+- InDataExchange
+- InSelect
+- InAutoPoll
+         */
     };
 
+    bool gpio_status::operator[](std::pair<gpio_loc, std::uint8_t> const &gpio_idx) const {
+        switch (gpio_idx.first) {
+            case gpio_loc::p3:   return 0 != (_p3_mask   & (1 << gpio_idx.second)); break;
+            case gpio_loc::p7:   return 0 != (_p7_mask   & (1 << gpio_idx.second)); break;
+            case gpio_loc::i0i1: return 0 != (_i0i1_mask & (1 << gpio_idx.second)); break;
+            default: return false; break;
+        }
+    }
 
+    bit_ref gpio_status::operator[](std::pair<gpio_loc, std::uint8_t> const &gpio_idx) {
+        static std::uint8_t _garbage = 0x00;
+        switch (gpio_idx.first) {
+            case gpio_loc::p3:   return bit_ref{_p3_mask,   gpio_idx.second, pieces::gpio_p3_pin_mask}; break;
+            case gpio_loc::p7:   return bit_ref{_p7_mask,   gpio_idx.second, pieces::gpio_p7_pin_mask}; break;
+            case gpio_loc::i0i1: return bit_ref{_i0i1_mask, gpio_idx.second, pieces::gpio_i0i1_pin_mask}; break;
+            default: return bit_ref{_garbage, gpio_idx.second, 0xff}; break;
+        }
+    }
+
+    gpio_status::gpio_status(std::uint8_t p3_mask, std::uint8_t p7_mask, std::uint8_t i0i1_mask) :
+        _p3_mask{p3_mask}, _p7_mask{p7_mask}, _i0i1_mask{i0i1_mask} {}
+
+    inline std::uint8_t gpio_status::mask(gpio_loc loc) const {
+        switch (loc) {
+            case gpio_loc::p3:   return _p3_mask;   break;
+            case gpio_loc::p7:   return _p7_mask;   break;
+            case gpio_loc::i0i1: return _i0i1_mask; break;
+            default: return 0x00; break;
+        }
+    }
+
+    void gpio_status::set_mask(gpio_loc loc, std::uint8_t mask) {
+        switch (loc) {
+            case gpio_loc::p3:   _p3_mask   = mask & pieces::gpio_p3_pin_mask; break;
+            case gpio_loc::p7:   _p7_mask   = mask & pieces::gpio_p7_pin_mask; break;
+            case gpio_loc::i0i1: _i0i1_mask = mask & pieces::gpio_i0i1_pin_mask; break;
+            default: break;
+        }
+    }
+
+    bit_ref &bit_ref::operator=(bool v) {
+        if (0 != (write_mask & (1 << index))) {
+            if (v) {
+                byte |= 1 << index;
+            } else {
+                byte &= ~(1 << index);
+            }
+        }
+        return *this;
+    }
+
+    bit_ref::operator bool() const {
+        return 0 != (byte & (1 << index));
+    }
 
     nfc::nfc(channel &chn) : _channel{&chn} {}
     channel &nfc::chn() const { return *_channel; }
+
+    reg_addr::reg_addr(pieces::sfr_registers sfr_register) :
+        std::array<std::uint8_t, 2>{{pieces::sfr_registers_high, static_cast<std::uint8_t>(sfr_register)}} {}
+
+    reg_addr::reg_addr(std::uint16_t xram_mmap_register) :
+        std::array<std::uint8_t, 2>{{std::uint8_t(xram_mmap_register >> 8),
+                                     std::uint8_t(xram_mmap_register & 0xff)}} {}
 
 
 }

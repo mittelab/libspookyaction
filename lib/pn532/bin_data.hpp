@@ -46,6 +46,7 @@ namespace pn532 {
         inline void clear();
         inline void reserve(std::size_t length);
         inline void resize(std::size_t length);
+        std::vector<std::uint8_t> release();
 
         void randomize();
 
@@ -120,6 +121,12 @@ namespace pn532 {
     }
     void bin_data::resize(std::size_t length) {
         return _data.resize(length);
+    }
+
+    std::vector<std::uint8_t> bin_data::release() {
+        std::vector<std::uint8_t> retval{};
+        _data.swap(retval);
+        return retval;
     }
 
     std::uint8_t bin_data::operator[](std::size_t i) const {

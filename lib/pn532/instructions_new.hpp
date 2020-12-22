@@ -145,6 +145,49 @@ namespace pn532 {
             nad_missing_in_dep_frame = 0x2e
         };
 
+        enum struct sfr_registers : std::uint8_t {
+            pcon = 0x87,
+            rwl = 0x9a,
+            twl = 0x9b,
+            fifofs = 0x9c,
+            fifoff = 0x9d,
+            sff = 0x9e,
+            fit = 0x9f,
+            fiten = 0xa1,
+            fdata = 0xa2,
+            fsize = 0xa3,
+            ie0 = 0xa8,
+            spicontrol = 0xa9,
+            spistatus = 0xaa,
+            hsu_sta = 0xab,
+            hsu_ctr = 0xac,
+            hsu_pre = 0xad,
+            hsu_cnt = 0xae,
+            p3 = 0xb0,
+            ip0 = 0xb8,
+            ciu_command = 0xd1,
+            ien1 = 0xe8,
+            p7cfga = 0xf4,
+            p7cfgb = 0xf5,
+            p7 = 0xf7,
+            ip1 = 0xf8,
+            p3cfga = 0xfc,
+            p3cfgb =0xfd
+        };
+
+        template <std::uint8_t MinIdx, std::uint8_t MaxIdx>
+        struct bitmask_window {
+            static constexpr std::uint8_t value = (0xff >> (7 + MinIdx - MaxIdx)) << MinIdx;
+        };
+
+        static constexpr std::uint8_t gpio_p3_pin_mask = bitmask_window<0, 5>::value;
+        static constexpr std::uint8_t gpio_p7_pin_mask = bitmask_window<1, 2>::value;
+        static constexpr std::uint8_t gpio_i0i1_pin_mask = 0x00;  // Cannot set i0i1
+
+        static constexpr std::uint8_t gpio_write_validate_max = 1 << 7;
+
+        static constexpr std::uint8_t sfr_registers_high = 0xff;
+
         inline std::uint8_t host_to_pn532_command(command cmd);
         inline command pn532_to_host_command(std::uint8_t cmd);
 

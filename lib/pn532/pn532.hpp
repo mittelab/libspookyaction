@@ -25,8 +25,8 @@ namespace pn532 {
             failure
         };
 
-        template <class Data = void>
-        using r = result<Data, error>;
+        template <class ...Tn>
+        using r = result<error, Tn...>;
 
         inline explicit nfc(channel &chn);
 
@@ -63,7 +63,7 @@ namespace pn532 {
          * @param timeout
          * @return Number of fails (<128) at 212 kbps, number of fails (<128) as 424 kbps, command_code result.
          */
-        r<std::pair<unsigned, unsigned>> diagnose_poll_target(bool slow = true, bool fast = true, ms timeout = one_sec);
+        r<unsigned, unsigned> diagnose_poll_target(bool slow = true, bool fast = true, ms timeout = one_sec);
 
         /**
          * @param tx_mode

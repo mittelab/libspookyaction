@@ -252,7 +252,7 @@ namespace pn532 {
         }
     }
 
-    nfc::r<std::pair<unsigned, unsigned>> nfc::diagnose_poll_target(bool slow, bool fast, ms timeout) {
+    nfc::r<unsigned, unsigned> nfc::diagnose_poll_target(bool slow, bool fast, ms timeout) {
         auto get_fails = [&](bool do_test, speed speed) -> nfc::r<unsigned> {
             if (not do_test) {
                 return std::numeric_limits<unsigned>::max();
@@ -277,7 +277,7 @@ namespace pn532 {
         if (slow_fails) {
             const auto fast_fails = get_fails(fast, speed::kbps424);
             if (fast_fails) {
-                return std::make_pair(*slow_fails, *fast_fails);
+                return {*slow_fails, *fast_fails};
             }
             return fast_fails.error();
         }

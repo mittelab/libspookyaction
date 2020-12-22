@@ -12,37 +12,39 @@
 
 namespace pn532 {
 
+
+    /**
+     * This is basically std::variant<E, T1, ...>, contextually convertible to bool if T is present.
+     * Bonus points, if T or E fits into the size of a ''void *'', it's stored directly in the class (assuming it
+     * can be trivially copy assigned, which is a reasonable requirement for something that small). Otherwise, it
+     * behaves like a smart pointer (and thus allocates the object on the stack).
+     * Also, it can take ''void'' T; in that case it represents either a success state or carries the error data.
+     * That is just an alias to ''result<E, result_success_type>''.
+     *
+     * All result classes holding data compare true to @ref result_success, and all result classes can be converted to
+     * ''result<void, E>''.
+     */
+
     enum struct result_content {
         empty,
         data,
         error
     };
 
-    template <class, class> class result;
+    template <class ...Args> class result;
 
     struct result_success_type {
-        template <class T, class E>
-        inline bool operator==(result<T, E> const &res) const;
+        template <class E, class T>
+        inline bool operator==(result<E, T> const &res) const;
 
-        template <class T, class E>
-        inline bool operator!=(result<T, E> const &res) const;
+        template <class E, class T>
+        inline bool operator!=(result<E, T> const &res) const;
     };
 
     static constexpr result_success_type result_success{};
 
-    /**
-     * This is basically std::variant<T, E>, contextually convertible to bool if T is present.
-     * Bonus points, if T or E fits into the size of a ''void *'', it's stored directly in the class (assuming it
-     * can be trivially copy assigned, which is a reasonable requirement for something that small). Otherwise, it
-     * behaves like a smart pointer (and thus allocates the object on the stack).
-     * Also, it can take ''void'' T; in that case it represents either a success state or carries the error data.
-     * That is just an alias to ''result<result_success_type, E>''.
-     *
-     * All result classes holding data compare true to @ref result_success, and all result classes can be converted to
-     * ''result<void, E>''.
-     */
-    template <class T, class E>
-    class result {
+    template <class E, class T>
+    class result<E, T> {
     public:
         inline result();
         inline result(result &&other) noexcept;
@@ -85,6 +87,67 @@ namespace pn532 {
 
         void release();
     };
+
+
+    template <class E, class T1, class T2>
+    class result<E, T1, T2> : public result<E, std::pair<T1, T2>> {
+    public:
+        using base = result<E, std::pair<T1, T2>>;
+        inline result(T1 data1, T2 data2);
+
+        using base::base;
+        using base::operator=;
+        using base::holds;
+        using base::error;
+        using base::operator bool;
+        using base::empty;
+    };
+
+    template <class E, class T1, class T2, class T3, class ...Tn>
+    class result<E, T1, T2, T3, Tn...> : public result<E, std::tuple<T1, T2, T3, Tn...>> {
+    public:
+        using base = result<E, std::pair<T1, T2>>;
+        inline result(T1 data1, T2 data2, T2 data3, Tn ...dataN);
+
+        using base::base;
+        using base::operator=;
+        using base::holds;
+        using base::error;
+        using base::operator bool;
+        using base::empty;
+    };
+
+
+    template <class E>
+    class result<E, void> : public result<E, result_success_type> {
+    public:
+        using base = result<E, result_success_type>;
+
+        template <class T, class = typename std::enable_if<  // Disable copies of the same copy constructor
+                not std::is_void<T>::value and not std::is_same<T, result_success_type>::value>::type>
+        inline result(result<E, T> const &other);
+
+        using base::base;
+        using base::operator=;
+        using base::holds;
+        using base::error;
+        using base::operator bool;
+        using base::empty;
+    };
+
+    template <class E>
+    class result<E> : public result<E, void> {
+    public:
+        using base = result<E, void>;
+
+        using base::base;
+        using base::operator=;
+        using base::holds;
+        using base::error;
+        using base::operator bool;
+        using base::empty;
+    };
+
 
 }
 
@@ -174,11 +237,6 @@ namespace pn532 {
         }
 
         template <class T>
-        T const &retrieve_efficiently(void * const &ptr) {
-            return retrieve<T, can_be_efficiently_stored<T>::value>{}(ptr);
-        }
-
-        template <class T>
         void destroy_efficiently(void * &ptr) {
             destroy<T, can_be_efficiently_stored<T>::value>{}(ptr);
         }
@@ -186,8 +244,8 @@ namespace pn532 {
     }
 
 
-    template <class T, class E>
-    void result<T, E>::release() {
+    template <class E, class T>
+    void result<E, T>::release() {
         switch (holds()) {
             case result_content::data:
                 impl::destroy_efficiently<T>(_storage);
@@ -200,8 +258,8 @@ namespace pn532 {
         _content = result_content::empty;
     }
 
-    template <class T, class E>
-    E const &result<T, E>::e() const {
+    template <class E, class T>
+    E const &result<E, T>::e() const {
         if (holds() != result_content::error) {
             LOGE("Bad! Avoided EXC_BAD_ACCESS: attempt to retrieve the error from a result<> that holds data (or is empty)!");
             return dummy_error();
@@ -209,8 +267,8 @@ namespace pn532 {
         return impl::retrieve_efficiently<E>(_storage);
     }
 
-    template <class T, class E>
-    T const &result<T, E>::d() const {
+    template <class E, class T>
+    T const &result<E, T>::d() const {
         if (holds() != result_content::data) {
             LOGE("Bad! Avoided EXC_BAD_ACCESS: attempt to retrieve the data from a result<> that holds error (or is empty)!");
             return dummy_data();
@@ -218,8 +276,8 @@ namespace pn532 {
         return impl::retrieve_efficiently<T>(_storage);
     }
 
-    template <class T, class E>
-    result<T, E> &result<T, E>::operator=(E error) {
+    template <class E, class T>
+    result<E, T> &result<E, T>::operator=(E error) {
         if (holds() == result_content::error) {
             std::swap(e(), error);
         } else {
@@ -230,8 +288,8 @@ namespace pn532 {
         return *this;
     }
 
-    template <class T, class E>
-    result<T, E> &result<T, E>::operator=(T data) {
+    template <class E, class T>
+    result<E, T> &result<E, T>::operator=(T data) {
         if (holds() == result_content::data) {
             std::swap(d(), data);
         } else {
@@ -242,15 +300,15 @@ namespace pn532 {
         return *this;
     }
 
-    template <class T, class E>
-    result<T, E> &result<T, E>::operator=(result &&other) noexcept {
+    template <class E, class T>
+    result<E, T> &result<E, T>::operator=(result<E, T> &&other) noexcept {
         std::swap(_content, other._content);
         std::swap(_storage, other._storage);
         return *this;
     }
 
-    template <class T, class E>
-    result<T, E> &result<T, E>::operator=(result const &other) {
+    template <class E, class T>
+    result<E, T> &result<E, T>::operator=(result<E, T> const &other) {
         if (&other != this) {
             switch (other.holds()) {
                 case result_content::empty:
@@ -268,8 +326,8 @@ namespace pn532 {
         return *this;
     }
 
-    template <class T, class E>
-    result<T, E>::~result() {
+    template <class E, class T>
+    result<E, T>::~result() {
         release();
     }
 
@@ -277,125 +335,116 @@ namespace pn532 {
      * Nothing interesting happening in these methods:
      */
 
-    template <class T, class E>
-    bool result<T, E>::empty() const {
+    template <class E, class T>
+    bool result<E, T>::empty() const {
         return holds() == result_content::empty;
     }
 
-    template <class T, class E>
-    result<T, E>::operator bool() const {
+    template <class E, class T>
+    result<E, T>::operator bool() const {
         return holds() == result_content::data;
     }
 
-    template <class T, class E>
-    T &result<T, E>::operator*() {
+    template <class E, class T>
+    T &result<E, T>::operator*() {
         return d();
     }
 
-    template <class T, class E>
-    T const &result<T, E>::operator*() const {
+    template <class E, class T>
+    T const &result<E, T>::operator*() const {
         return d();
     }
 
-    template <class T, class E>
-    T *result<T, E>::operator->() {
+    template <class E, class T>
+    T *result<E, T>::operator->() {
         return &d();
     }
 
-    template <class T, class E>
-    T const *result<T, E>::operator->() const {
+    template <class E, class T>
+    T const *result<E, T>::operator->() const {
         return &d();
     }
 
-    template <class T, class E>
-    E result<T, E>::error() const {
+    template <class E, class T>
+    E result<E, T>::error() const {
         return e();
     }
 
-    template <class T, class E>
-    T &result<T, E>::dummy_data() {
+    template <class E, class T>
+    T &result<E, T>::dummy_data() {
         static T _d{};
         return _d;
     }
 
-    template <class T, class E>
-    E &result<T, E>::dummy_error() {
+    template <class E, class T>
+    E &result<E, T>::dummy_error() {
         static E _e{};
         return _e;
     }
 
-    template <class T, class E>
-    E &result<T, E>::e() {
+    template <class E, class T>
+    E &result<E, T>::e() {
         // Allowed
         return const_cast<E &>(static_cast<result const *>(this)->e());
     }
 
-    template <class T, class E>
-    T &result<T, E>::d() {
+    template <class E, class T>
+    T &result<E, T>::d() {
         // Allowed
         return const_cast<T &>(static_cast<result const *>(this)->d());
     }
 
-    template <class T, class E>
-    result<T, E>::result() : _content{result_content::empty}, _storage{nullptr} {}
+    template <class E, class T>
+    result<E, T>::result() : _content{result_content::empty}, _storage{nullptr} {}
 
-    template <class T, class E>
-    result<T, E>::result(result &&other) noexcept : _content{result_content::empty}, _storage{nullptr} {
+    template <class E, class T>
+    result<E, T>::result(result<E, T> &&other) noexcept : _content{result_content::empty}, _storage{nullptr} {
         *this = std::forward<result>(other);
     }
 
-    template <class T, class E>
-    result<T, E>::result(result const &other) : _content{result_content::empty}, _storage{nullptr} {
+    template <class E, class T>
+    result<E, T>::result(result<E, T> const &other) : _content{result_content::empty}, _storage{nullptr} {
         *this = other;
     }
 
-    template <class T, class E>
-    result<T, E>::result(E error) : _content{result_content::empty}, _storage{nullptr} {
+    template <class E, class T>
+    result<E, T>::result(E error) : _content{result_content::empty}, _storage{nullptr} {
         *this = std::move(error);
     }
 
-    template <class T, class E>
-    result<T, E>::result(T data) : _content{result_content::empty}, _storage{nullptr} {
+    template <class E, class T>
+    result<E, T>::result(T data) : _content{result_content::empty}, _storage{nullptr} {
         *this = std::move(data);
     }
 
-    template <class T, class E>
-    result_content result<T, E>::holds() const {
+    template <class E, class T>
+    result_content result<E, T>::holds() const {
         return _content;
     }
+    template <class E, class T>
+    bool result_success_type::operator==(result<E, T> const &res) const { return bool(res); }
 
-    /*
-     * Specialization for holding "void" (aka it's a boolean + error code)
-     */
+    template <class E, class T>
+    bool result_success_type::operator!=(result<E, T> const &res) const { return not bool(res); }
 
     template <class E>
-    class result<void, E> : public result<result_success_type, E> {
-    public:
-        using base = result<result_success_type, E>;
-
-        template <class T,class = typename std::enable_if<  // Disable copies of the same copy constructor
-                not std::is_void<T>::value and not std::is_same<T, result_success_type>::value>::type>
-        inline result(result<T, E> const &other) : result<result_success_type, E>{} {
-            if (other.holds() == result_content::error) {
-                *this = other.error();
-            } else {
-                *this = result_success;
-            }
+    template <class T, class>
+    result<E, void>::result(result<E, T> const &other) : result<E, result_success_type>{} {
+        if (other.holds() == result_content::error) {
+            *this = other.error();
+        } else {
+            *this = result_success;
         }
+    }
+    template <class E, class T1, class T2>
+    result<E, T1, T2>::result(T1 data1, T2 data2) :
+        base{std::make_pair(data1, data2)}
+    {}
 
-        using base::base;
-        using base::operator=;
-        using base::holds;
-        using base::error;
-        using base::operator bool;
-        using base::empty;
-    };
-
-    template <class T, class E>
-    bool result_success_type::operator==(result<T, E> const &res) const { return bool(res); }
-
-    template <class T, class E>
-    bool result_success_type::operator!=(result<T, E> const &res) const { return not bool(res); }
+    template <class E, class T1, class T2, class T3, class ...Tn>
+    result<E, T1, T2, T3, Tn...>::result(T1 data1, T2 data2, T2 data3, Tn ...dataN) :
+        base{std::make_tuple(data1, data2, data3, std::forward<Tn>(dataN)...)}
+    {}
 }
 
 #endif //APERTURAPORTA_RESULT_HPP

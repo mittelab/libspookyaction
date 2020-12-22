@@ -18,6 +18,7 @@ namespace pn532 {
     using sfr_register = bits::sfr_register;
     using command_code = bits::command;
     using baud_rate = bits::baud_rate;
+    using sam_mode = bits::sam_mode;
 
     enum struct gpio_loc {
         p3, p7, i0i1

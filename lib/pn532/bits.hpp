@@ -103,6 +103,15 @@ namespace pn532 {
             innovision_jewel_tag = 0x02
         };
 
+        enum struct sam_mode : std::uint8_t {
+            normal = 0x01,
+            virtual_card = 0x02,
+            wired_card = 0x03,
+            dual_card = 0x04
+        };
+
+        static constexpr unsigned sam_timeout_unit_ms = 50;
+
         static constexpr std::uint8_t error_nad_mask = 0x1 << 7;
         static constexpr std::uint8_t error_mi_mask = 0x1 << 6;
         static constexpr std::uint8_t error_code_mask = 0b00111111;

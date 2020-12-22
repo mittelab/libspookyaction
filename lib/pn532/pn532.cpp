@@ -475,6 +475,16 @@ namespace pn532 {
         return command_response(command_code::set_serial_baudrate, {static_cast<std::uint8_t>(br)}, timeout);
     }
 
+    nfc::r<> nfc::sam_configuration(sam_mode mode, ms sam_timeout, bool controller_drives_irq, ms timeout) {
+        const std::uint8_t sam_timeout_byte = std::min(0xffll, sam_timeout.count() / bits::sam_timeout_unit_ms);
+        const bin_data payload = bin_data::chain(
+                static_cast<std::uint8_t>(mode),
+                sam_timeout_byte,
+                std::uint8_t(controller_drives_irq ? 0x01 : 0x00)
+        );
+        return command_response(command_code::sam_configuration, payload, timeout);
+    }
+
     bin_data nfc::get_command_info_frame(command_code cmd, bin_data const &payload) {
         const auto cmd_byte = bits::host_to_pn532_command(cmd);
         const auto transport_byte = static_cast<std::uint8_t>(bits::transport::host_to_pn532);

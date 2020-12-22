@@ -308,9 +308,9 @@ DesfireApp<T, E> build_desfire(T &device, uint8_t tag_id = 0x01, uint32_t app_id
 //     using T::T;
 //     void selectTag(uint8_t id);
 //     template<typename ContainerIN, typename ContainerOUT>
-//     bool tagCommand(uint8_t tagID, uint8_t command, std::initializer_list<uint8_t> param, ContainerOUT& data, macConfig mac=MAC_None);
+//     bool tagCommand(uint8_t tagID, uint8_t command_code, std::initializer_list<uint8_t> param, ContainerOUT& data, macConfig mac=MAC_None);
 //     template<typename ContainerIN=std::initializer_list<uint8_t>, typename ContainerOUT>
-//     bool tagCommand(uint8_t tagID, uint8_t command, ContainerIN& param, ContainerOUT& data, macConfig mac=MAC_None);
+//     bool tagCommand(uint8_t tagID, uint8_t command_code, ContainerIN& param, ContainerOUT& data, macConfig mac=MAC_None);
 
 //     template<keyType E> void selectApp();
 //     template<keyType E> bool authenticate();

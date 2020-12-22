@@ -13,15 +13,15 @@ namespace pn532 {
 
     using speed = bits::speed;
     using modulation = bits::modulation;
-    using error = bits::error;
-    using sfr_registers = bits::sfr_registers;
-    using command = bits::command;
+    using controller_error = bits::error;
+    using sfr_register = bits::sfr_register;
+    using command_code = bits::command;
 
     enum struct gpio_loc {
         p3, p7, i0i1
     };
 
-    enum struct result {
+    enum struct old_result {
         success,
         timeout,
         comm_checksum_fail,
@@ -42,24 +42,24 @@ namespace pn532 {
 
     struct target_status {
         std::uint8_t logical_index;
-        bits::speed bitrate_rx;
-        bits::speed bitrate_tx;
-        bits::modulation modulation_type;
+        speed bitrate_rx;
+        speed bitrate_tx;
+        modulation modulation_type;
     };
 
     struct general_status {
         bool nad_present;
         bool mi_set;
-        bits::error last_error;
+        controller_error last_error;
         bool rf_field_present;
         std::vector<target_status> targets;
         std::uint8_t sam_status;
     };
 
     struct reg_addr : public std::array<std::uint8_t, 2> {
-        inline reg_addr(bits::sfr_registers sfr_register);
+        inline reg_addr(sfr_register sfr_reg);
 
-        inline reg_addr(std::uint16_t xram_mmap_register);
+        inline reg_addr(std::uint16_t xram_mmap_reg);
     };
 
     struct gpio_status {
@@ -125,12 +125,12 @@ namespace pn532 {
         }
     }
 
-    reg_addr::reg_addr(bits::sfr_registers sfr_register) :
-            std::array<std::uint8_t, 2>{{bits::sfr_registers_high, static_cast<std::uint8_t>(sfr_register)}} {}
+    reg_addr::reg_addr(sfr_register sfr_reg) :
+            std::array<std::uint8_t, 2>{{bits::sfr_registers_high, static_cast<std::uint8_t>(sfr_reg)}} {}
 
-    reg_addr::reg_addr(std::uint16_t xram_mmap_register) :
-            std::array<std::uint8_t, 2>{{std::uint8_t(xram_mmap_register >> 8),
-                                                std::uint8_t(xram_mmap_register & 0xff)}} {}
+    reg_addr::reg_addr(std::uint16_t xram_mmap_reg) :
+            std::array<std::uint8_t, 2>{{std::uint8_t(xram_mmap_reg >> 8),
+                                                std::uint8_t(xram_mmap_reg & 0xff)}} {}
 
 }
 

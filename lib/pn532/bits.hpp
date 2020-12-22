@@ -124,7 +124,7 @@ namespace pn532 {
             nad_missing_in_dep_frame = 0x2e
         };
 
-        enum struct sfr_registers : std::uint8_t {
+        enum struct sfr_register : std::uint8_t {
             pcon = 0x87,
             rwl = 0x9a,
             twl = 0x9b,

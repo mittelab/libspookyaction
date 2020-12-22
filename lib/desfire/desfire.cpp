@@ -388,7 +388,7 @@ bool DesfireApp<T, E>::tagCommand(uint8_t command, ContainerIN& param, Container
     if(!param.empty()) sendBuffer.insert(sendBuffer.end(), param.begin(), param.end());
     if(mac & CMAC_ENC_TX)
     {
-        //calculate crc from command and parameters
+        //calculate crc from command_code and parameters
         uint32_t crc32 = appKey.crc32(sendBuffer);
         sendBuffer.push_back(crc32 >> 24);
         sendBuffer.push_back(crc32 >> 16);
@@ -544,9 +544,9 @@ DesfireApp<T, E> build_desfire(T &device, uint8_t tag_id, uint32_t app_id, E key
 
 // template <class T>
 // template<typename ContainerIN, typename ContainerOUT>
-// bool Desfire<T>::tagCommand(uint8_t command, std::initializer_list<uint8_t> param, ContainerOUT& data, macConfig mac)
+// bool Desfire<T>::tagCommand(uint8_t command_code, std::initializer_list<uint8_t> param, ContainerOUT& data, macConfig mac)
 // {
-//     std::vector<uint8_t> sendBuffer = {command};
+//     std::vector<uint8_t> sendBuffer = {command_code};
 //     sendBuffer.insert(sendBuffer.end(), param.begin(), param.end());
 //     T::InDataExchange(tagID, sendBuffer, data);
 //     return true;
@@ -554,9 +554,9 @@ DesfireApp<T, E> build_desfire(T &device, uint8_t tag_id, uint32_t app_id, E key
 
 // template <class T>
 // template<typename ContainerIN, typename ContainerOUT>
-// bool Desfire<T>::tagCommand(uint8_t command, ContainerIN& param, ContainerOUT& data, macConfig mac)
+// bool Desfire<T>::tagCommand(uint8_t command_code, ContainerIN& param, ContainerOUT& data, macConfig mac)
 // {
-//     std::vector<uint8_t> sendBuffer = {command};
+//     std::vector<uint8_t> sendBuffer = {command_code};
 //     sendBuffer.insert(sendBuffer.end(), param.begin(), param.end());
 //     T::InDataExchange(tagID, sendBuffer, data);
 //     return true;

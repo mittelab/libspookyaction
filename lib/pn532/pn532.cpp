@@ -400,6 +400,7 @@ namespace pn532 {
         }
         const std::size_t effective_length = std::min(addresses.size(), max_addr_count);
         bin_data payload{};
+        payload.reserve(effective_length * 2);
         for (std::size_t i = 0; i < effective_length; ++i) {
             payload << addresses[i];
         }
@@ -422,6 +423,7 @@ namespace pn532 {
         }
         const std::size_t effective_length = std::min(addr_value_pairs.size(), max_avp_count);
         bin_data payload{};
+        payload.reserve(effective_length * 3);
         for (std::size_t i = 0; i < effective_length; ++i) {
             payload << addr_value_pairs[i].first << addr_value_pairs[i].second;
         }
@@ -445,7 +447,8 @@ namespace pn532 {
             LOGW("Attempt to write nothing on the GPIO, did you miss to pass some parameter?");
             return result_success;
         }
-        bin_data payload;
+        bin_data payload{};
+        payload.reserve(2);
         if (write_p3) {
             payload << std::uint8_t(bits::gpio_write_validate_max | status.mask(gpio_loc::p3));
         } else {
@@ -506,7 +509,9 @@ namespace pn532 {
                 std::begin(truncated_data),
                 std::end(truncated_data)
         );
-        bin_data frame = bin_data::chain(bits::preamble, bits::start_of_packet_code);
+        bin_data frame{};
+        frame.reserve(length + 12);
+        frame << bits::preamble << bits::start_of_packet_code;
         if (use_extended_format) {
             frame << bits::fixed_extended_packet_length << bits::length_and_checksum_long(length);
         } else {

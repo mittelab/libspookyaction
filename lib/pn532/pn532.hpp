@@ -130,6 +130,7 @@ namespace pn532 {
         static bin_data const &get_nack_frame();
     };
 
+    const char *to_string(nfc::error e);
 }
 
 

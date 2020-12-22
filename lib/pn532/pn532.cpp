@@ -3,8 +3,8 @@
 //
 
 #include <tuple>
+#include "bits_algo.hpp"
 #include "pn532.hpp"
-#include "bin_data.hpp"
 #include "log.h"
 
 namespace pn532 {

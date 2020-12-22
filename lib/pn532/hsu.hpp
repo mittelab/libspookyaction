@@ -14,12 +14,17 @@ namespace pn532 {
         uart_port_t _port;
     protected:
         bool prepare_receive(std::chrono::milliseconds timeout) override;
+
         bool send_raw(bin_data const &data, std::chrono::milliseconds timeout) override;
+
         bool receive_raw(bin_data &data, std::size_t length, std::chrono::milliseconds timeout) override;
+
     public:
         inline explicit hsu(uart_port_t port);
     };
+}
 
+namespace pn532 {
 
     hsu::hsu(uart_port_t port) : _port{port} {}
 

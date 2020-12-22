@@ -5,46 +5,67 @@
 #ifndef APERTURAPORTA_BIN_DATA_HPP
 #define APERTURAPORTA_BIN_DATA_HPP
 
+#include <cstdint>
+#include <vector>
+#include <algorithm>
+
 namespace pn532 {
 
-    template <class Iterator>
+    template<class Iterator>
     struct range {
         Iterator it_begin;
         Iterator it_end;
+
         inline Iterator begin() const { return it_begin; }
+
         inline Iterator end() const { return it_end; }
     };
 
-    template <class Iterator>
+    template<class Iterator>
     inline range<Iterator> make_range(Iterator begin, Iterator end) {
         return {begin, end};
     }
 
+    struct bit_ref {
+        std::uint8_t &byte;
+        const std::uint8_t index;
+        const std::uint8_t write_mask;
+
+        inline bit_ref &operator=(bool v);
+
+        inline operator bool() const;
+    };
 
     class bin_data : public std::vector<std::uint8_t> {
     public:
         bin_data() = default;
+
         inline bin_data(std::initializer_list<std::uint8_t> data);
+
         inline explicit bin_data(std::vector<std::uint8_t> &&data);
 
-        template <class ByteIterator>
+        template<class ByteIterator>
         inline bin_data(ByteIterator begin, ByteIterator end);
 
         inline range<const_iterator> view(std::size_t start = 0,
                                           std::size_t length = std::numeric_limits<std::size_t>::max()) const;
 
-        template <class ByteIterator>
+        template<class ByteIterator>
         void push_back(ByteIterator begin, ByteIterator end);
+
         using std::vector<std::uint8_t>::push_back;
 
-        template <class ByteContainer>
+        template<class ByteContainer>
         inline bin_data &operator<<(ByteContainer const &data);
+
         inline bin_data &operator<<(std::uint8_t byte);
 
-        template <class ...ByteOrByteContainers>
-        static bin_data chain(ByteOrByteContainers&& ...others);
+        template<class ...ByteOrByteContainers>
+        static bin_data chain(ByteOrByteContainers &&...others);
     };
+}
 
+namespace pn532 {
 
     bin_data::bin_data(std::initializer_list<std::uint8_t> data) : std::vector<uint8_t>{data} {}
     bin_data::bin_data(std::vector<std::uint8_t> &&data) : std::vector<uint8_t>{std::move(data)} {}
@@ -99,6 +120,22 @@ namespace pn532 {
         length = std::min(length, size() - start - 1);
         return make_range(begin() + start, begin() + start + length);
     }
+
+    bit_ref &bit_ref::operator=(bool v) {
+        if (0 != (write_mask & (1 << index))) {
+            if (v) {
+                byte |= 1 << index;
+            } else {
+                byte &= ~(1 << index);
+            }
+        }
+        return *this;
+    }
+
+    bit_ref::operator bool() const {
+        return 0 != (byte & (1 << index));
+    }
+
 
 }
 

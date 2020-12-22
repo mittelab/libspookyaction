@@ -19,10 +19,14 @@ namespace pn532 {
     class reduce_timeout {
         ms _timeout;
         std::chrono::time_point<std::chrono::high_resolution_clock> _timestamp;
+
         inline ms elapsed() const;
+
     public:
         inline explicit reduce_timeout(ms timeout);
+
         inline ms remaining() const;
+
         inline explicit operator bool() const;
     };
 
@@ -30,6 +34,7 @@ namespace pn532 {
         bool _ready_to_receive = false;
     protected:
         inline bool is_ready_to_receive() const;
+
         inline void set_ready_to_receive(bool v);
 
         /**
@@ -56,23 +61,33 @@ namespace pn532 {
          * not time out, it sets the class as ready to receive with @ref set_ready_to_receive;
          */
         bool ensure_ready_to_receive(ms timeout);
+
     public:
 
         std::pair<bin_data, bool> receive(std::size_t length, ms timeout);
+
         std::pair<std::uint8_t, bool> receive(ms timeout);
+
         /**
          * Overwrites @p data with a sequence of length @p length
          */
         bool receive(bin_data &data, std::size_t length, ms timeout);
+
         bool send(bin_data const &data, ms timeout);
 
-        template <std::size_t Length>
+        template<std::size_t Length>
         bool await_sequence(std::array<std::uint8_t, Length> const &match_seq, ms timeout);
-        template <std::size_t Length>
+
+        template<std::size_t Length>
         bool receive(std::array<std::uint8_t, Length> &buffer, ms timeout);
 
         virtual ~channel() = default;
     };
+}
+
+
+
+namespace pn532 {
 
     reduce_timeout::reduce_timeout(ms timeout) :
         _timeout{timeout},

@@ -186,7 +186,7 @@ namespace pn532 {
         // Generate 256 bytes of random data to test
         bin_data payload;
         payload.resize(0xff);
-        payload.randomize();
+        std::iota(std::begin(payload), std::end(payload), 0x00);
         // Set the first byte to be the test number
         payload[0] = static_cast<std::uint8_t>(pieces::test::comm_line);
         const auto res_cmd = command_response(pieces::command::diagnose, payload, timeout);
@@ -342,7 +342,7 @@ namespace pn532 {
         if (res_cmd.first.size() != addresses.size()) {
             LOGW("Read register: requested %ul registers, got %ul instead.", addresses.size(), res_cmd.first.size());
         }
-        return {res_cmd.first.release(), res_cmd.second};
+        return {std::move(res_cmd.first), res_cmd.second};
     }
 
     result nfc::write_register(std::vector<std::pair<reg_addr, std::uint8_t>> const &addr_value_pairs, ms timeout) {

@@ -21,42 +21,21 @@ namespace pn532 {
     }
 
 
-    class bin_data {
-        std::vector<std::uint8_t> _data;
+    class bin_data : public std::vector<std::uint8_t> {
     public:
-        using iterator = std::vector<std::uint8_t>::iterator;
-        using const_iterator = std::vector<std::uint8_t>::const_iterator;
-
         bin_data() = default;
-
         inline bin_data(std::initializer_list<std::uint8_t> data);
         inline explicit bin_data(std::vector<std::uint8_t> &&data);
 
         template <class ByteIterator>
         inline bin_data(ByteIterator begin, ByteIterator end);
 
-        inline const_iterator begin() const;
-        inline const_iterator end() const;
-
-        inline std::uint8_t const *data() const;
-        inline std::uint8_t *data();
-        inline std::size_t size() const;
-        inline std::uint8_t operator[](std::size_t i) const;
-        inline std::uint8_t &operator[](std::size_t i);
-        inline void clear();
-        inline void reserve(std::size_t length);
-        inline void resize(std::size_t length);
-        std::vector<std::uint8_t> release();
-
-        void randomize();
-
         inline range<const_iterator> view(std::size_t start = 0,
                                           std::size_t length = std::numeric_limits<std::size_t>::max()) const;
 
         template <class ByteIterator>
-        void append(ByteIterator begin, ByteIterator end);
-        inline void append(std::uint8_t byte);
-
+        void push_back(ByteIterator begin, ByteIterator end);
+        using std::vector<std::uint8_t>::push_back;
 
         template <class ByteContainer>
         inline bin_data &operator<<(ByteContainer const &data);
@@ -67,74 +46,27 @@ namespace pn532 {
     };
 
 
-
-
-    bin_data::bin_data(std::initializer_list<std::uint8_t> data) : _data{data} {}
-    bin_data::bin_data(std::vector<std::uint8_t> &&data) : _data{std::move(data)} {}
+    bin_data::bin_data(std::initializer_list<std::uint8_t> data) : std::vector<uint8_t>{data} {}
+    bin_data::bin_data(std::vector<std::uint8_t> &&data) : std::vector<uint8_t>{std::move(data)} {}
 
     template <class ByteIterator>
-    bin_data::bin_data(ByteIterator begin, ByteIterator end) : _data{begin, end} {}
+    bin_data::bin_data(ByteIterator begin, ByteIterator end) : std::vector<uint8_t>{begin, end} {}
 
     template <class ByteIterator>
-    void bin_data::append(ByteIterator begin, ByteIterator end) {
-        _data.reserve(_data.size() + std::distance(begin, end));
-        std::copy(begin, end, std::back_inserter(_data));
-    }
-
-    void bin_data::append(std::uint8_t byte) {
-        _data.push_back(byte);
+    void bin_data::push_back(ByteIterator begin, ByteIterator end) {
+        reserve(size() + std::distance(begin, end));
+        std::copy(begin, end, std::back_inserter(*this));
     }
 
     template <class ByteContainer>
     bin_data &bin_data::operator<<(ByteContainer const &data) {
-        append(std::begin(data), std::end(data));
+        push_back(std::begin(data), std::end(data));
         return *this;
     }
 
     bin_data &bin_data::operator<<(std::uint8_t byte) {
-        append(byte);
+        push_back(byte);
         return *this;
-    }
-
-    bin_data::const_iterator bin_data::begin() const {
-        return std::begin(_data);
-    }
-
-    bin_data::const_iterator bin_data::end() const {
-        return std::end(_data);
-    }
-
-    std::size_t bin_data::size() const {
-        return _data.size();
-    }
-    std::uint8_t const *bin_data::data() const {
-        return _data.data();
-    }
-    std::uint8_t *bin_data::data() {
-        return _data.data();
-    }
-    void bin_data::clear() {
-        return _data.clear();
-    }
-    void bin_data::reserve(std::size_t length) {
-        return _data.reserve(length);
-    }
-    void bin_data::resize(std::size_t length) {
-        return _data.resize(length);
-    }
-
-    std::vector<std::uint8_t> bin_data::release() {
-        std::vector<std::uint8_t> retval{};
-        _data.swap(retval);
-        return retval;
-    }
-
-    std::uint8_t bin_data::operator[](std::size_t i) const {
-        return _data.at(i);
-    }
-
-    std::uint8_t &bin_data::operator[](std::size_t i) {
-        return _data.at(i);
     }
 
     namespace impl {

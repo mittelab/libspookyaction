@@ -168,20 +168,20 @@ namespace pn532 {
 
     bool gpio_status::operator[](std::pair<gpio_loc, std::uint8_t> const &gpio_idx) const {
         switch (gpio_idx.first) {
-            case gpio_loc::p3:   return 0 != (_p3_mask   & (1 << gpio_idx.second)); break;
-            case gpio_loc::p7:   return 0 != (_p7_mask   & (1 << gpio_idx.second)); break;
-            case gpio_loc::i0i1: return 0 != (_i0i1_mask & (1 << gpio_idx.second)); break;
-            default: return false; break;
+            case gpio_loc::p3:   return 0 != (_p3_mask   & (1 << gpio_idx.second));
+            case gpio_loc::p7:   return 0 != (_p7_mask   & (1 << gpio_idx.second));
+            case gpio_loc::i0i1: return 0 != (_i0i1_mask & (1 << gpio_idx.second));
+            default: return false;
         }
     }
 
     bit_ref gpio_status::operator[](std::pair<gpio_loc, std::uint8_t> const &gpio_idx) {
         static std::uint8_t _garbage = 0x00;
         switch (gpio_idx.first) {
-            case gpio_loc::p3:   return bit_ref{_p3_mask,   gpio_idx.second, pieces::gpio_p3_pin_mask}; break;
-            case gpio_loc::p7:   return bit_ref{_p7_mask,   gpio_idx.second, pieces::gpio_p7_pin_mask}; break;
-            case gpio_loc::i0i1: return bit_ref{_i0i1_mask, gpio_idx.second, pieces::gpio_i0i1_pin_mask}; break;
-            default: return bit_ref{_garbage, gpio_idx.second, 0xff}; break;
+            case gpio_loc::p3:   return bit_ref{_p3_mask,   gpio_idx.second, pieces::gpio_p3_pin_mask};
+            case gpio_loc::p7:   return bit_ref{_p7_mask,   gpio_idx.second, pieces::gpio_p7_pin_mask};
+            case gpio_loc::i0i1: return bit_ref{_i0i1_mask, gpio_idx.second, pieces::gpio_i0i1_pin_mask};
+            default: return bit_ref{_garbage, gpio_idx.second, 0xff};
         }
     }
 
@@ -190,10 +190,10 @@ namespace pn532 {
 
     inline std::uint8_t gpio_status::mask(gpio_loc loc) const {
         switch (loc) {
-            case gpio_loc::p3:   return _p3_mask;   break;
-            case gpio_loc::p7:   return _p7_mask;   break;
-            case gpio_loc::i0i1: return _i0i1_mask; break;
-            default: return 0x00; break;
+            case gpio_loc::p3:   return _p3_mask;
+            case gpio_loc::p7:   return _p7_mask;
+            case gpio_loc::i0i1: return _i0i1_mask;
+            default: return 0x00;
         }
     }
 

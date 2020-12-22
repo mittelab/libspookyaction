@@ -12,13 +12,27 @@
 
 namespace pn532 {
 
-    using speed = bits::speed;
-    using modulation = bits::modulation;
     using controller_error = bits::error;
-    using sfr_register = bits::sfr_register;
     using command_code = bits::command;
-    using baud_rate = bits::baud_rate;
-    using sam_mode = bits::sam_mode;
+
+    using bits::speed;
+    using bits::modulation;
+    using bits::sfr_register;
+    using bits::baud_rate;
+    using bits::sam_mode;
+    using bits::rf_timeout;
+
+    using bits::ciu_reg_212_424kbps;
+    using bits::ciu_reg_106kbps_typea;
+    using bits::ciu_reg_typeb;
+    using bits::ciu_reg_iso_iec_14443_4_at_baudrate;
+    using bits::ciu_reg_iso_iec_14443_4;
+
+    bin_data &operator<<(bin_data &bd, ciu_reg_212_424kbps const &reg);
+    bin_data &operator<<(bin_data &bd, ciu_reg_106kbps_typea const &reg);
+    bin_data &operator<<(bin_data &bd, ciu_reg_typeb const &reg);
+    bin_data &operator<<(bin_data &bd, ciu_reg_iso_iec_14443_4_at_baudrate const &reg);
+    bin_data &operator<<(bin_data &bd, ciu_reg_iso_iec_14443_4 const &reg);
 
     enum struct gpio_loc {
         p3, p7, i0i1

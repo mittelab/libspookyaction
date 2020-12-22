@@ -488,6 +488,70 @@ namespace pn532 {
         return command_response(command_code::sam_configuration, payload, timeout);
     }
 
+    nfc::r<> nfc::rf_configuration_field(bool auto_rfca, bool rf_on, ms timeout) {
+        const std::uint8_t config_data =
+                (auto_rfca ? bits::rf_configuration_field_auto_rfca_mask  : 0x00) |
+                (rf_on     ? bits::rf_configuration_field_auto_rf_on_mask : 0x00);
+        bin_data payload{};
+        payload.reserve(2);
+        payload << static_cast<std::uint8_t>(bits::rf_config_item::rf_field) << config_data;
+        return command_response(command_code::rf_configuration, payload, timeout);
+    }
+    nfc::r<> nfc::rf_configuration_timings(std::uint8_t rfu, rf_timeout atr_res_timeout, rf_timeout retry_timeout,
+                                           ms timeout)
+    {
+        bin_data payload{};
+        payload.reserve(4);
+        payload << static_cast<std::uint8_t>(bits::rf_config_item::timings) << rfu
+            << static_cast<std::uint8_t>(atr_res_timeout) << static_cast<std::uint8_t>(retry_timeout);
+        return command_response(command_code::rf_configuration, payload, timeout);
+    }
+
+    nfc::r<> nfc::rf_configuration_retries(std::uint8_t comm_retries, ms timeout) {
+        bin_data payload{};
+        payload.reserve(2);
+        payload << static_cast<std::uint8_t>(bits::rf_config_item::max_rty_com) << comm_retries;
+        return command_response(command_code::rf_configuration, payload, timeout);
+    }
+
+    nfc::r<> nfc::rf_configuration_retries(std::uint8_t atr_retries, std::uint8_t psl_retries,
+                                           std::uint8_t passive_activation, ms timeout)
+    {
+        bin_data payload{};
+        payload.reserve(4);
+        payload << static_cast<std::uint8_t>(bits::rf_config_item::max_retries) << atr_retries << psl_retries
+            << passive_activation;
+        return command_response(command_code::rf_configuration, payload, timeout);
+    }
+
+    nfc::r<> nfc::rf_configuration_analog_106kbps_typea(ciu_reg_106kbps_typea const &config, ms timeout) {
+        bin_data payload{};
+        payload.reserve(1 + sizeof(ciu_reg_106kbps_typea));
+        payload << static_cast<std::uint8_t>(bits::rf_config_item::analog_106kbps_typea) << config;
+        return command_response(command_code::rf_configuration, payload, timeout);
+    }
+
+    nfc::r<> nfc::rf_configuration_analog_212_424kbps(ciu_reg_212_424kbps const &config, ms timeout) {
+        bin_data payload{};
+        payload.reserve(1 + sizeof(ciu_reg_212_424kbps));
+        payload << static_cast<std::uint8_t>(bits::rf_config_item::analog_212_424kbps) << config;
+        return command_response(command_code::rf_configuration, payload, timeout);
+    }
+
+    nfc::r<> nfc::rf_configuration_analog_typeb(ciu_reg_typeb const &config, ms timeout) {
+        bin_data payload{};
+        payload.reserve(1 + sizeof(ciu_reg_typeb));
+        payload << static_cast<std::uint8_t>(bits::rf_config_item::analog_typeb) << config;
+        return command_response(command_code::rf_configuration, payload, timeout);
+    }
+
+    nfc::r<> nfc::rf_configuration_analog_iso_iec_14443_4(ciu_reg_iso_iec_14443_4 const &config, ms timeout) {
+        bin_data payload{};
+        payload.reserve(1 + sizeof(ciu_reg_iso_iec_14443_4));
+        payload << static_cast<std::uint8_t>(bits::rf_config_item::analog_iso_iec_14443_4) << config;
+        return command_response(command_code::rf_configuration, payload, timeout);
+    }
+
     bin_data nfc::get_command_info_frame(command_code cmd, bin_data const &payload) {
         const auto cmd_byte = bits::host_to_pn532_command(cmd);
         const auto transport_byte = static_cast<std::uint8_t>(bits::transport::host_to_pn532);

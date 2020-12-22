@@ -105,11 +105,26 @@ namespace pn532 {
         r<> set_serial_baud_rate(baud_rate br, ms timeout = one_sec);
 
         r<> sam_configuration(sam_mode mode, ms sam_timeout, bool controller_drives_irq = true, ms timeout = one_sec);
-        /*
-- (SetSerialBaudRate)
-- SAMConfiguration
 
-- RFConfiguration
+        r<> rf_configuration_field(bool auto_rfca, bool rf_on, ms timeout = one_sec);
+
+        r<> rf_configuration_timings(std::uint8_t rfu, rf_timeout atr_res_timeout = rf_timeout::ms_102_4,
+                                     rf_timeout retry_timeout = rf_timeout::ms_51_2, ms timeout = one_sec);
+
+        r<> rf_configuration_retries(std::uint8_t comm_retries = 0, ms timeout = one_sec);
+
+        r<> rf_configuration_retries(std::uint8_t atr_retries, std::uint8_t psl_retries,
+                                     std::uint8_t passive_activation = std::numeric_limits<std::uint8_t>::max(),
+                                     ms timeout = one_sec);
+
+        r<> rf_configuration_analog_106kbps_typea(ciu_reg_106kbps_typea const &config, ms timeout = one_sec);
+
+        r<> rf_configuration_analog_212_424kbps(ciu_reg_212_424kbps const &config, ms timeout = one_sec);
+
+        r<> rf_configuration_analog_typeb(ciu_reg_typeb const &config, ms timeout = one_sec);
+
+        r<> rf_configuration_analog_iso_iec_14443_4(ciu_reg_iso_iec_14443_4 const &config, ms timeout = one_sec);
+        /*
 - InDataExchange
 - InSelect
 - InAutoPoll

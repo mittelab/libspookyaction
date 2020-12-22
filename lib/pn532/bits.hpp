@@ -90,6 +90,95 @@ namespace pn532 {
             kbaud1288 = 0x08
         };
 
+        enum struct rf_timeout : std::uint8_t {
+            none = 0x00,
+            us_100 = 0x01,
+            us_200 = 0x02,
+            us_400 = 0x03,
+            us_800 = 0x04,
+            ms_1_6 = 0x05,
+            ms_3_2 = 0x06,
+            ms_6_4 = 0x07,
+            ms_12_8 = 0x08,
+            ms_25_6 = 0x09,
+            ms_51_2 = 0x0a,
+            ms_102_4 = 0x0b,
+            ms_204_8 = 0x0c,
+            ms_409_6 = 0x0d,
+            ms_819_2 = 0x0e,
+            s_1_64 = 0x0f,
+            s_3_28 = 0x10
+        };
+
+        static constexpr std::uint8_t rf_configuration_field_auto_rfca_mask = 0b10;
+        static constexpr std::uint8_t rf_configuration_field_auto_rf_on_mask = 0b01;
+
+        struct ciu_reg_212_424kbps {
+            std::uint8_t rf_cfg = 0x69;
+            std::uint8_t gs_n_on = 0xff;
+            std::uint8_t cw_gs_p = 0x3f;
+            std::uint8_t mod_gs_p = 0x11;
+            std::uint8_t demod_own_rf_on = 0x41;
+            std::uint8_t rx_threshold = 0x85;
+            std::uint8_t demod_own_rf_off = 0x61;
+            std::uint8_t gs_n_off = 0x6f;
+        };
+
+        struct ciu_reg_106kbps_typea {
+            std::uint8_t rf_cfg = 0x59;
+            std::uint8_t gs_n_on = 0xf4;
+            std::uint8_t cw_gs_p = 0x3f;
+            std::uint8_t mod_gs_p = 0x11;
+            std::uint8_t demod_own_rf_on = 0x4d;
+            std::uint8_t rx_threshold = 0x85;
+            std::uint8_t demod_own_rf_off = 0x61;
+            std::uint8_t gs_n_off = 0x6f;
+            std::uint8_t mod_width = 0x26;
+            std::uint8_t mif_nfc = 0x62;
+            std::uint8_t tx_bit_phase = 0x87;
+        };
+
+        struct ciu_reg_typeb {
+            std::uint8_t gs_n_on = 0xff;
+            std::uint8_t mod_gs_p = 0x17;
+            std::uint8_t rx_threshold = 0x85;
+        };
+
+        struct ciu_reg_iso_iec_14443_4_at_baudrate {
+            std::uint8_t rx_threshold;
+            std::uint8_t mod_width;
+            std::uint8_t mif_nfc;
+        };
+
+        struct ciu_reg_iso_iec_14443_4 {
+            ciu_reg_iso_iec_14443_4_at_baudrate kbps212 = {
+                    .rx_threshold = 0x85,
+                    .mod_width = 0x15,
+                    .mif_nfc = 0x8a
+            };;
+            ciu_reg_iso_iec_14443_4_at_baudrate kbps424 = {
+                    .rx_threshold = 0x85,
+                    .mod_width = 0x08,
+                    .mif_nfc = 0xb2
+            };;
+            ciu_reg_iso_iec_14443_4_at_baudrate kbps848 = {
+                    .rx_threshold = 0x85,
+                    .mod_width = 0x01,
+                    .mif_nfc = 0xda
+            };;
+        };
+
+        enum struct rf_config_item {
+            rf_field = 0x01,
+            timings = 0x02,
+            max_rty_com = 0x04,
+            max_retries = 0x05,
+            analog_106kbps_typea = 0x0a,
+            analog_212_424kbps = 0x0b,
+            analog_typeb = 0x0c,
+            analog_iso_iec_14443_4 = 0x0d
+        };
+
         enum struct speed : std::uint8_t {
             kbps106 = 0x0,
             kbps212 = 0x1,

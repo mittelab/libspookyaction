@@ -8,6 +8,7 @@
 #include <limits>
 #include "bits.hpp"
 #include "bin_data.hpp"
+#include "result.hpp"
 
 namespace pn532 {
 
@@ -21,23 +22,13 @@ namespace pn532 {
         p3, p7, i0i1
     };
 
-    enum struct old_result {
-        success,
-        timeout,
-        comm_checksum_fail,
-        comm_error,
-        comm_malformed,
-        nack,
-        failure
-    };
-
     struct firmware_version {
-        std::uint8_t ic = std::numeric_limits<std::uint8_t>::max();
-        std::uint8_t version = std::numeric_limits<std::uint8_t>::max();
-        std::uint8_t revision = std::numeric_limits<std::uint8_t>::max();
-        bool iso_18092 = false;
-        bool iso_iec_14443_typeb = false;
-        bool iso_iec_14443_typea = false;
+        std::uint8_t ic;
+        std::uint8_t version;
+        std::uint8_t revision;
+        bool iso_18092;
+        bool iso_iec_14443_typea;
+        bool iso_iec_14443_typeb;
     };
 
     struct target_status {
@@ -62,7 +53,7 @@ namespace pn532 {
         inline reg_addr(std::uint16_t xram_mmap_reg);
     };
 
-    struct gpio_status {
+    class gpio_status {
     private:
         std::uint8_t _p3_mask = 0x00;
         std::uint8_t _p7_mask = 0x00;

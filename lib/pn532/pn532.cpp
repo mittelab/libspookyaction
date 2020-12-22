@@ -447,6 +447,13 @@ namespace pn532 {
         const auto transport_byte = static_cast<std::uint8_t>(bits::transport::host_to_pn532);
         // "2" because must count transport info and command_code
         const bool use_extended_format = (payload.size() > 0xff - 2);
+        if (payload.size() > bits::max_firmware_data_length) {
+            LOGW("Payload too long for command %d for an info frame, truncating %ul bytes to %ul:",
+                 static_cast<int>(cmd),
+                 payload.size(),
+                 bits::max_firmware_data_length);
+            ESP_LOG_BUFFER_HEX_LEVEL(PN532_TAG, payload.data(), payload.size(), ESP_LOG_WARN);
+        }
         const std::uint8_t length = std::min(payload.size(), bits::max_firmware_data_length);
         // Make sure data gets truncated and nothing too weird happens
         const auto truncated_data = payload.view(0, length);

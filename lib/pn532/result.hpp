@@ -237,6 +237,11 @@ namespace pn532 {
         }
 
         template <class T>
+        T const &retrieve_efficiently(void * const &ptr) {
+            return retrieve<T, can_be_efficiently_stored<T>::value>{}(ptr);
+        }
+
+        template <class T>
         void destroy_efficiently(void * &ptr) {
             destroy<T, can_be_efficiently_stored<T>::value>{}(ptr);
         }

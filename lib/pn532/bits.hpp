@@ -75,7 +75,7 @@ namespace pn532 {
             poll_target = 0x4,
             echo_back = 0x5,
             attention_req_or_card_presence = 0x6,
-            self_antenna = 0x6
+            self_antenna = 0x7
         };
 
         enum struct speed : std::uint8_t {

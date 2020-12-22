@@ -5,6 +5,7 @@
 #include <tuple>
 #include "bits_algo.hpp"
 #include "pn532.hpp"
+#include "msg.hpp"
 #include "log.h"
 
 namespace pn532 {
@@ -130,7 +131,7 @@ namespace pn532 {
         LOGE("Expected ack/nack, got a standard command_code instead; will consume the command_code now.");
         const auto res_body = read_response_body(*res_hdr, rt.remaining());
         if (res_body) {
-            LOGW("Dropped command response %d:", static_cast<int>(res_body->command));
+            LOGW("Dropped response to %s:", to_string(res_body->command));
             ESP_LOG_BUFFER_HEX_LEVEL(PN532_TAG, res_body->info.data(), res_body->info.size(), ESP_LOG_WARN);
         } else if (res_body.error() == error::failure) {
             LOGE("Received an error instead of an ack");
@@ -157,8 +158,8 @@ namespace pn532 {
             return res_body.error();
         }
         if (res_body->command != cmd) {
-            LOGW("Got a reply with command_code code %d instead of requested %d.",
-                 static_cast<int>(res_body->command), static_cast<int>(cmd));
+            LOGW("Got a reply to command %s instead of issued command %s.",
+                 to_string(res_body->command), to_string(cmd));
             return error::comm_malformed;
         }
         if (res_body->transport != bits::transport::pn532_to_host) {
@@ -246,7 +247,7 @@ namespace pn532 {
             if (res_cmd->size() == 1 and res_cmd->at(0) == expected) {
                 return result_success;
             } else {
-                LOGW("Diagnostic test %d failed.", static_cast<int>(test));
+                LOGW("Diagnostic %s test failed.", to_string(test));
                 return nfc::error::failure;
             }
         }
@@ -267,7 +268,7 @@ namespace pn532 {
                 if (res_cmd->size() == 1) {
                     return res_cmd->at(0);
                 } else {
-                    LOGW("Poll target test failed at speed %d.", static_cast<int>(speed));
+                    LOGW("Poll target test failed at %s.", to_string(speed));
                 }
             }
             return res_cmd.error();
@@ -448,8 +449,8 @@ namespace pn532 {
         // "2" because must count transport info and command_code
         const bool use_extended_format = (payload.size() > 0xff - 2);
         if (payload.size() > bits::max_firmware_data_length) {
-            LOGW("Payload too long for command %d for an info frame, truncating %ul bytes to %ul:",
-                 static_cast<int>(cmd),
+            LOGW("Payload too long for command %s for an info frame, truncating %ul bytes to %ul:",
+                 to_string(cmd),
                  payload.size(),
                  bits::max_firmware_data_length);
             ESP_LOG_BUFFER_HEX_LEVEL(PN532_TAG, payload.data(), payload.size(), ESP_LOG_WARN);

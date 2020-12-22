@@ -3,8 +3,8 @@
 #include "driver/uart.h"
 
 
-#include <pn532.hpp>
-#include <hsu.hpp>
+#include <old/pn532.hpp>
+#include <old/hsu.hpp>
 #include <desfire.hpp>
 
 // #define ECHO_TEST_TXD  (GPIO_NUM_4)

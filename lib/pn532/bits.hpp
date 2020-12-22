@@ -12,7 +12,7 @@
 
 namespace pn532 {
 
-    namespace pieces {
+    namespace bits {
         static constexpr std::uint8_t preamble = 0x00;
         static constexpr std::uint8_t postamble = 0x00;
 

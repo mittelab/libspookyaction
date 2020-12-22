@@ -18,8 +18,8 @@ extern "C" {
 
 #include <esp_log.h>
 }
-#include <pn532.hpp>
-#include <hsu.hpp>
+#include <old/old_pn532.hpp>
+#include <old/old_hsu.hpp>
 #include <desfire.hpp>
 
 
@@ -73,7 +73,7 @@ void echo_task(void *pvParameters)
         //     ESP_LOGE("main", "BUTTON PRESSED");
         // else
         //     ESP_LOGE("main", "BUTTON NOT PRESSED");
-        
+
 
         std::vector<uint8_t> buff;
         test.InAutoPoll(10,0x14,0x00,buff);

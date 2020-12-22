@@ -1,95 +1,238 @@
-#ifndef __PN532_HPP__
-#define __PN532_HPP__
+//
+// Created by Pietro Saccardi on 20/12/2020.
+//
+
+#ifndef APERTURAPORTA_PN532_HPP
+#define APERTURAPORTA_PN532_HPP
+
 
 #include <array>
 #include <vector>
-#include <stddef.h>
-#include "instructions.hpp"
-extern "C"{
-    #include "freertos/FreeRTOS.h"
-    #include "freertos/task.h"
-    #include <esp_log.h>
-}
+#include <cstddef>
+#include <limits>
+#include "bits.hpp"
+#include "channel.hpp"
 
-#define PN532_POLLING_PERIOD_MS 150
+namespace pn532 {
 
-enum SAM_mode : uint8_t{
-    normal_mode=0x01,
-    virtual_card=0x02,
-    wired_card=0x03,
-    dual_card=0x04
-};
+    namespace frames {
+        struct header;
+    }
 
-enum diagnose: uint8_t{
-    comunication_test=0x00,
-    rom_test=0x01,
-    ram_test=0x02,
-    polling_test=0x04,
-    echo_test=0x05,
-    attention_request_test=0x06,
-    slef_antenna_test=0x07
-};
+    class bin_data;
 
-typedef struct{
-    uint8_t :5;
-    bool iso14443b:1;
-    bool iso14443a:1;
-    bool iso18092:1;
-} card_t;
+    enum struct result {
+        success,
+        timeout,
+        comm_checksum_fail,
+        comm_error,
+        comm_malformed,
+        nack,
+        failure
+    };
 
-typedef struct{
-    uint8_t ic_version;
-    uint8_t firmware_version;
-    uint8_t firmware_revision;
-    card_t card_supported;
-} pn532_info_t;
+    struct firmware_version {
+        std::uint8_t ic = std::numeric_limits<std::uint8_t>::max();
+        std::uint8_t version = std::numeric_limits<std::uint8_t>::max();
+        std::uint8_t revision = std::numeric_limits<std::uint8_t>::max();
+        bool iso_18092 = false;
+        bool iso_iec_14443_typeb = false;
+        bool iso_iec_14443_typea = false;
+    };
 
-enum rfConfigItem: uint8_t{
-    rf_field = 0x01,
-    various_timings = 0x02,
-    maxRtyCOM = 0x04,
-    maxRetries = 0x05,
-    analog_settings_typeA= 0x0A,
-    analog_settings_212_424kbps= 0x0B,
-    analog_settings_typeB= 0x0C,
-    analog_settings_ISO14443_4= 0x0D
-};
+    struct target_status {
+        std::uint8_t logical_index;
+        bits::speed bitrate_rx;
+        bits::speed bitrate_tx;
+        bits::modulation modulation_type;
+    };
 
+    struct general_status {
+        bool nad_present;
+        bool mi_set;
+        bits::error last_error;
+        bool rf_field_present;
+        std::vector<target_status> targets;
+        std::uint8_t sam_status;
+    };
 
-template<class T>
-class PN532: public T{
+    struct reg_addr : public std::array<std::uint8_t, 2> {
+        inline reg_addr(bits::sfr_registers sfr_register);
+        inline reg_addr(std::uint16_t xram_mmap_register);
+    };
+
+    enum struct gpio_loc {
+        p3, p7, i0i1
+    };
+
+    struct bit_ref {
+        std::uint8_t &byte;
+        const std::uint8_t index;
+        const std::uint8_t write_mask;
+
+        inline bit_ref &operator=(bool v);
+        inline operator bool() const;
+    };
+
+    struct gpio_status {
+    private:
+        std::uint8_t _p3_mask = 0x00;
+        std::uint8_t _p7_mask = 0x00;
+        std::uint8_t _i0i1_mask = 0x00;
+    public:
+        gpio_status() = default;
+        inline gpio_status(std::uint8_t p3_mask, std::uint8_t p7_mask, std::uint8_t i0i1_mask);
+
+        inline std::uint8_t mask(gpio_loc loc) const;
+        inline void set_mask(gpio_loc loc, std::uint8_t mask);
+
+        inline bool operator[](std::pair<gpio_loc, std::uint8_t> const &gpio_idx) const;
+        inline bit_ref operator[](std::pair<gpio_loc, std::uint8_t> const &gpio_idx);
+    };
+
+    class nfc {
+        channel *_channel;
+
+        inline channel &chn() const;
+
+        bool await_frame(ms timeout);
+        std::pair<frames::header, bool> read_header(ms timeout);
+        std::pair<bin_data, bool> read_body(frames::header const &hdr, ms timeout);
 
     public:
-        using T::T;
-        void begin(TickType_t timeout = PN532_DEFAULT_TIMEOUT);
+        inline explicit nfc(channel &chn);
 
-        template<typename Container> int cmd(const uint8_t cmd, Container& param = {}, TickType_t timeout = PN532_DEFAULT_TIMEOUT);
-        int cmd(const uint8_t cmd, std::initializer_list<uint8_t> param_literal, TickType_t timeout = PN532_DEFAULT_TIMEOUT);
-        template<typename Container> int read(const uint8_t command, Container& data, TickType_t timeout = PN532_DEFAULT_TIMEOUT);
-        bool data_exchange(const uint8_t command, std::initializer_list<uint8_t> param_literal, std::vector<uint8_t>& data, TickType_t timeout = PN532_DEFAULT_TIMEOUT);
-        template<typename Container> bool data_exchange(const uint8_t command, Container& param, Container& data, TickType_t timeout = PN532_DEFAULT_TIMEOUT);
-        int sam_config(SAM_mode mode=normal_mode, uint8_t time=0x14, uint8_t irq=0x01, TickType_t timeout = PN532_DEFAULT_TIMEOUT);
-        //int wake_up(TickType_t timeout);
+        nfc(nfc const &) = delete;
+        nfc(nfc &&) = default;
 
-        bool getFirmwareVersion(pn532_info_t& chipVersion, TickType_t timeout = PN532_DEFAULT_TIMEOUT);
-        uint8_t readRegister(const uint16_t address ,TickType_t timeout = PN532_DEFAULT_TIMEOUT);
-        void writeRegister(const uint16_t address, const uint8_t data ,TickType_t timeout = PN532_DEFAULT_TIMEOUT);
-        bool readGpio(uint8_t gpio, TickType_t timeout = PN532_DEFAULT_TIMEOUT);
-        bool writeGpio(uint8_t gpio, bool value, TickType_t timeout = PN532_DEFAULT_TIMEOUT);
-        bool InSelect(uint8_t tagID, TickType_t timeout = PN532_DEFAULT_TIMEOUT);
-        bool InRelease(uint8_t tagID, TickType_t timeout = PN532_DEFAULT_TIMEOUT);
-        bool InDeselect(uint8_t tagID, TickType_t timeout = PN532_DEFAULT_TIMEOUT);
-        bool InAutoPoll(uint8_t polling_number, uint8_t period, uint8_t tag_type, std::vector<uint8_t>& data);
-        bool InAutoPoll(uint8_t polling_number, uint8_t period, std::initializer_list<uint8_t> tag_types_literal, std::vector<uint8_t>& data);
-        bool InAutoPoll(uint8_t polling_number, uint8_t period, std::vector<uint8_t>& tag_types, std::vector<uint8_t>& data);
-        bool setParameters(bool fNADUsed, bool fDIDUsed, bool fAutomaticATR_RES, bool fAutomaticRATS, bool fISO14443_4_PICC, bool fRemovePrePostAmble, TickType_t timeout = PN532_DEFAULT_TIMEOUT);
-        bool setParameters(uint8_t flags, TickType_t timeout = PN532_DEFAULT_TIMEOUT);
-        bool rfConfiguration(uint8_t cfgItem, std::initializer_list<uint8_t> configData_literal, TickType_t timeout = PN532_DEFAULT_TIMEOUT);
-        bool rfConfiguration(uint8_t cfgItem, std::vector<uint8_t>& configData, TickType_t timeout = PN532_DEFAULT_TIMEOUT);
-        template<typename Container> bool InDataExchange(uint8_t tagID, Container& host2tag, Container& tag2host, TickType_t timeout = PN532_DEFAULT_TIMEOUT);
-        template<typename Container> bool InDataExchange(uint8_t tagID, std::initializer_list<uint8_t> host2tag, Container& tag2host, TickType_t timeout = PN532_DEFAULT_TIMEOUT);
+        nfc &operator=(nfc const &) = delete;
+        nfc &operator=(nfc &&) = default;
 
-};
+        result raw_send_ack(bool ack = true, ms timeout = one_sec);
+        result raw_send_command(bits::command cmd, bin_data const &payload, ms timeout = one_sec);
 
-#include "pn532_impl.hpp"
-#endif
+        std::pair<bool, result> raw_await_ack(ms timeout = one_sec);
+        std::tuple<bits::command, bin_data, result> raw_await_response(ms timeout = one_sec);
+
+        result command(bits::command cmd, bin_data const &payload, ms timeout = one_sec);
+        std::pair<bin_data, result> command_response(bits::command cmd, bin_data const &payload, ms timeout = one_sec);
+
+        result diagnose_rom(ms timeout = one_sec);
+        result diagnose_ram(ms timeout = one_sec);
+        result diagnose_attention_req_or_card_presence(ms timeout = one_sec);
+
+        result diagnose_comm_line(ms timeout = one_sec);
+        /**
+         *
+         * @param timeout
+         * @return Number of fails (<128) at 212 kbps, number of fails (<128) as 424 kbps, command result.
+         */
+        std::tuple<unsigned, unsigned, result> diagnose_poll_target(ms timeout = one_sec);
+
+        /**
+         * @param tx_mode
+         * @param rx_mode
+         * @todo Figure out what these should be (page 70)
+         */
+        result diagnose_echo_back(ms reply_delay, std::uint8_t tx_mode, std::uint8_t rx_mode, ms timeout = one_sec);
+        /**
+         * @param threshold
+         * @todo Figure out the bit packing for this (page 72)
+         */
+        result diagnose_self_antenna(std::uint8_t threshold, ms timeout = one_sec);
+
+        std::pair<firmware_version, result> get_firmware_version(ms timeout = one_sec);
+
+        std::pair<general_status, result> get_general_status(ms timeout = one_sec);
+
+        std::pair<std::vector<uint8_t>, result> read_register(std::vector<reg_addr> const &addresses, ms timeout = one_sec);
+
+        result write_register(std::vector<std::pair<reg_addr, std::uint8_t>> const &addr_value_pairs, ms timeout = one_sec);
+
+        std::pair<gpio_status, result> read_gpio(ms timeout = one_sec);
+
+        result write_gpio(gpio_status const &status, bool write_p3 = true, bool write_p7 = true, ms timeout = one_sec);
+
+        result set_gpio_pin(gpio_loc loc, std::uint8_t pin_idx, bool value, ms timeout = one_sec);
+
+        /*
+- (SetSerialBaudRate)
+- SAMConfiguration
+
+- RFConfiguration
+- InDataExchange
+- InSelect
+- InAutoPoll
+         */
+    };
+
+    bool gpio_status::operator[](std::pair<gpio_loc, std::uint8_t> const &gpio_idx) const {
+        switch (gpio_idx.first) {
+            case gpio_loc::p3:   return 0 != (_p3_mask   & (1 << gpio_idx.second));
+            case gpio_loc::p7:   return 0 != (_p7_mask   & (1 << gpio_idx.second));
+            case gpio_loc::i0i1: return 0 != (_i0i1_mask & (1 << gpio_idx.second));
+            default: return false;
+        }
+    }
+
+    bit_ref gpio_status::operator[](std::pair<gpio_loc, std::uint8_t> const &gpio_idx) {
+        static std::uint8_t _garbage = 0x00;
+        switch (gpio_idx.first) {
+            case gpio_loc::p3:   return bit_ref{_p3_mask, gpio_idx.second, bits::gpio_p3_pin_mask};
+            case gpio_loc::p7:   return bit_ref{_p7_mask, gpio_idx.second, bits::gpio_p7_pin_mask};
+            case gpio_loc::i0i1: return bit_ref{_i0i1_mask, gpio_idx.second, bits::gpio_i0i1_pin_mask};
+            default: return bit_ref{_garbage, gpio_idx.second, 0xff};
+        }
+    }
+
+    gpio_status::gpio_status(std::uint8_t p3_mask, std::uint8_t p7_mask, std::uint8_t i0i1_mask) :
+        _p3_mask{p3_mask}, _p7_mask{p7_mask}, _i0i1_mask{i0i1_mask} {}
+
+    inline std::uint8_t gpio_status::mask(gpio_loc loc) const {
+        switch (loc) {
+            case gpio_loc::p3:   return _p3_mask;
+            case gpio_loc::p7:   return _p7_mask;
+            case gpio_loc::i0i1: return _i0i1_mask;
+            default: return 0x00;
+        }
+    }
+
+    void gpio_status::set_mask(gpio_loc loc, std::uint8_t mask) {
+        switch (loc) {
+            case gpio_loc::p3:   _p3_mask   = mask & bits::gpio_p3_pin_mask; break;
+            case gpio_loc::p7:   _p7_mask   = mask & bits::gpio_p7_pin_mask; break;
+            case gpio_loc::i0i1: _i0i1_mask = mask & bits::gpio_i0i1_pin_mask; break;
+            default: break;
+        }
+    }
+
+    bit_ref &bit_ref::operator=(bool v) {
+        if (0 != (write_mask & (1 << index))) {
+            if (v) {
+                byte |= 1 << index;
+            } else {
+                byte &= ~(1 << index);
+            }
+        }
+        return *this;
+    }
+
+    bit_ref::operator bool() const {
+        return 0 != (byte & (1 << index));
+    }
+
+    nfc::nfc(channel &chn) : _channel{&chn} {}
+    channel &nfc::chn() const { return *_channel; }
+
+    reg_addr::reg_addr(bits::sfr_registers sfr_register) :
+        std::array<std::uint8_t, 2>{{bits::sfr_registers_high, static_cast<std::uint8_t>(sfr_register)}} {}
+
+    reg_addr::reg_addr(std::uint16_t xram_mmap_register) :
+        std::array<std::uint8_t, 2>{{std::uint8_t(xram_mmap_register >> 8),
+                                     std::uint8_t(xram_mmap_register & 0xff)}} {}
+
+
+}
+
+
+#endif //APERTURAPORTA_PN532_HPP

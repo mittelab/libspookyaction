@@ -3,7 +3,7 @@
 //
 
 #include <tuple>
-#include "pn532_new.hpp"
+#include "pn532.hpp"
 #include "bin_data.hpp"
 #include "log.h"
 
@@ -23,13 +23,13 @@ namespace pn532 {
         };
 
         struct information_body {
-            pieces::transport transport = pieces::transport::host_to_pn532;
-            pieces::command command = pieces::command::diagnose;
+            bits::transport transport = bits::transport::host_to_pn532;
+            bits::command command = bits::command::diagnose;
             range<bin_data::const_iterator> payload = {};
             bool checksum_pass = false;
         };
 
-        bin_data get_information(pieces::command cmd, bin_data const &payload);
+        bin_data get_information(bits::command cmd, bin_data const &payload);
         bin_data const &get_ack();
         bin_data const &get_nack();
 
@@ -43,12 +43,12 @@ namespace pn532 {
         return chn().send(ack ? frames::get_ack() : frames::get_nack(), timeout) ? result::success : result::timeout;
     }
 
-    result nfc::raw_send_command(pieces::command cmd, bin_data const &payload, ms timeout) {
+    result nfc::raw_send_command(bits::command cmd, bin_data const &payload, ms timeout) {
         return chn().send(frames::get_information(cmd, payload), timeout) ? result::success : result::timeout;
     }
 
     bool nfc::await_frame(ms timeout) {
-        return chn().await_sequence(pieces::start_of_packet_code, timeout);
+        return chn().await_sequence(bits::start_of_packet_code, timeout);
     }
 
     std::pair<frames::header, bool> nfc::read_header(ms timeout) {
@@ -57,25 +57,25 @@ namespace pn532 {
         reduce_timeout rt{timeout};
         std::array<std::uint8_t, 2> code_or_length{};
         if (chn().receive(code_or_length, rt.remaining())) {
-            if (code_or_length == pieces::ack_packet_code) {
+            if (code_or_length == bits::ack_packet_code) {
                 hdr.type = frames::frame_type::ack;
                 hdr.length = 0;
                 hdr.checksum_pass = true;
-            } else if (code_or_length == pieces::nack_packet_code) {
+            } else if (code_or_length == bits::nack_packet_code) {
                 hdr.type = frames::frame_type::nack;
                 hdr.length = 0;
                 hdr.checksum_pass = true;
-            } else if (code_or_length == pieces::fixed_extended_packet_length) {
+            } else if (code_or_length == bits::fixed_extended_packet_length) {
                 hdr.type = frames::frame_type::other;
                 std::array<std::uint8_t, 3> ext_length{};
                 if (chn().receive(ext_length, rt.remaining())) {
-                    std::tie(hdr.length, hdr.checksum_pass) = pieces::check_length_checksum(ext_length);
+                    std::tie(hdr.length, hdr.checksum_pass) = bits::check_length_checksum(ext_length);
                 } else {
                     success = false;
                 }
             } else {
                 hdr.type = frames::frame_type::other;
-                std::tie(hdr.length, hdr.checksum_pass) = pieces::check_length_checksum(code_or_length);
+                std::tie(hdr.length, hdr.checksum_pass) = bits::check_length_checksum(code_or_length);
             }
         } else {
             success = false;
@@ -116,7 +116,7 @@ namespace pn532 {
         return {false, result::timeout};
     }
 
-    std::tuple<pieces::command, bin_data, result> nfc::raw_await_response(ms timeout) {
+    std::tuple<bits::command, bin_data, result> nfc::raw_await_response(ms timeout) {
         reduce_timeout rt{timeout};
         if (await_frame(rt.remaining())) {
             const auto header_success = read_header(rt.remaining());
@@ -127,7 +127,7 @@ namespace pn532 {
                     if (data_success.second) {
                         if (frames::is_error_frame(header_success.first, data_success.first)) {
                             LOGE("Received an error instead of info.");
-                            return std::make_tuple(pieces::command::diagnose, bin_data{}, result::comm_error);
+                            return std::make_tuple(bits::command::diagnose, bin_data{}, result::comm_error);
                         }
                         const frames::information_body body = frames::parse_information_body(header_success.first,
                                                                                              data_success.first);
@@ -135,7 +135,7 @@ namespace pn532 {
                         if (not body.checksum_pass) {
                             LOGE("Body did not checksum.");
                             return std::make_tuple(body.command, std::move(copy), result::comm_checksum_fail);
-                        } else if (body.transport != pieces::transport::pn532_to_host) {
+                        } else if (body.transport != bits::transport::pn532_to_host) {
                             LOGE("Received a message from the host instead of pn532.");
                             return std::make_tuple(body.command, std::move(copy), result::comm_malformed);
                         }
@@ -143,14 +143,14 @@ namespace pn532 {
                     }
                 } else {
                     LOGE("Expected info command, got ack/nack.");
-                    return std::make_tuple(pieces::command::diagnose, bin_data{}, result::comm_malformed);
+                    return std::make_tuple(bits::command::diagnose, bin_data{}, result::comm_malformed);
                 }
             }
         }
-        return std::make_tuple(pieces::command::diagnose, bin_data{}, result::timeout);
+        return std::make_tuple(bits::command::diagnose, bin_data{}, result::timeout);
     }
 
-    result nfc::command(pieces::command cmd, bin_data const &payload, ms timeout) {
+    result nfc::command(bits::command cmd, bin_data const &payload, ms timeout) {
         reduce_timeout rt{timeout};
         const auto res_cmd = raw_send_command(cmd, payload, rt.remaining());
         if (res_cmd != result::success) {
@@ -163,7 +163,7 @@ namespace pn532 {
         return res_ack.second;
     }
 
-    std::pair<bin_data, result> nfc::command_response(pieces::command cmd, bin_data const &payload, ms timeout)
+    std::pair<bin_data, result> nfc::command_response(bits::command cmd, bin_data const &payload, ms timeout)
     {
         reduce_timeout rt{timeout};
         const auto res_cmd = command(cmd, payload, rt.remaining());
@@ -188,8 +188,8 @@ namespace pn532 {
         payload.resize(0xff);
         std::iota(std::begin(payload), std::end(payload), 0x00);
         // Set the first byte to be the test number
-        payload[0] = static_cast<std::uint8_t>(pieces::test::comm_line);
-        const auto res_cmd = command_response(pieces::command::diagnose, payload, timeout);
+        payload[0] = static_cast<std::uint8_t>(bits::test::comm_line);
+        const auto res_cmd = command_response(bits::command::diagnose, payload, timeout);
         if (res_cmd.second == result::success) {
             // Test that the reurned data coincides
             if (payload.size() == res_cmd.first.size() and
@@ -206,14 +206,14 @@ namespace pn532 {
 
     namespace {
         template <class ...Args>
-        result nfc_diagnose_simple(nfc &controller, pieces::test test, std::uint8_t expected, ms timeout,
+        result nfc_diagnose_simple(nfc &controller, bits::test test, std::uint8_t expected, ms timeout,
                                    Args &&...append_to_body)
        {
             const bin_data payload = bin_data::chain(
                     static_cast<std::uint8_t>(test),
                     std::forward<Args>(append_to_body)...
             );
-            const auto res_cmd = controller.command_response(pieces::command::diagnose, payload, timeout);
+            const auto res_cmd = controller.command_response(bits::command::diagnose, payload, timeout);
             if (res_cmd.second == result::success) {
                 // Test that the reurned data coincides
                 if (res_cmd.first.size() == 1 and res_cmd.first[0] == expected) {
@@ -228,11 +228,11 @@ namespace pn532 {
     }
 
     std::tuple<unsigned, unsigned, result> nfc::diagnose_poll_target(ms timeout) {
-        auto get_fails = [&](pieces::speed speed) -> std::pair<unsigned, result> {
+        auto get_fails = [&](bits::speed speed) -> std::pair<unsigned, result> {
             const auto res_cmd = command_response(
-                    pieces::command::diagnose,
+                    bits::command::diagnose,
                     bin_data::chain(
-                            static_cast<std::uint8_t>(pieces::test::poll_target),
+                            static_cast<std::uint8_t>(bits::test::poll_target),
                             static_cast<std::uint8_t>(speed)),
                     timeout);
             if (res_cmd.second == result::success) {
@@ -245,9 +245,9 @@ namespace pn532 {
             return {std::numeric_limits<unsigned>::max(), res_cmd.second};
         };
 
-        const auto slow_fails = get_fails(pieces::speed::kbps212);
+        const auto slow_fails = get_fails(bits::speed::kbps212);
         if (slow_fails.second == result::success) {
-            const auto fast_fails = get_fails(pieces::speed::kbps424);
+            const auto fast_fails = get_fails(bits::speed::kbps424);
             return std::make_tuple(slow_fails.first, fast_fails.first, fast_fails.second);
         } else {
             return std::make_tuple(slow_fails.first, std::numeric_limits<unsigned>::max(), slow_fails.second);
@@ -256,30 +256,30 @@ namespace pn532 {
 
     result nfc::diagnose_echo_back(ms reply_delay, std::uint8_t tx_mode, std::uint8_t rx_mode, ms timeout) {
         const bin_data payload = bin_data::chain(
-                static_cast<std::uint8_t>(pieces::test::echo_back),
-                std::uint8_t(reply_delay.count() * pieces::echo_back_reply_delay_steps_per_ms),
+                static_cast<std::uint8_t>(bits::test::echo_back),
+                std::uint8_t(reply_delay.count() * bits::echo_back_reply_delay_steps_per_ms),
                 tx_mode,
                 rx_mode
         );
-        return command(pieces::command::diagnose, payload, timeout);
+        return command(bits::command::diagnose, payload, timeout);
     }
 
     result nfc::diagnose_rom(ms timeout) {
-        return nfc_diagnose_simple(*this, pieces::test::rom, 0x00, timeout);
+        return nfc_diagnose_simple(*this, bits::test::rom, 0x00, timeout);
     }
     result nfc::diagnose_ram(ms timeout) {
-        return nfc_diagnose_simple(*this, pieces::test::ram, 0x00, timeout);
+        return nfc_diagnose_simple(*this, bits::test::ram, 0x00, timeout);
     }
     result nfc::diagnose_attention_req_or_card_presence(ms timeout) {
-        return nfc_diagnose_simple(*this, pieces::test::attention_req_or_card_presence, 0x00, timeout);
+        return nfc_diagnose_simple(*this, bits::test::attention_req_or_card_presence, 0x00, timeout);
     }
 
     result nfc::diagnose_self_antenna(std::uint8_t threshold, ms timeout) {
-        return nfc_diagnose_simple(*this, pieces::test::self_antenna, 0x00, timeout, threshold);
+        return nfc_diagnose_simple(*this, bits::test::self_antenna, 0x00, timeout, threshold);
     }
 
     std::pair<firmware_version, result> nfc::get_firmware_version(ms timeout) {
-        const auto res_cmd = command_response(pieces::command::get_firmware_version, bin_data{}, timeout);
+        const auto res_cmd = command_response(bits::command::get_firmware_version, bin_data{}, timeout);
         if (res_cmd.second != result::success) {
             return {firmware_version{}, res_cmd.second};
         } else if (res_cmd.first.size() != 4) {
@@ -291,14 +291,14 @@ namespace pn532 {
         fw.ic = res_cmd.first[0];
         fw.version = res_cmd.first[1];
         fw.revision = res_cmd.first[2];
-        fw.iso_18092 = 0 != (res_cmd.first[3] & pieces::firmware_iso_18092_mask);
-        fw.iso_iec_14443_typea = 0 != (res_cmd.first[3] & pieces::firmware_iso_iec_14443_typea_mask);
-        fw.iso_iec_14443_typeb = 0 != (res_cmd.first[3] & pieces::firmware_iso_iec_14443_typeb_mask);
+        fw.iso_18092 = 0 != (res_cmd.first[3] & bits::firmware_iso_18092_mask);
+        fw.iso_iec_14443_typea = 0 != (res_cmd.first[3] & bits::firmware_iso_iec_14443_typea_mask);
+        fw.iso_iec_14443_typeb = 0 != (res_cmd.first[3] & bits::firmware_iso_iec_14443_typeb_mask);
         return {fw, result::success};
     }
 
     std::pair<general_status, result> nfc::get_general_status(ms timeout) {
-        const auto res_cmd = command_response(pieces::command::get_general_status, bin_data{}, timeout);
+        const auto res_cmd = command_response(bits::command::get_general_status, bin_data{}, timeout);
         if (res_cmd.second != result::success) {
             return {general_status{}, res_cmd.second};
         } else if (res_cmd.first.size() != 12) {
@@ -309,17 +309,17 @@ namespace pn532 {
         auto parse_target_status = [](bin_data const &d, std::size_t ofs) -> target_status {
             target_status retval{};
             retval.logical_index = d[ofs];
-            retval.bitrate_rx = static_cast<pieces::speed>(d[ofs + 1]);
-            retval.bitrate_tx = static_cast<pieces::speed>(d[ofs + 2]);
-            retval.modulation_type = static_cast<pieces::modulation>(d[ofs + 3]);
+            retval.bitrate_rx = static_cast<bits::speed>(d[ofs + 1]);
+            retval.bitrate_tx = static_cast<bits::speed>(d[ofs + 2]);
+            retval.modulation_type = static_cast<bits::modulation>(d[ofs + 3]);
             return retval;
         };
 
         auto const &b = res_cmd.first;
         general_status s{};
-        s.nad_present = 0 != (b[0] & pieces::error_nad_mask);
-        s.mi_set = 0 != (b[0] & pieces::error_mi_mask);
-        s.last_error = static_cast<pieces::error>(b[0] & pieces::error_code_mask);
+        s.nad_present = 0 != (b[0] & bits::error_nad_mask);
+        s.mi_set = 0 != (b[0] & bits::error_mi_mask);
+        s.last_error = static_cast<bits::error>(b[0] & bits::error_code_mask);
         s.rf_field_present = b[1] != 0x00;
         s.sam_status = b[11];
         if (b[2] > 2) {
@@ -338,7 +338,7 @@ namespace pn532 {
         for (reg_addr const &addr : addresses) {
             payload << addr;
         }
-        auto res_cmd = command_response(pieces::command::read_register, payload, timeout);
+        auto res_cmd = command_response(bits::command::read_register, payload, timeout);
         if (res_cmd.first.size() != addresses.size()) {
             LOGW("Read register: requested %ul registers, got %ul instead.", addresses.size(), res_cmd.first.size());
         }
@@ -350,11 +350,11 @@ namespace pn532 {
         for (auto const &addr_value : addr_value_pairs) {
             payload << addr_value.first << addr_value.second;
         }
-        return command_response(pieces::command::write_register, payload, timeout).second;
+        return command_response(bits::command::write_register, payload, timeout).second;
     }
 
     std::pair<gpio_status, result> nfc::read_gpio(ms timeout) {
-        auto res_cmd = command_response(pieces::command::read_gpio, bin_data{}, timeout);
+        auto res_cmd = command_response(bits::command::read_gpio, bin_data{}, timeout);
         if (res_cmd.second == result::success) {
             if (res_cmd.first.size() != 3) {
                 LOGW("Read GPIO: got %ul bytes, expected 3.", res_cmd.first.size());
@@ -368,16 +368,16 @@ namespace pn532 {
     result nfc::write_gpio(gpio_status const &status, bool write_p3, bool write_p7, ms timeout) {
         bin_data payload;
         if (write_p3) {
-            payload << std::uint8_t(pieces::gpio_write_validate_max | status.mask(gpio_loc::p3));
+            payload << std::uint8_t(bits::gpio_write_validate_max | status.mask(gpio_loc::p3));
         } else {
             payload << std::uint8_t{0x00};
         }
         if (write_p7) {
-            payload << std::uint8_t(pieces::gpio_write_validate_max | status.mask(gpio_loc::p7));
+            payload << std::uint8_t(bits::gpio_write_validate_max | status.mask(gpio_loc::p7));
         } else {
             payload << std::uint8_t{0x00};
         }
-        return command_response(pieces::command::write_gpio, payload, timeout).second;
+        return command_response(bits::command::write_gpio, payload, timeout).second;
     }
 
     result nfc::set_gpio_pin(gpio_loc loc, std::uint8_t pin_idx, bool value, ms timeout) {
@@ -394,10 +394,10 @@ namespace pn532 {
 
     bool frames::is_error_frame(header const &hdr, bin_data const &data) {
         return hdr.checksum_pass
-            and hdr.length == 1
-            and data.size() == 2
-            and pieces::checksum(std::begin(data), std::end(data))
-            and data[0] == pieces::specific_app_level_err_code;
+               and hdr.length == 1
+               and data.size() == 2
+               and bits::checksum(std::begin(data), std::end(data))
+               and data[0] == bits::specific_app_level_err_code;
     }
 
 
@@ -412,54 +412,54 @@ namespace pn532 {
         } else if (data.size() != hdr.length + 1) {
             LOGE("Cannot parse frame body if expected frame length differs from actual data.");
         } else {
-            retval.checksum_pass = pieces::checksum(std::begin(data), std::end(data));
-            retval.transport = static_cast<pieces::transport>(data[0]);
-            retval.command = pieces::pn532_to_host_command(data[1]);
+            retval.checksum_pass = bits::checksum(std::begin(data), std::end(data));
+            retval.transport = static_cast<bits::transport>(data[0]);
+            retval.command = bits::pn532_to_host_command(data[1]);
             retval.payload = data.view(2, data.size() - 3);  // Checksum byte
         }
         return retval;
     }
 
 
-    bin_data frames::get_information(pieces::command cmd, bin_data const &payload) {
-        const auto cmd_byte = pieces::host_to_pn532_command(cmd);
-        const auto transport_byte = static_cast<std::uint8_t>(pieces::transport::host_to_pn532);
+    bin_data frames::get_information(bits::command cmd, bin_data const &payload) {
+        const auto cmd_byte = bits::host_to_pn532_command(cmd);
+        const auto transport_byte = static_cast<std::uint8_t>(bits::transport::host_to_pn532);
         // "2" because must count transport info and command
         const bool use_extended_format = (payload.size() > 0xff - 2);
-        const std::uint8_t length = std::min(payload.size(), pieces::max_firmware_data_length - 2);
+        const std::uint8_t length = std::min(payload.size(), bits::max_firmware_data_length - 2);
         // Make sure data gets truncated and nothing too weird happens
         const auto truncated_data = payload.view(0, length);
         // Precompute transport info + cmd byte + payload compute_checksum
-        const auto checksum = pieces::compute_checksum(
+        const auto checksum = bits::compute_checksum(
                 transport_byte + cmd_byte,
                 std::begin(truncated_data),
                 std::end(truncated_data)
         );
-        bin_data frame = bin_data::chain(pieces::preamble, pieces::start_of_packet_code);
+        bin_data frame = bin_data::chain(bits::preamble, bits::start_of_packet_code);
         if (use_extended_format) {
-            frame << pieces::fixed_extended_packet_length << pieces::length_and_checksum_long(length);
+            frame << bits::fixed_extended_packet_length << bits::length_and_checksum_long(length);
         } else {
-            frame << pieces::length_and_checksum_short(length);
+            frame << bits::length_and_checksum_short(length);
         }
-        frame << transport_byte << cmd_byte << truncated_data << checksum << pieces::postamble;
+        frame << transport_byte << cmd_byte << truncated_data << checksum << bits::postamble;
         return frame;
     }
 
     bin_data const &frames::get_ack() {
         static const bin_data ack_frame = bin_data::chain(
-                pieces::preamble,
-                pieces::start_of_packet_code,
-                pieces::ack_packet_code,
-                pieces::postamble
+                bits::preamble,
+                bits::start_of_packet_code,
+                bits::ack_packet_code,
+                bits::postamble
         );
         return ack_frame;
     }
     bin_data const &frames::get_nack() {
         static const bin_data nack_frame = bin_data::chain(
-                pieces::preamble,
-                pieces::start_of_packet_code,
-                pieces::nack_packet_code,
-                pieces::postamble
+                bits::preamble,
+                bits::start_of_packet_code,
+                bits::nack_packet_code,
+                bits::postamble
         );
         return nack_frame;
     }

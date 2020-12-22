@@ -1,102 +1,77 @@
+//
+// Created by Pietro Saccardi on 21/12/2020.
+//
+
+
+#include <freertos/portmacro.h>
+#include <freertos/FreeRTOSConfig.h>
+#include <esp_log.h>
+#include "log.h"
 #include "hsu.hpp"
-#include <vector>
-#include <array>
-#include <numeric>
-#define PN532_DEFAULT_TIMEOUT (1000/portTICK_PERIOD_MS)
 
+#define PN532_HSU_SEND_TAG "PN532-HSU >>"
+#define PN532_HSU_RECV_TAG "PN532-HSU <<"
 
+namespace pn532 {
 
-HSU::HSU(uart_port_t port)
-{
-    device = port;
-}
+    namespace {
+        TickType_t duration_cast(std::chrono::milliseconds ms) {
+            return ms.count() / portTICK_PERIOD_MS;
+        }
+    }
 
-bool HSU::wake_up(TickType_t timeout)
-{
-    std::array<uint8_t, 5> wake= {0x55, 0x55, 0x00, 0x00, 0x00};
-    return uart_write_bytes(device, (const char *) wake.data(), wake.size()) == wake.size();
-}
-
-// template<typename Container>
-// bool HSU::receive(Container &data, TickType_t timeout)
-// {
-//     std::array<uint8_t, 3> preamble = {PN532_PREAMBLE, PN532_STARTCODE1, PN532_STARTCODE2};
-//     std::vector<uint8_t> message_buffer;
-//     message_buffer.reserve(256);
-//     message_buffer.resize(5);
-//     BaseType_t tStart = xTaskGetTickCount();
-
-//     if(! fill_buffer(message_buffer.begin(),message_buffer.begin() + 5, timeout - xTaskGetTickCount() + tStart))
-//     {
-//         ESP_LOGE(PN532_LOG, "No Preamble found before timeout");
-//         return false;
-//     }
-//     // ESP_LOGE(PN532_LOG, "Preable found");
-//     if(! std::equal(message_buffer.begin(), message_buffer.begin() + preamble.size(), preamble.begin()))
-//     {
-//         ESP_LOGE(PN532_LOG, "Message doesn't start with the expected preable");
-//         ESP_LOGE(PN532_LOG, "%#02x %#02x %#02x",message_buffer[0],message_buffer[1],message_buffer[2]);
-//         // ESP_LOG_BUFFER_HEX_LEVEL(PN532_LOG,message_buffer.data(), message_buffer.size(), ESP_LOG_ERROR);
-//         return false;
-//     }
-//     // SIZE compute_checksum
-//     if(((message_buffer[3] + message_buffer[4]) & 0xFF) != 0x00)
-//     {
-//         ESP_LOGE(PN532_LOG, "Size compute_checksum failed, sum: %d, %d", message_buffer[3] ,message_buffer[4]);
-//         return false;
-//     }
-//     // ESP_LOGE(PN532_LOG, "Correct compute_checksum");
-//     message_buffer.resize(message_buffer[3]+7);
-
-//     if(! fill_buffer(message_buffer.begin() + 5 ,message_buffer.begin() + message_buffer[3] + 7, timeout - xTaskGetTickCount() + tStart))
-//     {
-//         ESP_LOGE(PN532_LOG, "mwssage isn't arrived before timeout");
-//         return false;
-//     }
-
-//     // DATA compute_checksum
-//     // TFI + DATA + compute_checksum = 0x00
-//     const uint32_t data_checksum = std::accumulate(message_buffer.begin() + 5, message_buffer.end(),0);
-
-//     ESP_LOG_BUFFER_HEX_LEVEL(PN532_LOG_RECEIVED_DATA, message_buffer.data(), message_buffer.size(), ESP_LOG_ERROR);
-//     if((data_checksum & 0xFF) != 0x00)
-//     {
-//         ESP_LOGE(PN532_LOG, "Data compute_checksum failed: %d", (data_checksum & 0xFF));
-//         return false;
-//     }
-//     data.resize(message_buffer[3] - 1);
-//     // Return the message
-//     std::copy(message_buffer.begin() + 6, message_buffer.end() - 2, data.begin());
-//     return true;
-// }
-
-bool HSU::wait_ack(TickType_t timeout)
-{
-    std::array<uint8_t, 6> ackbuff;
-    std::array<uint8_t, 6> ack_message = PN532_ACK;
-
-    ESP_LOGD(PN532_LOG, "waiting for ACK");
-
-
-    if(!fill_buffer(ackbuff.begin(),ackbuff.begin() + 6,timeout))
-        return false;
-
-    if(ack_message == ackbuff)
-    {
-        ESP_LOGI(PN532_LOG_RECEIVED_DATA, "ACK");
-        ESP_LOGD(PN532_LOG, "Received ACK");
+    bool hsu::prepare_receive(std::chrono::milliseconds) {
         return true;
     }
 
-    return false;
-}
+    bool hsu::send_raw(const bin_data &data, std::chrono::milliseconds timeout) {
+        reduce_timeout rt{timeout};
+        // Flush RX buffer
+        uart_flush_input(_port);
+        // Send and block until transmission is finished (or timeout time expired)
+        uart_write_bytes(_port, reinterpret_cast<const char *>(data.data()), data.size());
+        ESP_LOG_BUFFER_HEX_LEVEL(PN532_HSU_SEND_TAG, data.data(), data.size(), ESP_LOG_VERBOSE);
+        const auto result = uart_wait_tx_done(_port, duration_cast(rt.remaining()));
+        if (result == ESP_OK) {
+            return true;
+        } else if (result == ESP_FAIL) {
+            LOGE("Failure to send data via HSU, parameter error (port = %d).", static_cast<int>(_port));
+        } else if (result != ESP_ERR_TIMEOUT) {
+            LOGE("Unexpected result from uart_wait_tx_done: %d.", static_cast<int>(result));
+        }
+        // Timeout or error
+        return false;
+    }
 
-bool HSU::send_ack(bool ack, TickType_t timeout)
-{
-    std::array<uint8_t, 6> frame = ack? PN532_ACK : PN532_NACK;
-
-    // send and block until transmission is finished (or timeout time expired)
-    uart_write_bytes(device, (const char *)frame.data(), frame.size());
-    ESP_LOGI(PN532_LOG_SENT_DATA, "ACK");
-    return true;
+    bool hsu::receive_raw(bin_data &data, const std::size_t length, std::chrono::milliseconds timeout) {
+        data.resize(length);
+        reduce_timeout rt{timeout};
+        std::size_t read_length = 0;
+        while (read_length < length and rt) {
+            std::size_t buffer_length = 0;
+            if (uart_get_buffered_data_len(_port, &buffer_length) != ESP_OK) {
+                LOGE("Error when getting buffered data at uart %d.", static_cast<int>(_port));
+            }
+            if (buffer_length == 0) {
+                // Wait a bit before retrying
+                vTaskDelay(duration_cast(std::chrono::milliseconds{10}));
+            } else {
+                buffer_length = std::min(buffer_length, length - read_length);
+                const auto n_bytes = uart_read_bytes(_port,
+                                                     data.data() + read_length,
+                                                     buffer_length, duration_cast(rt.remaining()));
+                if (n_bytes < 0) {
+                    LOGE("Failed to read %ull bytes from uart %d.", buffer_length, static_cast<int>(_port));
+                } else {
+                    read_length += n_bytes;
+                    if (n_bytes != buffer_length) {
+                        LOGW("Read only %ull bytes out of %ull in uart %d.", n_bytes, buffer_length, static_cast<int>(_port));
+                    }
+                }
+            }
+        }
+        ESP_LOG_BUFFER_HEX_LEVEL(PN532_HSU_RECV_TAG, data.data(), read_length, ESP_LOG_VERBOSE);
+        data.resize(read_length);
+        return read_length >= length;
+    }
 }

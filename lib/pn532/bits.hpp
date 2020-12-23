@@ -208,6 +208,7 @@ namespace pn532 {
         static constexpr std::uint8_t max_num_targets = 2;
 
         enum struct error : std::uint8_t {
+            none = 0x00,
             timeout = 0x01,
             crc_error = 0x02,
             parity_error = 0x3,

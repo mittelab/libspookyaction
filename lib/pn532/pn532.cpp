@@ -277,7 +277,7 @@ namespace pn532 {
         return std::move(*res_response);
     }
 
-    nfc::r<> nfc::diagnose_comm_line(ms timeout) {
+    nfc::r<bool> nfc::diagnose_comm_line(ms timeout) {
         // Generate 256 bytes of random data to test
         bin_data payload;
         payload.resize(0xff);
@@ -292,16 +292,17 @@ namespace pn532 {
         if (payload.size() == res_cmd->size() and
             std::equal(std::begin(payload), std::end(payload), std::begin(*res_cmd)))
         {
-            return result_success;
+            return true;
         } else {
-            LOGW("Communication test failed, returned sequence does not match sent sequence.");
-            return error::failure;
+            LOGW("%s: %s test failed, returned sequence does not match sent sequence.",
+                 to_string(command_code::diagnose), to_string(bits::test::comm_line));
+            return false;
         }
     }
 
     namespace {
         template <class ...Args>
-        nfc::r<> nfc_diagnose_simple(nfc &controller, bits::test test, std::uint8_t expected, ms timeout,
+        nfc::r<bool> nfc_diagnose_simple(nfc &controller, bits::test test, std::uint8_t expected, ms timeout,
                                          Args &&...append_to_body)
        {
             const bin_data payload = bin_data::chain(
@@ -313,11 +314,16 @@ namespace pn532 {
                 return res_cmd.error();
             }
             // Test that the reurned data coincides
-            if (res_cmd->size() == 1 and res_cmd->at(0) == expected) {
-                return result_success;
+            if (res_cmd->size() != 1) {
+                LOGW("%s: %s test received %ul bytes instead of 1.",
+                     to_string(command_code::diagnose), to_string(test), res_cmd->size());
+                return nfc::error::comm_malformed;
+            }
+            if (res_cmd->at(0) == expected) {
+                return true;
             } else {
                 LOGW("%s: %s test failed.", to_string(command_code::diagnose), to_string(test));
-                return nfc::error::failure;
+                return false;
             }
         }
     }
@@ -365,17 +371,19 @@ namespace pn532 {
         return command(command_code::diagnose, payload, timeout);
     }
 
-    nfc::r<> nfc::diagnose_rom(ms timeout) {
+    nfc::r<bool> nfc::diagnose_rom(ms timeout) {
         return nfc_diagnose_simple(*this, bits::test::rom, 0x00, timeout);
     }
-    nfc::r<> nfc::diagnose_ram(ms timeout) {
+
+    nfc::r<bool> nfc::diagnose_ram(ms timeout) {
         return nfc_diagnose_simple(*this, bits::test::ram, 0x00, timeout);
     }
-    nfc::r<> nfc::diagnose_attention_req_or_card_presence(ms timeout) {
+
+    nfc::r<bool> nfc::diagnose_attention_req_or_card_presence(ms timeout) {
         return nfc_diagnose_simple(*this, bits::test::attention_req_or_card_presence, 0x00, timeout);
     }
 
-    nfc::r<> nfc::diagnose_self_antenna(std::uint8_t threshold, ms timeout) {
+    nfc::r<bool> nfc::diagnose_self_antenna(std::uint8_t threshold, ms timeout) {
         return nfc_diagnose_simple(*this, bits::test::self_antenna, 0x00, timeout, threshold);
     }
 

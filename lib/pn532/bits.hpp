@@ -155,17 +155,17 @@ namespace pn532 {
                     .rx_threshold = 0x85,
                     .mod_width = 0x15,
                     .mif_nfc = 0x8a
-            };;
+            };
             ciu_reg_iso_iec_14443_4_at_baudrate kbps424 = {
                     .rx_threshold = 0x85,
                     .mod_width = 0x08,
                     .mif_nfc = 0xb2
-            };;
+            };
             ciu_reg_iso_iec_14443_4_at_baudrate kbps848 = {
                     .rx_threshold = 0x85,
                     .mod_width = 0x01,
                     .mif_nfc = 0xda
-            };;
+            };
         };
 
         enum struct rf_config_item {

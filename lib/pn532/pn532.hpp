@@ -41,23 +41,32 @@ namespace pn532 {
 
         r<> raw_send_ack(bool ack = true, ms timeout = one_sec);
 
+        /**
+         * @param payload Max 263 bytes, will be truncated
+         */
         r<> raw_send_command(command_code cmd, bin_data const &payload, ms timeout = one_sec);
 
         r<bool> raw_await_ack(ms timeout = one_sec);
 
         r<bin_data> raw_await_response(command_code cmd, ms timeout = one_sec);
 
+        /** @brief Command without response.
+         * @param payload Max 263 bytes, will be truncated
+         */
         r<> command(command_code cmd, bin_data const &payload, ms timeout = one_sec);
 
+        /**
+         * @param payload Max 263 bytes, will be truncated
+         */
         r<bin_data> command_response(command_code cmd, bin_data const &payload, ms timeout = one_sec);
 
-        r<> diagnose_rom(ms timeout = one_sec);
+        r<bool> diagnose_rom(ms timeout = one_sec);
 
-        r<> diagnose_ram(ms timeout = one_sec);
+        r<bool> diagnose_ram(ms timeout = one_sec);
 
-        r<> diagnose_attention_req_or_card_presence(ms timeout = one_sec);
+        r<bool> diagnose_attention_req_or_card_presence(ms timeout = one_sec);
 
-        r<> diagnose_comm_line(ms timeout = one_sec);
+        r<bool> diagnose_comm_line(ms timeout = one_sec);
 
         /**
          *
@@ -67,17 +76,15 @@ namespace pn532 {
         r<unsigned, unsigned> diagnose_poll_target(bool slow = true, bool fast = true, ms timeout = one_sec);
 
         /**
-         * @param tx_mode
-         * @param rx_mode
-         * @todo Figure out what these should be (page 70)
+         * @param tx_mode Cfr. CIU_TxMode register (0x6302), §8.6.23.18 PN432/C1 Data sheet
+         * @param rx_mode Cfr. CIU_RxMode register (0x6303), §8.6.23.19 PN432/C1 Data sheet
          */
         r<> diagnose_echo_back(ms reply_delay, std::uint8_t tx_mode, std::uint8_t rx_mode, ms timeout = one_sec);
 
         /**
-         * @param threshold
-         * @todo Figure out the bit packing for this (page 72)
+         * @param threshold Cfr. Andet_control register (0x610C) §8.6.9.2 PN432/C1 Data sheet
          */
-        r<> diagnose_self_antenna(std::uint8_t threshold, ms timeout = one_sec);
+        r<bool> diagnose_self_antenna(std::uint8_t threshold, ms timeout = one_sec);
 
         r<firmware_version> get_firmware_version(ms timeout = one_sec);
 

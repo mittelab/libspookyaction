@@ -742,6 +742,7 @@ namespace pn532 {
                  to_string(command_code::in_list_passive_target), found_targets, bits::max_num_targets);
         }
         // TODO need to know total length
+        return error::failure;
     }
 
 }

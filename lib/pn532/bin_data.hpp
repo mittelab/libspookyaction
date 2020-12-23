@@ -65,6 +65,48 @@ namespace pn532 {
         template<class ...ByteOrByteContainers>
         static bin_data chain(ByteOrByteContainers &&...others);
     };
+
+    enum struct stream_ref {
+        beg,
+        pos,
+        end
+    };
+
+    class bin_stream {
+        bin_data const *_data = nullptr;
+        std::size_t _pos = 0;
+        bool _bad = false;
+
+        inline std::size_t get_ref(stream_ref ref) const;
+    public:
+        bin_stream() = default;
+        inline explicit bin_stream(bin_data const &data, std::size_t position = 0);
+
+        inline void seek(std::intptr_t offset, stream_ref ref = stream_ref::beg);
+        inline std::size_t tell(stream_ref ref = stream_ref::beg) const;
+
+        inline std::size_t remaining() const;
+
+        template <class OutputIterator>
+        std::size_t read(OutputIterator it, std::size_t n);
+
+        inline range<bin_data::const_iterator> read(std::size_t n);
+
+        inline std::uint8_t pop();
+
+        inline bool good() const;
+        inline bool eof() const;
+        inline bool bad() const;
+
+        inline void set_bad();
+        inline void clear_bad();
+    };
+
+    inline bin_stream &operator>>(bin_stream &s, std::uint8_t &byte);
+    inline bin_stream &operator>>(bin_stream &s, std::uint16_t &word);
+
+    template <std::size_t Length>
+    bin_stream &operator>>(bin_stream &s, std::array<std::uint8_t, Length> &out);
 }
 
 namespace pn532 {
@@ -139,6 +181,97 @@ namespace pn532 {
         return 0 != (byte & (1 << index));
     }
 
+    bin_stream::bin_stream(bin_data const &data, std::size_t position) : _data{&data}, _pos{position}, _bad{false} {}
+
+    void bin_stream::seek(std::intptr_t offset, stream_ref ref) {
+        if (_data != nullptr) {
+            _pos = get_ref(ref) + offset;
+        }
+    }
+    std::size_t bin_stream::tell(stream_ref ref) const {
+        if (_data != nullptr) {
+            return _pos - get_ref(ref);
+        }
+        return std::numeric_limits<std::size_t>::max();
+    }
+    std::size_t bin_stream::get_ref(stream_ref ref) const {
+        if (_data != nullptr) {
+            switch (ref) {
+                case stream_ref::beg: return 0;
+                case stream_ref::pos: return _pos;
+                case stream_ref::end: return _data->size();
+            }
+        }
+        return std::numeric_limits<std::size_t>::max();
+    }
+
+    range<bin_data::const_iterator> bin_stream::read(std::size_t n) {
+        if (good()) {
+            const std::size_t old_pos = _pos;
+            if (remaining() < n) {
+                _pos = get_ref(stream_ref::end);
+                set_bad();
+            } else {
+                _pos += n;
+            }
+            return _data->view(old_pos, _pos - old_pos);
+        }
+        set_bad();
+        return {};
+    }
+
+    bool bin_stream::good() const {
+        return not bad() and not eof();
+    }
+    bool bin_stream::eof() const {
+        return _data == nullptr or _pos >= _data->size();
+    }
+    bool bin_stream::bad() const {
+        return _data == nullptr or _bad;
+    }
+    void bin_stream::set_bad() {
+        _bad = true;
+    }
+    void bin_stream::clear_bad() {
+        _bad = false;
+    }
+
+    std::size_t bin_stream::remaining() const {
+        return get_ref(stream_ref::end) - tell();
+    }
+
+    std::uint8_t bin_stream::pop() {
+        if (good()) {
+            return (*_data)[_pos++];
+        }
+        set_bad();
+        return 0x00;
+    }
+
+    template <class OutputIterator>
+    std::size_t bin_stream::read(OutputIterator it, std::size_t n) {
+        const auto data = read(n);
+        std::copy(std::begin(data), std::end(data), it);
+        return std::end(data) - std::begin(data);
+    }
+
+    bin_stream &operator>>(bin_stream &s, std::uint8_t &byte) {
+        byte = s.pop();
+        return s;
+    }
+
+    bin_stream &operator>>(bin_stream &s, std::uint16_t &word) {
+        word = s.pop();
+        word <<= 8;
+        word |= s.pop();
+        return s;
+    }
+
+    template <std::size_t Length>
+    bin_stream &operator>>(bin_stream &s, std::array<std::uint8_t, Length> &out) {
+        s.template read(std::begin(out), Length);
+        return s;
+    }
 
 }
 

@@ -132,11 +132,11 @@ namespace pn532 {
     bin_data &operator<<(bin_data &bd, uid_cascade_l2 const &uid);
     bin_data &operator<<(bin_data &bd, uid_cascade_l3 const &uid);
 
-    bin_data const &operator>>(bin_data const &bd, std::pair<target_kbps106_typea, bool> &target_success);
-    bin_data const &operator>>(bin_data const &bd, std::pair<target_kbps212_felica, bool> &target_success);
-    bin_data const &operator>>(bin_data const &bd, std::pair<target_kbps424_felica, bool> &target_success);
-    bin_data const &operator>>(bin_data const &bd, std::pair<target_kbps106_typeb, bool> &target_success);
-    bin_data const &operator>>(bin_data const &bd, std::pair<target_kbps106_jewel_tag, bool> &target_success);
+    bin_stream &operator>>(bin_stream &bd, target_kbps106_typea &target_success);
+    bin_stream &operator>>(bin_stream &bd, target_kbps212_felica &target_success);
+    bin_stream &operator>>(bin_stream &bd, target_kbps424_felica &target_success);
+    bin_stream &operator>>(bin_stream &bd, target_kbps106_typeb &target_success);
+    bin_stream &operator>>(bin_stream &bd, target_kbps106_jewel_tag &target_success);
 
 }
 

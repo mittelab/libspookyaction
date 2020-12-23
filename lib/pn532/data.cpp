@@ -54,6 +54,10 @@ namespace pn532 {
         return bd;
     }
 
+    bin_stream &operator>>(bin_stream &s, target_status &ts) {
+        return s >> ts.logical_index >> ts.bitrate_rx >> ts.bitrate_tx >> ts.modulation_type;
+    }
+
     bin_stream &operator>>(bin_stream &s, target_kbps106_typea &target) {
         if (s.remaining() < 5) {
             LOGW("Unable to parse kbps106_iso_iec_14443_typea target info, too little data.");

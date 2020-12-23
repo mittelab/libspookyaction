@@ -107,6 +107,63 @@ namespace pn532 {
 
     template <std::size_t Length>
     bin_stream &operator>>(bin_stream &s, std::array<std::uint8_t, Length> &out);
+
+    namespace impl {
+        template <class T>
+        struct is_extractable {
+            template <class U>
+            static constexpr decltype(std::declval<bin_stream &>() >> std::declval<U &>(), bool()) test_get(int) {
+                return true;
+            }
+
+            template <class U>
+            static constexpr bool test_get(...) {
+                return false;
+            }
+
+            static constexpr bool value = test_get<T>(int());
+        };
+
+        template <class T>
+        struct is_injectable {
+            template <class U>
+            static constexpr decltype(std::declval<bin_data &>() << std::declval<U &>(), bool()) test_get(int) {
+                return true;
+            }
+
+            template <class U>
+            static constexpr bool test_get(...) {
+                return false;
+            }
+
+            static constexpr bool value = test_get<T>(int());
+        };
+
+        template <class T, bool>
+        struct safe_underlying_type {
+            using type = T;
+        };
+
+        template <class T>
+        struct safe_underlying_type<T, true> {
+            /// Referencing underlying_type without first checking if it's an enum its a failed assertion
+            using type = typename std::underlying_type<T>::type;
+        };
+
+        template <class T>
+        using is_extractable_enum = typename std::integral_constant<bool, std::is_enum<T>::value
+            and is_extractable<typename safe_underlying_type<T, std::is_enum<T>::value>::type>::value>;
+
+        template <class T>
+        using is_injectable_enum = typename std::integral_constant<bool, std::is_enum<T>::value
+            and is_injectable<typename safe_underlying_type<T, std::is_enum<T>::value>::type>::value>;
+    }
+
+    template <class Enum, class = typename std::enable_if<impl::is_extractable_enum<Enum>::value>::type>
+    bin_stream &operator>>(bin_stream &s, Enum &t);
+
+    template <class Enum, class = typename std::enable_if<impl::is_injectable_enum<Enum>::value>::type>
+    bin_data &operator<<(bin_data &bd, Enum const &t);
 }
 
 namespace pn532 {
@@ -271,6 +328,24 @@ namespace pn532 {
     bin_stream &operator>>(bin_stream &s, std::array<std::uint8_t, Length> &out) {
         s.template read(std::begin(out), Length);
         return s;
+    }
+
+    template <class Enum, class>
+    bin_stream &operator>>(bin_stream &s, Enum &t) {
+        using underlying_t = typename std::underlying_type<Enum>::type;
+        auto value = static_cast<underlying_t>(Enum{});  // A valid enum entry
+        s >> value;
+        if (not s.bad()) {
+            t = static_cast<Enum>(value);
+        }
+        return s;
+    }
+
+
+    template <class Enum, class>
+    bin_data &operator<<(bin_data &bd, Enum const &t) {
+        using underlying_t = typename std::underlying_type<Enum>::type;
+        return bd << static_cast<underlying_t>(t);
     }
 
 }

@@ -201,9 +201,11 @@ namespace pn532 {
 
         static constexpr unsigned sam_timeout_unit_ms = 50;
 
-        static constexpr std::uint8_t error_nad_mask = 0x1 << 7;
-        static constexpr std::uint8_t error_mi_mask = 0x1 << 6;
-        static constexpr std::uint8_t error_code_mask = 0b00111111;
+        static constexpr std::uint8_t status_nad_mask = 0x1 << 7;
+        static constexpr std::uint8_t status_more_info_mask = 0x1 << 6;
+        static constexpr std::uint8_t status_error_mask = 0b00111111;
+
+        static constexpr std::uint8_t max_num_targets = 2;
 
         enum struct error : std::uint8_t {
             timeout = 0x01,

@@ -9,6 +9,7 @@
 #include "bits.hpp"
 #include "data.hpp"
 #include "channel.hpp"
+#include "msg.hpp"
 
 namespace pn532 {
 
@@ -124,6 +125,10 @@ namespace pn532 {
         r<> rf_configuration_analog_typeb(ciu_reg_typeb const &config, ms timeout = one_sec);
 
         r<> rf_configuration_analog_iso_iec_14443_4(ciu_reg_iso_iec_14443_4 const &config, ms timeout = one_sec);
+
+        template <class T>
+        r<status, bin_data> initiator_data_exchange(std::uint8_t target_logical_index, T const &data,
+                                                    bool expect_more_data, ms timeout = one_sec);
         /*
 - InDataExchange
 - InSelect
@@ -143,9 +148,13 @@ namespace pn532 {
 
         r<frame_body> read_response_body(frame_header const &hdr, ms timeout);
 
+        r<status, bin_data> initiator_data_exchange_internal(bin_data const &payload, ms timeout);
+
         static bin_data get_command_info_frame(command_code cmd, bin_data const &payload);
         static bin_data const &get_ack_frame();
         static bin_data const &get_nack_frame();
+        static std::uint8_t get_target(command_code cmd, std::uint8_t target_logical_index, bool expect_more_data);
+        static status get_status(std::uint8_t data);
     };
 
     const char *to_string(nfc::error e);
@@ -167,6 +176,17 @@ namespace pn532 {
 
     nfc::r<> nfc::write_register(reg_addr const &addr, std::uint8_t val, ms timeout) {
         return write_registers({{addr, val}}, timeout);
+    }
+
+    template <class T>
+    nfc::r<status, bin_data> nfc::initiator_data_exchange(std::uint8_t target_logical_index, T const &data,
+                                                          bool expect_more_data, ms timeout)
+    {
+        return initiator_data_exchange_internal(
+                bin_data::chain(
+                        get_target(command_code::in_data_exchange, target_logical_index, expect_more_data),
+                        data
+                ), timeout);
     }
 
 }

@@ -1,11 +1,8 @@
 //
 // Created by Pietro Saccardi on 20/12/2020.
 //
-
-#include <tuple>
 #include "bits_algo.hpp"
 #include "pn532.hpp"
-#include "msg.hpp"
 #include "log.h"
 
 namespace pn532 {
@@ -40,6 +37,59 @@ namespace pn532 {
         command_code command;
         bin_data info;
     };
+
+
+    bin_data nfc::get_command_info_frame(command_code cmd, bin_data const &payload) {
+        const auto cmd_byte = bits::host_to_pn532_command(cmd);
+        const auto transport_byte = static_cast<std::uint8_t>(bits::transport::host_to_pn532);
+        // "2" because must count transport info and command_code
+        const bool use_extended_format = (payload.size() > 0xff - 2);
+        if (payload.size() > bits::max_firmware_data_length) {
+            LOGE("Payload too long for command %s for an info frame, truncating %ul bytes to %ul:",
+                 to_string(cmd),
+                 payload.size(),
+                 bits::max_firmware_data_length);
+            ESP_LOG_BUFFER_HEX_LEVEL(PN532_TAG, payload.data(), payload.size(), ESP_LOG_WARN);
+        }
+        const std::uint8_t length = std::min(payload.size(), bits::max_firmware_data_length);
+        // Make sure data gets truncated and nothing too weird happens
+        const auto truncated_data = payload.view(0, length);
+        // Precompute transport info + cmd byte + info compute_checksum
+        const auto checksum = bits::compute_checksum(
+                transport_byte + cmd_byte,
+                std::begin(truncated_data),
+                std::end(truncated_data)
+        );
+        bin_data frame{};
+        frame.reserve(length + 12);
+        frame << bits::preamble << bits::start_of_packet_code;
+        if (use_extended_format) {
+            frame << bits::fixed_extended_packet_length << bits::length_and_checksum_long(length);
+        } else {
+            frame << bits::length_and_checksum_short(length);
+        }
+        frame << transport_byte << cmd_byte << truncated_data << checksum << bits::postamble;
+        return frame;
+    }
+
+    bin_data const &nfc::get_ack_frame() {
+        static const bin_data ack_frame = bin_data::chain(
+                bits::preamble,
+                bits::start_of_packet_code,
+                bits::ack_packet_code,
+                bits::postamble
+        );
+        return ack_frame;
+    }
+    bin_data const &nfc::get_nack_frame() {
+        static const bin_data nack_frame = bin_data::chain(
+                bits::preamble,
+                bits::start_of_packet_code,
+                bits::nack_packet_code,
+                bits::postamble
+        );
+        return nack_frame;
+    }
 
 
     nfc::r<> nfc::raw_send_ack(bool ack, ms timeout) {
@@ -372,18 +422,16 @@ namespace pn532 {
 
         auto const &b = *res_cmd;
         general_status s{
-                .nad_present = 0 != (b[0] & bits::error_nad_mask),
-                .mi_set = 0 != (b[0] & bits::error_mi_mask),
-                .last_error = static_cast<controller_error>(b[0] & bits::error_code_mask),
+                .last_error = static_cast<controller_error>(b[0] & bits::status_error_mask),
                 .rf_field_present = b[1] != 0x00,
                 .targets = {},
                 .sam_status = b[11],
         };
-        if (b[2] > 2) {
-            LOGE("%s: detected more than two targets handled by PN532, most likely an error.",
-                 to_string(command_code::get_general_status));
+        if (b[2] > bits::max_num_targets) {
+            LOGE("%s: detected more than %u targets handled by PN532, most likely an error.",
+                 to_string(command_code::get_general_status), bits::max_num_targets);
         }
-        const std::size_t num_targets = std::min(std::size_t(b[2]), 2u);
+        const std::size_t num_targets = std::min(std::size_t(b[2]), std::size_t(bits::max_num_targets));
         s.targets.reserve(num_targets);
         for (std::size_t i = 0; i < num_targets; ++i) {
             s.targets.push_back(parse_target_status(b, 3 + 4 * i));
@@ -552,55 +600,33 @@ namespace pn532 {
         return command_response(command_code::rf_configuration, payload, timeout);
     }
 
-    bin_data nfc::get_command_info_frame(command_code cmd, bin_data const &payload) {
-        const auto cmd_byte = bits::host_to_pn532_command(cmd);
-        const auto transport_byte = static_cast<std::uint8_t>(bits::transport::host_to_pn532);
-        // "2" because must count transport info and command_code
-        const bool use_extended_format = (payload.size() > 0xff - 2);
-        if (payload.size() > bits::max_firmware_data_length) {
-            LOGE("Payload too long for command %s for an info frame, truncating %ul bytes to %ul:",
-                 to_string(cmd),
-                 payload.size(),
-                 bits::max_firmware_data_length);
-            ESP_LOG_BUFFER_HEX_LEVEL(PN532_TAG, payload.data(), payload.size(), ESP_LOG_WARN);
+    std::uint8_t nfc::get_target(command_code cmd, std::uint8_t target_logical_index, bool expect_more_data) {
+        if (target_logical_index >= bits::max_num_targets) {
+            LOGE("%s: out of range (unsupported) logical target index %u (>= %u).",
+                 to_string(cmd), target_logical_index, bits::max_num_targets);
         }
-        const std::uint8_t length = std::min(payload.size(), bits::max_firmware_data_length);
-        // Make sure data gets truncated and nothing too weird happens
-        const auto truncated_data = payload.view(0, length);
-        // Precompute transport info + cmd byte + info compute_checksum
-        const auto checksum = bits::compute_checksum(
-                transport_byte + cmd_byte,
-                std::begin(truncated_data),
-                std::end(truncated_data)
-        );
-        bin_data frame{};
-        frame.reserve(length + 12);
-        frame << bits::preamble << bits::start_of_packet_code;
-        if (use_extended_format) {
-            frame << bits::fixed_extended_packet_length << bits::length_and_checksum_long(length);
-        } else {
-            frame << bits::length_and_checksum_short(length);
-        }
-        frame << transport_byte << cmd_byte << truncated_data << checksum << bits::postamble;
-        return frame;
+        target_logical_index = std::min(target_logical_index, std::uint8_t(bits::max_num_targets - 1));
+        return target_logical_index | (expect_more_data ? bits::status_more_info_mask : 0x00);
     }
 
-    bin_data const &nfc::get_ack_frame() {
-        static const bin_data ack_frame = bin_data::chain(
-                bits::preamble,
-                bits::start_of_packet_code,
-                bits::ack_packet_code,
-                bits::postamble
-        );
-        return ack_frame;
+    status nfc::get_status(std::uint8_t data) {
+        return {
+                .nad_present = 0 != (data & bits::status_nad_mask),
+                .expect_more_info = 0 != (data & bits::status_more_info_mask),
+                .error = static_cast<controller_error>(data & bits::status_error_mask),
+        };
     }
-    bin_data const &nfc::get_nack_frame() {
-        static const bin_data nack_frame = bin_data::chain(
-                bits::preamble,
-                bits::start_of_packet_code,
-                bits::nack_packet_code,
-                bits::postamble
-        );
-        return nack_frame;
+
+    nfc::r<status, bin_data> nfc::initiator_data_exchange_internal(bin_data const &payload, ms timeout) {
+        const auto res_cmd = command_response(command_code::in_data_exchange, payload, timeout);
+        if (not res_cmd) {
+            return res_cmd.error();
+        }
+        if (res_cmd.empty()) {
+            LOGE("%s: missing status byte.", to_string(command_code::in_data_exchange));
+            return error::comm_malformed;
+        }
+        return {get_status(res_cmd->front()), bin_data{res_cmd->view(1)}};
     }
+
 }

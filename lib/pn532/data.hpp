@@ -54,9 +54,13 @@ namespace pn532 {
         modulation modulation_type;
     };
 
-    struct general_status {
+    struct status {
         bool nad_present;
-        bool mi_set;
+        bool expect_more_info;
+        controller_error error;
+    };
+
+    struct general_status {
         controller_error last_error;
         bool rf_field_present;
         std::vector<target_status> targets;

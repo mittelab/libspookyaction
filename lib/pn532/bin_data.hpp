@@ -42,6 +42,8 @@ namespace pn532 {
 
         inline bin_data(std::initializer_list<std::uint8_t> data);
 
+        inline explicit bin_data(range<const_iterator> const &view);
+
         inline explicit bin_data(std::vector<std::uint8_t> &&data);
 
         template<class ByteIterator>
@@ -69,6 +71,7 @@ namespace pn532 {
 
     bin_data::bin_data(std::initializer_list<std::uint8_t> data) : std::vector<uint8_t>{data} {}
     bin_data::bin_data(std::vector<std::uint8_t> &&data) : std::vector<uint8_t>{std::move(data)} {}
+    bin_data::bin_data(range<const_iterator> const &view) : bin_data{std::begin(view), std::end(view)} {}
 
     template <class ByteIterator>
     bin_data::bin_data(ByteIterator begin, ByteIterator end) : std::vector<uint8_t>{begin, end} {}

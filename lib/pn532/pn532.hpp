@@ -129,11 +129,9 @@ namespace pn532 {
         template <class T>
         r<status, bin_data> initiator_data_exchange(std::uint8_t target_logical_index, T const &data,
                                                     bool expect_more_data, ms timeout = one_sec);
-        /*
-- InDataExchange
-- InSelect
-- InAutoPoll
-         */
+
+        r<status> initiator_select(std::uint8_t target_logical_index, ms timeout = one_sec);
+
     private:
         channel *_channel;
 

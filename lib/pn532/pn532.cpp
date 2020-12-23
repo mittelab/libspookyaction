@@ -629,4 +629,17 @@ namespace pn532 {
         return {get_status(res_cmd->front()), bin_data{res_cmd->view(1)}};
     }
 
+    nfc::r<status> nfc::initiator_select(std::uint8_t target_logical_index, ms timeout) {
+        const std::uint8_t target_byte = get_target(command_code ::in_select, target_logical_index, false);
+        const auto res_cmd = command_response(command_code::in_select, bin_data{target_byte}, timeout);
+        if (not res_cmd) {
+            return res_cmd.error();
+        }
+        if (res_cmd.empty()) {
+            LOGE("%s: missing status byte.", to_string(command_code::in_select));
+            return error::comm_malformed;
+        }
+        return get_status(res_cmd->front());
+    }
+
 }

@@ -139,6 +139,28 @@ namespace pn532 {
 
         r<status> initiator_select(std::uint8_t target_logical_index, ms timeout = one_sec);
 
+        r<std::vector<target_kbps106_typea>> initiator_list_passive_kbps106_typea(
+                std::uint8_t max_targets = bits::max_num_targets, ms timeout = one_sec);
+        r<std::vector<target_kbps106_typea>> initiator_list_passive_kbps106_typea(
+                uid_cascade_l1 uid, std::uint8_t max_targets = 1, ms timeout = one_sec);
+        r<std::vector<target_kbps106_typea>> initiator_list_passive_kbps106_typea(
+                uid_cascade_l2 uid, std::uint8_t max_targets = 1, ms timeout = one_sec);
+        r<std::vector<target_kbps106_typea>> initiator_list_passive_kbps106_typea(
+                uid_cascade_l3 uid, std::uint8_t max_targets = 1, ms timeout = one_sec);
+        r<std::vector<target_kbps106_typeb>> initiator_list_passive_kbps106_typeb(
+                std::uint8_t application_family_id, polling_method method = polling_method::timeslot,
+                std::uint8_t max_targets = bits::max_num_targets, ms timeout = one_sec);
+
+        r<std::vector<target_kbps212_felica>> initiator_list_passive_kbps212_felica(
+                std::array<std::uint8_t, 5> const &payload, std::uint8_t max_targets = bits::max_num_targets,
+                ms timeout = one_sec);
+
+        r<std::vector<target_kbps424_felica>> initiator_list_passive_kbps424_felica(
+                std::array<std::uint8_t, 5> const &payload, std::uint8_t max_targets = bits::max_num_targets,
+                ms timeout = one_sec);
+        r<std::vector<target_kbps106_jewel_tag>> initiator_list_passive_kbps106_jewel_tag(
+                ms timeout = one_sec);
+
     private:
         channel *_channel;
 
@@ -160,6 +182,10 @@ namespace pn532 {
         static bin_data const &get_nack_frame();
         static std::uint8_t get_target(command_code cmd, std::uint8_t target_logical_index, bool expect_more_data);
         static status get_status(std::uint8_t data);
+
+        template <baudrate_modulation Type>
+        r<std::vector<bits::target<Type>>> initiator_list_passive(std::uint8_t max_targets,
+                                                                  bin_data const &initiator_data, ms timeout);
     };
 
     const char *to_string(nfc::error e);

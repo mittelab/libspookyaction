@@ -650,4 +650,98 @@ namespace pn532 {
         return get_status(res_cmd->front());
     }
 
+    namespace {
+        void sanitize_max_targets(std::uint8_t &max_targets, const char *fname) {
+            if (max_targets < 1 or max_targets > bits::max_num_targets) {
+                LOGW("%s: incorrect max targets %u for %s, clamping.",
+                     to_string(command_code::in_list_passive_target), max_targets, fname);
+                max_targets = std::min(std::max(max_targets, std::uint8_t(1)), bits::max_num_targets);
+            }
+        }
+    }
+
+    nfc::r<std::vector<target_kbps106_typea>> nfc::initiator_list_passive_kbps106_typea(
+            std::uint8_t max_targets, ms timeout)
+    {
+        sanitize_max_targets(max_targets, "initiator_list_passive_kbps106_typea");
+        return initiator_list_passive<baudrate_modulation::kbps106_iso_iec_14443_typea>(
+                max_targets, bin_data{}, timeout);
+    }
+
+    nfc::r<std::vector<target_kbps106_typea>> nfc::initiator_list_passive_kbps106_typea(
+            uid_cascade_l1 uid, std::uint8_t max_targets, ms timeout)
+    {
+        sanitize_max_targets(max_targets, "initiator_list_passive_kbps106_typea");
+        return initiator_list_passive<baudrate_modulation::kbps106_iso_iec_14443_typea>(
+                max_targets, bin_data::chain(uid), timeout);
+    }
+
+    nfc::r<std::vector<target_kbps106_typea>> nfc::initiator_list_passive_kbps106_typea(
+            uid_cascade_l2 uid, std::uint8_t max_targets, ms timeout)
+    {
+        sanitize_max_targets(max_targets, "initiator_list_passive_kbps106_typea");
+        return initiator_list_passive<baudrate_modulation::kbps106_iso_iec_14443_typea>(
+                max_targets, bin_data::chain(uid), timeout);
+    }
+
+    nfc::r<std::vector<target_kbps106_typea>> nfc::initiator_list_passive_kbps106_typea(
+            uid_cascade_l3 uid, std::uint8_t max_targets, ms timeout)
+    {
+        sanitize_max_targets(max_targets, "initiator_list_passive_kbps106_typea");
+        return initiator_list_passive<baudrate_modulation::kbps106_iso_iec_14443_typea>(
+                max_targets, bin_data::chain(uid), timeout);
+    }
+
+    nfc::r<std::vector<target_kbps106_typeb>> nfc::initiator_list_passive_kbps106_typeb(
+            std::uint8_t application_family_id, polling_method method, std::uint8_t max_targets, ms timeout)
+    {
+        sanitize_max_targets(max_targets, "initiator_list_passive_kbps106_typeb");
+        return initiator_list_passive<baudrate_modulation::kbps106_iso_iec_14443_3_typeb>(
+                max_targets, bin_data::chain(application_family_id, static_cast<std::uint8_t>(method)), timeout);
+    }
+
+    nfc::r<std::vector<target_kbps212_felica>> nfc::initiator_list_passive_kbps212_felica(
+            std::array<std::uint8_t, 5> const &payload, std::uint8_t max_targets, ms timeout)
+    {
+        sanitize_max_targets(max_targets, "initiator_list_passive_kbps212_felica");
+        return initiator_list_passive<baudrate_modulation::kbps212_felica_polling>(
+                max_targets, bin_data::chain(payload), timeout);
+
+    }
+
+    nfc::r<std::vector<target_kbps424_felica>> nfc::initiator_list_passive_kbps424_felica(
+            std::array<std::uint8_t, 5> const &payload, std::uint8_t max_targets, ms timeout)
+    {
+        sanitize_max_targets(max_targets, "initiator_list_passive_kbps424_felica");
+        return initiator_list_passive<baudrate_modulation::kbps424_felica_polling>(
+                max_targets, bin_data::chain(payload), timeout);
+    }
+
+    nfc::r<std::vector<target_kbps106_jewel_tag>> nfc::initiator_list_passive_kbps106_jewel_tag(ms timeout)
+    {
+        return initiator_list_passive<baudrate_modulation::kbps106_innovision_jewel_tag>(1, bin_data{}, timeout);
+    }
+
+    template <baudrate_modulation Type>
+    nfc::r<std::vector<bits::target<Type>>> nfc::initiator_list_passive(
+            std::uint8_t max_targets, bin_data const &initiator_data, ms timeout)
+    {
+        auto res_cmd = command_response(command_code::in_list_passive_target,
+                                        bin_data::chain(max_targets, static_cast<std::uint8_t>(Type), initiator_data),
+                                        timeout);
+        if (not res_cmd) {
+            return res_cmd.error();
+        }
+        if (res_cmd.empty()) {
+            LOGE("%s: no data", to_string(command_code::in_list_passive_target));
+            return error::comm_malformed;
+        }
+        const auto found_targets = res_cmd->at(0);
+        if (found_targets > bits::max_num_targets) {
+            LOGW("%s: found %u targets, which is more than the number of supported targets %u",
+                 to_string(command_code::in_list_passive_target), found_targets, bits::max_num_targets);
+        }
+        // TODO need to know total length
+    }
+
 }

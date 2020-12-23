@@ -17,10 +17,12 @@ namespace pn532 {
 
     using bits::speed;
     using bits::modulation;
+    using bits::baudrate_modulation;
     using bits::sfr_register;
     using bits::baud_rate;
     using bits::sam_mode;
     using bits::rf_timeout;
+    using bits::polling_method;
 
     using bits::ciu_reg_212_424kbps;
     using bits::ciu_reg_106kbps_typea;
@@ -28,11 +30,31 @@ namespace pn532 {
     using bits::ciu_reg_iso_iec_14443_4_at_baudrate;
     using bits::ciu_reg_iso_iec_14443_4;
 
-    bin_data &operator<<(bin_data &bd, ciu_reg_212_424kbps const &reg);
-    bin_data &operator<<(bin_data &bd, ciu_reg_106kbps_typea const &reg);
-    bin_data &operator<<(bin_data &bd, ciu_reg_typeb const &reg);
-    bin_data &operator<<(bin_data &bd, ciu_reg_iso_iec_14443_4_at_baudrate const &reg);
-    bin_data &operator<<(bin_data &bd, ciu_reg_iso_iec_14443_4 const &reg);
+
+    using target_kbps106_typea = bits::target<baudrate_modulation::kbps106_iso_iec_14443_typea>;
+    using target_kbps212_felica = bits::target<baudrate_modulation::kbps212_felica_polling>;
+    using target_kbps424_felica = bits::target<baudrate_modulation::kbps424_felica_polling>;
+    using target_kbps106_typeb = bits::target<baudrate_modulation::kbps106_iso_iec_14443_3_typeb>;
+    using target_kbps106_jewel_tag = bits::target<baudrate_modulation::kbps106_innovision_jewel_tag>;
+
+    class any_target {
+        std::uint8_t _logical_index;
+        baudrate_modulation _type;
+        bin_data _payload;
+    public:
+        inline any_target(std::uint8_t logical_index, baudrate_modulation type, bin_data payload);
+
+        enum error {
+            incorrect_cast,
+            malformed
+        };
+
+        inline std::uint8_t logical_index() const;
+        inline baudrate_modulation type() const;
+
+        template <baudrate_modulation Type>
+        result<error, bits::target<Type>> get_info() const;
+    };
 
     enum struct gpio_loc {
         p3, p7, i0i1
@@ -67,6 +89,15 @@ namespace pn532 {
         std::uint8_t sam_status;
     };
 
+    template <std::size_t Length>
+    struct uid_cascade : public std::array<std::uint8_t , Length> {
+        using std::array<std::uint8_t, Length>::array;
+    };
+
+    using uid_cascade_l1 = uid_cascade<4>;
+    using uid_cascade_l2 = uid_cascade<7>;
+    using uid_cascade_l3 = uid_cascade<10>;
+
     struct reg_addr : public std::array<std::uint8_t, 2> {
         inline reg_addr(sfr_register sfr_reg);
 
@@ -92,9 +123,48 @@ namespace pn532 {
         inline bit_ref operator[](std::pair<gpio_loc, std::uint8_t> const &gpio_idx);
     };
 
+    bin_data &operator<<(bin_data &bd, ciu_reg_212_424kbps const &reg);
+    bin_data &operator<<(bin_data &bd, ciu_reg_106kbps_typea const &reg);
+    bin_data &operator<<(bin_data &bd, ciu_reg_typeb const &reg);
+    bin_data &operator<<(bin_data &bd, ciu_reg_iso_iec_14443_4_at_baudrate const &reg);
+    bin_data &operator<<(bin_data &bd, ciu_reg_iso_iec_14443_4 const &reg);
+    bin_data &operator<<(bin_data &bd, uid_cascade_l1 const &uid);
+    bin_data &operator<<(bin_data &bd, uid_cascade_l2 const &uid);
+    bin_data &operator<<(bin_data &bd, uid_cascade_l3 const &uid);
+
+    bin_data const &operator>>(bin_data const &bd, std::pair<target_kbps106_typea, bool> &target_success);
+    bin_data const &operator>>(bin_data const &bd, std::pair<target_kbps212_felica, bool> &target_success);
+    bin_data const &operator>>(bin_data const &bd, std::pair<target_kbps424_felica, bool> &target_success);
+    bin_data const &operator>>(bin_data const &bd, std::pair<target_kbps106_typeb, bool> &target_success);
+    bin_data const &operator>>(bin_data const &bd, std::pair<target_kbps106_jewel_tag, bool> &target_success);
+
 }
 
 namespace pn532 {
+
+    any_target::any_target(std::uint8_t logical_index, baudrate_modulation type, bin_data payload) :
+        _logical_index{logical_index}, _type{type}, _payload{std::move(payload)} {}
+
+
+    template <baudrate_modulation Type>
+    result<any_target::error, bits::target<Type>> any_target::get_info() const {
+        if (type() != Type) {
+            return error::incorrect_cast;
+        }
+        std::pair<bits::target<Type>, bool> target_success = {{}, false};
+        _payload >> target_success;
+        if (not target_success.second) {
+            return error::incorrect_cast;
+        }
+        return std::move(target_success.first);
+    }
+
+    std::uint8_t any_target::logical_index() const {
+        return _logical_index;
+    }
+    baudrate_modulation any_target::type() const {
+        return _type;
+    }
 
     bool gpio_status::operator[](std::pair<gpio_loc, std::uint8_t> const &gpio_idx) const {
         switch (gpio_idx.first) {

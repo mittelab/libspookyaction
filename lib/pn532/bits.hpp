@@ -6,6 +6,7 @@
 #define APERTURAPORTA_BITS_HPP
 
 #include <array>
+#include <vector>
 #include <cstddef>
 
 namespace pn532 {
@@ -168,6 +169,7 @@ namespace pn532 {
             };
         };
 
+
         enum struct rf_config_item {
             rf_field = 0x01,
             timings = 0x02,
@@ -266,6 +268,106 @@ namespace pn532 {
             p3cfga = 0xfc,
             p3cfgb =0xfd
         };
+
+        static constexpr std::uint8_t uid_cascade_tag = 0x88;
+
+        enum struct polling_method : std::uint8_t {
+            timeslot = 0x00,
+            probabilistic = 0x01
+        };
+
+        /**
+         * @note Lowest bits of @ref target_type
+         */
+        enum struct baudrate_modulation : std::uint8_t {
+            kbps106_iso_iec_14443_typea = 0x00,
+            kbps212_felica_polling = 0x01,
+            kbps424_felica_polling = 0x02,
+            kbps106_iso_iec_14443_3_typeb = 0x03,
+            kbps106_innovision_jewel_tag = 0x04
+        };
+
+        template <baudrate_modulation Type>
+        struct target_info {};
+
+        template <>
+        struct target_info<baudrate_modulation::kbps106_iso_iec_14443_typea> {
+            std::uint16_t sens_res;
+            std::uint8_t sel_res;
+            std::vector<std::uint8_t> nfcid;
+            std::vector<std::uint8_t> ats;
+        };
+
+        template <>
+        struct target_info<baudrate_modulation::kbps212_felica_polling> {
+            std::array<std::uint8_t, 8> nfcid_2t;
+            std::array<std::uint8_t, 2> syst_code;
+        };
+
+        template <>
+        struct target_info<baudrate_modulation::kbps424_felica_polling> :
+                public target_info<baudrate_modulation::kbps212_felica_polling> {
+            /* identical */
+            using target_info<baudrate_modulation::kbps212_felica_polling>::nfcid_2t;
+            using target_info<baudrate_modulation::kbps212_felica_polling>::syst_code;
+        };
+
+        template <>
+        struct target_info<baudrate_modulation::kbps106_iso_iec_14443_3_typeb> {
+            std::array<std::uint8_t, 12> atqb_response;
+            std::vector<std::uint8_t> attrib_res;
+        };
+
+
+        template <>
+        struct target_info<baudrate_modulation::kbps106_innovision_jewel_tag> {
+            std::uint16_t sens_res;
+            std::array<std::uint8_t, 4> jewel_id;
+        };
+
+        template <baudrate_modulation Type>
+        struct target {
+            std::uint8_t logical_index;
+            target_info<Type> info;
+        };
+
+        enum struct poll_period : std::uint8_t {
+            ms_150 = 0x1,
+            ms_300 = 0x2,
+            ms_450 = 0x3,
+            ms_600 = 0x4,
+            ms_750 = 0x5,
+            ms_900 = 0x6,
+            ms_1050 = 0x7,
+            ms_1200 = 0x8,
+            ms_1350 = 0x9,
+            ms_1500 = 0xa,
+            ms_1650 = 0xb,
+            ms_1800 = 0xc,
+            ms_1950 = 0xd,
+            ms_2100 = 0xe,
+            ms_2250 = 0xf
+        };
+
+        enum struct target_type : std::uint8_t {
+            generic_passive_106kbps = 0x00,
+            generic_passive_212kbps = 0x01,
+            generic_passive_424kbps = 0x02,
+            passive_106kbps_iso_iec_14443_4_typeb = 0x03,
+            innovision_jewel_tag = 0x04,
+            mifare_card = 0x10,
+            felica_212kbps_card = 0x11,
+            felica_424kbps_card = 0x12,
+            passive_106kbps_iso_iec_14443_4_typea = 0x20,
+            passive_106kbps_iso_iec_14443_4_typeb_alt = 0x23,
+            dep_passive_106kbps = 0x40,
+            dep_passive_212kbps = 0x41,
+            dep_passive_424kbps = 0x42,
+            dep_active_106kbps = 0x80,
+            dep_active_212kbps = 0x81,
+            dep_active_424kbps = 0x82
+        };
+
 
         template <std::uint8_t MinIdx, std::uint8_t MaxIdx>
         struct bitmask_window {

@@ -62,4 +62,14 @@ namespace pn532 {
             default: return "UNKNOWN";
         }
     }
+    const char *to_string(bits::baudrate_modulation bm) {
+        switch (bm) {
+            case bits::baudrate_modulation::kbps106_iso_iec_14443_typea:   return "106 kbps ISO/IEC 14443 TypeA";
+            case bits::baudrate_modulation::kbps212_felica_polling:        return "212 kbps FeliCa polling";
+            case bits::baudrate_modulation::kbps424_felica_polling:        return "424 kbps FeliCa polling";
+            case bits::baudrate_modulation::kbps106_iso_iec_14443_3_typeb: return "106 kbps ISO/IEC 14443-3 TypeB";
+            case bits::baudrate_modulation::kbps106_innovision_jewel_tag:  return "106 kbps Innovision Jewel Tag";
+            default: return "UNKNOWN";
+        }
+    }
 }

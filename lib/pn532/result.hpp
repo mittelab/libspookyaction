@@ -90,10 +90,11 @@ namespace pn532 {
 
 
     template <class E, class T1, class T2>
-    class result<E, T1, T2> : public result<E, std::pair<T1, T2>> {
+    class result<E, T1, T2> : private result<E, std::pair<T1, T2>> {
     public:
         using base = result<E, std::pair<T1, T2>>;
         inline result(T1 data1, T2 data2);
+        inline result(base b);
 
         using base::base;
         using base::operator=;
@@ -104,10 +105,11 @@ namespace pn532 {
     };
 
     template <class E, class T1, class T2, class T3, class ...Tn>
-    class result<E, T1, T2, T3, Tn...> : public result<E, std::tuple<T1, T2, T3, Tn...>> {
+    class result<E, T1, T2, T3, Tn...> : private result<E, std::tuple<T1, T2, T3, Tn...>> {
     public:
         using base = result<E, std::pair<T1, T2>>;
         inline result(T1 data1, T2 data2, T2 data3, Tn ...dataN);
+        inline result(base b);
 
         using base::base;
         using base::operator=;
@@ -443,12 +445,24 @@ namespace pn532 {
     }
     template <class E, class T1, class T2>
     result<E, T1, T2>::result(T1 data1, T2 data2) :
-        base{std::make_pair(data1, data2)}
+            base{std::make_pair(data1, data2)}
     {}
+
+    template <class E, class T1, class T2>
+    result<E, T1, T2>::result(result<E, T1, T2>::base b) :
+            base{std::move(b)}
+    {}
+
+
 
     template <class E, class T1, class T2, class T3, class ...Tn>
     result<E, T1, T2, T3, Tn...>::result(T1 data1, T2 data2, T2 data3, Tn ...dataN) :
-        base{std::make_tuple(data1, data2, data3, std::forward<Tn>(dataN)...)}
+            base{std::make_tuple(data1, data2, data3, std::forward<Tn>(dataN)...)}
+    {}
+
+    template <class E, class T1, class T2, class T3, class ...Tn>
+    result<E, T1, T2, T3, Tn...>::result(result<E, T1, T2, T3, Tn...>::base b) :
+            base{std::move(b)}
     {}
 }
 

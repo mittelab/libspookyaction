@@ -58,11 +58,19 @@ namespace pn532 {
         static bin_data chain(ByteOrByteContainers &&...others);
     };
 
+    struct prealloc {
+        inline explicit prealloc(std::size_t size) : requested_size{size} {}
+        std::size_t requested_size = 0;
+    };
+
+    inline bin_data &operator<<(bin_data &bd, prealloc const &pa);
+
     enum struct stream_ref {
         beg,
         pos,
         end
     };
+
 
     class bin_stream {
         bin_data const *_data = nullptr;
@@ -71,6 +79,8 @@ namespace pn532 {
 
         inline std::size_t get_ref(stream_ref ref) const;
     public:
+        template <class> struct is_extractable;
+
         bin_stream() = default;
         inline explicit bin_stream(bin_data const &data, std::size_t position = 0);
 
@@ -104,22 +114,22 @@ namespace pn532 {
     template <std::size_t Length>
     bin_stream &operator>>(bin_stream &s, std::array<std::uint8_t, Length> &out);
 
+    template <class T>
+    struct bin_stream::is_extractable {
+        template <class U>
+        static constexpr decltype(std::declval<bin_stream &>() >> std::declval<U &>(), bool()) test_get(int) {
+            return true;
+        }
+
+        template <class U>
+        static constexpr bool test_get(...) {
+            return false;
+        }
+
+        static constexpr bool value = test_get<T>(int());
+    };
+
     namespace impl {
-        template <class T>
-        struct is_extractable {
-            template <class U>
-            static constexpr decltype(std::declval<bin_stream &>() >> std::declval<U &>(), bool()) test_get(int) {
-                return true;
-            }
-
-            template <class U>
-            static constexpr bool test_get(...) {
-                return false;
-            }
-
-            static constexpr bool value = test_get<T>(int());
-        };
-
         template <class T>
         struct is_range_enumerable {
             template <class U>
@@ -161,10 +171,6 @@ namespace pn532 {
         };
 
         template <class T>
-        using is_extractable_enum = typename std::integral_constant<bool, std::is_enum<T>::value
-            and is_extractable<typename safe_underlying_type<T, std::is_enum<T>::value>::type>::value>;
-
-        template <class T>
         using is_byte_enum = typename std::integral_constant<bool, std::is_enum<T>::value
             and std::is_same<typename safe_underlying_type<T, std::is_enum<T>::value>::type, std::uint8_t>::value>;
 
@@ -173,7 +179,7 @@ namespace pn532 {
             and std::is_same<typename safe_value_type<T, is_range_enumerable<T>::value>::type, std::uint8_t>::value>;
     }
 
-    template <class Enum, class = typename std::enable_if<impl::is_extractable_enum<Enum>::value>::type>
+    template <class Enum, class = typename std::enable_if<impl::is_byte_enum<Enum>::value>::type>
     bin_stream &operator>>(bin_stream &s, Enum &t);
 
     template <class T, class = typename std::enable_if<impl::is_byte_enum<T>::value or impl::is_byte_enumerable<T>::value>::type>
@@ -243,6 +249,11 @@ namespace pn532 {
 
     bit_ref::operator bool() const {
         return 0 != (byte & (1 << index));
+    }
+
+    bin_data &operator<<(bin_data &bd, prealloc const &pa) {
+        bd.reserve(bd.size() + pa.requested_size);
+        return bd;
     }
 
     bin_stream::bin_stream(bin_data const &data, std::size_t position) : _data{&data}, _pos{position}, _bad{false} {}
@@ -378,6 +389,7 @@ namespace pn532 {
     bin_data &operator<<(bin_data &bd, T const &t) {
         return impl::inject<T, impl::is_byte_enum<T>::value, impl::is_byte_enumerable<T>::value>{}(bd, t);
     }
+
 
 }
 

@@ -60,6 +60,12 @@ namespace pn532 {
          */
         r<bin_data> command_response(command_code cmd, bin_data const &payload, ms timeout = one_sec);
 
+        /**
+         * @param payload Max 263 bytes, will be truncated
+         */
+        template <class Data, class = typename std::enable_if<bin_stream::is_extractable<Data>::value>::type>
+        r<Data> command_parse_response(command_code cmd, bin_data const &payload, ms timeout = one_sec);
+
         r<bool> diagnose_rom(ms timeout = one_sec);
 
         r<bool> diagnose_ram(ms timeout = one_sec);
@@ -181,7 +187,6 @@ namespace pn532 {
         static bin_data const &get_ack_frame();
         static bin_data const &get_nack_frame();
         static std::uint8_t get_target(command_code cmd, std::uint8_t target_logical_index, bool expect_more_data);
-        static status get_status(std::uint8_t data);
 
         template <baudrate_modulation Type>
         r<std::vector<bits::target<Type>>> initiator_list_passive(std::uint8_t max_targets,
@@ -209,15 +214,28 @@ namespace pn532 {
         return write_registers({{addr, val}}, timeout);
     }
 
+    template <class Data, class>
+    nfc::r<Data> nfc::command_parse_response(command_code cmd, bin_data const &payload, ms timeout) {
+        const auto res_cmd = command_response(cmd, payload, timeout);
+        if (not res_cmd) {
+            return res_cmd.error();
+        }
+        bin_stream s{*res_cmd};
+        Data data{};
+        s >> data;
+        if (s.bad()) {
+            LOGE("%s: could not parse result from response data.", to_string(cmd));
+            return error::comm_malformed;
+        }
+        return data;
+    }
+
     template <class T>
     nfc::r<status, bin_data> nfc::initiator_data_exchange(std::uint8_t target_logical_index, T const &data,
                                                           bool expect_more_data, ms timeout)
     {
-        return initiator_data_exchange_internal(
-                bin_data::chain(
-                        get_target(command_code::in_data_exchange, target_logical_index, expect_more_data),
-                        data
-                ), timeout);
+        const std::uint8_t target_byte = get_target(command_code::in_data_exchange, target_logical_index, expect_more_data);
+        return initiator_data_exchange_internal(bin_data::chain(target_byte, data), timeout);
     }
 
 }

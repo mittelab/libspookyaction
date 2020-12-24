@@ -9,6 +9,7 @@
 #include "bits.hpp"
 #include "bin_data.hpp"
 #include "result.hpp"
+#include "msg.hpp"
 
 namespace pn532 {
 
@@ -93,8 +94,8 @@ namespace pn532 {
     };
 
     template <std::size_t Length>
-    struct uid_cascade {
-        std::array<std::uint8_t , Length> data;
+    struct uid_cascade : public std::array<std::uint8_t , Length> {
+         using std::array<std::uint8_t , Length>::array;
     };
 
     using uid_cascade_l1 = uid_cascade<4>;
@@ -131,10 +132,15 @@ namespace pn532 {
     bin_data &operator<<(bin_data &bd, ciu_reg_typeb const &reg);
     bin_data &operator<<(bin_data &bd, ciu_reg_iso_iec_14443_4_at_baudrate const &reg);
     bin_data &operator<<(bin_data &bd, ciu_reg_iso_iec_14443_4 const &reg);
-    bin_data &operator<<(bin_data &bd, uid_cascade_l1 const &uid);
     bin_data &operator<<(bin_data &bd, uid_cascade_l2 const &uid);
     bin_data &operator<<(bin_data &bd, uid_cascade_l3 const &uid);
 
+    template <baudrate_modulation Type>
+    bin_stream &operator>>(bin_stream &s, std::vector<bits::target<Type>> &targets);
+    bin_stream &operator>>(bin_stream &s, std::pair<status, bin_data> &status_data_pair);
+    bin_stream &operator>>(bin_stream &s, status &status);
+    bin_stream &operator>>(bin_stream &s, gpio_status &gpio);
+    bin_stream &operator>>(bin_stream &s, firmware_version &fw);
     bin_stream &operator>>(bin_stream &s, general_status &gs);
     bin_stream &operator>>(bin_stream &s, target_status &ts);
     bin_stream &operator>>(bin_stream &s, target_kbps106_typea &target);
@@ -218,6 +224,28 @@ namespace pn532 {
             std::array<std::uint8_t, 2>{{std::uint8_t(xram_mmap_reg >> 8),
                                                 std::uint8_t(xram_mmap_reg & 0xff)}} {}
 
+
+    template <baudrate_modulation Type>
+    bin_stream &operator>>(bin_stream &s, std::vector<bits::target<Type>> &targets) {
+        if (s.remaining() < 1) {
+            LOGE("Parsing vector<target<%s>>: not enough data.", to_string(Type));
+            s.set_bad();
+            return s;
+        }
+        const auto num_targets = s.pop();
+        if (num_targets > bits::max_num_targets) {
+            LOGW("Parsing vector<target<%s>>: found %u targets, which is more than the number of supported targets %u.",
+                 to_string(Type), num_targets, bits::max_num_targets);
+        }
+        targets.resize(num_targets);
+        for (auto &target : targets) {
+            if (not s.good()) {
+                break;
+            }
+            s >> target;
+        }
+        return s;
+    }
 }
 
 #endif //APERTURAPORTA_DATA_HPP

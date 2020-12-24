@@ -8,51 +8,92 @@
 namespace pn532 {
 
     bin_data &operator<<(bin_data &bd, ciu_reg_212_424kbps const &reg) {
-        bd.reserve(bd.size() + sizeof(ciu_reg_212_424kbps));
-        return bd << reg.rf_cfg << reg.gs_n_on << reg.cw_gs_p << reg.mod_gs_p << reg.demod_own_rf_on
-            << reg.rx_threshold << reg.demod_own_rf_off << reg.gs_n_off;
+        return bd << prealloc(sizeof(ciu_reg_212_424kbps)) << reg.rf_cfg << reg.gs_n_on << reg.cw_gs_p
+            << reg.mod_gs_p << reg.demod_own_rf_on << reg.rx_threshold << reg.demod_own_rf_off << reg.gs_n_off;
     }
 
     bin_data &operator<<(bin_data &bd, ciu_reg_106kbps_typea const &reg) {
-        bd.reserve(bd.size() + sizeof(ciu_reg_106kbps_typea));
-        return bd << reg.rf_cfg << reg.gs_n_on << reg.cw_gs_p << reg.mod_gs_p << reg.demod_own_rf_on << reg.rx_threshold
-            << reg.demod_own_rf_off << reg.gs_n_off << reg.mod_width << reg.mif_nfc << reg.tx_bit_phase;
+        return bd << prealloc(sizeof(ciu_reg_106kbps_typea)) << reg.rf_cfg << reg.gs_n_on << reg.cw_gs_p
+            << reg.mod_gs_p << reg.demod_own_rf_on << reg.rx_threshold << reg.demod_own_rf_off << reg.gs_n_off
+            << reg.mod_width << reg.mif_nfc << reg.tx_bit_phase;
     }
 
     bin_data &operator<<(bin_data &bd, ciu_reg_typeb const &reg) {
-        bd.reserve(bd.size() + sizeof(ciu_reg_typeb));
-        return bd << reg.gs_n_on << reg.mod_gs_p << reg.rx_threshold;
+        return bd << prealloc(sizeof(ciu_reg_typeb)) << reg.gs_n_on << reg.mod_gs_p << reg.rx_threshold;
     }
 
     bin_data &operator<<(bin_data &bd, ciu_reg_iso_iec_14443_4_at_baudrate const &reg) {
-        bd.reserve(bd.size() + sizeof(ciu_reg_iso_iec_14443_4_at_baudrate));
-        return bd << reg.rx_threshold << reg.mod_width << reg.mif_nfc;
+        return bd << prealloc(sizeof(ciu_reg_iso_iec_14443_4_at_baudrate)) << reg.rx_threshold << reg.mod_width
+            << reg.mif_nfc;
     }
 
     bin_data &operator<<(bin_data &bd, ciu_reg_iso_iec_14443_4 const &reg) {
-        bd.reserve(bd.size() + sizeof(ciu_reg_iso_iec_14443_4));
-        return bd << reg.kbps212 << reg.kbps424 << reg.kbps848;
-    }
-
-    bin_data &operator<<(bin_data &bd, uid_cascade_l1 const &uid) {
-        return bd << uid.data;
+        return bd << prealloc(sizeof(ciu_reg_iso_iec_14443_4)) << reg.kbps212 << reg.kbps424 << reg.kbps848;
     }
 
     bin_data &operator<<(bin_data &bd, uid_cascade_l2 const &uid) {
-        bd.reserve(bd.size() + 8);
-        return bd << bits::uid_cascade_tag << uid.data;
+        return bd << prealloc(8) << bits::uid_cascade_tag << static_cast<std::array<std::uint8_t, 7> const &>(uid);
     }
 
     bin_data &operator<<(bin_data &bd, uid_cascade_l3 const &uid) {
-        bd.reserve(bd.size() + 12);
-        return bd << bits::uid_cascade_tag << make_range(std::begin(uid.data), std::begin(uid.data) + 3)
-            << bits::uid_cascade_tag << make_range(std::begin(uid.data) + 3, std::end(uid.data));
+        return bd << prealloc(12) << bits::uid_cascade_tag << make_range(std::begin(uid), std::begin(uid) + 3)
+            << bits::uid_cascade_tag << make_range(std::begin(uid) + 3, std::end(uid));
+    }
+
+    bin_stream &operator>>(bin_stream &s, firmware_version &fw) {
+        if (s.remaining() < 4) {
+            LOGE("Parsing firmware_version: expected at least 4 bytes of data, got %ul.", s.remaining());
+            s.set_bad();
+            return s;
+        }
+        s >> fw.ic >> fw.version >> fw.revision;
+        const auto flag_byte = s.pop();
+        fw.iso_18092 = 0 != (flag_byte & bits::firmware_iso_18092_mask);
+        fw.iso_iec_14443_typea = 0 != (flag_byte & bits::firmware_iso_iec_14443_typea_mask);
+        fw.iso_iec_14443_typeb = 0 != (flag_byte & bits::firmware_iso_iec_14443_typeb_mask);
+        return s;
+    }
+
+    bin_stream &operator>>(bin_stream &s, gpio_status &gpio) {
+        if (s.remaining() < 3) {
+            LOGE("Parsing gpio_status: expected at least 3 bytes of data, got %ul.", s.remaining());
+            s.set_bad();
+            return s;
+        }
+        const std::uint8_t p3_mask = s.pop();
+        const std::uint8_t p7_mask = s.pop();
+        const std::uint8_t i0i1_mask = s.pop();
+        gpio = gpio_status{p3_mask, p7_mask, i0i1_mask};
+        return s;
+    }
+
+    bin_stream &operator>>(bin_stream &s, status &status) {
+        if (s.remaining() < 1) {
+            LOGE("Parsing status: expected at least 3 bytes of data, got %ul.", s.remaining());
+            s.set_bad();
+            return s;
+        }
+        const auto flag_byte = s.pop();
+        status.nad_present = 0 != (flag_byte & bits::status_nad_mask);
+        status.expect_more_info = 0 != (flag_byte & bits::status_more_info_mask);
+        status.error = static_cast<controller_error>(flag_byte & bits::status_error_mask);
+        return s;
+    }
+
+    bin_stream &operator>>(bin_stream &s, std::pair<status, bin_data> &status_data_pair) {
+        s >> status_data_pair.first;
+        if (s.good()) {
+            status_data_pair.second.resize(s.remaining());
+            s.read(std::begin(status_data_pair.second), s.remaining());
+        } else {
+            status_data_pair.second.clear();
+        }
+        return s;
     }
 
     bin_stream &operator>>(bin_stream &s, target_status &ts) {
         if (s.remaining() < 4) {
-            LOGE("%s: Insufficient data (%ull) to populate a target status structure.",
-                 to_string(command_code::get_general_status), s.remaining());
+            LOGE("Parsing target_status: expected at least 4 bytes of data, got %ul.", s.remaining());
             s.set_bad();
             return s;
         }
@@ -61,8 +102,7 @@ namespace pn532 {
 
     bin_stream &operator>>(bin_stream &s, general_status &gs) {
         if (s.remaining() < 4) {
-            LOGE("%s: expected at least 4 bytes of data, not %ul.",
-                 to_string(command_code::get_general_status), s.remaining());
+            LOGE("Parsing general_stastus: expected at least 4 bytes of data, got %ul.", s.remaining());
             s.set_bad();
             return s;
         }

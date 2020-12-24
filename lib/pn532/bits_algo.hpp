@@ -62,7 +62,7 @@ namespace pn532 {
         }
 
         std::array<std::uint8_t, 2> length_and_checksum_short(std::uint8_t length) {
-            return {length, compute_checksum(&length, &length)};
+            return {length, compute_checksum(length)};
         }
 
         std::array<std::uint8_t, 3> length_and_checksum_long(std::uint16_t length) {

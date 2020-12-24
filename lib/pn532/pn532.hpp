@@ -167,6 +167,26 @@ namespace pn532 {
         r<std::vector<target_kbps106_jewel_tag>> initiator_list_passive_kbps106_jewel_tag(
                 ms timeout = one_sec);
 
+
+        r<status, atr_res_info> initiator_activate_target(std::uint8_t target_logical_index, ms timeout = one_sec);
+        r<status, atr_res_info> initiator_activate_target(std::uint8_t target_logical_index,
+                                                          std::array<std::uint8_t, 10> const &nfcid_3t,
+                                                          ms timeout = one_sec);
+        /**
+         * @param general_info Max 48 bytes.
+         */
+        r<status, atr_res_info> initiator_activate_target(std::uint8_t target_logical_index,
+                                                          std::vector<std::uint8_t> const &general_info,
+                                                          ms timeout = one_sec);
+
+        /**
+         * @param general_info Max 48 bytes.
+         */
+        r<status, atr_res_info> initiator_activate_target(std::uint8_t target_logical_index,
+                                                          std::array<std::uint8_t, 10> const &nfcid_3t,
+                                                          std::vector<std::uint8_t> const &general_info,
+                                                          ms timeout = one_sec);
+
     private:
         channel *_channel;
 

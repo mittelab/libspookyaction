@@ -25,6 +25,7 @@ namespace pn532 {
     using bits::sam_mode;
     using bits::rf_timeout;
     using bits::polling_method;
+    using bits::atr_res_info;
 
     using bits::ciu_reg_212_424kbps;
     using bits::ciu_reg_106kbps_typea;
@@ -156,6 +157,8 @@ namespace pn532 {
     bin_stream &operator>>(bin_stream &s, target_kbps424_felica &target);
     bin_stream &operator>>(bin_stream &s, target_kbps106_typeb &target);
     bin_stream &operator>>(bin_stream &s, target_kbps106_jewel_tag &target);
+    bin_stream &operator>>(bin_stream &s, atr_res_info &atr_res);
+    bin_stream &operator>>(bin_stream &s, std::pair<status, atr_res_info> &status_atr_res);
 
 }
 

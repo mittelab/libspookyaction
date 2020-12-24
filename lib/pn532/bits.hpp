@@ -368,6 +368,18 @@ namespace pn532 {
             dep_active_424kbps = 0x82
         };
 
+        struct atr_res_info {
+            std::array<std::uint8_t, 10> nfcid_3t;
+            std::uint8_t did_t;
+            std::uint8_t b_st;
+            std::uint8_t b_rt;
+            std::uint8_t to;
+            std::uint8_t pp_t;
+            std::vector<std::uint8_t> g_t;
+        };
+
+        static constexpr std::uint8_t in_atr_nfcid_3t_present_mask = 0b01;
+        static constexpr std::uint8_t in_atr_general_info_present_mask = 0b10;
 
         template <std::uint8_t MinIdx, std::uint8_t MaxIdx>
         struct bitmask_window {

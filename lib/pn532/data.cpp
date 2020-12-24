@@ -225,6 +225,27 @@ namespace pn532 {
         return s;
     }
 
+    bin_stream &operator>>(bin_stream &s, atr_res_info &atr_res) {
+        if (s.remaining() < 15) {
+            LOGW("Unable to parse atr_res_info, incorrect data length.");
+            s.set_bad();
+            return s;
+        }
 
+        s >> atr_res.nfcid_3t >> atr_res.did_t >> atr_res.b_st >> atr_res.b_rt >> atr_res.to >> atr_res.pp_t;
+        atr_res.g_t.resize(s.remaining());
+        s.read(std::begin(atr_res.g_t), s.remaining());
+        return s;
+    }
+
+    bin_stream &operator>>(bin_stream &s, std::pair<status, atr_res_info> &status_atr_res) {
+        if (s.remaining() < 16) {
+            LOGW("Unable to parse status and atr_res_info, incorrect data length.");
+            s.set_bad();
+            return s;
+        }
+        s >> status_atr_res.first >> status_atr_res.second;
+        return s;
+    }
 
 }

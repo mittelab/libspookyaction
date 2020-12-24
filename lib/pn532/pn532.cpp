@@ -666,4 +666,57 @@ namespace pn532 {
         return command_parse_response<std::vector<bits::target<BrMd>>>(command_code::in_list_passive_target, payload, timeout);
     }
 
+    namespace {
+        std::uint8_t get_in_atr_next(bool has_nfcid_3t, bool has_general_info) {
+            return (has_nfcid_3t ? bits::in_atr_nfcid_3t_present_mask : 0x00)
+                | (has_general_info ? bits::in_atr_general_info_present_mask : 0x00);
+        }
+    }
+
+
+    nfc::r<status, atr_res_info> nfc::initiator_activate_target(std::uint8_t target_logical_index, ms timeout)
+    {
+        const auto next_byte = get_in_atr_next(false, false);
+        return command_parse_response<std::pair<status, atr_res_info>>(
+                command_code::in_atr,
+                bin_data::chain(target_logical_index, next_byte),
+                timeout
+        );
+    }
+    nfc::r<status, atr_res_info> nfc::initiator_activate_target(std::uint8_t target_logical_index,
+                                                      std::array<std::uint8_t, 10> const &nfcid_3t,
+                                                      ms timeout)
+    {
+        const auto next_byte = get_in_atr_next(true, false);
+        return command_parse_response<std::pair<status, atr_res_info>>(
+                command_code::in_atr,
+                bin_data::chain(target_logical_index, next_byte, nfcid_3t),
+                timeout
+        );
+    }
+    nfc::r<status, atr_res_info> nfc::initiator_activate_target(std::uint8_t target_logical_index,
+                                                      std::vector<std::uint8_t> const &general_info,
+                                                      ms timeout)
+    {
+        const auto next_byte = get_in_atr_next(false, true);
+        return command_parse_response<std::pair<status, atr_res_info>>(
+                command_code::in_atr,
+                bin_data::chain(target_logical_index, next_byte, general_info),
+                timeout
+        );
+    }
+
+    nfc::r<status, atr_res_info> nfc::initiator_activate_target(std::uint8_t target_logical_index,
+                                                      std::array<std::uint8_t, 10> const &nfcid_3t,
+                                                      std::vector<std::uint8_t> const &general_info,
+                                                      ms timeout)
+    {
+        const auto next_byte = get_in_atr_next(true, true);
+        return command_parse_response<std::pair<status, atr_res_info>>(
+                command_code::in_atr,
+                bin_data::chain(target_logical_index, next_byte, nfcid_3t, general_info),
+                timeout
+        );
+    }
+
 }

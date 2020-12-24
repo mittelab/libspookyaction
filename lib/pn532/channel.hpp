@@ -64,6 +64,8 @@ namespace pn532 {
 
     public:
 
+        virtual bool wake() = 0;
+
         std::pair<bin_data, bool> receive(std::size_t length, ms timeout);
 
         std::pair<std::uint8_t, bool> receive(ms timeout);

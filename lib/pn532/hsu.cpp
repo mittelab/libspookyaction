@@ -20,6 +20,16 @@ namespace pn532 {
         }
     }
 
+    bool hsu::wake() {
+        reduce_timeout rt{ms{100}};
+        // One 0x55 would be enough but I always snooze at least twice, so...
+        if (not send_raw({0x55, 0x55, 0x55}, rt.remaining())) {
+            return false;
+        }
+        vTaskDelay(duration_cast(rt.remaining()));
+        return true;  // Assume awake
+    }
+
     bool hsu::prepare_receive(std::chrono::milliseconds) {
         return true;
     }

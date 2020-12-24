@@ -20,6 +20,8 @@ namespace pn532 {
         bool receive_raw(bin_data &data, std::size_t length, std::chrono::milliseconds timeout) override;
 
     public:
+        bool wake() override;
+
         inline explicit hsu(uart_port_t port);
     };
 }

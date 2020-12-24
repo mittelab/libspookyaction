@@ -26,7 +26,6 @@ namespace pn532 {
         if (not send_raw({0x55, 0x55, 0x55}, rt.remaining())) {
             return false;
         }
-        vTaskDelay(duration_cast(rt.remaining()));
         return true;  // Assume awake
     }
 

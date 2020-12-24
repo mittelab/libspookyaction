@@ -33,6 +33,7 @@ void initialize_PN532()
     uart_set_pin(UART_DUT, ECHO_TEST_TXD, ECHO_TEST_RXD, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
 }
 
+<<<<<<< HEAD
 
 // void PN532<T>::begin(TickType_t timeout)
 // {
@@ -108,6 +109,69 @@ void test_getFirmwareVersion()
 //     ESP_LOG_BUFFER_HEX_LEVEL(PN532_LOG,ids.data(),ids.size(), ESP_LOG_ERROR);
 // }
 
+=======
+void test_getFirmwareVersion()
+{
+    auto ret = tagReader.get_firmware_version();
+}
+
+// // void test_getFirmwareVersion()
+// // {
+// //     pn532_info_t chip;
+// //     TEST_ASSERT_TRUE(test_pn532.getFirmwareVersion(chip));
+// // }
+
+// void test_readGpio()
+// {
+//     TEST_ASSERT_TRUE(test_pn532.readGpio(PN532_GPIO_P71));
+// }
+
+// void test_writeGpio()
+// {
+//     TEST_ASSERT_TRUE(test_pn532.writeGpio(PN532_GPIO_P71,false));
+// }
+
+// void test_InAutoPoll()
+// {
+//     std::vector<uint8_t> data;
+//     TEST_ASSERT_TRUE(test_pn532.InAutoPoll(0x14,0x02,0x20,data));
+//     tagID = data[0];
+// }
+
+// void test_InSelect()
+// {
+//     ESP_LOGI(PN532_LOG,"TagID: %#02x",tagID);
+//     TEST_ASSERT_TRUE(test_pn532.InSelect(tagID));
+// }
+
+// //@TODO: DATA is worng
+// void test_InDataExchange()
+// {
+//     std::vector<uint8_t> data;
+//     TEST_ASSERT_TRUE(test_pn532.InDataExchange(tagID,{0x5A,0x00,0x00,0x00},data));
+//     ESP_LOG_BUFFER_HEX_LEVEL(PN532_LOG,data.data(),data.size(), ESP_LOG_ERROR);
+//     TEST_ASSERT_EQUAL_HEX8(0x00,data[0]);
+// }
+
+// //////////////////////////////////////////////////////////////
+// void test_desfire_select()
+// {
+//     tag_test.selectApp();
+// }
+
+// void test_desfire_auth()
+// {
+//     TEST_ASSERT_TRUE(tag_test.authenticate());
+// }
+
+// void test_desfire_list_application()
+// {
+//     std::vector<uint32_t> ids;
+//     tag_test.listApplication(ids);
+//     ESP_LOG_BUFFER_HEX_LEVEL(PN532_LOG,ids.data(),ids.size(), ESP_LOG_ERROR);
+// }
+
+>>>>>>> 233b144 (add unit test)
 // // void test_desfire_cmac()
 // // {
 // //     std::vector<uint32_t> ids;

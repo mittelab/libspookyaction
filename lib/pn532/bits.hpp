@@ -287,7 +287,7 @@ namespace pn532 {
             kbps106_innovision_jewel_tag = 0x04
         };
 
-        template <baudrate_modulation Type>
+        template <baudrate_modulation BrMd>
         struct target_info {};
 
         template <>
@@ -325,10 +325,10 @@ namespace pn532 {
             std::array<std::uint8_t, 4> jewel_id;
         };
 
-        template <baudrate_modulation Type>
+        template <baudrate_modulation BrMd>
         struct target {
             std::uint8_t logical_index;
-            target_info<Type> info;
+            target_info<BrMd> info;
         };
 
         enum struct poll_period : std::uint8_t {

@@ -10,6 +10,7 @@
 #include "bin_data.hpp"
 #include "result.hpp"
 #include "msg.hpp"
+#include "any.hpp"
 
 namespace pn532 {
 
@@ -38,24 +39,31 @@ namespace pn532 {
     using target_kbps106_typeb = bits::target<baudrate_modulation::kbps106_iso_iec_14443_3_typeb>;
     using target_kbps106_jewel_tag = bits::target<baudrate_modulation::kbps106_innovision_jewel_tag>;
 
+
     class any_target {
         std::uint8_t _logical_index;
         baudrate_modulation _type;
-        bin_data _payload;
+        any _target_info;
     public:
-        inline any_target(std::uint8_t logical_index, baudrate_modulation type, bin_data payload);
+        struct incorrect_cast_t {};
+        static constexpr incorrect_cast_t incorrect_cast{};
 
-        enum error {
-            incorrect_cast,
-            malformed
-        };
+        inline any_target();
+
+        template <baudrate_modulation BrMd>
+        inline explicit any_target(bits::target<BrMd> target);
 
         inline std::uint8_t logical_index() const;
         inline baudrate_modulation type() const;
 
-        template <baudrate_modulation Type>
-        result<error, bits::target<Type>> get_info() const;
+        template <baudrate_modulation BrMd>
+        result<incorrect_cast_t, bits::target<BrMd>> get_info() const;
     };
+
+    namespace ctti {
+        template <baudrate_modulation BrMd>
+        struct type_info<bits::target_info<BrMd>> : public std::integral_constant<id_type, static_cast<id_type>(BrMd)> {};
+    }
 
     enum struct gpio_loc {
         p3, p7, i0i1
@@ -135,8 +143,8 @@ namespace pn532 {
     bin_data &operator<<(bin_data &bd, uid_cascade_l2 const &uid);
     bin_data &operator<<(bin_data &bd, uid_cascade_l3 const &uid);
 
-    template <baudrate_modulation Type>
-    bin_stream &operator>>(bin_stream &s, std::vector<bits::target<Type>> &targets);
+    template <baudrate_modulation BrMd>
+    bin_stream &operator>>(bin_stream &s, std::vector<bits::target<BrMd>> &targets);
     bin_stream &operator>>(bin_stream &s, std::pair<status, bin_data> &status_data_pair);
     bin_stream &operator>>(bin_stream &s, status &status);
     bin_stream &operator>>(bin_stream &s, gpio_status &gpio);
@@ -153,28 +161,39 @@ namespace pn532 {
 
 namespace pn532 {
 
-    any_target::any_target(std::uint8_t logical_index, baudrate_modulation type, bin_data payload) :
-        _logical_index{logical_index}, _type{type}, _payload{std::move(payload)} {}
+    any_target::any_target() : _logical_index{std::numeric_limits<std::uint8_t>::max()}, _type{}, _target_info{} {}
 
 
-    template <baudrate_modulation Type>
-    result<any_target::error, bits::target<Type>> any_target::get_info() const {
-        if (type() != Type) {
-            return error::incorrect_cast;
-        }
-        std::pair<bits::target<Type>, bool> target_success = {{}, false};
-        _payload >> target_success;
-        if (not target_success.second) {
-            return error::incorrect_cast;
-        }
-        return std::move(target_success.first);
-    }
+    template <baudrate_modulation BrMd>
+    any_target::any_target(bits::target<BrMd> target) :
+        _logical_index{target.logical_index}, _type{BrMd}, _target_info{target.info} {}
+
 
     std::uint8_t any_target::logical_index() const {
+        if (_target_info.empty()) {
+            LOGE("Requested logical index of an empty any_target.");
+            return std::numeric_limits<std::uint8_t>::max();
+        }
         return _logical_index;
     }
+
     baudrate_modulation any_target::type() const {
+        if (_target_info.empty()) {
+            LOGE("Requested target type of an empty any_target.");
+            return {};
+        }
         return _type;
+    }
+
+
+    template <baudrate_modulation BrMd>
+    result<any_target::incorrect_cast_t, bits::target<BrMd>> any_target::get_info() const {
+        if (_target_info.template test_type<bits::target_info<BrMd>>()) {
+            return bits::target<BrMd>{
+                .logical_index = _logical_index,
+                .info = _target_info.template get<bits::target_info<BrMd>>()};
+        }
+        return incorrect_cast;
     }
 
     bool gpio_status::operator[](std::pair<gpio_loc, std::uint8_t> const &gpio_idx) const {
@@ -225,17 +244,17 @@ namespace pn532 {
                                                 std::uint8_t(xram_mmap_reg & 0xff)}} {}
 
 
-    template <baudrate_modulation Type>
-    bin_stream &operator>>(bin_stream &s, std::vector<bits::target<Type>> &targets) {
+    template <baudrate_modulation BrMd>
+    bin_stream &operator>>(bin_stream &s, std::vector<bits::target<BrMd>> &targets) {
         if (s.remaining() < 1) {
-            LOGE("Parsing vector<target<%s>>: not enough data.", to_string(Type));
+            LOGE("Parsing vector<target<%s>>: not enough data.", to_string(BrMd));
             s.set_bad();
             return s;
         }
         const auto num_targets = s.pop();
         if (num_targets > bits::max_num_targets) {
             LOGW("Parsing vector<target<%s>>: found %u targets, which is more than the number of supported targets %u.",
-                 to_string(Type), num_targets, bits::max_num_targets);
+                 to_string(BrMd), num_targets, bits::max_num_targets);
         }
         targets.resize(num_targets);
         for (auto &target : targets) {

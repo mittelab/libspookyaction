@@ -653,17 +653,17 @@ namespace pn532 {
         return initiator_list_passive<baudrate_modulation::kbps106_innovision_jewel_tag>(1, bin_data{}, timeout);
     }
 
-    template <baudrate_modulation Type>
-    nfc::r<std::vector<bits::target<Type>>> nfc::initiator_list_passive(
+    template <baudrate_modulation BrMd>
+    nfc::r<std::vector<bits::target<BrMd>>> nfc::initiator_list_passive(
             std::uint8_t max_targets, bin_data const &initiator_data, ms timeout)
     {
         const bin_data payload = bin_data::chain(
                 prealloc(2 + initiator_data.size()),
                 max_targets,
-                Type,
+                BrMd,
                 initiator_data
         );
-        return command_parse_response<std::vector<bits::target<Type>>>(command_code::in_list_passive_target, payload, timeout);
+        return command_parse_response<std::vector<bits::target<BrMd>>>(command_code::in_list_passive_target, payload, timeout);
     }
 
 }

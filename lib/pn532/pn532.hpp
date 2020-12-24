@@ -188,8 +188,8 @@ namespace pn532 {
         static bin_data const &get_nack_frame();
         static std::uint8_t get_target(command_code cmd, std::uint8_t target_logical_index, bool expect_more_data);
 
-        template <baudrate_modulation Type>
-        r<std::vector<bits::target<Type>>> initiator_list_passive(std::uint8_t max_targets,
+        template <baudrate_modulation BrMd>
+        r<std::vector<bits::target<BrMd>>> initiator_list_passive(std::uint8_t max_targets,
                                                                   bin_data const &initiator_data, ms timeout);
     };
 

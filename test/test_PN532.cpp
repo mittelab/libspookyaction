@@ -26,7 +26,7 @@ void initialize_PN532()
             .stop_bits = UART_STOP_BITS_1,
             .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
             .rx_flow_ctrl_thresh = 122,
-            .source_clk = UART_SCLK_APB,
+            .use_ref_tick = true
     };
     uart_param_config(UART_DUT, &uart_config);
     uart_driver_install(UART_DUT, BUF_SIZE, BUF_SIZE, 0, NULL, 0);

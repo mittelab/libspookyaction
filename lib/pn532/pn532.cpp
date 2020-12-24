@@ -66,9 +66,9 @@ namespace pn532 {
         bin_data frame{};
         frame << prealloc(length + 12) << bits::preamble << bits::start_of_packet_code;
         if (use_extended_format) {
-            frame << bits::fixed_extended_packet_length << bits::length_and_checksum_long(length);
+            frame << bits::fixed_extended_packet_length << bits::length_and_checksum_long(length + 2);
         } else {
-            frame << bits::length_and_checksum_short(length);
+            frame << bits::length_and_checksum_short(length + 2);
         }
         return frame << transport_byte << cmd_byte << truncated_data << checksum << bits::postamble;
     }

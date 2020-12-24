@@ -170,7 +170,7 @@ namespace pn532 {
         };
 
 
-        enum struct rf_config_item {
+        enum struct rf_config_item : std::uint8_t {
             rf_field = 0x01,
             timings = 0x02,
             max_rty_com = 0x04,

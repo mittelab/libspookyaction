@@ -3,6 +3,7 @@
 //
 
 #include "data.hpp"
+#include "msg.hpp"
 
 namespace pn532 {
 
@@ -34,28 +35,53 @@ namespace pn532 {
     }
 
     bin_data &operator<<(bin_data &bd, uid_cascade_l1 const &uid) {
-        bd.push_back(std::begin(uid), std::end(uid));
-        return bd;
+        return bd << uid.data;
     }
 
     bin_data &operator<<(bin_data &bd, uid_cascade_l2 const &uid) {
         bd.reserve(bd.size() + 8);
-        bd << bits::uid_cascade_tag;
-        bd.push_back(std::begin(uid), std::end(uid));
-        return bd;
+        return bd << bits::uid_cascade_tag << uid.data;
     }
 
     bin_data &operator<<(bin_data &bd, uid_cascade_l3 const &uid) {
         bd.reserve(bd.size() + 12);
-        bd << bits::uid_cascade_tag;
-        bd.push_back(std::begin(uid), std::begin(uid) + 3);
-        bd << bits::uid_cascade_tag;
-        bd.push_back(std::begin(uid) + 3, std::end(uid));
-        return bd;
+        return bd << bits::uid_cascade_tag << make_range(std::begin(uid.data), std::begin(uid.data) + 3)
+            << bits::uid_cascade_tag << make_range(std::begin(uid.data) + 3, std::end(uid.data));
     }
 
     bin_stream &operator>>(bin_stream &s, target_status &ts) {
+        if (s.remaining() < 4) {
+            LOGE("%s: Insufficient data (%ull) to populate a target status structure.",
+                 to_string(command_code::get_general_status), s.remaining());
+            s.set_bad();
+            return s;
+        }
         return s >> ts.logical_index >> ts.bitrate_rx >> ts.bitrate_tx >> ts.modulation_type;
+    }
+
+    bin_stream &operator>>(bin_stream &s, general_status &gs) {
+        if (s.remaining() < 4) {
+            LOGE("%s: expected at least 4 bytes of data, not %ul.",
+                 to_string(command_code::get_general_status), s.remaining());
+            s.set_bad();
+            return s;
+        }
+
+        gs.last_error = static_cast<controller_error>(s.pop() & bits::status_error_mask);
+        s >> gs.rf_field_present;
+
+        const auto num_targets = s.pop();
+        if (num_targets > bits::max_num_targets) {
+            LOGW("%s: detected %u targets, more than %u targets handled by PN532, most likely an error.",
+                 to_string(command_code::get_general_status), num_targets, bits::max_num_targets);
+        }
+        gs.targets.resize(num_targets, target_status{});
+        for (target_status &ts : gs.targets) {
+            s >> ts;
+        }
+        s >> gs.sam_status;
+
+        return s;
     }
 
     bin_stream &operator>>(bin_stream &s, target_kbps106_typea &target) {

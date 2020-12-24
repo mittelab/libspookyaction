@@ -86,12 +86,15 @@ namespace pn532 {
         controller_error last_error;
         bool rf_field_present;
         std::vector<target_status> targets;
+        /**
+         * @todo pag 75 has a bit packing for this
+         */
         std::uint8_t sam_status;
     };
 
     template <std::size_t Length>
-    struct uid_cascade : public std::array<std::uint8_t , Length> {
-        using std::array<std::uint8_t, Length>::array;
+    struct uid_cascade {
+        std::array<std::uint8_t , Length> data;
     };
 
     using uid_cascade_l1 = uid_cascade<4>;
@@ -132,6 +135,7 @@ namespace pn532 {
     bin_data &operator<<(bin_data &bd, uid_cascade_l2 const &uid);
     bin_data &operator<<(bin_data &bd, uid_cascade_l3 const &uid);
 
+    bin_stream &operator>>(bin_stream &s, general_status &gs);
     bin_stream &operator>>(bin_stream &s, target_status &ts);
     bin_stream &operator>>(bin_stream &s, target_kbps106_typea &target);
     bin_stream &operator>>(bin_stream &s, target_kbps212_felica &target);

@@ -52,15 +52,7 @@ namespace pn532 {
         inline range<const_iterator> view(std::size_t start = 0,
                                           std::size_t length = std::numeric_limits<std::size_t>::max()) const;
 
-        template<class ByteIterator>
-        void push_back(ByteIterator begin, ByteIterator end);
-
         using std::vector<std::uint8_t>::push_back;
-
-        template<class ByteContainer>
-        inline bin_data &operator<<(ByteContainer const &data);
-
-        inline bin_data &operator<<(std::uint8_t byte);
 
         template<class ...ByteOrByteContainers>
         static bin_data chain(ByteOrByteContainers &&...others);
@@ -102,6 +94,10 @@ namespace pn532 {
         inline void clear_bad();
     };
 
+    inline bin_data &operator<<(bin_data &bd, std::uint8_t byte);
+    inline bin_data &operator<<(bin_data &bd, bool b);
+
+    inline bin_stream &operator>>(bin_stream &s, bool &b);
     inline bin_stream &operator>>(bin_stream &s, std::uint8_t &byte);
     inline bin_stream &operator>>(bin_stream &s, std::uint16_t &word);
 
@@ -125,9 +121,13 @@ namespace pn532 {
         };
 
         template <class T>
-        struct is_injectable {
+        struct is_range_enumerable {
             template <class U>
-            static constexpr decltype(std::declval<bin_data &>() << std::declval<U &>(), bool()) test_get(int) {
+            static constexpr decltype(
+                    std::begin(std::declval<U const &>()) != std::end(std::declval<U const &>()),
+                    *std::begin(std::declval<U const &>()),
+                    std::next(std::begin(std::declval<U const &>())),
+                    bool()) test_get(int) {
                 return true;
             }
 
@@ -150,20 +150,34 @@ namespace pn532 {
             using type = typename std::underlying_type<T>::type;
         };
 
+        template <class T, bool>
+        struct safe_value_type {
+            using type = T;
+        };
+
+        template <class T>
+        struct safe_value_type<T, true> {
+            using type = typename std::remove_const<typename std::remove_reference<decltype(*std::begin(std::declval<T const &>()))>::type>::type;
+        };
+
         template <class T>
         using is_extractable_enum = typename std::integral_constant<bool, std::is_enum<T>::value
             and is_extractable<typename safe_underlying_type<T, std::is_enum<T>::value>::type>::value>;
 
         template <class T>
-        using is_injectable_enum = typename std::integral_constant<bool, std::is_enum<T>::value
-            and is_injectable<typename safe_underlying_type<T, std::is_enum<T>::value>::type>::value>;
+        using is_byte_enum = typename std::integral_constant<bool, std::is_enum<T>::value
+            and std::is_same<typename safe_underlying_type<T, std::is_enum<T>::value>::type, std::uint8_t>::value>;
+
+        template <class T>
+        using is_byte_enumerable = typename std::integral_constant<bool, is_range_enumerable<T>::value
+            and std::is_same<typename safe_value_type<T, is_range_enumerable<T>::value>::type, std::uint8_t>::value>;
     }
 
     template <class Enum, class = typename std::enable_if<impl::is_extractable_enum<Enum>::value>::type>
     bin_stream &operator>>(bin_stream &s, Enum &t);
 
-    template <class Enum, class = typename std::enable_if<impl::is_injectable_enum<Enum>::value>::type>
-    bin_data &operator<<(bin_data &bd, Enum const &t);
+    template <class T, class = typename std::enable_if<impl::is_byte_enum<T>::value or impl::is_byte_enumerable<T>::value>::type>
+    bin_data &operator<<(bin_data &bd, T const &t);
 }
 
 namespace pn532 {
@@ -175,21 +189,14 @@ namespace pn532 {
     template <class ByteIterator>
     bin_data::bin_data(ByteIterator begin, ByteIterator end) : std::vector<uint8_t>{begin, end} {}
 
-    template <class ByteIterator>
-    void bin_data::push_back(ByteIterator begin, ByteIterator end) {
-        reserve(size() + std::distance(begin, end));
-        std::copy(begin, end, std::back_inserter(*this));
+    bin_data &operator<<(bin_data &bd, std::uint8_t byte) {
+        bd.push_back(byte);
+        return bd;
     }
 
-    template <class ByteContainer>
-    bin_data &bin_data::operator<<(ByteContainer const &data) {
-        push_back(std::begin(data), std::end(data));
-        return *this;
-    }
-
-    bin_data &bin_data::operator<<(std::uint8_t byte) {
-        push_back(byte);
-        return *this;
+    bin_data &operator<<(bin_data &bd, bool b) {
+        bd.push_back(b ? 0x01 : 0x00);
+        return bd;
     }
 
     namespace impl {
@@ -312,6 +319,11 @@ namespace pn532 {
         return std::end(data) - std::begin(data);
     }
 
+    bin_stream &operator>>(bin_stream &s, bool &b) {
+        b = s.pop() != 0x00;
+        return s;
+    }
+
     bin_stream &operator>>(bin_stream &s, std::uint8_t &byte) {
         byte = s.pop();
         return s;
@@ -341,11 +353,30 @@ namespace pn532 {
         return s;
     }
 
+    namespace impl {
+        template <class, bool, bool> struct inject {};
 
-    template <class Enum, class>
-    bin_data &operator<<(bin_data &bd, Enum const &t) {
-        using underlying_t = typename std::underlying_type<Enum>::type;
-        return bd << static_cast<underlying_t>(t);
+        template <class ByteEnum>
+        struct inject<ByteEnum, true, false> {
+            bin_data &operator()(bin_data &bd, ByteEnum const &e) const {
+                static_assert(std::is_same<std::uint8_t, typename std::underlying_type<ByteEnum>::type>::value, "SFINAE Error?");
+                return bd << static_cast<std::uint8_t>(e);
+            }
+        };
+
+        template <class ByteContainer>
+        struct inject<ByteContainer, false, true> {
+            bin_data &operator()(bin_data &bd, ByteContainer const &a) const {
+                bd.reserve(bd.size() + std::distance(std::begin(a), std::end(a)));
+                std::copy(std::begin(a), std::end(a), std::back_inserter(bd));
+                return bd;
+            }
+        };
+    }
+
+    template <class T, class>
+    bin_data &operator<<(bin_data &bd, T const &t) {
+        return impl::inject<T, impl::is_byte_enum<T>::value, impl::is_byte_enumerable<T>::value>{}(bd, t);
     }
 
 }

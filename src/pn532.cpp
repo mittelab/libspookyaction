@@ -313,6 +313,7 @@ namespace pn532 {
         nfc::r<bool> nfc_diagnose_simple(nfc &controller, bits::test test, std::uint8_t expected, ms timeout,
                                          std::size_t expected_body_size = 0, Args &&...append_to_body)
        {
+            LOGI("%s: running %s...", to_string(command_code::diagnose), to_string(test));
             const bin_data payload = bin_data::chain(prealloc(expected_body_size + 1), test,
                                                      std::forward<Args>(append_to_body)...);
             const auto res_cmd = controller.command_response(command_code::diagnose, payload, timeout);
@@ -326,6 +327,7 @@ namespace pn532 {
                 return nfc::error::comm_malformed;
             }
             if (res_cmd->at(0) == expected) {
+                LOGI("%s: %s test succeeded.", to_string(command_code::diagnose), to_string(test));
                 return true;
             } else {
                 LOGW("%s: %s test failed.", to_string(command_code::diagnose), to_string(test));

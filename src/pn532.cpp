@@ -395,7 +395,7 @@ namespace pn532 {
     }
 
     nfc::r<bool> nfc::diagnose_self_antenna(std::uint8_t threshold, ms timeout) {
-        return nfc_diagnose_simple(*this, bits::test::self_antenna, 0x00, timeout, threshold);
+        return nfc_diagnose_simple(*this, bits::test::self_antenna, 0x00, timeout, 1, threshold);
     }
 
     nfc::r<firmware_version> nfc::get_firmware_version(ms timeout) {

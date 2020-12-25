@@ -71,12 +71,12 @@ namespace pn532 {
         }
 
         std::pair<std::uint8_t, bool> check_length_checksum(std::array<std::uint8_t, 2> const &data) {
-            return {data[0], compute_checksum(data[0]) == data[1]};
+            return {data[0], checksum(std::begin(data), std::end(data))};
         }
 
         std::pair<std::uint16_t, bool> check_length_checksum(std::array<std::uint8_t, 3> const &data) {
             return {(std::uint16_t(data[0]) << 8) | data[1],
-                compute_checksum(std::begin(data), std::begin(data) + 2) == data[3]};
+                    checksum(std::begin(data), std::end(data))};
         }
 
         inline std::uint8_t host_to_pn532_command(command cmd) {

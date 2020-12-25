@@ -58,7 +58,7 @@ namespace pn532 {
 
         template<class ByteIterator>
         bool checksum(ByteIterator begin, ByteIterator end) {
-            return std::accumulate(begin, end, 0) == 0;
+            return (std::accumulate(begin, end, 0) & 0xff) == 0;
         }
 
         std::array<std::uint8_t, 2> length_and_checksum_short(std::uint8_t length) {

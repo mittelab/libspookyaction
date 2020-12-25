@@ -148,8 +148,8 @@ namespace pn532 {
         auto it = std::begin(buffer);
         while (rt and it != std::end(buffer)) {
             const auto byte_success = receive(rt.remaining());
-            if (byte_success.first) {
-                *(it++) = byte_success.second;
+            if (byte_success.second) {
+                *(it++) = byte_success.first;
             }
         }
         return it == std::end(buffer);

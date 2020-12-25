@@ -263,16 +263,23 @@ namespace pn532 {
         if (not res_cmd) {
             return res_cmd.error();
         }
-        auto res_response = raw_await_response(cmd, rt.remaining());
-        if (not res_response) {
-            LOGW("%s: could not read response to command: %s.", to_string(cmd), to_string(res_response.error()));
-            // Send a nack only if the error is malformed communication
-            if (res_response.error() == error::comm_malformed or
-                res_response.error() == error::comm_checksum_fail)
-            {
-                // Ignore timeout
-                raw_send_ack(false, rt.remaining());
+        nfc::r<bin_data> res_response;
+        do{
+        res_response = raw_await_response(cmd, rt.remaining());
+            if (not res_response) {
+                LOGW("%s: could not read response to command: %s.", to_string(cmd), to_string(res_response.error()));
+                // Send a nack only if the error is malformed communication
+                if (res_response.error() == error::comm_malformed or
+                    res_response.error() == error::comm_checksum_fail)
+                {
+                    LOGW("%s: make the reader resend the packet.", to_string(cmd), to_string(res_response.error()));
+                    // Retry command response
+                    raw_send_ack(false, rt.remaining());
+                }
             }
+        } while((not res_response) and res_response.error() != error::timeout);
+        if (not res_response) {
+            raw_send_ack(true); //Abort command
             return res_response.error();
         }
         LOGD("%s: successfully retrieved response. Command took %lld ms.", to_string(cmd), rt.elapsed().count());

@@ -144,15 +144,11 @@ namespace pn532 {
 
     template <std::size_t Length>
     bool channel::receive(std::array<std::uint8_t, Length> &buffer, ms timeout) {
-        reduce_timeout rt{timeout};
-        auto it = std::begin(buffer);
-        while (rt and it != std::end(buffer)) {
-            const auto byte_success = receive(rt.remaining());
-            if (byte_success.second) {
-                *(it++) = byte_success.first;
-            }
+        const auto data_success = receive(Length, timeout);
+        if (data_success.second) {
+            std::copy(std::begin(data_success.first), std::end(data_success.first), std::begin(buffer));
         }
-        return it == std::end(buffer);
+        return data_success.second;
     }
 
 }

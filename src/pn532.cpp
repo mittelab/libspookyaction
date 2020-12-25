@@ -272,7 +272,7 @@ namespace pn532 {
                 if (res_response.error() == error::comm_malformed or
                     res_response.error() == error::comm_checksum_fail)
                 {
-                    LOGW("%s: make the reader resend the packet.", to_string(cmd), to_string(res_response.error()));
+                    LOGW("%s: make the reader resend the packet.", to_string(cmd));
                     // Retry command response
                     raw_send_ack(false, rt.remaining());
                 }

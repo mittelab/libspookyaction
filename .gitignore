@@ -1,6 +1,9 @@
 .pio
-CMakeListsPrivate.txt
-cmake-build-*/ 
+CMakeLists*.txt
+cmake-build-*/
 build
 .vscode
 .idea
+platformio.ini
+sdkconfig
+sdkconfig.h

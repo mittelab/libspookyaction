@@ -182,11 +182,11 @@ namespace pn532 {
         struct store<T, false> {
             template <class U = T, class = typename std::enable_if<std::is_move_constructible<U>::value>::type>
             inline void operator()(void * &dest, U &orig) const {
-                new (dest) U(std::move(orig));
+                dest = new U(std::move(orig));
             }
             template <class U = T, class = typename std::enable_if<not std::is_move_constructible<U>::value>::type>
             inline void operator()(void * &dest, U const &orig) const {
-                new (dest) U(orig);
+                dest = new U(orig);
             }
         };
 

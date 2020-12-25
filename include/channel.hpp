@@ -16,16 +16,21 @@ namespace pn532 {
     using ms = std::chrono::milliseconds;
     static auto constexpr one_sec = ms{1000};
 
+    class timer {
+        std::chrono::time_point<std::chrono::high_resolution_clock> _timestamp;
+    public:
+        inline timer();
+        inline ms elapsed() const;
+    };
+
     class reduce_timeout {
         ms _timeout;
-        std::chrono::time_point<std::chrono::high_resolution_clock> _timestamp;
-
-        inline ms elapsed() const;
-
+        timer _timer;
     public:
         inline explicit reduce_timeout(ms timeout);
 
         inline ms remaining() const;
+        inline ms elapsed() const;
 
         inline explicit operator bool() const;
     };
@@ -92,21 +97,28 @@ namespace pn532 {
 namespace pn532 {
 
     reduce_timeout::reduce_timeout(ms timeout) :
-        _timeout{timeout},
-        _timestamp{std::chrono::high_resolution_clock::now()}
+            _timeout{timeout},
+            _timer{}
     {}
+
+    timer::timer() : _timestamp{std::chrono::high_resolution_clock::now()} {}
 
     ms reduce_timeout::remaining() const {
         if (*this) {
-            return _timeout - elapsed();
+            return _timeout - _timer.elapsed();
         }
         return ms{0};
     }
 
-    reduce_timeout::operator bool() const {
-        return elapsed() < _timeout;
-    }
     ms reduce_timeout::elapsed() const {
+        return _timer.elapsed();
+    }
+
+    reduce_timeout::operator bool() const {
+        return _timer.elapsed() < _timeout;
+    }
+
+    ms timer::elapsed() const {
         const auto elapsed = std::chrono::high_resolution_clock::now() - _timestamp;
         return std::chrono::duration_cast<ms>(elapsed);
     }

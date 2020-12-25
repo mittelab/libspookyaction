@@ -48,7 +48,7 @@ namespace pn532 {
         // "2" because must count transport info and command_code
         const bool use_extended_format = (payload.size() > 0xff - 2);
         if (payload.size() > bits::max_firmware_data_length) {
-            LOGE("Payload too long for command %s for an info frame, truncating %ul bytes to %ul:",
+            LOGE("%s: payload too long for an info frame, truncating %ul bytes to %ul:",
                  to_string(cmd),
                  payload.size(),
                  bits::max_firmware_data_length);
@@ -197,7 +197,7 @@ namespace pn532 {
         LOGE("Expected ack/nack, got a standard info response instead; will consume the data now.");
         const auto res_body = read_response_body(*res_hdr, rt.remaining());
         if (res_body) {
-            LOGE("Dropped response to %s:", to_string(res_body->command));
+            LOGE("%s: dropped response.", to_string(res_body->command));
             ESP_LOG_BUFFER_HEX_LEVEL(PN532_TAG, res_body->info.data(), res_body->info.size(), ESP_LOG_ERROR);
         } else if (res_body.error() == error::failure) {
             LOGE("Received an error instead of an ack");
@@ -224,7 +224,7 @@ namespace pn532 {
             return res_body.error();
         }
         if (res_body->command != cmd) {
-            LOGW("Got a reply to command %s instead of issued command %s.",
+            LOGW("%s: got a reply to command %s instead.",
                  to_string(res_body->command), to_string(cmd));
             return error::comm_malformed;
         }
@@ -239,20 +239,20 @@ namespace pn532 {
         reduce_timeout rt{timeout};
         const auto res_cmd = raw_send_command(cmd, payload, rt.remaining());
         if (not res_cmd) {
-            LOGW("Unable to send command %s: %s.", to_string(cmd), to_string(res_cmd.error()));
+            LOGW("%s: unable to send command: %s.", to_string(cmd), to_string(res_cmd.error()));
             return res_cmd.error();
         }
-        LOGD("Sent command %s.", to_string(cmd));
+        LOGD("%s: command sent.", to_string(cmd));
         const auto res_ack = raw_await_ack(rt.remaining());
         if (res_ack) {
             if (*res_ack) {
-                LOGD("Command %s was acknowledged by the controller.", to_string(cmd));
+                LOGD("%s: acknowledged.", to_string(cmd));
                 return result_success;
             }
-            LOGD("Command %s was NOT acknowledged by the controller.", to_string(cmd));
+            LOGD("%s: NOT acknowledged.", to_string(cmd));
             return error::nack;
         }
-        LOGW("Controller did not acknowledge command %s: %s.", to_string(cmd), to_string(res_ack.error()));
+        LOGW("%s: ACK/NACK not received: %s.", to_string(cmd), to_string(res_ack.error()));
         return res_ack.error();
     }
 
@@ -265,7 +265,7 @@ namespace pn532 {
         }
         auto res_response = raw_await_response(cmd, rt.remaining());
         if (not res_response) {
-            LOGW("Could not read response to command %s: %s.", to_string(cmd), to_string(res_response.error()));
+            LOGW("%s: could not read response to command: %s.", to_string(cmd), to_string(res_response.error()));
             // Send a nack only if the error is malformed communication
             if (res_response.error() == error::comm_malformed or
                 res_response.error() == error::comm_checksum_fail)
@@ -275,7 +275,7 @@ namespace pn532 {
             }
             return res_response.error();
         }
-        LOGD("Successfully retrieved response to command %s.", to_string(cmd));
+        LOGD("%s: successfully retrieved response. Command took %lld ms.", to_string(cmd), rt.elapsed().count());
         // Accept and send reply, ignore timeout
         raw_send_ack(true, rt.remaining());
         return std::move(*res_response);

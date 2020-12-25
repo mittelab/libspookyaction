@@ -286,6 +286,7 @@ namespace pn532 {
      */
 
     nfc::r<bool> nfc::diagnose_comm_line(ms timeout) {
+        LOGI("%s: running %s...", to_string(command_code::diagnose), to_string(bits::test::comm_line));
         // Generate 256 bytes of random data to test
         bin_data payload;
         payload.resize(0xff);
@@ -300,10 +301,10 @@ namespace pn532 {
         if (payload.size() == res_cmd->size() and
             std::equal(std::begin(payload), std::end(payload), std::begin(*res_cmd)))
         {
+            LOGI("%s: %s test succeeded.", to_string(command_code::diagnose), to_string(bits::test::comm_line));
             return true;
         } else {
-            LOGW("%s: %s test failed, returned sequence does not match sent sequence.",
-                 to_string(command_code::diagnose), to_string(bits::test::comm_line));
+            LOGW("%s: %s test failed.", to_string(command_code::diagnose), to_string(bits::test::comm_line));
             return false;
         }
     }
@@ -356,10 +357,12 @@ namespace pn532 {
             return res_cmd.error();
         };
 
+        LOGI("%s: running %s...", to_string(command_code::diagnose), to_string(bits::test::poll_target));
         const auto slow_fails = get_fails(slow, speed::kbps212);
         if (slow_fails) {
             const auto fast_fails = get_fails(fast, speed::kbps424);
             if (fast_fails) {
+                LOGI("%s: %s test succeeded.", to_string(command_code::diagnose), to_string(bits::test::poll_target));
                 return {*slow_fails, *fast_fails};
             }
             return fast_fails.error();
@@ -368,6 +371,7 @@ namespace pn532 {
     }
 
     nfc::r<> nfc::diagnose_echo_back(ms reply_delay, std::uint8_t tx_mode, std::uint8_t rx_mode, ms timeout) {
+        LOGI("%s: running %s...", to_string(command_code::diagnose), to_string(bits::test::echo_back));
         const bin_data payload = bin_data::chain(
                 prealloc(4),
                 bits::test::echo_back,

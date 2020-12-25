@@ -232,7 +232,7 @@ namespace pn532 {
 
     range<bin_data::const_iterator> bin_data::view(std::size_t start, std::size_t length) const {
         start = std::min(start, size() - 1);
-        length = std::min(length, size() - start - 1);
+        length = std::min(length, size() - start);
         return make_range(begin() + start, begin() + start + length);
     }
 

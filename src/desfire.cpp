@@ -2,23 +2,24 @@
 #include <algorithm>
 #include <functional>
 #include "desfire.hpp"
+#include "log.h"
 
-// #define PN532_LOG "APP"
-// #define PN532_LOG "CRYPTO"
+// #define PN532_TAG "APP"
+// #define PN532_TAG "CRYPTO"
 // #define DES_CMAC "CMAC"
 
 
 /////////////
 void AppKey<KEY_2K3DES>::padding(std::vector<uint8_t>& data)
 {
-    // ESP_LOGE(PN532_LOG, "PADDING:");
-    // ESP_LOG_BUFFER_HEX_LEVEL(PN532_LOG,data.data(), data.size(), ESP_LOG_ERROR);
+    // LOGE("PADDING:");
+    // ESP_LOG_BUFFER_HEX_LEVEL(PN532_TAG,data.data(), data.size(), ESP_LOG_ERROR);
     size_t padding = (keySize - (data.size() % keySize)) % keySize;
     data.reserve(data.size() + padding);
     if(padding > 0) data.push_back(0x80);
     if(padding > 1) data.insert(data.end(),padding-1,0x00);
-    // ESP_LOGE(PN532_LOG, "padding %d", padding);
-    // ESP_LOG_BUFFER_HEX_LEVEL(PN532_LOG,data.data(), data.size(), ESP_LOG_ERROR);
+    // LOGE("padding %d", padding);
+    // ESP_LOG_BUFFER_HEX_LEVEL(PN532_TAG,data.data(), data.size(), ESP_LOG_ERROR);
 }
 
 uint8_t AppKey<KEY_2K3DES>::getKeyID()
@@ -120,7 +121,7 @@ AppKey<KEY_2K3DES>::AppKey(uint8_t id, std::vector<uint8_t> desfireKey)
 template<typename IterStart, typename IterEnd, typename IterOut>
 void AppKey<KEY_2K3DES>::encrypt(IterStart start, IterEnd end, IterOut out)
 {
-    if(std::equal(key.begin(),key.end(), sessionKey.begin())) ESP_LOGE(PN532_LOG, "key == session key");
+    if(std::equal(key.begin(),key.end(), sessionKey.begin())) LOGE("key == session key");
     //TODO: implement padding
     mbedtls_des_crypt_cbc(&context, MBEDTLS_DES_ENCRYPT, std::distance(start, end) ,iv.data(), &(*start), &(*out));
 }
@@ -135,7 +136,7 @@ void AppKey<KEY_2K3DES>::encrypt(Container& data)
 template<typename IterStart, typename IterEnd, typename IterOut>
 void AppKey<KEY_2K3DES>::decrypt(IterStart start, IterEnd end, IterOut out)
 {
-    if(std::equal(key.begin(),key.end(), sessionKey.begin())) ESP_LOGE(PN532_LOG, "key == session key");
+    if(std::equal(key.begin(),key.end(), sessionKey.begin())) LOGE("key == session key");
     //TODO: implement padding
     mbedtls_des_crypt_cbc(&context, MBEDTLS_DES_DECRYPT, std::distance(start, end) ,iv.data(), &(*start), &(*out));
 }
@@ -157,13 +158,13 @@ template<typename Container>
 void leftshift(Container& data)
 {
     Container result;
-    // ESP_LOG_BUFFER_HEX_LEVEL(PN532_LOG,data.data(), data.size(), ESP_LOG_ERROR);
+    // ESP_LOG_BUFFER_HEX_LEVEL(PN532_TAG,data.data(), data.size(), ESP_LOG_ERROR);
     //do shift operation for N-1 bytes (left shift by 1)
     std::transform(data.rbegin() + 1, data.rend(), data.rbegin(), result.rbegin() + 1, [](uint8_t n1, uint8_t n2) -> uint8_t {return n1 << 1 | n2 >> 7;});
     //left shift the last byte
     result.back() = data.back() << 1;
     data = result;
-    // ESP_LOG_BUFFER_HEX_LEVEL(PN532_LOG,data.data(), data.size(), ESP_LOG_ERROR);
+    // ESP_LOG_BUFFER_HEX_LEVEL(PN532_TAG,data.data(), data.size(), ESP_LOG_ERROR);
 }
 
 template<typename Container>
@@ -176,9 +177,9 @@ bool  AppKey<KEY_2K3DES>::GenerateCmacSubkeys(uint8_t block_size, Container& K1,
     mbedtls_des_init(&context_temp);
     mbedtls_des_setkey_dec(&context_temp, sessionKey.data());
     mbedtls_des_setkey_enc(&context_temp, sessionKey.data());
-    // ESP_LOG_BUFFER_HEX_LEVEL(PN532_LOG,u8_Data.data(), u8_Data.size(), ESP_LOG_ERROR);
+    // ESP_LOG_BUFFER_HEX_LEVEL(PN532_TAG,u8_Data.data(), u8_Data.size(), ESP_LOG_ERROR);
     mbedtls_des_crypt_cbc(&context_temp, MBEDTLS_DES_ENCRYPT, block_size ,iv_temp.data(), u8_Data.data(), u8_Data.data());
-    // ESP_LOG_BUFFER_HEX_LEVEL(PN532_LOG,u8_Data.data(), u8_Data.size(), ESP_LOG_ERROR);
+    // ESP_LOG_BUFFER_HEX_LEVEL(PN532_TAG,u8_Data.data(), u8_Data.size(), ESP_LOG_ERROR);
     std::copy(u8_Data.begin(), u8_Data.begin() + block_size, K1.begin());
     leftshift(K1);
     if (u8_Data[0] & 0x80)
@@ -189,13 +190,13 @@ bool  AppKey<KEY_2K3DES>::GenerateCmacSubkeys(uint8_t block_size, Container& K1,
     if (K2[0] & 0x80)
         K2[block_size-1] ^= u8_R;
 
-    // ESP_LOGE(PN532_LOG, "Session Key");
-    // ESP_LOG_BUFFER_HEX_LEVEL(PN532_LOG,sessionKey.data(), sessionKey.size(), ESP_LOG_ERROR);
-    // ESP_LOGE(PN532_LOG, "SUBKEY K1:");
-    // ESP_LOG_BUFFER_HEX_LEVEL(PN532_LOG,K1.data(), K1.size(), ESP_LOG_ERROR);
+    // LOGE("Session Key");
+    // ESP_LOG_BUFFER_HEX_LEVEL(PN532_TAG,sessionKey.data(), sessionKey.size(), ESP_LOG_ERROR);
+    // LOGE("SUBKEY K1:");
+    // ESP_LOG_BUFFER_HEX_LEVEL(PN532_TAG,K1.data(), K1.size(), ESP_LOG_ERROR);
 
-    // ESP_LOGE(PN532_LOG, "SUBKEY K2:");
-    // ESP_LOG_BUFFER_HEX_LEVEL(PN532_LOG,K2.data(), K2.size(), ESP_LOG_ERROR);
+    // LOGE("SUBKEY K2:");
+    // ESP_LOG_BUFFER_HEX_LEVEL(PN532_TAG,K2.data(), K2.size(), ESP_LOG_ERROR);
     mbedtls_des_free(&context_temp);
     return true;
 }
@@ -205,7 +206,7 @@ bool  AppKey<KEY_2K3DES>::GenerateCmacSubkeys(uint8_t block_size, Container& K1,
 // {
 //     std::array<uint8_t, 8> K1,K2;
 //     GenerateCmacSubkeys(8, K1,K2);
-//     if(std::equal(key.begin(),key.end(), sessionKey.begin())) ESP_LOGE(PN532_LOG, "key == session key");
+//     if(std::equal(key.begin(),key.end(), sessionKey.begin())) LOGE("key == session key");
 //     std::vector<uint8_t> padded(start,end);
 //     padding(padded);
 
@@ -214,7 +215,7 @@ bool  AppKey<KEY_2K3DES>::GenerateCmacSubkeys(uint8_t block_size, Container& K1,
 //     std::transform(padded.end() - keySize, padded.end(), subkey, padded.end() - keySize, std::bit_xor<uint8_t>());
 
 //     encrypt(padded.end() - keySize, padded.end(), padded.end() - keySize); //encrypt the last block
-//     if(std::equal(padded.end() - keySize,padded.end(), iv.begin())) ESP_LOGE(PN532_LOG, "IV == cmac");
+//     if(std::equal(padded.end() - keySize,padded.end(), iv.begin())) LOGE("IV == cmac");
 
 //     std::copy(iv.begin(),iv.end(), cmac);
 // }
@@ -399,9 +400,9 @@ bool DesfireApp<T, E>::tagCommand(uint8_t command, ContainerIN& param, Container
     else if((mac & CMAC_CALC_TX) && command != DESFIRE_ADDITIONAL_FRAME && isAuth)
     {
         std::vector<uint8_t> buff(sendBuffer.begin(), sendBuffer.end());
-        ESP_LOGE(PN532_LOG, "TXCMAC");
+        LOGE("TXCMAC");
         appKey.cmac(buff.begin(), buff.end(), cmac.begin());
-        ESP_LOG_BUFFER_HEX_LEVEL(PN532_LOG,cmac.data(),cmac.size(), ESP_LOG_ERROR);
+        ESP_LOG_BUFFER_HEX_LEVEL(PN532_TAG,cmac.data(),cmac.size(), ESP_LOG_ERROR);
     }
 
     tagReader->InDataExchange(tagID, sendBuffer, data);
@@ -417,12 +418,12 @@ bool DesfireApp<T, E>::tagCommand(uint8_t command, ContainerIN& param, Container
     {
         std::vector<uint8_t> buff(data.begin() + 1, data.end() - 8);
         buff.push_back(0);
-        ESP_LOGE(PN532_LOG, "RXCMAC");
+        LOGE("RXCMAC");
         appKey.cmac(buff.begin(), buff.end(),cmac.begin());
-        ESP_LOG_BUFFER_HEX_LEVEL(PN532_LOG,cmac.data(),cmac.size(), ESP_LOG_ERROR);
+        ESP_LOG_BUFFER_HEX_LEVEL(PN532_TAG,cmac.data(),cmac.size(), ESP_LOG_ERROR);
         if(std::equal(data.end() - 8, data.end(), cmac.begin()) != 0)
         {
-            ESP_LOGE(PN532_LOG,"DEAUTH");
+            LOGE("DEAUTH");
             isAuth = false;
             return false;
         }
@@ -439,13 +440,13 @@ bool DesfireApp<T, E>::authenticate()
     randomNum.reserve(key_size);
     std::vector<uint8_t> challenge;
     std::vector<uint8_t> response;
-    ESP_LOGE(PN532_LOG,"0x%02x%02x%02x->DEAUTH",appID[0], appID[1] ,appID[2]);
+    LOGE("0x%02x%02x%02x->DEAUTH",appID[0], appID[1] ,appID[2]);
     isAuth = false;
     uint8_t auth_type = appKey.getAuthType();
     std::array<uint8_t, 1> id = {appKey.getKeyID()};
     tagCommand(auth_type,id,challenge);
     if(challenge.front() != 0xAF){
-        ESP_LOGE(PN532_LOG,"0x%02x%02x%02x->DEAUTH",appID[0], appID[1] ,appID[2]);
+        LOGE("0x%02x%02x%02x->DEAUTH",appID[0], appID[1] ,appID[2]);
         isAuth = false;
         return false;
     }
@@ -471,7 +472,7 @@ bool DesfireApp<T, E>::authenticate()
 
 
     if(response.front() != 0x00){
-        ESP_LOGE(PN532_LOG,"0x%02x%02x%02x->DEAUTH",appID[0], appID[1] ,appID[2]);
+        LOGE("0x%02x%02x%02x->DEAUTH",appID[0], appID[1] ,appID[2]);
         isAuth = false;
         return false;
     }
@@ -480,7 +481,7 @@ bool DesfireApp<T, E>::authenticate()
     std::rotate(response.begin(), response.end() - 1, response.end());
 
     if(! std::equal(randomNum.begin(),randomNum.end(), response.begin())){
-        ESP_LOGE(PN532_LOG,"0x%02x%02x%02x->DEAUTH",appID[0], appID[1] ,appID[2]);
+        LOGE("0x%02x%02x%02x->DEAUTH",appID[0], appID[1] ,appID[2]);
         isAuth = false;
         return false;
     }
@@ -488,7 +489,7 @@ bool DesfireApp<T, E>::authenticate()
     ESP_LOGE(DESFIRE_LOG, "AUTH OK");
     //set session key
     appKey.setSessionKey(sessionKey);
-    ESP_LOGE(PN532_LOG,"0x%02x%02x%02x->AUTH",appID[0], appID[1] ,appID[2]);
+    LOGE("0x%02x%02x%02x->AUTH",appID[0], appID[1] ,appID[2]);
     isAuth = true;
     return true;
 }

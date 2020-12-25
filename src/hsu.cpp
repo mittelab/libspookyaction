@@ -79,8 +79,8 @@ namespace pn532 {
                 }
             }
         }
-        ESP_LOG_BUFFER_HEX_LEVEL(PN532_HSU_RECV_TAG, data.data(), read_length, ESP_LOG_VERBOSE);
         data.resize(read_length);
+        ESP_LOG_BUFFER_HEX_LEVEL(PN532_HSU_RECV_TAG, data.data(), read_length, ESP_LOG_VERBOSE);
         return read_length >= length;
     }
 }

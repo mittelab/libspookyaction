@@ -13,7 +13,7 @@ namespace pn532 {
     }
 
     std::pair<std::uint8_t, bool> channel::receive(std::chrono::milliseconds timeout) {
-        static bin_data _buffer{std::vector<std::uint8_t>(1, std::uint8_t{0})};
+        static bin_data _buffer = {std::uint8_t(0)};
         reduce_timeout rt{timeout};
         if (not ensure_ready_to_receive(rt.remaining())) {
             return {0, false};

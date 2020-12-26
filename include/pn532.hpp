@@ -147,8 +147,12 @@ namespace pn532 {
         r<> rf_configuration_analog_iso_iec_14443_4(ciu_reg_iso_iec_14443_4 const &config, ms timeout = default_timeout);
 
         template <class T>
-        r<status, bin_data> initiator_data_exchange(std::uint8_t target_logical_index, T const &data,
+        r<status, bin_data> initiator_data_exchange(std::uint8_t target_logical_index, T &&data,
                                                     bool expect_more_data, ms timeout = default_timeout);
+
+        r<status, bin_data> initiator_data_exchange(std::uint8_t target_logical_index, bin_data const &data,
+                                                    bool expect_more_data, ms timeout = default_timeout);
+
 
         r<status> initiator_select(std::uint8_t target_logical_index, ms timeout = default_timeout);
 
@@ -267,11 +271,12 @@ namespace pn532 {
     }
 
     template <class T>
-    nfc::r<status, bin_data> nfc::initiator_data_exchange(std::uint8_t target_logical_index, T const &data,
+    nfc::r<status, bin_data> nfc::initiator_data_exchange(std::uint8_t target_logical_index, T &&data,
                                                           bool expect_more_data, ms timeout)
     {
-        const std::uint8_t target_byte = get_target(command_code::in_data_exchange, target_logical_index, expect_more_data);
-        return initiator_data_exchange_internal(bin_data::chain(target_byte, data), timeout);
+        const bin_data bd{};
+        bd << std::forward<T>(data);
+        return initiator_data_exchange(target_logical_index, bd, expect_more_data, timeout);
     }
 
 }

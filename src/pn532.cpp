@@ -797,4 +797,11 @@ namespace pn532 {
         return res_cmd;
     }
 
+    nfc::r<status, bin_data> nfc::initiator_data_exchange(std::uint8_t target_logical_index, bin_data const &data,
+                                                          bool expect_more_data, ms timeout)
+    {
+        const std::uint8_t target_byte = get_target(command_code::in_data_exchange, target_logical_index, expect_more_data);
+        return initiator_data_exchange_internal(bin_data::chain(prealloc(1 + data.size()), target_byte, data), timeout);
+    }
+
 }

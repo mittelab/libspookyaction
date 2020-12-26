@@ -40,6 +40,26 @@ namespace pn532 {
             << bits::uid_cascade_tag << make_range(std::begin(uid) + 3, std::end(uid));
     }
 
+    bin_data &operator<<(bin_data &bd, reg_antenna_detector const &r) {
+        std::uint8_t bitpack = 0x0;
+        bitpack |= static_cast<std::uint8_t>(r.low_current_threshold);
+        bitpack |= static_cast<std::uint8_t>(r.high_current_threshold);
+        bitpack |= (r.detected_low_pwr ? bits::reg_andet_control_too_low_power_mask : 0x0);
+        bitpack |= (r.detected_high_pwr ? bits::reg_andet_control_too_high_power_mask : 0x0);
+        bitpack |= (r.enable_detection ? bits::reg_andet_control_antenna_detect_mask : 0x0);
+        return bd << bitpack;
+    }
+
+    bin_stream &operator>>(bin_stream &s, reg_antenna_detector &r) {
+        const std::uint8_t bitpack = s.pop();
+        r.enable_detection = 0 != (bitpack & bits::reg_andet_control_antenna_detect_mask);
+        r.detected_low_pwr = 0 != (bitpack & bits::reg_andet_control_too_low_power_mask);
+        r.detected_high_pwr = 0 != (bitpack & bits::reg_andet_control_too_high_power_mask);
+        r.low_current_threshold = static_cast<low_current_thr>(bitpack & bits::reg_andet_control_too_low_power_mask);
+        r.high_current_threshold = static_cast<high_current_thr>(bitpack & bits::reg_andet_control_too_high_power_mask);
+        return s;
+    }
+
     bin_stream &operator>>(bin_stream &s, firmware_version &fw) {
         if (s.remaining() < 4) {
             LOGE("Parsing firmware_version: expected at least 4 bytes of data, got %ul.", s.remaining());

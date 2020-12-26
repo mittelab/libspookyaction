@@ -32,6 +32,8 @@ namespace pn532 {
     using bits::ciu_reg_typeb;
     using bits::ciu_reg_iso_iec_14443_4_at_baudrate;
     using bits::ciu_reg_iso_iec_14443_4;
+    using bits::low_current_thr;
+    using bits::high_current_thr;
 
 
     using target_kbps106_typea = bits::target<baudrate_modulation::kbps106_iso_iec_14443_typea>;
@@ -102,6 +104,14 @@ namespace pn532 {
         std::uint8_t sam_status;
     };
 
+    struct reg_antenna_detector {
+        bool detected_low_pwr;
+        bool detected_high_pwr;
+        low_current_thr low_current_threshold;
+        high_current_thr high_current_threshold;
+        bool enable_detection;
+    };
+
     template <std::size_t Length>
     struct uid_cascade : public std::array<std::uint8_t , Length> {
          using std::array<std::uint8_t , Length>::array;
@@ -143,6 +153,7 @@ namespace pn532 {
     bin_data &operator<<(bin_data &bd, ciu_reg_iso_iec_14443_4 const &reg);
     bin_data &operator<<(bin_data &bd, uid_cascade_l2 const &uid);
     bin_data &operator<<(bin_data &bd, uid_cascade_l3 const &uid);
+    bin_data &operator<<(bin_data &bd, reg_antenna_detector const &r);
 
     template <baudrate_modulation BrMd>
     bin_stream &operator>>(bin_stream &s, std::vector<bits::target<BrMd>> &targets);
@@ -159,6 +170,7 @@ namespace pn532 {
     bin_stream &operator>>(bin_stream &s, target_kbps106_jewel_tag &target);
     bin_stream &operator>>(bin_stream &s, atr_res_info &atr_res);
     bin_stream &operator>>(bin_stream &s, std::pair<status, atr_res_info> &status_atr_res);
+    bin_stream &operator>>(bin_stream &s, reg_antenna_detector &r);
 
 }
 

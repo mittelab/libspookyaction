@@ -12,6 +12,12 @@
 namespace pn532 {
 
     namespace bits {
+
+        template <std::uint8_t MinIdx, std::uint8_t MaxIdx>
+        struct bitmask_window {
+            static constexpr std::uint8_t value = (0xff >> (7 + MinIdx - MaxIdx)) << MinIdx;
+        };
+
         static constexpr std::uint8_t preamble = 0x00;
         static constexpr std::uint8_t postamble = 0x00;
 
@@ -78,6 +84,29 @@ namespace pn532 {
             attention_req_or_card_presence = 0x6,
             self_antenna = 0x7
         };
+
+        enum struct low_current_thr : std::uint8_t {
+            mA_25 = 0b10 << 4,
+            mA_35 = 0b11 << 4
+        };
+
+        enum struct high_current_thr : std::uint8_t {
+            mA_45 = 0b000 << 1,
+            mA_60 = 0b001 << 1,
+            mA_75 = 0b010 << 1,
+            mA_90 = 0b011 << 1,
+            mA_105 = 0b100 << 1,
+            mA_120 = 0b101 << 1,
+            mA_130 = 0b110 << 1,
+            mA_150 = 0b111 << 1
+        };
+
+        static constexpr std::uint8_t reg_andet_control_low_current_mask = bitmask_window<4, 5>::value;
+        static constexpr std::uint8_t reg_andet_control_high_current_mask = bitmask_window<1, 3>::value;
+
+        static constexpr std::uint8_t reg_andet_control_too_low_power_mask = 1 << 7;
+        static constexpr std::uint8_t reg_andet_control_too_high_power_mask = 1 << 6;
+        static constexpr std::uint8_t reg_andet_control_antenna_detect_mask = 1 << 0;
 
         enum struct baud_rate : std::uint8_t {
             kbaud9_6 = 0x00,
@@ -380,11 +409,6 @@ namespace pn532 {
 
         static constexpr std::uint8_t in_atr_nfcid_3t_present_mask = 0b01;
         static constexpr std::uint8_t in_atr_general_info_present_mask = 0b10;
-
-        template <std::uint8_t MinIdx, std::uint8_t MaxIdx>
-        struct bitmask_window {
-            static constexpr std::uint8_t value = (0xff >> (7 + MinIdx - MaxIdx)) << MinIdx;
-        };
 
         static constexpr std::uint8_t gpio_p3_pin_mask = bitmask_window<0, 5>::value;
         static constexpr std::uint8_t gpio_p7_pin_mask = bitmask_window<1, 2>::value;

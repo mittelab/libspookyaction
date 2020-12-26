@@ -414,8 +414,15 @@ namespace pn532 {
         return nfc_diagnose_simple(*this, bits::test::attention_req_or_card_presence, 0x00, timeout);
     }
 
-    nfc::r<bool> nfc::diagnose_self_antenna(std::uint8_t threshold, ms timeout) {
-        return nfc_diagnose_simple(*this, bits::test::self_antenna, 0x00, timeout, 1, threshold);
+    nfc::r<bool> nfc::diagnose_self_antenna(low_current_thr low_threshold, high_current_thr high_threshold, ms timeout) {
+        const reg_antenna_detector r{
+                .detected_low_pwr = false,
+                .detected_high_pwr = false,
+                .low_current_threshold = low_threshold,
+                .high_current_threshold = high_threshold,
+                .enable_detection = true
+        };
+        return nfc_diagnose_simple(*this, bits::test::self_antenna, 0x00, timeout, 1, r);
     }
 
     nfc::r<firmware_version> nfc::get_firmware_version(ms timeout) {

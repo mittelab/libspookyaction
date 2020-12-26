@@ -94,10 +94,7 @@ namespace pn532 {
          */
         r<> diagnose_echo_back(ms reply_delay, std::uint8_t tx_mode, std::uint8_t rx_mode, ms timeout = long_timeout);
 
-        /**
-         * @param threshold Cfr. Andet_control register (0x610C) §8.6.9.2 PN432/C1 Data sheet
-         */
-        r<bool> diagnose_self_antenna(std::uint8_t threshold, ms timeout = long_timeout);
+        r<bool> diagnose_self_antenna(low_current_thr low_threshold, high_current_thr high_threshold, ms timeout = long_timeout);
 
         r<firmware_version> get_firmware_version(ms timeout = default_timeout);
 

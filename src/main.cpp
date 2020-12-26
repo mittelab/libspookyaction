@@ -56,7 +56,7 @@ void test_diagnostics() {
     TEST_ASSERT(is_ok(tag_reader->diagnose_rom()));
     TEST_ASSERT(is_ok(tag_reader->diagnose_ram()));
     TEST_ASSERT(is_ok(tag_reader->diagnose_comm_line()));
-    TEST_ASSERT(is_ok(tag_reader->diagnose_self_antenna(0x7f)));
+    TEST_ASSERT(is_ok(tag_reader->diagnose_self_antenna(pn532::low_current_thr::mA_25, pn532::high_current_thr::mA_130)));
 }
 
 extern "C" void app_main()

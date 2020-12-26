@@ -4,8 +4,6 @@
 #include <driver/uart.h>
 #include <hsu.hpp>
 #include <pn532.hpp>
-#include <sstream>
-#include <iomanip>
 
 #define TEST_TAG "UT"
 #define TX_PIN   (GPIO_NUM_17)
@@ -26,18 +24,6 @@ namespace {
         return r and *r;
     }
 
-    template <class Container, class = typename std::enable_if<
-            std::is_same<std::uint8_t, typename Container::value_type>::value>::type>
-    std::string hexdump(Container const &c) {
-        std::stringstream ss{""};
-        for (auto it = std::begin(c); it != std::end(c); ++it) {
-            if (it != std::begin(c)) {
-                ss << ' ';
-            }
-            ss << std::setw(2) << std::setfill('0') << std::hex << int(*it);
-        }
-        return ss.str();
-    }
 }
 
 void setup_uart()
@@ -82,8 +68,8 @@ void test_scan_mifare() {
     ESP_LOGI(TEST_TAG, "Found %u targets (passive, 106 kbps, type A).", r_scan->size());
     if (r_scan) {
         for (pn532::target_kbps106_typea const &target : *r_scan) {
-            const std::string nfcid = hexdump(target.info.nfcid);
-            ESP_LOGI(TEST_TAG, "%u. %s", target.logical_index, nfcid.c_str());
+            ESP_LOGI(TEST_TAG, "Logical index %u; NFC ID:", target.logical_index);
+            ESP_LOG_BUFFER_HEX_LEVEL(TEST_TAG, target.info.nfcid.data(), target.info.nfcid.size(), ESP_LOG_INFO);
         }
     }
 }

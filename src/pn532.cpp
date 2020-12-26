@@ -7,6 +7,14 @@
 
 namespace pn532 {
 
+    const std::vector<bits::target_type> nfc::poll_all_targets = {
+            target_type::generic_passive_106kbps,
+            target_type::generic_passive_212kbps,
+            target_type::generic_passive_424kbps,
+            target_type::passive_106kbps_iso_iec_14443_4_typeb,
+            target_type::innovision_jewel_tag
+    };
+
     const char *to_string(nfc::error e) {
         switch (e) {
             case nfc::error::comm_checksum_fail: return "Checksum (length or data) failed";
@@ -759,6 +767,34 @@ namespace pn532 {
                 bin_data::chain(target_logical_index, next_byte, nfcid_3t, general_info),
                 timeout
         );
+    }
+
+    nfc::r<std::vector<any_target>> nfc::initiator_auto_poll(std::vector<target_type> const &types_to_poll,
+                                                   std::uint8_t polls_per_type, poll_period period,
+                                                   ms timeout)
+    {
+        if (types_to_poll.empty()) {
+            LOGW("%s: no target types specified.", to_string(command_code::in_autopoll));
+            return std::vector<any_target>{};
+        }
+        if (types_to_poll.size() > bits::autopoll_max_types) {
+            LOGW("%s: too many (%ul) types to poll, at most %u will be considered.",
+                 to_string(command_code::in_autopoll), types_to_poll.size(), bits::autopoll_max_types);
+        }
+        const auto num_types = std::min(bits::autopoll_max_types, types_to_poll.size());
+        const auto target_view = make_range(std::begin(types_to_poll), std::begin(types_to_poll) + num_types);
+        const bin_data payload = bin_data::chain(
+                prealloc(2 + num_types),
+                polls_per_type,
+                period,
+                target_view
+        );
+        auto res_cmd = command_parse_response<std::vector<any_target>>(command_code::in_autopoll, payload, timeout);
+        if (not res_cmd and res_cmd.error() == error::canceled) {
+            // Canceled commands means no target was found, return thus an empty array as technically it's correct
+            return std::vector<any_target>{};
+        }
+        return res_cmd;
     }
 
 }

@@ -30,6 +30,8 @@ namespace pn532 {
             failure
         };
 
+        static const std::vector<bits::target_type> poll_all_targets;
+
         template <class ...Tn>
         using r = result<error, Tn...>;
 
@@ -191,6 +193,15 @@ namespace pn532 {
                                                           std::array<std::uint8_t, 10> const &nfcid_3t,
                                                           std::vector<std::uint8_t> const &general_info,
                                                           ms timeout = default_timeout);
+        /**
+         * @param types_to_poll Minimum 1, maximum 15 elements
+         * @param polls_per_type Supports infinity
+         * @todo Define ''infinity'' and apply it where appropriate
+         */
+        r<std::vector<any_target>> initiator_auto_poll(std::vector<target_type> const &types_to_poll = poll_all_targets,
+                                                       std::uint8_t polls_per_type = 3,
+                                                       poll_period period = poll_period::ms_150,
+                                                       ms timeout = long_timeout);
 
     private:
         channel *_channel;

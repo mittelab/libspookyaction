@@ -13,6 +13,7 @@ namespace pn532 {
     const char *to_string(bits::command c);
     const char *to_string(bits::test t);
     const char *to_string(bits::baudrate_modulation bm);
+    const char *to_string(bits::target_type t);
 }
 
 #endif //APERTURAPORTA_MSG_H

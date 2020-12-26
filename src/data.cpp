@@ -268,4 +268,104 @@ namespace pn532 {
         return s;
     }
 
+    namespace {
+        template <target_type Type>
+        poll_entry<Type> extract_poll_entry(bin_stream &s) {
+            poll_entry<Type> entry{};
+            s >> entry;
+            return entry;
+        }
+    }
+
+    bin_stream &operator>>(bin_stream &s, any_target &t) {
+        if (s.remaining() < 2) {
+            LOGW("Unable to parse any_target, missing target type and data length.");
+            s.set_bad();
+            return s;
+        }
+        const auto type = static_cast<target_type>(s.pop());
+        const std::uint8_t length = s.pop();
+        const auto old_pos = s.tell();
+        if (not s.good()) {
+            return s;
+        }
+        // This is an unfortunate but necessary massive switch
+        switch (type) {
+            case target_type::passive_106kbps_iso_iec_14443_4_typeb:
+                t = extract_poll_entry<target_type::passive_106kbps_iso_iec_14443_4_typeb>(s);
+                break;
+            case target_type::innovision_jewel_tag:
+                t = extract_poll_entry<target_type::innovision_jewel_tag>(s);
+                break;
+            case target_type::mifare_card:
+                t = extract_poll_entry<target_type::mifare_card>(s);
+                break;
+            case target_type::felica_212kbps_card:
+                t = extract_poll_entry<target_type::felica_212kbps_card>(s);
+                break;
+            case target_type::felica_424kbps_card:
+                t = extract_poll_entry<target_type::felica_424kbps_card>(s);
+                break;
+            case target_type::passive_106kbps_iso_iec_14443_4_typea:
+                t = extract_poll_entry<target_type::passive_106kbps_iso_iec_14443_4_typea>(s);
+                break;
+            case target_type::passive_106kbps_iso_iec_14443_4_typeb_alt:
+                t = extract_poll_entry<target_type::passive_106kbps_iso_iec_14443_4_typeb_alt>(s);
+                break;
+            case target_type::dep_passive_106kbps:
+                t = extract_poll_entry<target_type::dep_passive_106kbps>(s);
+                break;
+            case target_type::dep_passive_212kbps:
+                t = extract_poll_entry<target_type::dep_passive_212kbps>(s);
+                break;
+            case target_type::dep_passive_424kbps:
+                t = extract_poll_entry<target_type::dep_passive_424kbps>(s);
+                break;
+            case target_type::dep_active_106kbps:
+                t = extract_poll_entry<target_type::dep_active_106kbps>(s);
+                break;
+            case target_type::dep_active_212kbps:
+                t = extract_poll_entry<target_type::dep_active_212kbps>(s);
+                break;
+            case target_type::dep_active_424kbps:
+                t = extract_poll_entry<target_type::dep_active_424kbps>(s);
+                break;
+            case target_type::generic_passive_106kbps:
+            case target_type::generic_passive_212kbps:
+            case target_type::generic_passive_424kbps:
+            default:
+                LOGW("Unsupported target type %s", to_string(type));
+                s.set_bad();
+                break;
+        }
+        if (s.bad()) {
+            LOGW("Unable to parse any_target.");
+        } else if (s.tell() - old_pos != length) {
+            LOGW("Parsing any_target: mismatch in declared payload length and read data.");
+            s.set_bad();
+        }
+        return s;
+    }
+
+    bin_stream &operator>>(bin_stream &s, std::vector<any_target> &targets) {
+        if (s.remaining() < 1) {
+            LOGE("Parsing vector<any_target>: not enough data.");
+            s.set_bad();
+            return s;
+        }
+        const auto num_targets = s.pop();
+        if (num_targets > bits::max_num_targets) {
+            LOGW("Parsing vector<any_target>: found %u targets, which is more than the number of supported targets %u.",
+                 num_targets, bits::max_num_targets);
+        }
+        targets.resize(num_targets);
+        for (auto &target : targets) {
+            if (not s.good()) {
+                break;
+            }
+            s >> target;
+        }
+        return s;
+    }
+
 }

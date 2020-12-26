@@ -34,7 +34,8 @@ namespace pn532 {
     using bits::ciu_reg_iso_iec_14443_4;
     using bits::low_current_thr;
     using bits::high_current_thr;
-
+    using bits::target_type;
+    using bits::poll_period;
 
     using target_kbps106_typea = bits::target<baudrate_modulation::kbps106_iso_iec_14443_typea>;
     using target_kbps212_felica = bits::target<baudrate_modulation::kbps212_felica_polling>;
@@ -42,30 +43,65 @@ namespace pn532 {
     using target_kbps106_typeb = bits::target<baudrate_modulation::kbps106_iso_iec_14443_3_typeb>;
     using target_kbps106_jewel_tag = bits::target<baudrate_modulation::kbps106_innovision_jewel_tag>;
 
+    template <target_type Type>
+    struct poll_entry : public bits::target<bits::baudrate_modulation_of_target<Type>::value> {};
+
+    struct poll_entry_with_atr {
+        atr_res_info atr_info;
+    };
+
+    template <baudrate_modulation BrMd>
+    struct poll_entry_dep_passive : public bits::target<BrMd>, public poll_entry_with_atr {};
+
+    template <>
+    struct poll_entry<target_type::dep_passive_106kbps> :
+            public poll_entry_dep_passive<bits::baudrate_modulation_of_target<target_type::dep_passive_106kbps>::value>
+    {};
+
+    template <>
+    struct poll_entry<target_type::dep_passive_212kbps> :
+            public poll_entry_dep_passive<bits::baudrate_modulation_of_target<target_type::dep_passive_212kbps>::value>
+    {};
+
+    template <>
+    struct poll_entry<target_type::dep_passive_424kbps> :
+            public poll_entry_dep_passive<bits::baudrate_modulation_of_target<target_type::dep_passive_424kbps>::value>
+    {};
+
+    template <>
+    struct poll_entry<target_type::dep_active_106kbps> : public poll_entry_with_atr {};
+
+    template <>
+    struct poll_entry<target_type::dep_active_212kbps> : public poll_entry_with_atr {};
+
+    template <>
+    struct poll_entry<target_type::dep_active_424kbps> : public poll_entry_with_atr {};
+
 
     class any_target {
-        std::uint8_t _logical_index;
-        baudrate_modulation _type;
-        any _target_info;
+        target_type _type;
+        any _poll_entry;
     public:
         struct incorrect_cast_t {};
         static constexpr incorrect_cast_t incorrect_cast{};
 
         inline any_target();
 
-        template <baudrate_modulation BrMd>
-        inline explicit any_target(bits::target<BrMd> target);
+        template <target_type Type>
+        inline explicit any_target(poll_entry<Type> entry);
 
-        inline std::uint8_t logical_index() const;
-        inline baudrate_modulation type() const;
+        inline target_type type() const;
 
-        template <baudrate_modulation BrMd>
-        result<incorrect_cast_t, bits::target<BrMd>> get_info() const;
+        template <target_type Type>
+        poll_entry<Type> const &get_entry() const;
+
+        template <target_type Type>
+        any_target &operator=(poll_entry<Type> entry);
     };
 
     namespace ctti {
-        template <baudrate_modulation BrMd>
-        struct type_info<bits::target_info<BrMd>> : public std::integral_constant<id_type, static_cast<id_type>(BrMd)> {};
+        template <target_type Type>
+        struct type_info<poll_entry<Type>> : public std::integral_constant<id_type, static_cast<id_type>(Type)> {};
     }
 
     enum struct gpio_loc {
@@ -157,6 +193,13 @@ namespace pn532 {
 
     template <baudrate_modulation BrMd>
     bin_stream &operator>>(bin_stream &s, std::vector<bits::target<BrMd>> &targets);
+
+    template <target_type Type>
+    bin_stream &operator>>(bin_stream &s, poll_entry<Type> &entry);
+
+    bin_stream &operator>>(bin_stream &s, any_target &t);
+    bin_stream &operator>>(bin_stream &s, std::vector<any_target> &targets);
+
     bin_stream &operator>>(bin_stream &s, std::pair<status, bin_data> &status_data_pair);
     bin_stream &operator>>(bin_stream &s, status &status);
     bin_stream &operator>>(bin_stream &s, gpio_status &gpio);
@@ -176,24 +219,21 @@ namespace pn532 {
 
 namespace pn532 {
 
-    any_target::any_target() : _logical_index{std::numeric_limits<std::uint8_t>::max()}, _type{}, _target_info{} {}
+    any_target::any_target() : _type{}, _poll_entry{} {}
 
 
-    template <baudrate_modulation BrMd>
-    any_target::any_target(bits::target<BrMd> target) :
-        _logical_index{target.logical_index}, _type{BrMd}, _target_info{target.info} {}
+    template <target_type Type>
+    any_target::any_target(poll_entry<Type> entry) :
+        _type{Type}, _poll_entry{std::move(entry)} {}
 
-
-    std::uint8_t any_target::logical_index() const {
-        if (_target_info.empty()) {
-            LOGE("Requested logical index of an empty any_target.");
-            return std::numeric_limits<std::uint8_t>::max();
-        }
-        return _logical_index;
+    template <target_type Type>
+    any_target &any_target::operator=(poll_entry<Type> entry) {
+        _poll_entry = std::move(entry);
+        return *this;
     }
 
-    baudrate_modulation any_target::type() const {
-        if (_target_info.empty()) {
+    target_type any_target::type() const {
+        if (_poll_entry.empty()) {
             LOGE("Requested target type of an empty any_target.");
             return {};
         }
@@ -201,14 +241,9 @@ namespace pn532 {
     }
 
 
-    template <baudrate_modulation BrMd>
-    result<any_target::incorrect_cast_t, bits::target<BrMd>> any_target::get_info() const {
-        if (_target_info.template test_type<bits::target_info<BrMd>>()) {
-            return bits::target<BrMd>{
-                .logical_index = _logical_index,
-                .info = _target_info.template get<bits::target_info<BrMd>>()};
-        }
-        return incorrect_cast;
+    template <target_type Type>
+    poll_entry<Type> const &any_target::get_entry() const {
+        return _poll_entry.template get<poll_entry<Type>>();
     }
 
     bool gpio_status::operator[](std::pair<gpio_loc, std::uint8_t> const &gpio_idx) const {
@@ -280,6 +315,49 @@ namespace pn532 {
         }
         return s;
     }
+
+    namespace impl {
+        template <bool, bool>
+        struct poll_entry_extractor {};
+
+        template <>
+        struct poll_entry_extractor<false, true> {
+            template <target_type Type>
+            bin_stream &operator()(bin_stream &s, poll_entry<Type> &entry) const {
+                static_assert(std::is_base_of<poll_entry_with_atr, poll_entry<Type>>::value,
+                        "This variant is intended for DEP compatible, active targets.");
+                return s >> static_cast<poll_entry_with_atr &>(entry).atr_info;
+            }
+        };
+        template <>
+        struct poll_entry_extractor<true, false> {
+            template <target_type Type>
+            bin_stream &operator()(bin_stream &s, poll_entry<Type> &entry) const {
+                static constexpr baudrate_modulation BrMod = bits::baudrate_modulation_of_target<Type>::value;
+                static_assert(std::is_base_of<bits::target<BrMod>, poll_entry<Type>>::value,
+                              "This variant is not intended for DEP compatible, active targets.");
+                return s >> static_cast<bits::target<BrMod> &>(entry);
+            }
+        };
+        template <>
+        struct poll_entry_extractor<true, true> {
+            template <target_type Type>
+            bin_stream &operator()(bin_stream &s, poll_entry<Type> &entry) const {
+                // A bit of both [cit.], in the right order
+                poll_entry_extractor<true, false>{}(s, entry);
+                return poll_entry_extractor<false, true>{}(s, entry);
+            }
+        };
+    }
+
+    template <target_type Type>
+    bin_stream &operator>>(bin_stream &s, poll_entry<Type> &entry) {
+        static constexpr baudrate_modulation BrMod = bits::baudrate_modulation_of_target<Type>::value;
+        static constexpr bool HasTarget = std::is_base_of<bits::target<BrMod>, poll_entry<Type>>::value;
+        static constexpr bool HasAtr = std::is_base_of<poll_entry_with_atr, poll_entry<Type>>::value;
+        return impl::poll_entry_extractor<HasTarget, HasAtr>{}(s, entry);
+    }
+
 }
 
 #endif //APERTURAPORTA_DATA_HPP

@@ -72,4 +72,43 @@ namespace pn532 {
             default: return "UNKNOWN";
         }
     }
+
+    const char *to_string(bits::target_type t) {
+        switch (t) {
+            case bits::target_type::generic_passive_106kbps:
+                return "Generic passive 106 kbps (ISO/IEC14443-4A, Mifare and DEP)";
+            case bits::target_type::generic_passive_212kbps:
+                return "Generic passive 212 kbps (FeliCa and DEP)";
+            case bits::target_type::generic_passive_424kbps:
+                return "Generic passive 424 kbps (FeliCa and DEP)";
+            case bits::target_type::passive_106kbps_iso_iec_14443_4_typeb:
+                return "Passive 106 kbps ISO/IEC14443-4B";
+            case bits::target_type::innovision_jewel_tag:
+                return "Innovision Jewel tag";
+            case bits::target_type::mifare_card:
+                return "Mifare card";
+            case bits::target_type::felica_212kbps_card:
+                return "FeliCa 212 kbps card";
+            case bits::target_type::felica_424kbps_card:
+                return "FeliCa 424 kbps card";
+            case bits::target_type::passive_106kbps_iso_iec_14443_4_typea:
+                return "Passive 106 kbps ISO/IEC14443-4A";
+            case bits::target_type::passive_106kbps_iso_iec_14443_4_typeb_alt:
+                return "Passive 106 kbps ISO/IEC14443-4B";
+            case bits::target_type::dep_passive_106kbps:
+                return "DEP passive 106 kbps";
+            case bits::target_type::dep_passive_212kbps:
+                return "DEP passive 212 kbps";
+            case bits::target_type::dep_passive_424kbps:
+                return "DEP passive 424 kbps";
+            case bits::target_type::dep_active_106kbps:
+                return "DEP active 106 kbps";
+            case bits::target_type::dep_active_212kbps:
+                return "DEP active 212 kbps";
+            case bits::target_type::dep_active_424kbps:
+                return "DEP active 424 kbps";
+            default:
+                return "UNKNOWN";
+        }
+    }
 }

@@ -306,7 +306,7 @@ namespace pn532 {
         };
 
         /**
-         * @note Lowest bits of @ref target_type
+         * @note Lowest 3 bits of @ref target_type
          */
         enum struct baudrate_modulation : std::uint8_t {
             kbps106_iso_iec_14443_typea = 0x00,
@@ -378,6 +378,8 @@ namespace pn532 {
             ms_2250 = 0xf
         };
 
+        static constexpr unsigned autopoll_max_types = 15;
+
         enum struct target_type : std::uint8_t {
             generic_passive_106kbps = 0x00,
             generic_passive_212kbps = 0x01,
@@ -395,6 +397,14 @@ namespace pn532 {
             dep_active_106kbps = 0x80,
             dep_active_212kbps = 0x81,
             dep_active_424kbps = 0x82
+        };
+
+        static constexpr std::uint8_t target_type_baudrate_modulation_mask = 0b111;
+
+        template <target_type Type>
+        struct baudrate_modulation_of_target {
+            static constexpr baudrate_modulation value =
+                    static_cast<baudrate_modulation>(static_cast<std::uint8_t>(Type) & target_type_baudrate_modulation_mask);
         };
 
         struct atr_res_info {

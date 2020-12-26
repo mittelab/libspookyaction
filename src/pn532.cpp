@@ -597,11 +597,11 @@ namespace pn532 {
     }
 
     std::uint8_t nfc::get_target(command_code cmd, std::uint8_t target_logical_index, bool expect_more_data) {
-        if (target_logical_index >= bits::max_num_targets) {
-            LOGE("%s: out of range (unsupported) logical target index %u (>= %u).",
+        if (target_logical_index > bits::max_num_targets) {
+            LOGE("%s: out of range (unsupported) logical target index %u (> %u).",
                  to_string(cmd), target_logical_index, bits::max_num_targets);
         }
-        target_logical_index = std::min(target_logical_index, std::uint8_t(bits::max_num_targets - 1));
+        target_logical_index = std::min(target_logical_index, bits::max_num_targets);
         return target_logical_index | (expect_more_data ? bits::status_more_info_mask : 0x00);
     }
 

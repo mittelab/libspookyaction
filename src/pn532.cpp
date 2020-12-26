@@ -13,7 +13,8 @@ namespace pn532 {
             case nfc::error::comm_malformed:     return "Malformed or unexpected response";
             case nfc::error::comm_error:         return "Controller returned error instead of ACK";
             case nfc::error::failure:            return "Controller acknowledged but returned error";
-            case nfc::error::timeout:            return "Communication reached timeout";
+            case nfc::error::comm_timeout:       return "Communication reached timeout";
+            case nfc::error::canceled:           return "Comm ok, but no response within timeout";
             case nfc::error::nack:               return "Controller did not acknowledge.";
             default: return "UNKNOWN";
         }
@@ -99,14 +100,14 @@ namespace pn532 {
         if (chn().send(ack ? get_ack_frame() : get_nack_frame(), timeout)) {
             return result_success;
         }
-        return error::timeout;
+        return error::comm_timeout;
     }
 
     nfc::r<> nfc::raw_send_command(command_code cmd, bin_data const &payload, ms timeout) {
         if (chn().send(get_command_info_frame(cmd, payload), timeout)) {
             return result_success;
         }
-        return error::timeout;
+        return error::comm_timeout;
     }
 
     bool nfc::await_frame(ms timeout) {
@@ -117,7 +118,7 @@ namespace pn532 {
         reduce_timeout rt{timeout};
         std::array<std::uint8_t, 2> code_or_length{};
         if (not chn().receive(code_or_length, rt.remaining())) {
-            return error::timeout;
+            return error::comm_timeout;
         }
         if (code_or_length == bits::ack_packet_code) {
             return frame_header{frame_type::ack, 0};
@@ -129,7 +130,7 @@ namespace pn532 {
         if (code_or_length == bits::fixed_extended_packet_length) {
             std::array<std::uint8_t, 3> ext_length{};
             if (not chn().receive(ext_length, rt.remaining())) {
-                return error::timeout;
+                return error::comm_timeout;
             }
             length_checksum_pass = bits::check_length_checksum(ext_length);
         } else {
@@ -149,7 +150,7 @@ namespace pn532 {
         }
         const auto res = chn().receive(hdr.length + 1, timeout);  // Data includes checksum
         if (not res.second) {
-            return error::timeout;
+            return error::comm_timeout;
         }
         bin_data const &data = res.first;
         if (data.size() != hdr.length + 1) {
@@ -183,7 +184,7 @@ namespace pn532 {
     nfc::r<bool> nfc::raw_await_ack(ms timeout) {
         reduce_timeout rt{timeout};
         if (not await_frame(rt.remaining())) {
-            return error::timeout;
+            return error::comm_timeout;
         }
         const auto res_hdr = read_header(rt.remaining());
         if (not res_hdr) {
@@ -209,12 +210,12 @@ namespace pn532 {
     nfc::r<bin_data> nfc::raw_await_response(command_code cmd, ms timeout) {
         /**
          * @note The handling of a channel error in @ref command_response relies on this function producing only these
-         * three errors: ''comm_malformed'', ''timeout'', ''comm_checksum_fail''. If this changes, update the code in
-         * @ref command_response.
+         * three errors: ''comm_malformed'', ''comm_timeout'', ''comm_checksum_fail''. If this changes, update the code
+         * in @ref command_response.
          */
         reduce_timeout rt{timeout};
         if (not await_frame(rt.remaining())) {
-            return error::timeout;
+            return error::comm_timeout;
         }
         const auto res_hdr = read_header(rt.remaining());
         if (not res_hdr) {
@@ -273,15 +274,14 @@ namespace pn532 {
             // As long as we have channel errors and still time left, request the response
             res_response = raw_await_response(cmd, rt.remaining());
             if (not res_response) {
-                LOGW("%s: could not read response to command: %s.", to_string(cmd), to_string(res_response.error()));
                 // Send a nack only if the error is malformed communication
                 if (res_response.error() == error::comm_malformed or
                     res_response.error() == error::comm_checksum_fail)
                 {
-                    LOGW("%s: make the reader resend the packet.", to_string(cmd));
+                    LOGW("%s: requesting response again (%s).", to_string(cmd), to_string(res_response.error()));
                     // Retry command response
                     raw_send_ack(false, rt.remaining());
-                } else if (res_response.error() != error::timeout) {
+                } else if (res_response.error() != error::comm_timeout) {
                     // Assert that this is the only other return code possible, aka timeout, but then break because we
                     // do not know what we should be doing
                     LOGE("Implementation error unexpected error code from pn532::nfc::raw_await_response: %s",
@@ -289,10 +289,13 @@ namespace pn532 {
                     break;
                 }
             }
-        } while(not res_response and res_response.error() != error::timeout);
+        } while(not res_response and res_response.error() != error::comm_timeout);
         if (not res_response) {
             LOGW("%s: canceling command after %lld ms.", to_string(cmd), rt.elapsed().count());
             raw_send_ack(true, one_sec); // Abort command, allow large timeout time for this
+            if (res_response.error() == error::comm_timeout) {
+                return error::canceled;
+            }
             return res_response.error();
         } else {
             LOGD("%s: success, command took %lld ms.", to_string(cmd), rt.elapsed().count());

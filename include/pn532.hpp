@@ -21,7 +21,8 @@ namespace pn532 {
     class nfc {
     public:
         enum struct error {
-            timeout,
+            canceled,
+            comm_timeout,
             comm_checksum_fail,
             comm_error,
             comm_malformed,
@@ -53,7 +54,7 @@ namespace pn532 {
 
         /**
          * @return Either the received data, or one of the following errors: @ref error::comm_malformed,
-         *  @ref error::comm_checksum_fail, or @ref error::timeout. No other error codes are produced.
+         *  @ref error::comm_checksum_fail, or @ref error::comm_timeout. No other error codes are produced.
          */
         r<bin_data> raw_await_response(command_code cmd, ms timeout = default_timeout);
 

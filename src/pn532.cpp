@@ -699,7 +699,13 @@ namespace pn532 {
                 BrMd,
                 initiator_data
         );
-        return command_parse_response<std::vector<bits::target<BrMd>>>(command_code::in_list_passive_target, payload, timeout);
+        auto res_cmd = command_parse_response<std::vector<bits::target<BrMd>>>(
+                command_code::in_list_passive_target, payload, timeout);
+        if (not res_cmd and res_cmd.error() == error::canceled) {
+            // Canceled commands means no target was found, return thus an empty array as technically it's correct
+            return std::vector<bits::target<BrMd>>{};
+        }
+        return res_cmd;
     }
 
     namespace {

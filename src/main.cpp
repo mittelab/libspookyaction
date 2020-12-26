@@ -85,8 +85,6 @@ void test_scan_mifare() {
             const std::string nfcid = hexdump(target.info.nfcid);
             ESP_LOGI(TEST_TAG, "%u. %s", target.logical_index, nfcid.c_str());
         }
-    } else {
-        ESP_LOGW(TEST_TAG, "Found not targets within timeout.");
     }
 }
 

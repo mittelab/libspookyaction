@@ -97,11 +97,13 @@ namespace pn532 {
         inline result(base b);
 
         using base::base;
-        using base::operator=;
         using base::holds;
         using base::error;
-        using base::operator bool;
         using base::empty;
+        using base::operator=;
+        using base::operator*;
+        using base::operator->;
+        using base::operator bool;
     };
 
     template <class E, class T1, class T2, class T3, class ...Tn>
@@ -112,11 +114,13 @@ namespace pn532 {
         inline result(base b);
 
         using base::base;
-        using base::operator=;
         using base::holds;
         using base::error;
-        using base::operator bool;
         using base::empty;
+        using base::operator=;
+        using base::operator*;
+        using base::operator->;
+        using base::operator bool;
     };
 
 

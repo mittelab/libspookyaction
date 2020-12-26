@@ -77,7 +77,7 @@ void test_scan_mifare() {
 void test_scan_all() {
     const auto r_scan = tag_reader->initiator_auto_poll();
     TEST_ASSERT(bool(r_scan));
-    ESP_LOGI(TEST_TAG, "Found %u targets (passive, 106 kbps, type A).", r_scan->size());
+    ESP_LOGI(TEST_TAG, "Found %u targets.", r_scan->size());
     if (r_scan) {
         for (std::size_t i = 0; i < r_scan->size(); ++i) {
             ESP_LOGI(TEST_TAG, "%u. %s", i + 1, pn532::to_string(r_scan->at(i).type()));

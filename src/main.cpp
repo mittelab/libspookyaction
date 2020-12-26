@@ -74,6 +74,17 @@ void test_scan_mifare() {
     }
 }
 
+void test_scan_all() {
+    const auto r_scan = tag_reader->initiator_auto_poll();
+    TEST_ASSERT(bool(r_scan));
+    ESP_LOGI(TEST_TAG, "Found %u targets (passive, 106 kbps, type A).", r_scan->size());
+    if (r_scan) {
+        for (std::size_t i = 0; i < r_scan->size(); ++i) {
+            ESP_LOGI(TEST_TAG, "%u. %s", i + 1, pn532::to_string(r_scan->at(i).type()));
+        }
+    }
+}
+
 extern "C" void app_main()
 {
     UNITY_BEGIN();
@@ -81,6 +92,7 @@ extern "C" void app_main()
     RUN_TEST(test_get_fw);
     RUN_TEST(test_diagnostics);
     RUN_TEST(test_scan_mifare);
+    RUN_TEST(test_scan_all);
     UNITY_END();
 }
 

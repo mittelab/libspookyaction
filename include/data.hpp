@@ -228,6 +228,7 @@ namespace pn532 {
 
     template <target_type Type>
     any_target &any_target::operator=(poll_entry<Type> entry) {
+        _type = Type;
         _poll_entry = std::move(entry);
         return *this;
     }

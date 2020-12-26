@@ -207,6 +207,11 @@ namespace pn532 {
     }
 
     nfc::r<bin_data> nfc::raw_await_response(command_code cmd, ms timeout) {
+        /**
+         * @note The handling of a channel error in @ref command_response relies on this function producing only these
+         * three errors: ''comm_malformed'', ''timeout'', ''comm_checksum_fail''. If this changes, update the code in
+         * @ref command_response.
+         */
         reduce_timeout rt{timeout};
         if (not await_frame(rt.remaining())) {
             return error::timeout;
@@ -263,9 +268,10 @@ namespace pn532 {
         if (not res_cmd) {
             return res_cmd.error();
         }
-        nfc::r<bin_data> res_response;
-        do{
-        res_response = raw_await_response(cmd, rt.remaining());
+        nfc::r<bin_data> res_response = error::comm_malformed;
+        do {
+            // As long as we have channel errors and still time left, request the response
+            res_response = raw_await_response(cmd, rt.remaining());
             if (not res_response) {
                 LOGW("%s: could not read response to command: %s.", to_string(cmd), to_string(res_response.error()));
                 // Send a nack only if the error is malformed communication
@@ -275,17 +281,24 @@ namespace pn532 {
                     LOGW("%s: make the reader resend the packet.", to_string(cmd));
                     // Retry command response
                     raw_send_ack(false, rt.remaining());
+                } else if (res_response.error() != error::timeout) {
+                    // Assert that this is the only other return code possible, aka timeout, but then break because we
+                    // do not know what we should be doing
+                    LOGE("Implementation error unexpected error code from pn532::nfc::raw_await_response: %s",
+                         to_string(res_response.error()));
+                    break;
                 }
             }
-        } while((not res_response) and res_response.error() != error::timeout);
+        } while(not res_response and res_response.error() != error::timeout);
         if (not res_response) {
-            raw_send_ack(true); //Abort command
+            LOGW("%s: canceling command after %lld ms.", to_string(cmd), rt.elapsed().count());
+            raw_send_ack(true, one_sec); // Abort command, allow large timeout time for this
             return res_response.error();
+        } else {
+            LOGD("%s: success, command took %lld ms.", to_string(cmd), rt.elapsed().count());
+            raw_send_ack(true, one_sec); // Confirm response, allow large timeout time for this
+            return std::move(*res_response);
         }
-        LOGD("%s: successfully retrieved response. Command took %lld ms.", to_string(cmd), rt.elapsed().count());
-        // Accept and send reply, ignore timeout
-        raw_send_ack(true, rt.remaining());
-        return std::move(*res_response);
     }
 
     /* -----------------------------------------------------------------------------------------------------------------

@@ -51,6 +51,10 @@ namespace pn532 {
 
         r<bool> raw_await_ack(ms timeout = default_timeout);
 
+        /**
+         * @return Either the received data, or one of the following errors: @ref error::comm_malformed,
+         *  @ref error::comm_checksum_fail, or @ref error::timeout. No other error codes are produced.
+         */
         r<bin_data> raw_await_response(command_code cmd, ms timeout = default_timeout);
 
         /** @brief Command without response.

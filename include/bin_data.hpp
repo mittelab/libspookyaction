@@ -177,12 +177,17 @@ namespace pn532 {
         template <class T>
         using is_byte_enumerable = typename std::integral_constant<bool, is_range_enumerable<T>::value
             and std::is_same<typename safe_value_type<T, is_range_enumerable<T>::value>::type, std::uint8_t>::value>;
+        template <class T>
+        using is_byte_enum_enumerable = typename std::integral_constant<bool, is_range_enumerable<T>::value
+        and is_byte_enum<typename safe_value_type<T, is_range_enumerable<T>::value>::type>::value>;
     }
 
     template <class Enum, class = typename std::enable_if<impl::is_byte_enum<Enum>::value>::type>
     bin_stream &operator>>(bin_stream &s, Enum &t);
 
-    template <class T, class = typename std::enable_if<impl::is_byte_enum<T>::value or impl::is_byte_enumerable<T>::value>::type>
+    template <class T, class = typename std::enable_if<
+            impl::is_byte_enum<T>::value or impl::is_byte_enumerable<T>::value or impl::is_byte_enum_enumerable<T>::value
+    >::type>
     bin_data &operator<<(bin_data &bd, T const &t);
 }
 
@@ -365,10 +370,10 @@ namespace pn532 {
     }
 
     namespace impl {
-        template <class, bool, bool> struct inject {};
+        template <class, bool, bool, bool> struct inject {};
 
         template <class ByteEnum>
-        struct inject<ByteEnum, true, false> {
+        struct inject<ByteEnum, true, false, false> {
             bin_data &operator()(bin_data &bd, ByteEnum const &e) const {
                 static_assert(std::is_same<std::uint8_t, typename std::underlying_type<ByteEnum>::type>::value, "SFINAE Error?");
                 return bd << static_cast<std::uint8_t>(e);
@@ -376,10 +381,21 @@ namespace pn532 {
         };
 
         template <class ByteContainer>
-        struct inject<ByteContainer, false, true> {
+        struct inject<ByteContainer, false, true, false> {
             bin_data &operator()(bin_data &bd, ByteContainer const &a) const {
                 bd.reserve(bd.size() + std::distance(std::begin(a), std::end(a)));
                 std::copy(std::begin(a), std::end(a), std::back_inserter(bd));
+                return bd;
+            }
+        };
+
+        template <class ByteEnumContainer>
+        struct inject<ByteEnumContainer, false, false, true> {
+            bin_data &operator()(bin_data &bd, ByteEnumContainer const &a) const {
+                bd.reserve(bd.size() + std::distance(std::begin(a), std::end(a)));
+                for (auto const be : a) {
+                    bd << static_cast<std::uint8_t>(be);
+                }
                 return bd;
             }
         };
@@ -387,7 +403,7 @@ namespace pn532 {
 
     template <class T, class>
     bin_data &operator<<(bin_data &bd, T const &t) {
-        return impl::inject<T, impl::is_byte_enum<T>::value, impl::is_byte_enumerable<T>::value>{}(bd, t);
+        return impl::inject<T, impl::is_byte_enum<T>::value, impl::is_byte_enumerable<T>::value, impl::is_byte_enum_enumerable<T>::value>{}(bd, t);
     }
 
 

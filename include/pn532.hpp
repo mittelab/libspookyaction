@@ -150,26 +150,26 @@ namespace pn532 {
         r<status> initiator_select(std::uint8_t target_logical_index, ms timeout = default_timeout);
 
         r<std::vector<target_kbps106_typea>> initiator_list_passive_kbps106_typea(
-                std::uint8_t max_targets = bits::max_num_targets, ms timeout = default_timeout);
+                std::uint8_t max_targets = bits::max_num_targets, ms timeout = long_timeout);
         r<std::vector<target_kbps106_typea>> initiator_list_passive_kbps106_typea(
-                uid_cascade_l1 uid, std::uint8_t max_targets = 1, ms timeout = default_timeout);
+                uid_cascade_l1 uid, std::uint8_t max_targets = 1, ms timeout = long_timeout);
         r<std::vector<target_kbps106_typea>> initiator_list_passive_kbps106_typea(
-                uid_cascade_l2 uid, std::uint8_t max_targets = 1, ms timeout = default_timeout);
+                uid_cascade_l2 uid, std::uint8_t max_targets = 1, ms timeout = long_timeout);
         r<std::vector<target_kbps106_typea>> initiator_list_passive_kbps106_typea(
-                uid_cascade_l3 uid, std::uint8_t max_targets = 1, ms timeout = default_timeout);
+                uid_cascade_l3 uid, std::uint8_t max_targets = 1, ms timeout = long_timeout);
         r<std::vector<target_kbps106_typeb>> initiator_list_passive_kbps106_typeb(
                 std::uint8_t application_family_id, polling_method method = polling_method::timeslot,
-                std::uint8_t max_targets = bits::max_num_targets, ms timeout = default_timeout);
+                std::uint8_t max_targets = bits::max_num_targets, ms timeout = long_timeout);
 
         r<std::vector<target_kbps212_felica>> initiator_list_passive_kbps212_felica(
                 std::array<std::uint8_t, 5> const &payload, std::uint8_t max_targets = bits::max_num_targets,
-                ms timeout = default_timeout);
+                ms timeout = long_timeout);
 
         r<std::vector<target_kbps424_felica>> initiator_list_passive_kbps424_felica(
                 std::array<std::uint8_t, 5> const &payload, std::uint8_t max_targets = bits::max_num_targets,
-                ms timeout = default_timeout);
+                ms timeout = long_timeout);
         r<std::vector<target_kbps106_jewel_tag>> initiator_list_passive_kbps106_jewel_tag(
-                ms timeout = default_timeout);
+                ms timeout = long_timeout);
 
 
         r<status, atr_res_info> initiator_activate_target(std::uint8_t target_logical_index, ms timeout = default_timeout);

@@ -4,6 +4,8 @@
 #include <driver/uart.h>
 #include <hsu.hpp>
 #include <pn532.hpp>
+#include <sstream>
+#include <iomanip>
 
 #define TEST_TAG "UT"
 #define TX_PIN   (GPIO_NUM_17)
@@ -13,6 +15,29 @@
 namespace {
     std::unique_ptr<pn532::hsu> serial = nullptr;
     std::unique_ptr<pn532::nfc> tag_reader = nullptr;
+
+
+    template <class T, class ...Args>
+    std::unique_ptr<T> make_unique(Args &&...args) {
+        return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
+    }
+
+    bool is_ok(pn532::nfc::r<bool> const &r) {
+        return r and *r;
+    }
+
+    template <class Container, class = typename std::enable_if<
+            std::is_same<std::uint8_t, typename Container::value_type>::value>::type>
+    std::string hexdump(Container const &c) {
+        std::stringstream ss{""};
+        for (auto it = std::begin(c); it != std::end(c); ++it) {
+            if (it != std::begin(c)) {
+                ss << ' ';
+            }
+            ss << std::setw(2) << std::setfill('0') << std::hex << int(*it);
+        }
+        return ss.str();
+    }
 }
 
 void setup_uart()
@@ -31,14 +56,6 @@ void setup_uart()
     uart_set_pin(UART_NUM_1, TX_PIN, RX_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
 }
 
-template <class T, class ...Args>
-std::unique_ptr<T> make_unique(Args &&...args) {
-    return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
-}
-
-bool is_ok(pn532::nfc::r<bool> const &r) {
-    return r and *r;
-}
 
 void test_get_fw()
 {
@@ -59,12 +76,27 @@ void test_diagnostics() {
     TEST_ASSERT(is_ok(tag_reader->diagnose_self_antenna(pn532::low_current_thr::mA_25, pn532::high_current_thr::mA_130)));
 }
 
+void test_scan_mifare() {
+    const auto r_scan = tag_reader->initiator_list_passive_kbps106_typea();
+    TEST_ASSERT(bool(r_scan));
+    ESP_LOGI(TEST_TAG, "Found %u targets (passive, 106 kbps, type A).", r_scan->size());
+    if (r_scan) {
+        for (pn532::target_kbps106_typea const &target : *r_scan) {
+            const std::string nfcid = hexdump(target.info.nfcid);
+            ESP_LOGI(TEST_TAG, "%u. %s", target.logical_index, nfcid.c_str());
+        }
+    } else {
+        ESP_LOGW(TEST_TAG, "Found not targets within timeout.");
+    }
+}
+
 extern "C" void app_main()
 {
     UNITY_BEGIN();
     RUN_TEST(setup_uart);
     RUN_TEST(test_get_fw);
     RUN_TEST(test_diagnostics);
+    RUN_TEST(test_scan_mifare);
     UNITY_END();
 }
 

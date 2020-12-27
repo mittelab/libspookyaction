@@ -526,7 +526,7 @@ namespace pn532 {
         return write_gpio(*res_read, write_p3, write_p7, rt.remaining());
     }
 
-    nfc::r<> nfc::set_serial_baud_rate(baud_rate br, ms timeout) {
+    nfc::r<> nfc::set_serial_baud_rate(serial_baudrate br, ms timeout) {
         return command_response(command_code::set_serial_baudrate, bin_data::chain(br), timeout);
     }
 
@@ -1245,6 +1245,10 @@ namespace pn532 {
         return command_parse_response<rf_status>(command_code::power_down,
                                                  bin_data::chain(prealloc(2), wakeup_sources, generate_irq),
                                                  timeout);
+    }
+
+    nfc::r<> nfc::rf_regulation_test(tx_mode mode, ms timeout) {
+        return command(command_code::rf_regulation_test, bin_data::chain(mode), timeout);
     }
 
 }

@@ -128,7 +128,7 @@ namespace pn532 {
 
         r<> set_gpio_pin(gpio_loc loc, std::uint8_t pin_idx, bool value, ms timeout = default_timeout);
 
-        r<> set_serial_baud_rate(baud_rate br, ms timeout = default_timeout);
+        r<> set_serial_baud_rate(serial_baudrate br, ms timeout = default_timeout);
 
         r<> sam_configuration(
                 sam_mode mode, ms sam_timeout, bool controller_drives_irq = true,
@@ -442,6 +442,8 @@ namespace pn532 {
 
         r<rf_status> power_down(
                 std::vector<wakeup_source> const &wakeup_sources, bool generate_irq, ms timeout = default_timeout);
+
+        r<> rf_regulation_test(tx_mode mode, ms timeout = default_timeout);
 
     private:
         channel *_channel;

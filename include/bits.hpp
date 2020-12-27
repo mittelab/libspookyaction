@@ -108,7 +108,7 @@ namespace pn532 {
         static constexpr std::uint8_t reg_andet_control_too_high_power_mask = 1 << 6;
         static constexpr std::uint8_t reg_andet_control_antenna_detect_mask = 1 << 0;
 
-        enum struct baud_rate : std::uint8_t {
+        enum struct serial_baudrate : std::uint8_t {
             kbaud9_6 = 0x00,
             kbaud19_2 = 0x01,
             kbaud38_4 = 0x02,
@@ -118,6 +118,17 @@ namespace pn532 {
             kbaud460_8 = 0x06,
             kbaud921_6 = 0x07,
             kbaud1288 = 0x08
+        };
+
+        enum struct tx_mode : std::uint8_t {
+            mifare_106kbps = 0b0000000,
+            mifare_212kbps = 0b0010000,
+            mifare_424kbps = 0b0100000,
+            mifare_848kbps = 0b0110000,
+            felica_106kbps = 0b0000010,
+            felica_212kbps = 0b0010010,
+            felica_424kbps = 0b0100010,
+            felica_848kbps = 0b0110010
         };
 
         enum struct rf_timeout : std::uint8_t {

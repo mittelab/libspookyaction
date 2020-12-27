@@ -21,11 +21,12 @@ namespace pn532 {
     using bits::modulation;
     using bits::baudrate_modulation;
     using bits::sfr_register;
-    using bits::baud_rate;
+    using bits::serial_baudrate;
     using bits::sam_mode;
     using bits::rf_timeout;
     using bits::polling_method;
     using bits::atr_res_info;
+    using bits::tx_mode;
 
     using bits::ciu_reg_212_424kbps;
     using bits::ciu_reg_106kbps_typea;

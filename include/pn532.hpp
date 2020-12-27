@@ -231,8 +231,6 @@ namespace pn532 {
 
         r<frame_body> read_response_body(frame_header const &hdr, ms timeout);
 
-        r<status, bin_data> initiator_data_exchange_internal(bin_data const &payload, ms timeout);
-
         static bin_data get_command_info_frame(command_code cmd, bin_data const &payload);
         static bin_data const &get_ack_frame();
         static bin_data const &get_nack_frame();

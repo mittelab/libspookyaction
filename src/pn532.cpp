@@ -616,10 +616,6 @@ namespace pn532 {
         return target_logical_index | (expect_more_data ? bits::status_more_info_mask : 0x00);
     }
 
-    nfc::r<status, bin_data> nfc::initiator_data_exchange_internal(bin_data const &payload, ms timeout) {
-        return command_parse_response<std::pair<status, bin_data>>(command_code::in_data_exchange, payload, timeout);
-    }
-
     nfc::r<status> nfc::initiator_select(std::uint8_t target_logical_index, ms timeout) {
         const std::uint8_t target_byte = get_target(command_code ::in_select, target_logical_index, false);
         return command_parse_response<status>(command_code::in_select, bin_data{target_byte}, timeout);
@@ -801,7 +797,10 @@ namespace pn532 {
                                                           bool expect_more_data, ms timeout)
     {
         const std::uint8_t target_byte = get_target(command_code::in_data_exchange, target_logical_index, expect_more_data);
-        return initiator_data_exchange_internal(bin_data::chain(prealloc(1 + data.size()), target_byte, data), timeout);
+        LOGD("%s: sending the following data to target %u:", to_string(command_code::in_data_exchange), target_logical_index);
+        ESP_LOG_BUFFER_HEX_LEVEL(PN532_TAG, data.data(), data.size(), ESP_LOG_DEBUG);
+        const bin_data payload = bin_data::chain(prealloc(1 + data.size()), target_byte, data);
+        return command_parse_response<std::pair<status, bin_data>>(command_code::in_data_exchange, payload, timeout);
     }
 
 }

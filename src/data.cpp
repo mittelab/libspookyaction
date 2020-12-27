@@ -410,4 +410,19 @@ namespace pn532 {
         return s << b;
     }
 
+    bin_stream &operator>>(bin_stream &s, status_as_target &st) {
+        if (s.remaining() < 2) {
+            LOGE("Parsing status_as_target: not enough data.");
+            s.set_bad();
+            return s;
+        }
+        s >> st.status;
+        const std::uint8_t br_it = s.pop();
+        st.initiator_speed = static_cast<baudrate>((br_it >> bits::status_as_target_initiator_speed_shift) &
+                                                   bits::status_as_target_shifted_speed_mask);
+        st.target_speed = static_cast<baudrate>((br_it >> bits::status_as_target_target_speed_shift) &
+                                                bits::status_as_target_shifted_speed_mask);
+        return s;
+    }
+
 }

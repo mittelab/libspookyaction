@@ -27,6 +27,7 @@ namespace pn532 {
     using bits::polling_method;
     using bits::atr_res_info;
     using bits::tx_mode;
+    using bits::nfcip1_picc_status;
 
     using bits::ciu_reg_212_424kbps;
     using bits::ciu_reg_106kbps_typea;
@@ -193,6 +194,12 @@ namespace pn532 {
         sam_status sam;
     };
 
+    struct status_as_target {
+        nfcip1_picc_status status;
+        baudrate initiator_speed;
+        baudrate target_speed;
+    };
+
     struct reg_antenna_detector {
         bool detected_low_pwr;
         bool detected_high_pwr;
@@ -302,6 +309,8 @@ namespace pn532 {
     bin_stream &operator>>(bin_stream &s, jump_dep_psl &r);
 
     bin_stream &operator>>(bin_stream &s, sam_status &sams);
+
+    bin_stream &operator>>(bin_stream &s, status_as_target &st);
 
 }
 

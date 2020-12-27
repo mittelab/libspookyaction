@@ -1251,4 +1251,8 @@ namespace pn532 {
         return command(command_code::rf_regulation_test, bin_data::chain(mode), timeout);
     }
 
+    nfc::r<status_as_target> nfc::target_get_target_status(ms timeout) {
+        return command_parse_response<status_as_target>(command_code::tg_get_target_status, bin_data{}, timeout);
+    }
+
 }

@@ -251,6 +251,19 @@ namespace pn532 {
             int0 = 1 << 0
         };
 
+        enum struct nfcip1_picc_status : std::uint8_t {
+            nfcip1_idle = 0x00,
+            nfcip1_activated = 0x01,
+            nfcip1_deselected = 0x02,
+            picc_released = 0x80,
+            picc_activated = 0x81,
+            picc_deselected = 0x82
+        };
+
+        static constexpr unsigned status_as_target_initiator_speed_shift = 4;
+        static constexpr unsigned status_as_target_target_speed_shift = 0;
+        static constexpr std::uint8_t status_as_target_shifted_speed_mask = 0b111;
+
         static constexpr unsigned sam_timeout_unit_ms = 50;
 
         static constexpr std::uint8_t status_nad_mask = 0x1 << 7;

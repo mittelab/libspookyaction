@@ -445,6 +445,8 @@ namespace pn532 {
 
         r<> rf_regulation_test(tx_mode mode, ms timeout = default_timeout);
 
+        r<status_as_target> target_get_target_status(ms timeout = default_timeout);
+
     private:
         channel *_channel;
 

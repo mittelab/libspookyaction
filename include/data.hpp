@@ -146,6 +146,8 @@ namespace pn532 {
         bool nad_present;
         bool expect_more_info;
         controller_error error;
+
+        inline explicit operator bool() const { return error == controller_error::none; }
     };
 
     struct general_status {

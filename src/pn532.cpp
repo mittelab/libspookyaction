@@ -621,6 +621,16 @@ namespace pn532 {
         return command_parse_response<status>(command_code::in_select, bin_data{target_byte}, timeout);
     }
 
+    nfc::r<status> nfc::initiator_deselect(std::uint8_t target_logical_index, ms timeout) {
+        const std::uint8_t target_byte = get_target(command_code ::in_deselect, target_logical_index, false);
+        return command_parse_response<status>(command_code::in_deselect, bin_data{target_byte}, timeout);
+    }
+
+    nfc::r<status> nfc::initiator_release(std::uint8_t target_logical_index, ms timeout) {
+        const std::uint8_t target_byte = get_target(command_code ::in_release, target_logical_index, false);
+        return command_parse_response<status>(command_code::in_release, bin_data{target_byte}, timeout);
+    }
+
     namespace {
         void sanitize_max_targets(std::uint8_t &max_targets, const char *fname) {
             if (max_targets < 1 or max_targets > bits::max_num_targets) {

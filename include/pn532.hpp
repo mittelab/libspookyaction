@@ -164,6 +164,8 @@ namespace pn532 {
         r<status> initiator_select(std::uint8_t target_logical_index, ms timeout = default_timeout);
         r<status> initiator_deselect(std::uint8_t target_logical_index, ms timeout = default_timeout);
         r<status> initiator_release(std::uint8_t target_logical_index, ms timeout = default_timeout);
+        r<status> initiator_psl(std::uint8_t target_logical_index, speed in_to_trg, speed trg_to_in,
+                                ms timeout = default_timeout);
 
         r<std::vector<target_kbps106_typea>> initiator_list_passive_kbps106_typea(
                 std::uint8_t max_targets = bits::max_num_targets, ms timeout = long_timeout);

@@ -630,6 +630,13 @@ namespace pn532 {
         const std::uint8_t target_byte = get_target(command_code ::in_release, target_logical_index, false);
         return command_parse_response<status>(command_code::in_release, bin_data{target_byte}, timeout);
     }
+    nfc::r<status> nfc::initiator_psl(std::uint8_t target_logical_index, speed in_to_trg, speed trg_to_in,
+                            ms timeout)
+    {
+        const std::uint8_t target_byte = get_target(command_code ::in_psl, target_logical_index, false);
+        const bin_data payload = bin_data::chain(prealloc(3), target_byte, in_to_trg, trg_to_in);
+        return command_parse_response<status>(command_code::in_psl, payload, timeout);
+    }
 
     namespace {
         void sanitize_max_targets(std::uint8_t &max_targets, const char *fname) {

@@ -793,14 +793,45 @@ namespace pn532 {
         return res_cmd;
     }
 
-    nfc::r<status, bin_data> nfc::initiator_data_exchange(std::uint8_t target_logical_index, bin_data const &data,
-                                                          bool expect_more_data, ms timeout)
+    nfc::r<status, bin_data> nfc::initiator_data_exchange(std::uint8_t target_logical_index, bin_data const &data, ms timeout)
     {
-        const std::uint8_t target_byte = get_target(command_code::in_data_exchange, target_logical_index, expect_more_data);
+        static constexpr std::size_t max_chunk_length = bits::max_firmware_data_length - 1;  // - target byte
+        const auto n_chunks = std::max(1u, (data.size() + max_chunk_length - 1) / max_chunk_length);
+        if (n_chunks > 1) {
+            LOGI("%s: %ul bytes will be sent in %u chunks.", to_string(command_code::in_data_exchange), data.size(), n_chunks);
+        }
         LOGD("%s: sending the following data to target %u:", to_string(command_code::in_data_exchange), target_logical_index);
         ESP_LOG_BUFFER_HEX_LEVEL(PN532_TAG, data.data(), data.size(), ESP_LOG_DEBUG);
-        const bin_data payload = bin_data::chain(prealloc(1 + data.size()), target_byte, data);
-        return command_parse_response<std::pair<status, bin_data>>(command_code::in_data_exchange, payload, timeout);
+        reduce_timeout rt{timeout};
+        bin_data data_in{};
+        status s{};
+        for (std::size_t chunk_idx = 0; chunk_idx < n_chunks; ++chunk_idx) {
+            const auto data_view = data.view(chunk_idx * max_chunk_length, max_chunk_length);
+            const bool more_data = (chunk_idx + 1 >= n_chunks);
+            const std::uint8_t target_byte = get_target(command_code::in_data_exchange, target_logical_index, more_data);
+            if (n_chunks > 1) {
+                LOGI("%s: sending chunk %u/%u...", to_string(command_code::in_data_exchange), chunk_idx + 1, n_chunks);
+            }
+            const bin_data payload = bin_data::chain(prealloc(1 + data_view.size()), target_byte, data_view);
+            auto res_cmd = command_parse_response<std::pair<status, bin_data>>(
+                    command_code::in_data_exchange, payload, rt.remaining());
+            if (not res_cmd) {
+                return res_cmd.error();
+            }
+            if (res_cmd->first.error != controller_error::none) {
+                if (more_data) {
+                    LOGE("%s: aborting multiple chunks transfer because controller returned error %s.",
+                         to_string(command_code::in_data_exchange), to_string(res_cmd->first.error));
+                    // Send an ack to abort whatever is left in the controller.
+                    raw_send_ack(true, one_sec);
+                }
+                return res_cmd;
+            }
+            // Append data and continue
+            s = res_cmd->first;
+            data_in << res_cmd->second;
+        }
+        return {s, data_in};
     }
 
 }

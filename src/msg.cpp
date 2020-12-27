@@ -111,4 +111,65 @@ namespace pn532 {
                 return "UNKNOWN";
         }
     }
+
+    const char *to_string(bits::error e) {
+        switch (e) {
+            case bits::error::none:
+                return "none";
+            case bits::error::timeout:
+                return "timeout";
+            case bits::error::crc_error:
+                return "CRC error";
+            case bits::error::parity_error:
+                return "parity error";
+            case bits::error::erroneous_bit_count:
+                return "erroneous bit count";
+            case bits::error::framing_error:
+                return "framing error";
+            case bits::error::bit_collision:
+                return "bit collision";
+            case bits::error::buffer_size_insufficient:
+                return "buffer size insufficient";
+            case bits::error::rf_buffer_overflow:
+                return "RF buffer overflow";
+            case bits::error::counterpart_rf_off:
+                return "counterpart RF off";
+            case bits::error::rf_protocol_error:
+                return "RF protocol error";
+            case bits::error::temperature_error:
+                return "temperature error";
+            case bits::error::buffer_overflow:
+                return "buffer overflow";
+            case bits::error::invalid_parameter:
+                return "invalid parameter";
+            case bits::error::dep_unsupported_command:
+                return "DEP unsupported command";
+            case bits::error::dep_specification_mismatch:
+                return "DEP specification mismatch";
+            case bits::error::mifare_auth_error:
+                return "Mifare auth error";
+            case bits::error::wrong_uid_check_byte:
+                return "wrong uid check byte";
+            case bits::error::dep_invalid_device_state:
+                return "DEP invalid device state";
+            case bits::error::operation_not_allowed:
+                return "operation not allowed";
+            case bits::error::command_not_acceptable:
+                return "command not acceptable";
+            case bits::error::released_by_initiator:
+                return "released by initiator";
+            case bits::error::card_exchanged:
+                return "card exchanged";
+            case bits::error::card_disappeared:
+                return "card disappeared";
+            case bits::error::nfcid3_initiator_target_mismatch:
+                return "NFCID3 initiator target_mismatch";
+            case bits::error::overcurrent:
+                return "overcurrent";
+            case bits::error::nad_missing_in_dep_frame:
+                return "NAD missing in DEP frame";
+            default:
+                return "UNKNOWN";
+        }
+    }
 }

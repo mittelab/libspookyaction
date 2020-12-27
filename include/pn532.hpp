@@ -147,23 +147,18 @@ namespace pn532 {
         r<> rf_configuration_analog_iso_iec_14443_4(ciu_reg_iso_iec_14443_4 const &config, ms timeout = default_timeout);
 
         /**
-         * @param data Any object that can be injected into a @ref bin_data object. Maximum payload: 262 bytes.
-         * @param expect_more_data If true, the PN532 will inform the target that the trasmission is not over and more
-         *  data will come soon. Use a series of @p expect_more_data ''true'' to trasmit payloads above 262 bytes.
+         * @param data Any object that can be injected into a @ref bin_data object. If the total payload exceeds 262
+         *  bytes, multiple commands will be issued.
          */
         template <class T, class = typename std::enable_if<not std::is_same<
                 bin_data, typename std::remove_const<typename std::remove_reference<T>::type>::type
                 >::value>::type>
-        r<status, bin_data> initiator_data_exchange(std::uint8_t target_logical_index, T &&data,
-                                                    bool expect_more_data, ms timeout = default_timeout);
+        r<status, bin_data> initiator_data_exchange(std::uint8_t target_logical_index, T &&data, ms timeout = default_timeout);
 
         /**
-         * @param data Any object that can be injected into a @ref bin_data object. Maximum payload: 262 bytes.
-         * @param expect_more_data If true, the PN532 will inform the target that the trasmission is not over and more
-         *  data will come soon. Use a series of @p expect_more_data ''true'' to trasmit payloads above 262 bytes.
+         * @param data If the total payload exceeds 262 bytes, multiple commands will be issued.
          */
-        r<status, bin_data> initiator_data_exchange(std::uint8_t target_logical_index, bin_data const &data,
-                                                    bool expect_more_data, ms timeout = default_timeout);
+        r<status, bin_data> initiator_data_exchange(std::uint8_t target_logical_index, bin_data const &data, ms timeout = default_timeout);
 
 
         r<status> initiator_select(std::uint8_t target_logical_index, ms timeout = default_timeout);
@@ -279,11 +274,10 @@ namespace pn532 {
     }
 
     template <class T, class>
-    nfc::r<status, bin_data> nfc::initiator_data_exchange(std::uint8_t target_logical_index, T &&data,
-                                                          bool expect_more_data, ms timeout)
+    nfc::r<status, bin_data> nfc::initiator_data_exchange(std::uint8_t target_logical_index, T &&data, ms timeout)
     {
         const bin_data bd = bin_data::chain(std::forward<T>(data));
-        return initiator_data_exchange(target_logical_index, bd, expect_more_data, timeout);
+        return initiator_data_exchange(target_logical_index, bd, timeout);
     }
 
 }

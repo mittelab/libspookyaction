@@ -16,6 +16,10 @@ namespace pn532 {
         Iterator it_begin;
         Iterator it_end;
 
+        inline typename std::iterator_traits<Iterator>::difference_type size() const {
+            return std::distance(it_begin, it_end);
+        }
+
         inline Iterator begin() const { return it_begin; }
 
         inline Iterator end() const { return it_end; }

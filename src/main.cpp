@@ -97,7 +97,7 @@ void test_data_exchange() {
     ESP_LOG_BUFFER_HEX_LEVEL(TEST_TAG, nfcid.data(), nfcid.size(), ESP_LOG_INFO);
     ESP_LOGI(TEST_TAG, "Exchanging data.");
     const auto idx = r_scan->front().logical_index;
-    const auto r_exchange = tag_reader->initiator_data_exchange(idx, {0x5a, 0x00, 0x00, 0x00}, false);
+    const auto r_exchange = tag_reader->initiator_data_exchange(idx, {0x5a, 0x00, 0x00, 0x00});
     if (not r_exchange) {
         TEST_FAIL_MESSAGE("Exchange failed.");
         return;

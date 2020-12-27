@@ -20,6 +20,7 @@ namespace pn532 {
         std::chrono::time_point<std::chrono::high_resolution_clock> _timestamp;
     public:
         inline timer();
+
         inline ms elapsed() const;
     };
 
@@ -30,6 +31,7 @@ namespace pn532 {
         inline explicit reduce_timeout(ms timeout);
 
         inline ms remaining() const;
+
         inline ms elapsed() const;
 
         inline explicit operator bool() const;
@@ -82,10 +84,10 @@ namespace pn532 {
 
         bool send(bin_data const &data, ms timeout);
 
-        template<std::size_t Length>
+        template <std::size_t Length>
         bool await_sequence(std::array<std::uint8_t, Length> const &match_seq, ms timeout);
 
-        template<std::size_t Length>
+        template <std::size_t Length>
         bool receive(std::array<std::uint8_t, Length> &buffer, ms timeout);
 
         virtual ~channel() = default;
@@ -93,13 +95,11 @@ namespace pn532 {
 }
 
 
-
 namespace pn532 {
 
     reduce_timeout::reduce_timeout(ms timeout) :
             _timeout{timeout},
-            _timer{}
-    {}
+            _timer{} {}
 
     timer::timer() : _timestamp{std::chrono::high_resolution_clock::now()} {}
 
@@ -126,6 +126,7 @@ namespace pn532 {
     bool channel::is_ready_to_receive() const {
         return _ready_to_receive;
     }
+
     void channel::set_ready_to_receive(bool v) {
         _ready_to_receive = v;
     }

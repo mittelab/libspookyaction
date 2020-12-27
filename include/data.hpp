@@ -44,9 +44,11 @@ namespace pn532 {
     using target_kbps106_jewel_tag = bits::target<baudrate_modulation::kbps106_innovision_jewel_tag>;
 
     template <target_type Type>
-    struct poll_entry : public bits::target<bits::baudrate_modulation_of_target<Type>::value> {};
+    struct poll_entry : public bits::target<bits::baudrate_modulation_of_target<Type>::value> {
+    };
 
-    struct infty_t {};
+    struct infty_t {
+    };
 
     static constexpr infty_t infty = infty_t{};
 
@@ -56,12 +58,19 @@ namespace pn532 {
     template <class Integral, class = typename std::enable_if<std::is_integral<Integral>::value>::type>
     struct with_inf {
         Integral v = Integral{};
+
         with_inf() = default;
+
         inline with_inf(infty_t) : v{std::numeric_limits<Integral>::max()} {}
+
         inline with_inf(Integral n) : v{n} {}
+
         inline operator Integral() const { return v; }
+
         inline with_inf &operator=(infty_t) { v = std::numeric_limits<Integral>::max(); }
+
         inline bool operator==(infty_t) const { return v == std::numeric_limits<Integral>::max(); }
+
         inline bool operator!=(infty_t) const { return v != std::numeric_limits<Integral>::max(); }
     };
 
@@ -72,38 +81,46 @@ namespace pn532 {
     };
 
     template <baudrate_modulation BrMd>
-    struct poll_entry_dep_passive : public bits::target<BrMd>, public poll_entry_with_atr {};
+    struct poll_entry_dep_passive : public bits::target<BrMd>, public poll_entry_with_atr {
+    };
 
     template <>
     struct poll_entry<target_type::dep_passive_106kbps> :
-            public poll_entry_dep_passive<bits::baudrate_modulation_of_target<target_type::dep_passive_106kbps>::value>
-    {};
+            public poll_entry_dep_passive<
+                    bits::baudrate_modulation_of_target<target_type::dep_passive_106kbps>::value> {
+    };
 
     template <>
     struct poll_entry<target_type::dep_passive_212kbps> :
-            public poll_entry_dep_passive<bits::baudrate_modulation_of_target<target_type::dep_passive_212kbps>::value>
-    {};
+            public poll_entry_dep_passive<
+                    bits::baudrate_modulation_of_target<target_type::dep_passive_212kbps>::value> {
+    };
 
     template <>
     struct poll_entry<target_type::dep_passive_424kbps> :
-            public poll_entry_dep_passive<bits::baudrate_modulation_of_target<target_type::dep_passive_424kbps>::value>
-    {};
+            public poll_entry_dep_passive<
+                    bits::baudrate_modulation_of_target<target_type::dep_passive_424kbps>::value> {
+    };
 
     template <>
-    struct poll_entry<target_type::dep_active_106kbps> : public poll_entry_with_atr {};
+    struct poll_entry<target_type::dep_active_106kbps> : public poll_entry_with_atr {
+    };
 
     template <>
-    struct poll_entry<target_type::dep_active_212kbps> : public poll_entry_with_atr {};
+    struct poll_entry<target_type::dep_active_212kbps> : public poll_entry_with_atr {
+    };
 
     template <>
-    struct poll_entry<target_type::dep_active_424kbps> : public poll_entry_with_atr {};
+    struct poll_entry<target_type::dep_active_424kbps> : public poll_entry_with_atr {
+    };
 
 
     class any_target {
         target_type _type;
         any _poll_entry;
     public:
-        struct incorrect_cast_t {};
+        struct incorrect_cast_t {
+        };
         static constexpr incorrect_cast_t incorrect_cast{};
 
         inline any_target();
@@ -122,7 +139,8 @@ namespace pn532 {
 
     namespace ctti {
         template <target_type Type>
-        struct type_info<poll_entry<Type>> : public std::integral_constant<id_type, static_cast<id_type>(Type)> {};
+        struct type_info<poll_entry<Type>> : public std::integral_constant<id_type, static_cast<id_type>(Type)> {
+        };
     }
 
     enum struct gpio_loc {
@@ -178,8 +196,8 @@ namespace pn532 {
     };
 
     template <std::size_t Length>
-    struct uid_cascade : public std::array<std::uint8_t , Length> {
-         using std::array<std::uint8_t , Length>::array;
+    struct uid_cascade : public std::array<std::uint8_t, Length> {
+        using std::array<std::uint8_t, Length>::array;
     };
 
     using uid_cascade_l1 = uid_cascade<4>;
@@ -212,12 +230,19 @@ namespace pn532 {
     };
 
     bin_data &operator<<(bin_data &bd, ciu_reg_212_424kbps const &reg);
+
     bin_data &operator<<(bin_data &bd, ciu_reg_106kbps_typea const &reg);
+
     bin_data &operator<<(bin_data &bd, ciu_reg_typeb const &reg);
+
     bin_data &operator<<(bin_data &bd, ciu_reg_iso_iec_14443_4_at_baudrate const &reg);
+
     bin_data &operator<<(bin_data &bd, ciu_reg_iso_iec_14443_4 const &reg);
+
     bin_data &operator<<(bin_data &bd, uid_cascade_l2 const &uid);
+
     bin_data &operator<<(bin_data &bd, uid_cascade_l3 const &uid);
+
     bin_data &operator<<(bin_data &bd, reg_antenna_detector const &r);
 
     template <baudrate_modulation BrMd>
@@ -227,22 +252,37 @@ namespace pn532 {
     bin_stream &operator>>(bin_stream &s, poll_entry<Type> &entry);
 
     bin_stream &operator>>(bin_stream &s, any_target &t);
+
     bin_stream &operator>>(bin_stream &s, std::vector<any_target> &targets);
 
     bin_stream &operator>>(bin_stream &s, std::pair<rf_status, bin_data> &status_data_pair);
+
     bin_stream &operator>>(bin_stream &s, rf_status &status);
+
     bin_stream &operator>>(bin_stream &s, gpio_status &gpio);
+
     bin_stream &operator>>(bin_stream &s, firmware_version &fw);
+
     bin_stream &operator>>(bin_stream &s, general_status &gs);
+
     bin_stream &operator>>(bin_stream &s, target_status &ts);
+
     bin_stream &operator>>(bin_stream &s, target_kbps106_typea &target);
+
     bin_stream &operator>>(bin_stream &s, target_kbps212_felica &target);
+
     bin_stream &operator>>(bin_stream &s, target_kbps424_felica &target);
+
     bin_stream &operator>>(bin_stream &s, target_kbps106_typeb &target);
+
     bin_stream &operator>>(bin_stream &s, target_kbps106_jewel_tag &target);
+
     bin_stream &operator>>(bin_stream &s, atr_res_info &atr_res);
+
     bin_stream &operator>>(bin_stream &s, std::pair<rf_status, atr_res_info> &status_atr_res);
+
     bin_stream &operator>>(bin_stream &s, reg_antenna_detector &r);
+
     bin_stream &operator>>(bin_stream &s, jump_dep_psl &r);
 
 }
@@ -254,7 +294,7 @@ namespace pn532 {
 
     template <target_type Type>
     any_target::any_target(poll_entry<Type> entry) :
-        _type{Type}, _poll_entry{std::move(entry)} {}
+            _type{Type}, _poll_entry{std::move(entry)} {}
 
     template <target_type Type>
     any_target &any_target::operator=(poll_entry<Type> entry) {
@@ -279,20 +319,28 @@ namespace pn532 {
 
     bool gpio_status::operator[](std::pair<gpio_loc, std::uint8_t> const &gpio_idx) const {
         switch (gpio_idx.first) {
-            case gpio_loc::p3:   return 0 != (_p3_mask   & (1 << gpio_idx.second));
-            case gpio_loc::p7:   return 0 != (_p7_mask   & (1 << gpio_idx.second));
-            case gpio_loc::i0i1: return 0 != (_i0i1_mask & (1 << gpio_idx.second));
-            default: return false;
+            case gpio_loc::p3:
+                return 0 != (_p3_mask & (1 << gpio_idx.second));
+            case gpio_loc::p7:
+                return 0 != (_p7_mask & (1 << gpio_idx.second));
+            case gpio_loc::i0i1:
+                return 0 != (_i0i1_mask & (1 << gpio_idx.second));
+            default:
+                return false;
         }
     }
 
     bit_ref gpio_status::operator[](std::pair<gpio_loc, std::uint8_t> const &gpio_idx) {
         static std::uint8_t _garbage = 0x00;
         switch (gpio_idx.first) {
-            case gpio_loc::p3:   return bit_ref{_p3_mask, gpio_idx.second, bits::gpio_p3_pin_mask};
-            case gpio_loc::p7:   return bit_ref{_p7_mask, gpio_idx.second, bits::gpio_p7_pin_mask};
-            case gpio_loc::i0i1: return bit_ref{_i0i1_mask, gpio_idx.second, bits::gpio_i0i1_pin_mask};
-            default: return bit_ref{_garbage, gpio_idx.second, 0xff};
+            case gpio_loc::p3:
+                return bit_ref{_p3_mask, gpio_idx.second, bits::gpio_p3_pin_mask};
+            case gpio_loc::p7:
+                return bit_ref{_p7_mask, gpio_idx.second, bits::gpio_p7_pin_mask};
+            case gpio_loc::i0i1:
+                return bit_ref{_i0i1_mask, gpio_idx.second, bits::gpio_i0i1_pin_mask};
+            default:
+                return bit_ref{_garbage, gpio_idx.second, 0xff};
         }
     }
 
@@ -301,19 +349,30 @@ namespace pn532 {
 
     inline std::uint8_t gpio_status::mask(gpio_loc loc) const {
         switch (loc) {
-            case gpio_loc::p3:   return _p3_mask;
-            case gpio_loc::p7:   return _p7_mask;
-            case gpio_loc::i0i1: return _i0i1_mask;
-            default: return 0x00;
+            case gpio_loc::p3:
+                return _p3_mask;
+            case gpio_loc::p7:
+                return _p7_mask;
+            case gpio_loc::i0i1:
+                return _i0i1_mask;
+            default:
+                return 0x00;
         }
     }
 
     void gpio_status::set_mask(gpio_loc loc, std::uint8_t mask) {
         switch (loc) {
-            case gpio_loc::p3:   _p3_mask   = mask & bits::gpio_p3_pin_mask; break;
-            case gpio_loc::p7:   _p7_mask   = mask & bits::gpio_p7_pin_mask; break;
-            case gpio_loc::i0i1: _i0i1_mask = mask & bits::gpio_i0i1_pin_mask; break;
-            default: break;
+            case gpio_loc::p3:
+                _p3_mask = mask & bits::gpio_p3_pin_mask;
+                break;
+            case gpio_loc::p7:
+                _p7_mask = mask & bits::gpio_p7_pin_mask;
+                break;
+            case gpio_loc::i0i1:
+                _i0i1_mask = mask & bits::gpio_i0i1_pin_mask;
+                break;
+            default:
+                break;
         }
     }
 
@@ -349,17 +408,19 @@ namespace pn532 {
 
     namespace impl {
         template <bool, bool>
-        struct poll_entry_extractor {};
+        struct poll_entry_extractor {
+        };
 
         template <>
         struct poll_entry_extractor<false, true> {
             template <target_type Type>
             bin_stream &operator()(bin_stream &s, poll_entry<Type> &entry) const {
                 static_assert(std::is_base_of<poll_entry_with_atr, poll_entry<Type>>::value,
-                        "This variant is intended for DEP compatible, active targets.");
+                              "This variant is intended for DEP compatible, active targets.");
                 return s >> static_cast<poll_entry_with_atr &>(entry).atr_info;
             }
         };
+
         template <>
         struct poll_entry_extractor<true, false> {
             template <target_type Type>
@@ -370,6 +431,7 @@ namespace pn532 {
                 return s >> static_cast<bits::target<BrMod> &>(entry);
             }
         };
+
         template <>
         struct poll_entry_extractor<true, true> {
             template <target_type Type>

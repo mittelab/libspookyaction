@@ -13,7 +13,10 @@ namespace pn532 {
     namespace ctti {
         using id_type = std::uintptr_t;
 
-        template <class> struct void_t { using type = void; };
+        template <class>
+        struct void_t {
+            using type = void;
+        };
 
         template <class T>
         struct type_info {
@@ -33,11 +36,15 @@ namespace pn532 {
         inline any();
 
         any(any const &) = delete;
+
         any &operator=(any const &) = delete;
 
         inline any(any &&) noexcept;
+
         inline any &operator=(any &&) noexcept;
+
         inline ctti::id_type const &type() const;
+
         inline bool empty() const;
 
         template <class T, class = typename std::enable_if<not std::is_same<T, any>::value>::type>
@@ -46,9 +53,14 @@ namespace pn532 {
         template <class T, class = typename std::enable_if<not std::is_same<T, any>::value>::type>
         any &operator=(T &&t);
 
-        template <class T> bool test_type() const;
-        template <class T> T &get();
-        template <class T> T const &get() const;
+        template <class T>
+        bool test_type() const;
+
+        template <class T>
+        T &get();
+
+        template <class T>
+        T const &get() const;
     };
 
 }
@@ -57,7 +69,7 @@ namespace pn532 {
 
     any::any() : _p{nullptr}, _t{} {}
 
-    any::any(any &&other) noexcept : any{} {
+    any::any(any &&other) noexcept: any{} {
         *this = std::move(other);
     }
 
@@ -83,7 +95,7 @@ namespace pn532 {
     template <class T, class>
     any &any::operator=(T &&t) {
         // Magic erased type deleter that remembers what was the original type
-        std::function<void (void *)> deleter = [](void *ptr) {
+        std::function<void(void *)> deleter = [](void *ptr) {
             std::default_delete<T>{}(reinterpret_cast<T *>(ptr));
         };
         _p = std::unique_ptr<void, std::function<void(void *)>>(new T(std::forward<T>(t)), std::move(deleter));
@@ -107,7 +119,8 @@ namespace pn532 {
             return *reinterpret_cast<T const *>(_p.get());
         }
         LOGE("Requested incorrect type from an any.");
-        return *reinterpret_cast<T const *>(nullptr);}
+        return *reinterpret_cast<T const *>(nullptr);
+    }
 }
 
 #endif //APERTURAPORTA_ANY_HPP

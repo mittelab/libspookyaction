@@ -9,13 +9,13 @@ namespace pn532 {
 
     bin_data &operator<<(bin_data &bd, ciu_reg_212_424kbps const &reg) {
         return bd << prealloc(sizeof(ciu_reg_212_424kbps)) << reg.rf_cfg << reg.gs_n_on << reg.cw_gs_p
-            << reg.mod_gs_p << reg.demod_own_rf_on << reg.rx_threshold << reg.demod_own_rf_off << reg.gs_n_off;
+                  << reg.mod_gs_p << reg.demod_own_rf_on << reg.rx_threshold << reg.demod_own_rf_off << reg.gs_n_off;
     }
 
     bin_data &operator<<(bin_data &bd, ciu_reg_106kbps_typea const &reg) {
         return bd << prealloc(sizeof(ciu_reg_106kbps_typea)) << reg.rf_cfg << reg.gs_n_on << reg.cw_gs_p
-            << reg.mod_gs_p << reg.demod_own_rf_on << reg.rx_threshold << reg.demod_own_rf_off << reg.gs_n_off
-            << reg.mod_width << reg.mif_nfc << reg.tx_bit_phase;
+                  << reg.mod_gs_p << reg.demod_own_rf_on << reg.rx_threshold << reg.demod_own_rf_off << reg.gs_n_off
+                  << reg.mod_width << reg.mif_nfc << reg.tx_bit_phase;
     }
 
     bin_data &operator<<(bin_data &bd, ciu_reg_typeb const &reg) {
@@ -24,7 +24,7 @@ namespace pn532 {
 
     bin_data &operator<<(bin_data &bd, ciu_reg_iso_iec_14443_4_at_baudrate const &reg) {
         return bd << prealloc(sizeof(ciu_reg_iso_iec_14443_4_at_baudrate)) << reg.rx_threshold << reg.mod_width
-            << reg.mif_nfc;
+                  << reg.mif_nfc;
     }
 
     bin_data &operator<<(bin_data &bd, ciu_reg_iso_iec_14443_4 const &reg) {
@@ -37,7 +37,7 @@ namespace pn532 {
 
     bin_data &operator<<(bin_data &bd, uid_cascade_l3 const &uid) {
         return bd << prealloc(12) << bits::uid_cascade_tag << make_range(std::begin(uid), std::begin(uid) + 3)
-            << bits::uid_cascade_tag << make_range(std::begin(uid) + 3, std::end(uid));
+                  << bits::uid_cascade_tag << make_range(std::begin(uid) + 3, std::end(uid));
     }
 
     bin_data &operator<<(bin_data &bd, reg_antenna_detector const &r) {

@@ -26,8 +26,7 @@ namespace {
 
 }
 
-void setup_uart()
-{
+void setup_uart() {
     uart_config_t uart_config = {
             .baud_rate = 115200,
             .data_bits = UART_DATA_8_BITS,
@@ -43,8 +42,7 @@ void setup_uart()
 }
 
 
-void test_get_fw()
-{
+void test_get_fw() {
     serial = make_unique<pn532::hsu>(UART_NUM_1);
     tag_reader = make_unique<pn532::nfc>(*serial);
 
@@ -59,7 +57,8 @@ void test_diagnostics() {
     TEST_ASSERT(is_ok(tag_reader->diagnose_rom()));
     TEST_ASSERT(is_ok(tag_reader->diagnose_ram()));
     TEST_ASSERT(is_ok(tag_reader->diagnose_comm_line()));
-    TEST_ASSERT(is_ok(tag_reader->diagnose_self_antenna(pn532::low_current_thr::mA_25, pn532::high_current_thr::mA_150)));
+    TEST_ASSERT(
+            is_ok(tag_reader->diagnose_self_antenna(pn532::low_current_thr::mA_25, pn532::high_current_thr::mA_150)));
 }
 
 void test_scan_mifare() {
@@ -108,8 +107,7 @@ void test_data_exchange() {
     TEST_ASSERT(r_exchange->second.size() == 1 and r_exchange->second.front() == 0x0);
 }
 
-extern "C" void app_main()
-{
+extern "C" void app_main() {
     UNITY_BEGIN();
     RUN_TEST(setup_uart);
     RUN_TEST(test_get_fw);

@@ -74,7 +74,8 @@ namespace pn532 {
                 } else {
                     read_length += n_bytes;
                     if (n_bytes != buffer_length) {
-                        LOGW("Read only %ul bytes out of %ul in uart %d.", n_bytes, buffer_length, static_cast<int>(_port));
+                        LOGW("Read only %ul bytes out of %ul in uart %d.", n_bytes, buffer_length,
+                             static_cast<int>(_port));
                     }
                 }
             }

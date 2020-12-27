@@ -15,13 +15,13 @@ namespace pn532 {
 
         inline std::uint8_t compute_checksum(std::uint8_t byte);
 
-        template<class ByteIterator>
+        template <class ByteIterator>
         std::uint8_t compute_checksum(ByteIterator begin, ByteIterator end);
 
-        template<class ByteIterator>
+        template <class ByteIterator>
         std::uint8_t compute_checksum(std::uint8_t sum_init, ByteIterator begin, ByteIterator end);
 
-        template<class ByteIterator>
+        template <class ByteIterator>
         bool checksum(ByteIterator begin, ByteIterator end);
 
         inline std::array<std::uint8_t, 2> length_and_checksum_short(std::uint8_t length);
@@ -46,17 +46,17 @@ namespace pn532 {
             return ~byte + 1;
         }
 
-        template<class ByteIterator>
+        template <class ByteIterator>
         std::uint8_t compute_checksum(ByteIterator begin, ByteIterator end) {
             return compute_checksum(0, begin, end);
         }
 
-        template<class ByteIterator>
+        template <class ByteIterator>
         std::uint8_t compute_checksum(std::uint8_t sum_init, ByteIterator begin, ByteIterator end) {
             return compute_checksum(std::accumulate(begin, end, sum_init));
         }
 
-        template<class ByteIterator>
+        template <class ByteIterator>
         bool checksum(ByteIterator begin, ByteIterator end) {
             return (std::accumulate(begin, end, 0) & 0xff) == 0;
         }

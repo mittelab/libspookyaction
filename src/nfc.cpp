@@ -17,14 +17,22 @@ namespace pn532 {
 
     const char *to_string(nfc::error e) {
         switch (e) {
-            case nfc::error::comm_checksum_fail: return "Checksum (length or data) failed";
-            case nfc::error::comm_malformed:     return "Malformed or unexpected response";
-            case nfc::error::comm_error:         return "Controller returned error instead of ACK";
-            case nfc::error::failure:            return "Controller acknowledged but returned error";
-            case nfc::error::comm_timeout:       return "Communication reached timeout";
-            case nfc::error::canceled:           return "Comm ok, but no response within timeout";
-            case nfc::error::nack:               return "Controller did not acknowledge.";
-            default: return "UNKNOWN";
+            case nfc::error::comm_checksum_fail:
+                return "Checksum (length or data) failed";
+            case nfc::error::comm_malformed:
+                return "Malformed or unexpected response";
+            case nfc::error::comm_error:
+                return "Controller returned error instead of ACK";
+            case nfc::error::failure:
+                return "Controller acknowledged but returned error";
+            case nfc::error::comm_timeout:
+                return "Communication reached timeout";
+            case nfc::error::canceled:
+                return "Comm ok, but no response within timeout";
+            case nfc::error::nack:
+                return "Controller did not acknowledge.";
+            default:
+                return "UNKNOWN";
         }
     }
 
@@ -92,6 +100,7 @@ namespace pn532 {
         );
         return ack_frame;
     }
+
     bin_data const &nfc::get_nack_frame() {
         static const bin_data nack_frame = bin_data::chain(
                 prealloc(6),
@@ -181,10 +190,10 @@ namespace pn532 {
         }
         // Can output
         return frame_body{
-            static_cast<bits::transport>(data[0]),
-            bits::pn532_to_host_command(data[1]),
-            // Copy the body
-            bin_data{std::begin(data) + 2, std::end(data) - 1}
+                static_cast<bits::transport>(data[0]),
+                bits::pn532_to_host_command(data[1]),
+                // Copy the body
+                bin_data{std::begin(data) + 2, std::end(data) - 1}
         };
     }
 
@@ -270,8 +279,7 @@ namespace pn532 {
         return res_ack.error();
     }
 
-    nfc::r<bin_data> nfc::command_response(command_code cmd, bin_data const &payload, ms timeout)
-    {
+    nfc::r<bin_data> nfc::command_response(command_code cmd, bin_data const &payload, ms timeout) {
         reduce_timeout rt{timeout};
         const auto res_cmd = command(cmd, payload, rt.remaining());
         if (not res_cmd) {
@@ -284,8 +292,7 @@ namespace pn532 {
             if (not res_response) {
                 // Send a nack only if the error is malformed communication
                 if (res_response.error() == error::comm_malformed or
-                    res_response.error() == error::comm_checksum_fail)
-                {
+                    res_response.error() == error::comm_checksum_fail) {
                     LOGW("%s: requesting response again (%s).", to_string(cmd), to_string(res_response.error()));
                     // Retry command response
                     raw_send_ack(false, rt.remaining());
@@ -297,7 +304,7 @@ namespace pn532 {
                     break;
                 }
             }
-        } while(not res_response and res_response.error() != error::comm_timeout);
+        } while (not res_response and res_response.error() != error::comm_timeout);
         if (not res_response) {
             LOGW("%s: canceling command after %lld ms.", to_string(cmd), rt.elapsed().count());
             raw_send_ack(true, one_sec); // Abort command, allow large timeout time for this
@@ -330,8 +337,7 @@ namespace pn532 {
         }
         // Test that the reurned data coincides
         if (payload.size() == res_cmd->size() and
-            std::equal(std::begin(payload), std::end(payload), std::begin(*res_cmd)))
-        {
+            std::equal(std::begin(payload), std::end(payload), std::begin(*res_cmd))) {
             LOGI("%s: %s test succeeded.", to_string(command_code::diagnose), to_string(bits::test::comm_line));
             return true;
         } else {
@@ -342,9 +348,9 @@ namespace pn532 {
 
     namespace {
         template <class ...Args>
-        nfc::r<bool> nfc_diagnose_simple(nfc &controller, bits::test test, std::uint8_t expected, ms timeout,
-                                         std::size_t expected_body_size = 0, Args &&...append_to_body)
-       {
+        nfc::r<bool> nfc_diagnose_simple(
+                nfc &controller, bits::test test, std::uint8_t expected, ms timeout,
+                std::size_t expected_body_size = 0, Args &&...append_to_body) {
             LOGI("%s: running %s...", to_string(command_code::diagnose), to_string(test));
             const bin_data payload = bin_data::chain(prealloc(expected_body_size + 1), test,
                                                      std::forward<Args>(append_to_body)...);
@@ -425,7 +431,8 @@ namespace pn532 {
         return nfc_diagnose_simple(*this, bits::test::attention_req_or_card_presence, 0x00, timeout);
     }
 
-    nfc::r<bool> nfc::diagnose_self_antenna(low_current_thr low_threshold, high_current_thr high_threshold, ms timeout) {
+    nfc::r<bool> nfc::diagnose_self_antenna(
+            low_current_thr low_threshold, high_current_thr high_threshold, ms timeout) {
         const reg_antenna_detector r{
                 .detected_low_pwr = false,
                 .detected_high_pwr = false,
@@ -535,17 +542,18 @@ namespace pn532 {
 
     nfc::r<> nfc::rf_configuration_field(bool auto_rfca, bool rf_on, ms timeout) {
         const std::uint8_t config_data =
-                (auto_rfca ? bits::rf_configuration_field_auto_rfca_mask  : 0x00) |
-                (rf_on     ? bits::rf_configuration_field_auto_rf_on_mask : 0x00);
+                (auto_rfca ? bits::rf_configuration_field_auto_rfca_mask : 0x00) |
+                (rf_on ? bits::rf_configuration_field_auto_rf_on_mask : 0x00);
         const bin_data payload = bin_data::chain(
                 prealloc(2),
                 bits::rf_config_item::rf_field,
                 config_data);
         return command_response(command_code::rf_configuration, payload, timeout);
     }
-    nfc::r<> nfc::rf_configuration_timings(std::uint8_t rfu, rf_timeout atr_res_timeout, rf_timeout retry_timeout,
-                                           ms timeout)
-    {
+
+    nfc::r<> nfc::rf_configuration_timings(
+            std::uint8_t rfu, rf_timeout atr_res_timeout, rf_timeout retry_timeout,
+            ms timeout) {
         const bin_data payload = bin_data::chain(
                 prealloc(4),
                 bits::rf_config_item::timings,
@@ -563,9 +571,9 @@ namespace pn532 {
         return command_response(command_code::rf_configuration, payload, timeout);
     }
 
-    nfc::r<> nfc::rf_configuration_retries(infbyte atr_retries, infbyte psl_retries,
-                                           infbyte passive_activation_retries, ms timeout)
-    {
+    nfc::r<> nfc::rf_configuration_retries(
+            infbyte atr_retries, infbyte psl_retries,
+            infbyte passive_activation_retries, ms timeout) {
         const bin_data payload = bin_data::chain(
                 prealloc(4),
                 bits::rf_config_item::max_retries,
@@ -617,23 +625,24 @@ namespace pn532 {
     }
 
     nfc::r<rf_status> nfc::initiator_select(std::uint8_t target_logical_index, ms timeout) {
-        const std::uint8_t target_byte = get_target(command_code ::in_select, target_logical_index, false);
+        const std::uint8_t target_byte = get_target(command_code::in_select, target_logical_index, false);
         return command_parse_response<rf_status>(command_code::in_select, bin_data{target_byte}, timeout);
     }
 
     nfc::r<rf_status> nfc::initiator_deselect(std::uint8_t target_logical_index, ms timeout) {
-        const std::uint8_t target_byte = get_target(command_code ::in_deselect, target_logical_index, false);
+        const std::uint8_t target_byte = get_target(command_code::in_deselect, target_logical_index, false);
         return command_parse_response<rf_status>(command_code::in_deselect, bin_data{target_byte}, timeout);
     }
 
     nfc::r<rf_status> nfc::initiator_release(std::uint8_t target_logical_index, ms timeout) {
-        const std::uint8_t target_byte = get_target(command_code ::in_release, target_logical_index, false);
+        const std::uint8_t target_byte = get_target(command_code::in_release, target_logical_index, false);
         return command_parse_response<rf_status>(command_code::in_release, bin_data{target_byte}, timeout);
     }
-    nfc::r<rf_status> nfc::initiator_psl(std::uint8_t target_logical_index, baudrate in_to_trg, baudrate trg_to_in,
-                                         ms timeout)
-    {
-        const std::uint8_t target_byte = get_target(command_code ::in_psl, target_logical_index, false);
+
+    nfc::r<rf_status> nfc::initiator_psl(
+            std::uint8_t target_logical_index, baudrate in_to_trg, baudrate trg_to_in,
+            ms timeout) {
+        const std::uint8_t target_byte = get_target(command_code::in_psl, target_logical_index, false);
         const bin_data payload = bin_data::chain(prealloc(3), target_byte, in_to_trg, trg_to_in);
         return command_parse_response<rf_status>(command_code::in_psl, payload, timeout);
     }
@@ -649,48 +658,42 @@ namespace pn532 {
     }
 
     nfc::r<std::vector<target_kbps106_typea>> nfc::initiator_list_passive_kbps106_typea(
-            std::uint8_t max_targets, ms timeout)
-    {
+            std::uint8_t max_targets, ms timeout) {
         sanitize_max_targets(max_targets, "initiator_list_passive_kbps106_typea");
         return initiator_list_passive<baudrate_modulation::kbps106_iso_iec_14443_typea>(
                 max_targets, bin_data{}, timeout);
     }
 
     nfc::r<std::vector<target_kbps106_typea>> nfc::initiator_list_passive_kbps106_typea(
-            uid_cascade_l1 uid, std::uint8_t max_targets, ms timeout)
-    {
+            uid_cascade_l1 uid, std::uint8_t max_targets, ms timeout) {
         sanitize_max_targets(max_targets, "initiator_list_passive_kbps106_typea");
         return initiator_list_passive<baudrate_modulation::kbps106_iso_iec_14443_typea>(
                 max_targets, bin_data::chain(uid), timeout);
     }
 
     nfc::r<std::vector<target_kbps106_typea>> nfc::initiator_list_passive_kbps106_typea(
-            uid_cascade_l2 uid, std::uint8_t max_targets, ms timeout)
-    {
+            uid_cascade_l2 uid, std::uint8_t max_targets, ms timeout) {
         sanitize_max_targets(max_targets, "initiator_list_passive_kbps106_typea");
         return initiator_list_passive<baudrate_modulation::kbps106_iso_iec_14443_typea>(
                 max_targets, bin_data::chain(uid), timeout);
     }
 
     nfc::r<std::vector<target_kbps106_typea>> nfc::initiator_list_passive_kbps106_typea(
-            uid_cascade_l3 uid, std::uint8_t max_targets, ms timeout)
-    {
+            uid_cascade_l3 uid, std::uint8_t max_targets, ms timeout) {
         sanitize_max_targets(max_targets, "initiator_list_passive_kbps106_typea");
         return initiator_list_passive<baudrate_modulation::kbps106_iso_iec_14443_typea>(
                 max_targets, bin_data::chain(uid), timeout);
     }
 
     nfc::r<std::vector<target_kbps106_typeb>> nfc::initiator_list_passive_kbps106_typeb(
-            std::uint8_t application_family_id, polling_method method, std::uint8_t max_targets, ms timeout)
-    {
+            std::uint8_t application_family_id, polling_method method, std::uint8_t max_targets, ms timeout) {
         sanitize_max_targets(max_targets, "initiator_list_passive_kbps106_typeb");
         return initiator_list_passive<baudrate_modulation::kbps106_iso_iec_14443_3_typeb>(
                 max_targets, bin_data::chain(prealloc(2), application_family_id, method), timeout);
     }
 
     nfc::r<std::vector<target_kbps212_felica>> nfc::initiator_list_passive_kbps212_felica(
-            std::array<std::uint8_t, 5> const &payload, std::uint8_t max_targets, ms timeout)
-    {
+            std::array<std::uint8_t, 5> const &payload, std::uint8_t max_targets, ms timeout) {
         sanitize_max_targets(max_targets, "initiator_list_passive_kbps212_felica");
         return initiator_list_passive<baudrate_modulation::kbps212_felica_polling>(
                 max_targets, bin_data::chain(payload), timeout);
@@ -698,22 +701,19 @@ namespace pn532 {
     }
 
     nfc::r<std::vector<target_kbps424_felica>> nfc::initiator_list_passive_kbps424_felica(
-            std::array<std::uint8_t, 5> const &payload, std::uint8_t max_targets, ms timeout)
-    {
+            std::array<std::uint8_t, 5> const &payload, std::uint8_t max_targets, ms timeout) {
         sanitize_max_targets(max_targets, "initiator_list_passive_kbps424_felica");
         return initiator_list_passive<baudrate_modulation::kbps424_felica_polling>(
                 max_targets, bin_data::chain(payload), timeout);
     }
 
-    nfc::r<std::vector<target_kbps106_jewel_tag>> nfc::initiator_list_passive_kbps106_jewel_tag(ms timeout)
-    {
+    nfc::r<std::vector<target_kbps106_jewel_tag>> nfc::initiator_list_passive_kbps106_jewel_tag(ms timeout) {
         return initiator_list_passive<baudrate_modulation::kbps106_innovision_jewel_tag>(1, bin_data{}, timeout);
     }
 
     template <baudrate_modulation BrMd>
     nfc::r<std::vector<bits::target<BrMd>>> nfc::initiator_list_passive(
-            std::uint8_t max_targets, bin_data const &initiator_data, ms timeout)
-    {
+            std::uint8_t max_targets, bin_data const &initiator_data, ms timeout) {
         const bin_data payload = bin_data::chain(
                 prealloc(2 + initiator_data.size()),
                 max_targets,
@@ -732,12 +732,14 @@ namespace pn532 {
     namespace {
         std::uint8_t get_in_atr_next(bool has_nfcid_3t, bool has_general_info) {
             return (has_nfcid_3t ? bits::in_atr_nfcid_3t_present_mask : 0x00)
-                | (has_general_info ? bits::in_atr_general_info_present_mask : 0x00);
+                   | (has_general_info ? bits::in_atr_general_info_present_mask : 0x00);
         }
 
-        range<std::vector<std::uint8_t>::const_iterator> sanitize_general_info(command_code cmd, std::vector<std::uint8_t> const &gi) {
+        range<std::vector<std::uint8_t>::const_iterator> sanitize_general_info(
+                command_code cmd, std::vector<std::uint8_t> const &gi) {
             if (gi.size() > bits::general_info_max_length) {
-                LOGW("%s: general info array too long (%u), truncating to %u bytes.", to_string(cmd), gi.size(), bits::general_info_max_length);
+                LOGW("%s: general info array too long (%u), truncating to %u bytes.", to_string(cmd), gi.size(),
+                     bits::general_info_max_length);
             }
             return make_range(
                     std::begin(gi),
@@ -747,8 +749,7 @@ namespace pn532 {
     }
 
 
-    nfc::r<rf_status, atr_res_info> nfc::initiator_activate_target(std::uint8_t target_logical_index, ms timeout)
-    {
+    nfc::r<rf_status, atr_res_info> nfc::initiator_activate_target(std::uint8_t target_logical_index, ms timeout) {
         const auto next_byte = get_in_atr_next(false, false);
         return command_parse_response<std::pair<rf_status, atr_res_info>>(
                 command_code::in_atr,
@@ -756,10 +757,11 @@ namespace pn532 {
                 timeout
         );
     }
-    nfc::r<rf_status, atr_res_info> nfc::initiator_activate_target(std::uint8_t target_logical_index,
-                                                                   std::array<std::uint8_t, 10> const &nfcid_3t,
-                                                                   ms timeout)
-    {
+
+    nfc::r<rf_status, atr_res_info> nfc::initiator_activate_target(
+            std::uint8_t target_logical_index,
+            std::array<std::uint8_t, 10> const &nfcid_3t,
+            ms timeout) {
         const auto next_byte = get_in_atr_next(true, false);
         return command_parse_response<std::pair<rf_status, atr_res_info>>(
                 command_code::in_atr,
@@ -767,10 +769,11 @@ namespace pn532 {
                 timeout
         );
     }
-    nfc::r<rf_status, atr_res_info> nfc::initiator_activate_target(std::uint8_t target_logical_index,
-                                                                   std::vector<std::uint8_t> const &general_info,
-                                                                   ms timeout)
-    {
+
+    nfc::r<rf_status, atr_res_info> nfc::initiator_activate_target(
+            std::uint8_t target_logical_index,
+            std::vector<std::uint8_t> const &general_info,
+            ms timeout) {
         const auto next_byte = get_in_atr_next(false, true);
         const auto gi_view = sanitize_general_info(command_code::in_atr, general_info);
         return command_parse_response<std::pair<rf_status, atr_res_info>>(
@@ -780,11 +783,11 @@ namespace pn532 {
         );
     }
 
-    nfc::r<rf_status, atr_res_info> nfc::initiator_activate_target(std::uint8_t target_logical_index,
-                                                                   std::array<std::uint8_t, 10> const &nfcid_3t,
-                                                                   std::vector<std::uint8_t> const &general_info,
-                                                                   ms timeout)
-    {
+    nfc::r<rf_status, atr_res_info> nfc::initiator_activate_target(
+            std::uint8_t target_logical_index,
+            std::array<std::uint8_t, 10> const &nfcid_3t,
+            std::vector<std::uint8_t> const &general_info,
+            ms timeout) {
         const auto next_byte = get_in_atr_next(true, true);
         const auto gi_view = sanitize_general_info(command_code::in_atr, general_info);
         return command_parse_response<std::pair<rf_status, atr_res_info>>(
@@ -794,10 +797,10 @@ namespace pn532 {
         );
     }
 
-    nfc::r<std::vector<any_target>> nfc::initiator_auto_poll(std::vector<target_type> const &types_to_poll,
-                                                   infbyte polls_per_type, poll_period period,
-                                                   ms timeout)
-    {
+    nfc::r<std::vector<any_target>> nfc::initiator_auto_poll(
+            std::vector<target_type> const &types_to_poll,
+            infbyte polls_per_type, poll_period period,
+            ms timeout) {
         if (types_to_poll.empty()) {
             LOGW("%s: no target types specified.", to_string(command_code::in_autopoll));
             return std::vector<any_target>{};
@@ -822,14 +825,16 @@ namespace pn532 {
         return res_cmd;
     }
 
-    nfc::r<rf_status, bin_data> nfc::initiator_data_exchange(std::uint8_t target_logical_index, bin_data const &data, ms timeout)
-    {
+    nfc::r<rf_status, bin_data> nfc::initiator_data_exchange(
+            std::uint8_t target_logical_index, bin_data const &data, ms timeout) {
         static constexpr std::size_t max_chunk_length = bits::max_firmware_data_length - 1;  // - target byte
         const auto n_chunks = std::max(1u, (data.size() + max_chunk_length - 1) / max_chunk_length);
         if (n_chunks > 1) {
-            LOGI("%s: %ul bytes will be sent in %u chunks.", to_string(command_code::in_data_exchange), data.size(), n_chunks);
+            LOGI("%s: %ul bytes will be sent in %u chunks.", to_string(command_code::in_data_exchange), data.size(),
+                 n_chunks);
         }
-        LOGD("%s: sending the following data to target %u:", to_string(command_code::in_data_exchange), target_logical_index);
+        LOGD("%s: sending the following data to target %u:", to_string(command_code::in_data_exchange),
+             target_logical_index);
         ESP_LOG_BUFFER_HEX_LEVEL(PN532_TAG, data.data(), data.size(), ESP_LOG_DEBUG);
         reduce_timeout rt{timeout};
         bin_data data_in{};
@@ -837,7 +842,8 @@ namespace pn532 {
         for (std::size_t chunk_idx = 0; chunk_idx < n_chunks; ++chunk_idx) {
             const auto data_view = data.view(chunk_idx * max_chunk_length, max_chunk_length);
             const bool more_data = (chunk_idx + 1 >= n_chunks);
-            const std::uint8_t target_byte = get_target(command_code::in_data_exchange, target_logical_index, more_data);
+            const std::uint8_t target_byte = get_target(command_code::in_data_exchange, target_logical_index,
+                                                        more_data);
             if (n_chunks > 1) {
                 LOGI("%s: sending chunk %u/%u...", to_string(command_code::in_data_exchange), chunk_idx + 1, n_chunks);
             }
@@ -865,11 +871,13 @@ namespace pn532 {
 
 
     nfc::r<rf_status, bin_data> nfc::initiator_communicate_through(bin_data const &raw_data, ms timeout) {
-        return command_parse_response<std::pair<rf_status, bin_data>>(command_code::in_communicate_thru, raw_data, timeout);
+        return command_parse_response<std::pair<rf_status, bin_data>>(command_code::in_communicate_thru, raw_data,
+                                                                      timeout);
     }
 
     namespace {
-        std::uint8_t get_in_jump_for_dep_psl_next(bool has_passive_init_data, bool has_nfcid_3t, bool has_general_info) {
+        std::uint8_t get_in_jump_for_dep_psl_next(
+                bool has_passive_init_data, bool has_nfcid_3t, bool has_general_info) {
             return (has_passive_init_data ? bits::in_jump_for_dep_passive_init_data_present_mask : 0x00)
                    | (has_nfcid_3t ? bits::in_jump_for_dep_nfcid_3t_present_mask : 0x00)
                    | (has_general_info ? bits::in_jump_for_dep_general_info_present_mask : 0x00);
@@ -884,7 +892,9 @@ namespace pn532 {
                 timeout
         );
     }
-    nfc::r<jump_dep_psl> nfc::initiator_jump_for_dep_active(baudrate speed, std::array<std::uint8_t, 10> const &nfcid_3t, ms timeout) {
+
+    nfc::r<jump_dep_psl> nfc::initiator_jump_for_dep_active(
+            baudrate speed, std::array<std::uint8_t, 10> const &nfcid_3t, ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(false, true, false);
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_dep,
@@ -892,6 +902,7 @@ namespace pn532 {
                 timeout
         );
     }
+
     nfc::r<jump_dep_psl> nfc::initiator_jump_for_dep_passive_106kbps(ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(false, false, false);
         return command_parse_response<jump_dep_psl>(
@@ -900,7 +911,9 @@ namespace pn532 {
                 timeout
         );
     }
-    nfc::r<jump_dep_psl> nfc::initiator_jump_for_dep_passive_106kbps(std::array<std::uint8_t, 10> const &nfcid_3t, ms timeout) {
+
+    nfc::r<jump_dep_psl> nfc::initiator_jump_for_dep_passive_106kbps(
+            std::array<std::uint8_t, 10> const &nfcid_3t, ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(false, true, false);
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_dep,
@@ -908,7 +921,9 @@ namespace pn532 {
                 timeout
         );
     }
-    nfc::r<jump_dep_psl> nfc::initiator_jump_for_dep_passive_106kbps(std::array<std::uint8_t, 4> const &target_id, ms timeout) {
+
+    nfc::r<jump_dep_psl> nfc::initiator_jump_for_dep_passive_106kbps(
+            std::array<std::uint8_t, 4> const &target_id, ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(true, false, false);
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_dep,
@@ -916,7 +931,9 @@ namespace pn532 {
                 timeout
         );
     }
-    nfc::r<jump_dep_psl> nfc::initiator_jump_for_dep_passive_106kbps(std::array<std::uint8_t, 4> const &target_id, std::array<std::uint8_t, 10> const &nfcid_3t, ms timeout) {
+
+    nfc::r<jump_dep_psl> nfc::initiator_jump_for_dep_passive_106kbps(
+            std::array<std::uint8_t, 4> const &target_id, std::array<std::uint8_t, 10> const &nfcid_3t, ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(true, true, false);
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_dep,
@@ -924,7 +941,9 @@ namespace pn532 {
                 timeout
         );
     }
-    nfc::r<jump_dep_psl> nfc::initiator_jump_for_dep_passive_212kbps(std::array<std::uint8_t, 5> const &target_id, ms timeout) {
+
+    nfc::r<jump_dep_psl> nfc::initiator_jump_for_dep_passive_212kbps(
+            std::array<std::uint8_t, 5> const &target_id, ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(true, false, false);
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_dep,
@@ -932,7 +951,9 @@ namespace pn532 {
                 timeout
         );
     }
-    nfc::r<jump_dep_psl> nfc::initiator_jump_for_dep_passive_424kbps(std::array<std::uint8_t, 5> const &target_id, ms timeout) {
+
+    nfc::r<jump_dep_psl> nfc::initiator_jump_for_dep_passive_424kbps(
+            std::array<std::uint8_t, 5> const &target_id, ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(true, false, false);
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_dep,
@@ -942,8 +963,9 @@ namespace pn532 {
     }
 
 
-    nfc::r<jump_dep_psl> nfc::initiator_jump_for_dep_active(baudrate speed,
-                                                            std::vector<std::uint8_t> const &general_info, ms timeout) {
+    nfc::r<jump_dep_psl> nfc::initiator_jump_for_dep_active(
+            baudrate speed,
+            std::vector<std::uint8_t> const &general_info, ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(false, false, true);
         const auto gi_view = sanitize_general_info(command_code::in_jump_for_dep, general_info);
         return command_parse_response<jump_dep_psl>(
@@ -952,8 +974,10 @@ namespace pn532 {
                 timeout
         );
     }
-    nfc::r<jump_dep_psl> nfc::initiator_jump_for_dep_active(baudrate speed, std::array<std::uint8_t, 10> const &nfcid_3t,
-                                                            std::vector<std::uint8_t> const &general_info, ms timeout) {
+
+    nfc::r<jump_dep_psl> nfc::initiator_jump_for_dep_active(
+            baudrate speed, std::array<std::uint8_t, 10> const &nfcid_3t,
+            std::vector<std::uint8_t> const &general_info, ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(false, true, true);
         const auto gi_view = sanitize_general_info(command_code::in_jump_for_dep, general_info);
         return command_parse_response<jump_dep_psl>(
@@ -962,7 +986,9 @@ namespace pn532 {
                 timeout
         );
     }
-    nfc::r<jump_dep_psl> nfc::initiator_jump_for_dep_passive_106kbps(std::vector<std::uint8_t> const &general_info, ms timeout) {
+
+    nfc::r<jump_dep_psl> nfc::initiator_jump_for_dep_passive_106kbps(
+            std::vector<std::uint8_t> const &general_info, ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(false, false, true);
         const auto gi_view = sanitize_general_info(command_code::in_jump_for_dep, general_info);
         return command_parse_response<jump_dep_psl>(
@@ -971,8 +997,10 @@ namespace pn532 {
                 timeout
         );
     }
-    nfc::r<jump_dep_psl> nfc::initiator_jump_for_dep_passive_106kbps(std::array<std::uint8_t, 10> const &nfcid_3t,
-                                                                     std::vector<std::uint8_t> const &general_info, ms timeout) {
+
+    nfc::r<jump_dep_psl> nfc::initiator_jump_for_dep_passive_106kbps(
+            std::array<std::uint8_t, 10> const &nfcid_3t,
+            std::vector<std::uint8_t> const &general_info, ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(false, true, true);
         const auto gi_view = sanitize_general_info(command_code::in_jump_for_dep, general_info);
         return command_parse_response<jump_dep_psl>(
@@ -981,8 +1009,10 @@ namespace pn532 {
                 timeout
         );
     }
-    nfc::r<jump_dep_psl> nfc::initiator_jump_for_dep_passive_106kbps(std::array<std::uint8_t, 4> const &target_id,
-                                                                     std::vector<std::uint8_t> const &general_info, ms timeout) {
+
+    nfc::r<jump_dep_psl> nfc::initiator_jump_for_dep_passive_106kbps(
+            std::array<std::uint8_t, 4> const &target_id,
+            std::vector<std::uint8_t> const &general_info, ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(true, false, true);
         const auto gi_view = sanitize_general_info(command_code::in_jump_for_dep, general_info);
         return command_parse_response<jump_dep_psl>(
@@ -991,8 +1021,10 @@ namespace pn532 {
                 timeout
         );
     }
-    nfc::r<jump_dep_psl> nfc::initiator_jump_for_dep_passive_106kbps(std::array<std::uint8_t, 4> const &target_id, std::array<std::uint8_t, 10> const &nfcid_3t,
-                                                                     std::vector<std::uint8_t> const &general_info, ms timeout) {
+
+    nfc::r<jump_dep_psl> nfc::initiator_jump_for_dep_passive_106kbps(
+            std::array<std::uint8_t, 4> const &target_id, std::array<std::uint8_t, 10> const &nfcid_3t,
+            std::vector<std::uint8_t> const &general_info, ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(true, true, true);
         const auto gi_view = sanitize_general_info(command_code::in_jump_for_dep, general_info);
         return command_parse_response<jump_dep_psl>(
@@ -1001,8 +1033,10 @@ namespace pn532 {
                 timeout
         );
     }
-    nfc::r<jump_dep_psl> nfc::initiator_jump_for_dep_passive_212kbps(std::array<std::uint8_t, 5> const &target_id,
-                                                                     std::vector<std::uint8_t> const &general_info, ms timeout) {
+
+    nfc::r<jump_dep_psl> nfc::initiator_jump_for_dep_passive_212kbps(
+            std::array<std::uint8_t, 5> const &target_id,
+            std::vector<std::uint8_t> const &general_info, ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(true, false, true);
         const auto gi_view = sanitize_general_info(command_code::in_jump_for_dep, general_info);
         return command_parse_response<jump_dep_psl>(
@@ -1011,8 +1045,10 @@ namespace pn532 {
                 timeout
         );
     }
-    nfc::r<jump_dep_psl> nfc::initiator_jump_for_dep_passive_424kbps(std::array<std::uint8_t, 5> const &target_id,
-                                                                     std::vector<std::uint8_t> const &general_info, ms timeout) {
+
+    nfc::r<jump_dep_psl> nfc::initiator_jump_for_dep_passive_424kbps(
+            std::array<std::uint8_t, 5> const &target_id,
+            std::vector<std::uint8_t> const &general_info, ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(true, false, true);
         const auto gi_view = sanitize_general_info(command_code::in_jump_for_dep, general_info);
         return command_parse_response<jump_dep_psl>(
@@ -1031,7 +1067,9 @@ namespace pn532 {
                 timeout
         );
     }
-    nfc::r<jump_dep_psl> nfc::initiator_jump_for_psl_active(baudrate speed, std::array<std::uint8_t, 10> const &nfcid_3t, ms timeout) {
+
+    nfc::r<jump_dep_psl> nfc::initiator_jump_for_psl_active(
+            baudrate speed, std::array<std::uint8_t, 10> const &nfcid_3t, ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(false, true, false);
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_psl,
@@ -1039,6 +1077,7 @@ namespace pn532 {
                 timeout
         );
     }
+
     nfc::r<jump_dep_psl> nfc::initiator_jump_for_psl_passive_106kbps(ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(false, false, false);
         return command_parse_response<jump_dep_psl>(
@@ -1047,7 +1086,9 @@ namespace pn532 {
                 timeout
         );
     }
-    nfc::r<jump_dep_psl> nfc::initiator_jump_for_psl_passive_106kbps(std::array<std::uint8_t, 10> const &nfcid_3t, ms timeout) {
+
+    nfc::r<jump_dep_psl> nfc::initiator_jump_for_psl_passive_106kbps(
+            std::array<std::uint8_t, 10> const &nfcid_3t, ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(false, true, false);
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_psl,
@@ -1055,7 +1096,9 @@ namespace pn532 {
                 timeout
         );
     }
-    nfc::r<jump_dep_psl> nfc::initiator_jump_for_psl_passive_106kbps(std::array<std::uint8_t, 4> const &target_id, ms timeout) {
+
+    nfc::r<jump_dep_psl> nfc::initiator_jump_for_psl_passive_106kbps(
+            std::array<std::uint8_t, 4> const &target_id, ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(true, false, false);
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_psl,
@@ -1063,7 +1106,9 @@ namespace pn532 {
                 timeout
         );
     }
-    nfc::r<jump_dep_psl> nfc::initiator_jump_for_psl_passive_106kbps(std::array<std::uint8_t, 4> const &target_id, std::array<std::uint8_t, 10> const &nfcid_3t, ms timeout) {
+
+    nfc::r<jump_dep_psl> nfc::initiator_jump_for_psl_passive_106kbps(
+            std::array<std::uint8_t, 4> const &target_id, std::array<std::uint8_t, 10> const &nfcid_3t, ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(true, true, false);
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_psl,
@@ -1071,7 +1116,9 @@ namespace pn532 {
                 timeout
         );
     }
-    nfc::r<jump_dep_psl> nfc::initiator_jump_for_psl_passive_212kbps(std::array<std::uint8_t, 5> const &target_id, ms timeout) {
+
+    nfc::r<jump_dep_psl> nfc::initiator_jump_for_psl_passive_212kbps(
+            std::array<std::uint8_t, 5> const &target_id, ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(true, false, false);
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_psl,
@@ -1079,7 +1126,9 @@ namespace pn532 {
                 timeout
         );
     }
-    nfc::r<jump_dep_psl> nfc::initiator_jump_for_psl_passive_424kbps(std::array<std::uint8_t, 5> const &target_id, ms timeout) {
+
+    nfc::r<jump_dep_psl> nfc::initiator_jump_for_psl_passive_424kbps(
+            std::array<std::uint8_t, 5> const &target_id, ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(true, false, false);
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_psl,
@@ -1089,8 +1138,9 @@ namespace pn532 {
     }
 
 
-    nfc::r<jump_dep_psl> nfc::initiator_jump_for_psl_active(baudrate speed,
-                                                            std::vector<std::uint8_t> const &general_info, ms timeout) {
+    nfc::r<jump_dep_psl> nfc::initiator_jump_for_psl_active(
+            baudrate speed,
+            std::vector<std::uint8_t> const &general_info, ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(false, false, true);
         const auto gi_view = sanitize_general_info(command_code::in_jump_for_psl, general_info);
         return command_parse_response<jump_dep_psl>(
@@ -1099,8 +1149,10 @@ namespace pn532 {
                 timeout
         );
     }
-    nfc::r<jump_dep_psl> nfc::initiator_jump_for_psl_active(baudrate speed, std::array<std::uint8_t, 10> const &nfcid_3t,
-                                                            std::vector<std::uint8_t> const &general_info, ms timeout) {
+
+    nfc::r<jump_dep_psl> nfc::initiator_jump_for_psl_active(
+            baudrate speed, std::array<std::uint8_t, 10> const &nfcid_3t,
+            std::vector<std::uint8_t> const &general_info, ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(false, true, true);
         const auto gi_view = sanitize_general_info(command_code::in_jump_for_psl, general_info);
         return command_parse_response<jump_dep_psl>(
@@ -1109,7 +1161,9 @@ namespace pn532 {
                 timeout
         );
     }
-    nfc::r<jump_dep_psl> nfc::initiator_jump_for_psl_passive_106kbps(std::vector<std::uint8_t> const &general_info, ms timeout) {
+
+    nfc::r<jump_dep_psl> nfc::initiator_jump_for_psl_passive_106kbps(
+            std::vector<std::uint8_t> const &general_info, ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(false, false, true);
         const auto gi_view = sanitize_general_info(command_code::in_jump_for_psl, general_info);
         return command_parse_response<jump_dep_psl>(
@@ -1118,8 +1172,10 @@ namespace pn532 {
                 timeout
         );
     }
-    nfc::r<jump_dep_psl> nfc::initiator_jump_for_psl_passive_106kbps(std::array<std::uint8_t, 10> const &nfcid_3t,
-                                                                     std::vector<std::uint8_t> const &general_info, ms timeout) {
+
+    nfc::r<jump_dep_psl> nfc::initiator_jump_for_psl_passive_106kbps(
+            std::array<std::uint8_t, 10> const &nfcid_3t,
+            std::vector<std::uint8_t> const &general_info, ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(false, true, true);
         const auto gi_view = sanitize_general_info(command_code::in_jump_for_psl, general_info);
         return command_parse_response<jump_dep_psl>(
@@ -1128,8 +1184,10 @@ namespace pn532 {
                 timeout
         );
     }
-    nfc::r<jump_dep_psl> nfc::initiator_jump_for_psl_passive_106kbps(std::array<std::uint8_t, 4> const &target_id,
-                                                                     std::vector<std::uint8_t> const &general_info, ms timeout) {
+
+    nfc::r<jump_dep_psl> nfc::initiator_jump_for_psl_passive_106kbps(
+            std::array<std::uint8_t, 4> const &target_id,
+            std::vector<std::uint8_t> const &general_info, ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(true, false, true);
         const auto gi_view = sanitize_general_info(command_code::in_jump_for_psl, general_info);
         return command_parse_response<jump_dep_psl>(
@@ -1138,8 +1196,10 @@ namespace pn532 {
                 timeout
         );
     }
-    nfc::r<jump_dep_psl> nfc::initiator_jump_for_psl_passive_106kbps(std::array<std::uint8_t, 4> const &target_id, std::array<std::uint8_t, 10> const &nfcid_3t,
-                                                                     std::vector<std::uint8_t> const &general_info, ms timeout) {
+
+    nfc::r<jump_dep_psl> nfc::initiator_jump_for_psl_passive_106kbps(
+            std::array<std::uint8_t, 4> const &target_id, std::array<std::uint8_t, 10> const &nfcid_3t,
+            std::vector<std::uint8_t> const &general_info, ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(true, true, true);
         const auto gi_view = sanitize_general_info(command_code::in_jump_for_psl, general_info);
         return command_parse_response<jump_dep_psl>(
@@ -1148,8 +1208,10 @@ namespace pn532 {
                 timeout
         );
     }
-    nfc::r<jump_dep_psl> nfc::initiator_jump_for_psl_passive_212kbps(std::array<std::uint8_t, 5> const &target_id,
-                                                                     std::vector<std::uint8_t> const &general_info, ms timeout) {
+
+    nfc::r<jump_dep_psl> nfc::initiator_jump_for_psl_passive_212kbps(
+            std::array<std::uint8_t, 5> const &target_id,
+            std::vector<std::uint8_t> const &general_info, ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(true, false, true);
         const auto gi_view = sanitize_general_info(command_code::in_jump_for_psl, general_info);
         return command_parse_response<jump_dep_psl>(
@@ -1158,8 +1220,10 @@ namespace pn532 {
                 timeout
         );
     }
-    nfc::r<jump_dep_psl> nfc::initiator_jump_for_psl_passive_424kbps(std::array<std::uint8_t, 5> const &target_id,
-                                                                     std::vector<std::uint8_t> const &general_info, ms timeout) {
+
+    nfc::r<jump_dep_psl> nfc::initiator_jump_for_psl_passive_424kbps(
+            std::array<std::uint8_t, 5> const &target_id,
+            std::vector<std::uint8_t> const &general_info, ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(true, false, true);
         const auto gi_view = sanitize_general_info(command_code::in_jump_for_psl, general_info);
         return command_parse_response<jump_dep_psl>(

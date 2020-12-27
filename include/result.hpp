@@ -31,7 +31,8 @@ namespace pn532 {
         error
     };
 
-    template <class ...Args> class result;
+    template <class ...Args>
+    class result;
 
     struct result_success_type {
         template <class E, class T>
@@ -47,21 +48,29 @@ namespace pn532 {
     class result<E, T> {
     public:
         inline result();
+
         inline result(result &&other) noexcept;
+
         inline result(result const &other);
 
         inline result(E error);
+
         inline result(T data);
 
         result &operator=(E error);
+
         result &operator=(T data);
+
         result &operator=(result &&other) noexcept;
+
         result &operator=(result const &other);
 
         inline T &operator*();
+
         inline T const &operator*() const;
 
         inline T *operator->();
+
         inline T const *operator->() const;
 
         inline explicit operator bool() const;
@@ -73,16 +82,21 @@ namespace pn532 {
         inline E error() const;
 
         inline ~result();
+
     private:
         result_content _content;
         void *_storage{};
 
         static T &dummy_data();
+
         static E &dummy_error();
 
         inline E &e();
+
         inline E const &e() const;
+
         inline T &d();
+
         inline T const &d() const;
 
         void release();
@@ -93,7 +107,9 @@ namespace pn532 {
     class result<E, T1, T2> : private result<E, std::pair<T1, T2>> {
     public:
         using base = result<E, std::pair<T1, T2>>;
+
         inline result(T1 data1, T2 data2);
+
         inline result(base b);
 
         using base::base;
@@ -110,7 +126,9 @@ namespace pn532 {
     class result<E, T1, T2, T3, Tn...> : private result<E, std::tuple<T1, T2, T3, Tn...>> {
     public:
         using base = result<E, std::pair<T1, T2>>;
+
         inline result(T1 data1, T2 data2, T2 data3, Tn ...dataN);
+
         inline result(base b);
 
         using base::base;
@@ -163,21 +181,27 @@ namespace pn532 {
 
         template <class T>
         using can_be_efficiently_stored = typename std::integral_constant<bool,
-                std::is_trivially_copy_assignable<T>::value and sizeof(T) == sizeof(void *)>;
+                                                                          std::is_trivially_copy_assignable<
+                                                                                  T>::value and
+                                                                          sizeof(T) == sizeof(void *)>;
 
         template <class, bool /* in place */>
-        struct store {};
+        struct store {
+        };
 
         template <class, bool /* in place */>
-        struct retrieve {};
+        struct retrieve {
+        };
 
         template <class, bool /* in place */>
-        struct destroy {};
+        struct destroy {
+        };
 
         template <class T>
         struct store<T, true> {
             static_assert(can_be_efficiently_stored<T>::value, "Cannot store in place T if it's too large.");
-            inline void operator()(void * &dest, T &orig) const {
+
+            inline void operator()(void *&dest, T &orig) const {
                 *reinterpret_cast<T *>(&dest) = orig;
             }
         };
@@ -185,11 +209,12 @@ namespace pn532 {
         template <class T>
         struct store<T, false> {
             template <class U = T, class = typename std::enable_if<std::is_move_constructible<U>::value>::type>
-            inline void operator()(void * &dest, U &orig) const {
+            inline void operator()(void *&dest, U &orig) const {
                 dest = new U(std::move(orig));
             }
+
             template <class U = T, class = typename std::enable_if<not std::is_move_constructible<U>::value>::type>
-            inline void operator()(void * &dest, U const &orig) const {
+            inline void operator()(void *&dest, U const &orig) const {
                 dest = new U(orig);
             }
         };
@@ -197,20 +222,23 @@ namespace pn532 {
         template <class T>
         struct retrieve<T, true> {
             static_assert(can_be_efficiently_stored<T>::value, "Cannot retrieve in place T if it's too large.");
-            inline T &operator()(void * &ptr) {
+
+            inline T &operator()(void *&ptr) {
                 return *reinterpret_cast<T *>(&ptr);
             }
-            inline T const &operator()(void * const &ptr) {
+
+            inline T const &operator()(void *const &ptr) {
                 return *reinterpret_cast<T const *>(&ptr);
             }
         };
 
         template <class T>
         struct retrieve<T, false> {
-            inline T &operator()(void * &ptr) {
+            inline T &operator()(void *&ptr) {
                 return *reinterpret_cast<T *>(ptr);
             }
-            inline T const &operator()(void * const &ptr) {
+
+            inline T const &operator()(void *const &ptr) {
                 return *reinterpret_cast<T const *>(ptr);
             }
         };
@@ -219,36 +247,37 @@ namespace pn532 {
         template <class T>
         struct destroy<T, true> {
             static_assert(can_be_efficiently_stored<T>::value, "Cannot destroy in place T if it's too large.");
-            inline void operator()(void * &ptr) const {
+
+            inline void operator()(void *&ptr) const {
                 ptr = nullptr;
             }
         };
 
         template <class T>
         struct destroy<T, false> {
-            inline void operator()(void * &ptr) const {
+            inline void operator()(void *&ptr) const {
                 std::default_delete<T>{}(reinterpret_cast<T *>(ptr));
                 ptr = nullptr;
             }
         };
 
         template <class T>
-        void store_efficiently(void * &dest, T &orig) {
+        void store_efficiently(void *&dest, T &orig) {
             store<T, can_be_efficiently_stored<T>::value>{}(dest, orig);
         }
 
         template <class T>
-        T &retrieve_efficiently(void * &ptr) {
+        T &retrieve_efficiently(void *&ptr) {
             return retrieve<T, can_be_efficiently_stored<T>::value>{}(ptr);
         }
 
         template <class T>
-        T const &retrieve_efficiently(void * const &ptr) {
+        T const &retrieve_efficiently(void *const &ptr) {
             return retrieve<T, can_be_efficiently_stored<T>::value>{}(ptr);
         }
 
         template <class T>
-        void destroy_efficiently(void * &ptr) {
+        void destroy_efficiently(void *&ptr) {
             destroy<T, can_be_efficiently_stored<T>::value>{}(ptr);
         }
 
@@ -264,7 +293,8 @@ namespace pn532 {
             case result_content::error:
                 impl::destroy_efficiently<E>(_storage);
                 break;
-            default: break;
+            default:
+                break;
         }
         _content = result_content::empty;
     }
@@ -331,7 +361,8 @@ namespace pn532 {
                 case result_content::error:
                     *this = other.e();  // Trigger copy
                     break;
-                default: break;
+                default:
+                    break;
             }
         }
         return *this;
@@ -432,6 +463,7 @@ namespace pn532 {
     result_content result<E, T>::holds() const {
         return _content;
     }
+
     template <class E, class T>
     bool result_success_type::operator==(result<E, T> const &res) const { return bool(res); }
 
@@ -447,27 +479,23 @@ namespace pn532 {
             *this = result_success;
         }
     }
+
     template <class E, class T1, class T2>
     result<E, T1, T2>::result(T1 data1, T2 data2) :
-            base{std::make_pair(data1, data2)}
-    {}
+            base{std::make_pair(data1, data2)} {}
 
     template <class E, class T1, class T2>
     result<E, T1, T2>::result(result<E, T1, T2>::base b) :
-            base{std::move(b)}
-    {}
-
+            base{std::move(b)} {}
 
 
     template <class E, class T1, class T2, class T3, class ...Tn>
     result<E, T1, T2, T3, Tn...>::result(T1 data1, T2 data2, T2 data3, Tn ...dataN) :
-            base{std::make_tuple(data1, data2, data3, std::forward<Tn>(dataN)...)}
-    {}
+            base{std::make_tuple(data1, data2, data3, std::forward<Tn>(dataN)...)} {}
 
     template <class E, class T1, class T2, class T3, class ...Tn>
     result<E, T1, T2, T3, Tn...>::result(result<E, T1, T2, T3, Tn...>::base b) :
-            base{std::move(b)}
-    {}
+            base{std::move(b)} {}
 }
 
 #endif //APERTURAPORTA_RESULT_HPP

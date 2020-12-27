@@ -295,7 +295,7 @@ namespace pn532 {
             p7 = 0xf7,
             ip1 = 0xf8,
             p3cfga = 0xfc,
-            p3cfgb =0xfd
+            p3cfgb = 0xfd
         };
 
         static constexpr std::uint8_t uid_cascade_tag = 0x88;
@@ -317,7 +317,8 @@ namespace pn532 {
         };
 
         template <baudrate_modulation BrMd>
-        struct target_info {};
+        struct target_info {
+        };
 
         template <>
         struct target_info<baudrate_modulation::kbps106_iso_iec_14443_typea> {
@@ -404,7 +405,8 @@ namespace pn532 {
         template <target_type Type>
         struct baudrate_modulation_of_target {
             static constexpr baudrate_modulation value =
-                    static_cast<baudrate_modulation>(static_cast<std::uint8_t>(Type) & target_type_baudrate_modulation_mask);
+                    static_cast<baudrate_modulation>(static_cast<std::uint8_t>(Type) &
+                                                     target_type_baudrate_modulation_mask);
         };
 
         struct atr_res_info {

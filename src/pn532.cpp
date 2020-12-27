@@ -555,7 +555,7 @@ namespace pn532 {
         return command_response(command_code::rf_configuration, payload, timeout);
     }
 
-    nfc::r<> nfc::rf_configuration_retries(std::uint8_t comm_retries, ms timeout) {
+    nfc::r<> nfc::rf_configuration_retries(infbyte comm_retries, ms timeout) {
         const bin_data payload = bin_data::chain(
                 prealloc(2),
                 bits::rf_config_item::max_rty_com,
@@ -563,15 +563,15 @@ namespace pn532 {
         return command_response(command_code::rf_configuration, payload, timeout);
     }
 
-    nfc::r<> nfc::rf_configuration_retries(std::uint8_t atr_retries, std::uint8_t psl_retries,
-                                           std::uint8_t passive_activation, ms timeout)
+    nfc::r<> nfc::rf_configuration_retries(infbyte atr_retries, infbyte psl_retries,
+                                           infbyte passive_activation_retries, ms timeout)
     {
         const bin_data payload = bin_data::chain(
                 prealloc(4),
                 bits::rf_config_item::max_retries,
                 atr_retries,
                 psl_retries,
-                passive_activation);
+                passive_activation_retries);
         return command_response(command_code::rf_configuration, payload, timeout);
     }
 
@@ -766,7 +766,7 @@ namespace pn532 {
     }
 
     nfc::r<std::vector<any_target>> nfc::initiator_auto_poll(std::vector<target_type> const &types_to_poll,
-                                                   std::uint8_t polls_per_type, poll_period period,
+                                                   infbyte polls_per_type, poll_period period,
                                                    ms timeout)
     {
         if (types_to_poll.empty()) {

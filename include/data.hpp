@@ -46,6 +46,24 @@ namespace pn532 {
     template <target_type Type>
     struct poll_entry : public bits::target<bits::baudrate_modulation_of_target<Type>::value> {};
 
+    struct inf_t {};
+
+    static constexpr inf_t inf = inf_t{};
+
+    template <class Integral, class = typename std::enable_if<std::is_integral<Integral>::value>::type>
+    struct infn {
+        Integral v = Integral{};
+        infn() = default;
+        inline infn(inf_t) : v{std::numeric_limits<Integral>::max()} {}
+        inline infn(Integral n) : v{n} {}
+        inline operator Integral() const { return v; }
+        inline infn &operator=(inf_t) { v = std::numeric_limits<Integral>::max(); }
+        inline bool operator==(inf_t) const { return v == std::numeric_limits<Integral>::max(); }
+        inline bool operator!=(inf_t) const { return v != std::numeric_limits<Integral>::max(); }
+    };
+
+    using infbyte = infn<std::uint8_t>;
+
     struct poll_entry_with_atr {
         atr_res_info atr_info;
     };

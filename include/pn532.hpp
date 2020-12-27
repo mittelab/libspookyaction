@@ -132,10 +132,10 @@ namespace pn532 {
         r<> rf_configuration_timings(std::uint8_t rfu, rf_timeout atr_res_timeout = rf_timeout::ms_102_4,
                                      rf_timeout retry_timeout = rf_timeout::ms_51_2, ms timeout = default_timeout);
 
-        r<> rf_configuration_retries(std::uint8_t comm_retries = 0, ms timeout = default_timeout);
+        r<> rf_configuration_retries(infbyte comm_retries = 0, ms timeout = default_timeout);
 
-        r<> rf_configuration_retries(std::uint8_t atr_retries, std::uint8_t psl_retries,
-                                     std::uint8_t passive_activation = std::numeric_limits<std::uint8_t>::max(),
+        r<> rf_configuration_retries(infbyte atr_retries, infbyte psl_retries,
+                                     infbyte passive_activation_retries = inf,
                                      ms timeout = default_timeout);
 
         r<> rf_configuration_analog_106kbps_typea(ciu_reg_106kbps_typea const &config, ms timeout = default_timeout);
@@ -209,11 +209,9 @@ namespace pn532 {
                                                           ms timeout = default_timeout);
         /**
          * @param types_to_poll Minimum 1, maximum 15 elements
-         * @param polls_per_type Supports infinity
-         * @todo Define ''infinity'' and apply it where appropriate
          */
         r<std::vector<any_target>> initiator_auto_poll(std::vector<target_type> const &types_to_poll = poll_all_targets,
-                                                       std::uint8_t polls_per_type = 3,
+                                                       infbyte polls_per_type = 3,
                                                        poll_period period = poll_period::ms_150,
                                                        ms timeout = long_timeout);
 

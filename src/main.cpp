@@ -3,7 +3,7 @@
 #include <unity.h>
 #include <driver/uart.h>
 #include <hsu.hpp>
-#include <pn532.hpp>
+#include <nfc.hpp>
 
 #define TEST_TAG "UT"
 #define TX_PIN   (GPIO_NUM_17)

@@ -2,7 +2,7 @@
 // Created by Pietro Saccardi on 20/12/2020.
 //
 #include "bits_algo.hpp"
-#include "pn532.hpp"
+#include "nfc.hpp"
 #include "log.h"
 
 namespace pn532 {

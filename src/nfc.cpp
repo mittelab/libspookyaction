@@ -1236,4 +1236,15 @@ namespace pn532 {
     nfc::r<> nfc::set_parameters(parameters const &parms, ms timeout) {
         return command_response(command_code::set_parameters, bin_data::chain(parms), timeout);
     }
+
+    nfc::r<rf_status> nfc::power_down(std::vector<wakeup_source> const &wakeup_sources, ms timeout) {
+        return command_parse_response<rf_status>(command_code::power_down, bin_data::chain(wakeup_sources), timeout);
+    }
+
+    nfc::r<rf_status> nfc::power_down(std::vector<wakeup_source> const &wakeup_sources, bool generate_irq, ms timeout) {
+        return command_parse_response<rf_status>(command_code::power_down,
+                                                 bin_data::chain(prealloc(2), wakeup_sources, generate_irq),
+                                                 timeout);
+    }
+
 }

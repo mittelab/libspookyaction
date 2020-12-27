@@ -402,4 +402,12 @@ namespace pn532 {
         return s << parms_byte;
     }
 
+    bin_data &operator<<(bin_data &s, std::vector<wakeup_source> const &vws) {
+        std::uint8_t b = 0x00;
+        for (wakeup_source ws : vws) {
+            b |= static_cast<std::uint8_t>(ws);
+        }
+        return s << b;
+    }
+
 }

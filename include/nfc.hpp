@@ -438,6 +438,11 @@ namespace pn532 {
 
         r<> set_parameters(parameters const &parms, ms timeout = default_timeout);
 
+        r<rf_status> power_down(std::vector<wakeup_source> const &wakeup_sources, ms timeout = default_timeout);
+
+        r<rf_status> power_down(
+                std::vector<wakeup_source> const &wakeup_sources, bool generate_irq, ms timeout = default_timeout);
+
     private:
         channel *_channel;
 

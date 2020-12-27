@@ -36,6 +36,7 @@ namespace pn532 {
     using bits::high_current_thr;
     using bits::target_type;
     using bits::poll_period;
+    using bits::wakeup_source;
 
     using target_kbps106_typea = bits::target<baudrate_modulation::kbps106_iso_iec_14443_typea>;
     using target_kbps212_felica = bits::target<baudrate_modulation::kbps212_felica_polling>;
@@ -256,6 +257,8 @@ namespace pn532 {
     bin_data &operator<<(bin_data &bd, reg_antenna_detector const &r);
 
     bin_data &operator<<(bin_data &s, parameters const &p);
+
+    bin_data &operator<<(bin_data &s, std::vector<wakeup_source> const &vws);
 
     template <baudrate_modulation BrMd>
     bin_stream &operator>>(bin_stream &s, std::vector<bits::target<BrMd>> &targets);

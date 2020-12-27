@@ -230,6 +230,16 @@ namespace pn532 {
             dual_card = 0x04
         };
 
+        enum struct wakeup_source : std::uint8_t {
+            i2c = 1 << 7,
+            gpio = 1 << 6,
+            spi = 1 << 5,
+            hsu = 1 << 4,
+            rf = 1 << 3,
+            int1 = 1 << 1,
+            int0 = 1 << 0
+        };
+
         static constexpr unsigned sam_timeout_unit_ms = 50;
 
         static constexpr std::uint8_t status_nad_mask = 0x1 << 7;

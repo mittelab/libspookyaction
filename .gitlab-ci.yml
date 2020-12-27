@@ -10,7 +10,7 @@ pages:
     - ls docs
     - doxygen ./docs/doxigen.conf
     - mkdir -p public
-    - cp -r docs/_build/html public
+    - cp -r docs/_build/html/* public
   artifacts:
     paths:
       - public

@@ -1,0 +1,16 @@
+
+stages:
+  - deploy
+
+pages:
+  stage: deploy
+  image: alpine
+  script:
+    - apk add doxygen
+    - ls docs
+    - doxygen ./docs/doxigen.conf
+    - mkdir -p public
+    - cp -r docs/_build/html public
+  artifacts:
+    paths:
+      - public

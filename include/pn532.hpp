@@ -151,7 +151,9 @@ namespace pn532 {
          * @param expect_more_data If true, the PN532 will inform the target that the trasmission is not over and more
          *  data will come soon. Use a series of @p expect_more_data ''true'' to trasmit payloads above 262 bytes.
          */
-        template <class T>
+        template <class T, class = typename std::enable_if<not std::is_same<
+                bin_data, typename std::remove_const<typename std::remove_reference<T>::type>::type
+                >::value>::type>
         r<status, bin_data> initiator_data_exchange(std::uint8_t target_logical_index, T &&data,
                                                     bool expect_more_data, ms timeout = default_timeout);
 
@@ -276,12 +278,11 @@ namespace pn532 {
         return data;
     }
 
-    template <class T>
+    template <class T, class>
     nfc::r<status, bin_data> nfc::initiator_data_exchange(std::uint8_t target_logical_index, T &&data,
                                                           bool expect_more_data, ms timeout)
     {
-        const bin_data bd{};
-        bd << std::forward<T>(data);
+        const bin_data bd = bin_data::chain(std::forward<T>(data));
         return initiator_data_exchange(target_logical_index, bd, expect_more_data, timeout);
     }
 

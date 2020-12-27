@@ -146,10 +146,20 @@ namespace pn532 {
 
         r<> rf_configuration_analog_iso_iec_14443_4(ciu_reg_iso_iec_14443_4 const &config, ms timeout = default_timeout);
 
+        /**
+         * @param data Any object that can be injected into a @ref bin_data object. Maximum payload: 262 bytes.
+         * @param expect_more_data If true, the PN532 will inform the target that the trasmission is not over and more
+         *  data will come soon. Use a series of @p expect_more_data ''true'' to trasmit payloads above 262 bytes.
+         */
         template <class T>
         r<status, bin_data> initiator_data_exchange(std::uint8_t target_logical_index, T &&data,
                                                     bool expect_more_data, ms timeout = default_timeout);
 
+        /**
+         * @param data Any object that can be injected into a @ref bin_data object. Maximum payload: 262 bytes.
+         * @param expect_more_data If true, the PN532 will inform the target that the trasmission is not over and more
+         *  data will come soon. Use a series of @p expect_more_data ''true'' to trasmit payloads above 262 bytes.
+         */
         r<status, bin_data> initiator_data_exchange(std::uint8_t target_logical_index, bin_data const &data,
                                                     bool expect_more_data, ms timeout = default_timeout);
 

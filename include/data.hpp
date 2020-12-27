@@ -168,6 +168,15 @@ namespace pn532 {
         inline explicit operator bool() const { return error == controller_error::none; }
     };
 
+    struct parameters {
+        bool use_nad_data;
+        bool use_did_data;
+        bool auto_generate_atr_res;
+        bool auto_generate_rats;
+        bool enable_iso_14443_4_picc_emulation;
+        bool remove_pre_post_amble;
+    };
+
     struct sam_status {
         bool neg_pulse_on_clad_line;
         bool detected_rf_field_off;
@@ -245,6 +254,8 @@ namespace pn532 {
     bin_data &operator<<(bin_data &bd, uid_cascade_l3 const &uid);
 
     bin_data &operator<<(bin_data &bd, reg_antenna_detector const &r);
+
+    bin_data &operator<<(bin_data &s, parameters const &p);
 
     template <baudrate_modulation BrMd>
     bin_stream &operator>>(bin_stream &s, std::vector<bits::target<BrMd>> &targets);

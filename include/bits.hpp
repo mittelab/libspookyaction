@@ -241,6 +241,13 @@ namespace pn532 {
         static constexpr std::uint8_t sam_status_timeout_after_sig_act_irq_bit = 1 << 2;
         static constexpr std::uint8_t sam_status_clad_line_high_bit = 1 << 7;
 
+        static constexpr std::uint8_t parameters_use_nad_data_bit = 1 << 0;
+        static constexpr std::uint8_t parameters_use_did_data_bit = 1 << 1;
+        static constexpr std::uint8_t parameters_auto_generate_atr_res_bit = 1 << 2;
+        static constexpr std::uint8_t parameters_auto_generate_rats_bit = 1 << 4;
+        static constexpr std::uint8_t parameters_enable_iso_14443_4_picc_emulation_bit = 1 << 5;
+        static constexpr std::uint8_t parameters_remove_pre_post_amble_bit = 1 << 6;
+
         static constexpr std::uint8_t max_num_targets = 2;
 
         enum struct error : std::uint8_t {

@@ -436,6 +436,8 @@ namespace pn532 {
                 std::vector<std::uint8_t> const &general_info,
                 ms timeout = default_timeout);
 
+        r<> set_parameters(parameters const &parms, ms timeout = default_timeout);
+
     private:
         channel *_channel;
 

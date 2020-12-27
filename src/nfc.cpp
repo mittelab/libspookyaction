@@ -1232,4 +1232,8 @@ namespace pn532 {
                 timeout
         );
     }
+
+    nfc::r<> nfc::set_parameters(parameters const &parms, ms timeout) {
+        return command_response(command_code::set_parameters, bin_data::chain(parms), timeout);
+    }
 }

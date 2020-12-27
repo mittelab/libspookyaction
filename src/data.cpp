@@ -379,7 +379,7 @@ namespace pn532 {
 
     bin_stream &operator>>(bin_stream &s, sam_status &sams) {
         if (s.remaining() < 1) {
-            LOGE("Parsing sam: not enough data.");
+            LOGE("Parsing sam_status: not enough data.");
             s.set_bad();
             return s;
         }
@@ -389,6 +389,17 @@ namespace pn532 {
         sams.neg_pulse_on_clad_line = 0 != (sam_byte & bits::sam_status_neg_pulse_on_clad_line_bit);
         sams.timeout_after_sig_act_irq = 0 != (sam_byte & bits::sam_status_timeout_after_sig_act_irq_bit);
         return s;
+    }
+
+    bin_data &operator<<(bin_data &s, parameters const &p) {
+        const std::uint8_t parms_byte = (p.use_nad_data ? bits::parameters_use_nad_data_bit : 0x0)
+                                        | (p.use_did_data ? bits::parameters_use_did_data_bit : 0x0)
+                                        | (p.auto_generate_atr_res ? bits::parameters_auto_generate_atr_res_bit : 0x0)
+                                        | (p.auto_generate_rats ? bits::parameters_auto_generate_rats_bit : 0x0)
+                                        | (p.enable_iso_14443_4_picc_emulation
+                                           ? bits::parameters_enable_iso_14443_4_picc_emulation_bit : 0x0)
+                                        | (p.remove_pre_post_amble ? bits::parameters_remove_pre_post_amble_bit : 0x0);
+        return s << parms_byte;
     }
 
 }

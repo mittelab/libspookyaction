@@ -6,6 +6,7 @@
 #define APERTURAPORTA_ANY_HPP
 
 #include <memory>
+#include <functional>
 #include "log.h"
 
 namespace pn532 {

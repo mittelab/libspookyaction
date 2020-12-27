@@ -153,19 +153,19 @@ namespace pn532 {
         template <class T, class = typename std::enable_if<not std::is_same<
                 bin_data, typename std::remove_const<typename std::remove_reference<T>::type>::type
                 >::value>::type>
-        r<status, bin_data> initiator_data_exchange(std::uint8_t target_logical_index, T &&data, ms timeout = default_timeout);
+        r<rf_status, bin_data> initiator_data_exchange(std::uint8_t target_logical_index, T &&data, ms timeout = default_timeout);
 
         /**
          * @param data If the total payload exceeds 262 bytes, multiple commands will be issued.
          */
-        r<status, bin_data> initiator_data_exchange(std::uint8_t target_logical_index, bin_data const &data, ms timeout = default_timeout);
+        r<rf_status, bin_data> initiator_data_exchange(std::uint8_t target_logical_index, bin_data const &data, ms timeout = default_timeout);
 
 
-        r<status> initiator_select(std::uint8_t target_logical_index, ms timeout = default_timeout);
-        r<status> initiator_deselect(std::uint8_t target_logical_index, ms timeout = default_timeout);
-        r<status> initiator_release(std::uint8_t target_logical_index, ms timeout = default_timeout);
-        r<status> initiator_psl(std::uint8_t target_logical_index, speed in_to_trg, speed trg_to_in,
-                                ms timeout = default_timeout);
+        r<rf_status> initiator_select(std::uint8_t target_logical_index, ms timeout = default_timeout);
+        r<rf_status> initiator_deselect(std::uint8_t target_logical_index, ms timeout = default_timeout);
+        r<rf_status> initiator_release(std::uint8_t target_logical_index, ms timeout = default_timeout);
+        r<rf_status> initiator_psl(std::uint8_t target_logical_index, speed in_to_trg, speed trg_to_in,
+                                   ms timeout = default_timeout);
 
         r<std::vector<target_kbps106_typea>> initiator_list_passive_kbps106_typea(
                 std::uint8_t max_targets = bits::max_num_targets, ms timeout = long_timeout);
@@ -190,24 +190,24 @@ namespace pn532 {
                 ms timeout = long_timeout);
 
 
-        r<status, atr_res_info> initiator_activate_target(std::uint8_t target_logical_index, ms timeout = default_timeout);
-        r<status, atr_res_info> initiator_activate_target(std::uint8_t target_logical_index,
-                                                          std::array<std::uint8_t, 10> const &nfcid_3t,
-                                                          ms timeout = default_timeout);
+        r<rf_status, atr_res_info> initiator_activate_target(std::uint8_t target_logical_index, ms timeout = default_timeout);
+        r<rf_status, atr_res_info> initiator_activate_target(std::uint8_t target_logical_index,
+                                                             std::array<std::uint8_t, 10> const &nfcid_3t,
+                                                             ms timeout = default_timeout);
         /**
          * @param general_info Max 48 bytes.
          */
-        r<status, atr_res_info> initiator_activate_target(std::uint8_t target_logical_index,
-                                                          std::vector<std::uint8_t> const &general_info,
-                                                          ms timeout = default_timeout);
+        r<rf_status, atr_res_info> initiator_activate_target(std::uint8_t target_logical_index,
+                                                             std::vector<std::uint8_t> const &general_info,
+                                                             ms timeout = default_timeout);
 
         /**
          * @param general_info Max 48 bytes.
          */
-        r<status, atr_res_info> initiator_activate_target(std::uint8_t target_logical_index,
-                                                          std::array<std::uint8_t, 10> const &nfcid_3t,
-                                                          std::vector<std::uint8_t> const &general_info,
-                                                          ms timeout = default_timeout);
+        r<rf_status, atr_res_info> initiator_activate_target(std::uint8_t target_logical_index,
+                                                             std::array<std::uint8_t, 10> const &nfcid_3t,
+                                                             std::vector<std::uint8_t> const &general_info,
+                                                             ms timeout = default_timeout);
         /**
          * @param types_to_poll Minimum 1, maximum 15 elements
          */
@@ -219,8 +219,91 @@ namespace pn532 {
         /** @brief Raw data transmission to target.
          * @param raw_data Max 264 bytes, data will be truncated. To trasmit more, use @ref initiator_data_exchange.
          */
-        r<status, bin_data> initiator_communicate_through(bin_data const &raw_data, ms timeout = default_timeout);
+        r<rf_status, bin_data> initiator_communicate_through(bin_data const &raw_data, ms timeout = default_timeout);
 
+
+        r<jump_dep_psl> initiator_jump_for_dep_active(speed speed, ms timeout = default_timeout);
+        /**
+         * @param general_info Max 48 bytes.
+         */
+        r<jump_dep_psl> initiator_jump_for_dep_active(speed speed, std::vector<std::uint8_t> const &general_info, ms timeout = default_timeout);
+        r<jump_dep_psl> initiator_jump_for_dep_active(speed speed, std::array<std::uint8_t, 10> const &nfcid_3t, ms timeout = default_timeout);
+        /**
+         * @param general_info Max 48 bytes.
+         */
+        r<jump_dep_psl> initiator_jump_for_dep_active(speed speed, std::array<std::uint8_t, 10> const &nfcid_3t, std::vector<std::uint8_t> const &general_info, ms timeout = default_timeout);
+        r<jump_dep_psl> initiator_jump_for_dep_passive_106kbps(ms timeout = default_timeout);
+        /**
+         * @param general_info Max 48 bytes.
+         */
+        r<jump_dep_psl> initiator_jump_for_dep_passive_106kbps(std::vector<std::uint8_t> const &general_info, ms timeout = default_timeout);
+        r<jump_dep_psl> initiator_jump_for_dep_passive_106kbps(std::array<std::uint8_t, 10> const &nfcid_3t, ms timeout = default_timeout);
+        /**
+         * @param general_info Max 48 bytes.
+         */
+        r<jump_dep_psl> initiator_jump_for_dep_passive_106kbps(std::array<std::uint8_t, 10> const &nfcid_3t, std::vector<std::uint8_t> const &general_info, ms timeout = default_timeout);
+        r<jump_dep_psl> initiator_jump_for_dep_passive_106kbps(std::array<std::uint8_t, 4> const &target_id, ms timeout = default_timeout);
+        /**
+         * @param general_info Max 48 bytes.
+         */
+        r<jump_dep_psl> initiator_jump_for_dep_passive_106kbps(std::array<std::uint8_t, 4> const &target_id, std::vector<std::uint8_t> const &general_info, ms timeout = default_timeout);
+        r<jump_dep_psl> initiator_jump_for_dep_passive_106kbps(std::array<std::uint8_t, 4> const &target_id, std::array<std::uint8_t, 10> const &nfcid_3t, ms timeout = default_timeout);
+        /**
+         * @param general_info Max 48 bytes.
+         */
+        r<jump_dep_psl> initiator_jump_for_dep_passive_106kbps(std::array<std::uint8_t, 4> const &target_id, std::array<std::uint8_t, 10> const &nfcid_3t, std::vector<std::uint8_t> const &general_info, ms timeout = default_timeout);
+        r<jump_dep_psl> initiator_jump_for_dep_passive_212kbps(std::array<std::uint8_t, 5> const &target_id, ms timeout = default_timeout);
+        /**
+         * @param general_info Max 48 bytes.
+         */
+        r<jump_dep_psl> initiator_jump_for_dep_passive_212kbps(std::array<std::uint8_t, 5> const &target_id, std::vector<std::uint8_t> const &general_info, ms timeout = default_timeout);
+        r<jump_dep_psl> initiator_jump_for_dep_passive_424kbps(std::array<std::uint8_t, 5> const &target_id, ms timeout = default_timeout);
+        /**
+         * @param general_info Max 48 bytes.
+         */
+        r<jump_dep_psl> initiator_jump_for_dep_passive_424kbps(std::array<std::uint8_t, 5> const &target_id, std::vector<std::uint8_t> const &general_info, ms timeout = default_timeout);
+
+
+        r<jump_dep_psl> initiator_jump_for_psl_active(speed speed, ms timeout = default_timeout);
+        /**
+         * @param general_info Max 48 bytes.
+         */
+        r<jump_dep_psl> initiator_jump_for_psl_active(speed speed, std::vector<std::uint8_t> const &general_info, ms timeout = default_timeout);
+        r<jump_dep_psl> initiator_jump_for_psl_active(speed speed, std::array<std::uint8_t, 10> const &nfcid_3t, ms timeout = default_timeout);
+        /**
+         * @param general_info Max 48 bytes.
+         */
+        r<jump_dep_psl> initiator_jump_for_psl_active(speed speed, std::array<std::uint8_t, 10> const &nfcid_3t, std::vector<std::uint8_t> const &general_info, ms timeout = default_timeout);
+        r<jump_dep_psl> initiator_jump_for_psl_passive_106kbps(ms timeout = default_timeout);
+        /**
+         * @param general_info Max 48 bytes.
+         */
+        r<jump_dep_psl> initiator_jump_for_psl_passive_106kbps(std::vector<std::uint8_t> const &general_info, ms timeout = default_timeout);
+        r<jump_dep_psl> initiator_jump_for_psl_passive_106kbps(std::array<std::uint8_t, 10> const &nfcid_3t, ms timeout = default_timeout);
+        /**
+         * @param general_info Max 48 bytes.
+         */
+        r<jump_dep_psl> initiator_jump_for_psl_passive_106kbps(std::array<std::uint8_t, 10> const &nfcid_3t, std::vector<std::uint8_t> const &general_info, ms timeout = default_timeout);
+        r<jump_dep_psl> initiator_jump_for_psl_passive_106kbps(std::array<std::uint8_t, 4> const &target_id, ms timeout = default_timeout);
+        /**
+         * @param general_info Max 48 bytes.
+         */
+        r<jump_dep_psl> initiator_jump_for_psl_passive_106kbps(std::array<std::uint8_t, 4> const &target_id, std::vector<std::uint8_t> const &general_info, ms timeout = default_timeout);
+        r<jump_dep_psl> initiator_jump_for_psl_passive_106kbps(std::array<std::uint8_t, 4> const &target_id, std::array<std::uint8_t, 10> const &nfcid_3t, ms timeout = default_timeout);
+        /**
+         * @param general_info Max 48 bytes.
+         */
+        r<jump_dep_psl> initiator_jump_for_psl_passive_106kbps(std::array<std::uint8_t, 4> const &target_id, std::array<std::uint8_t, 10> const &nfcid_3t, std::vector<std::uint8_t> const &general_info, ms timeout = default_timeout);
+        r<jump_dep_psl> initiator_jump_for_psl_passive_212kbps(std::array<std::uint8_t, 5> const &target_id, ms timeout = default_timeout);
+        /**
+         * @param general_info Max 48 bytes.
+         */
+        r<jump_dep_psl> initiator_jump_for_psl_passive_212kbps(std::array<std::uint8_t, 5> const &target_id, std::vector<std::uint8_t> const &general_info, ms timeout = default_timeout);
+        r<jump_dep_psl> initiator_jump_for_psl_passive_424kbps(std::array<std::uint8_t, 5> const &target_id, ms timeout = default_timeout);
+        /**
+         * @param general_info Max 48 bytes.
+         */
+        r<jump_dep_psl> initiator_jump_for_psl_passive_424kbps(std::array<std::uint8_t, 5> const &target_id, std::vector<std::uint8_t> const &general_info, ms timeout = default_timeout);
     private:
         channel *_channel;
 
@@ -283,7 +366,7 @@ namespace pn532 {
     }
 
     template <class T, class>
-    nfc::r<status, bin_data> nfc::initiator_data_exchange(std::uint8_t target_logical_index, T &&data, ms timeout)
+    nfc::r<rf_status, bin_data> nfc::initiator_data_exchange(std::uint8_t target_logical_index, T &&data, ms timeout)
     {
         const bin_data bd = bin_data::chain(std::forward<T>(data));
         return initiator_data_exchange(target_logical_index, bd, timeout);

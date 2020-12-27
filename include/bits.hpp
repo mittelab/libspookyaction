@@ -210,6 +210,9 @@ namespace pn532 {
             analog_iso_iec_14443_4 = 0x0d
         };
 
+        /**
+         * @todo rename to baud rate
+         */
         enum struct speed : std::uint8_t {
             kbps106 = 0x0,
             kbps212 = 0x1,
@@ -419,6 +422,12 @@ namespace pn532 {
 
         static constexpr std::uint8_t in_atr_nfcid_3t_present_mask = 0b01;
         static constexpr std::uint8_t in_atr_general_info_present_mask = 0b10;
+
+        static constexpr std::uint8_t in_jump_for_dep_passive_init_data_present_mask = 0b001;
+        static constexpr std::uint8_t in_jump_for_dep_nfcid_3t_present_mask = 0b010;
+        static constexpr std::uint8_t in_jump_for_dep_general_info_present_mask = 0b100;
+
+        static constexpr std::size_t general_info_max_length = 48;
 
         static constexpr std::uint8_t gpio_p3_pin_mask = bitmask_window<0, 5>::value;
         static constexpr std::uint8_t gpio_p7_pin_mask = bitmask_window<1, 2>::value;

@@ -50,6 +50,9 @@ namespace pn532 {
 
     static constexpr inf_t inf = inf_t{};
 
+    /**
+     * @todo rename to with_inf
+     */
     template <class Integral, class = typename std::enable_if<std::is_integral<Integral>::value>::type>
     struct infn {
         Integral v = Integral{};
@@ -142,7 +145,7 @@ namespace pn532 {
         modulation modulation_type;
     };
 
-    struct status {
+    struct rf_status {
         bool nad_present;
         bool expect_more_info;
         controller_error error;
@@ -166,6 +169,12 @@ namespace pn532 {
         low_current_thr low_current_threshold;
         high_current_thr high_current_threshold;
         bool enable_detection;
+    };
+
+    struct jump_dep_psl {
+        rf_status status{};
+        std::uint8_t target_logical_index{};
+        atr_res_info atr_info;
     };
 
     template <std::size_t Length>
@@ -220,8 +229,8 @@ namespace pn532 {
     bin_stream &operator>>(bin_stream &s, any_target &t);
     bin_stream &operator>>(bin_stream &s, std::vector<any_target> &targets);
 
-    bin_stream &operator>>(bin_stream &s, std::pair<status, bin_data> &status_data_pair);
-    bin_stream &operator>>(bin_stream &s, status &status);
+    bin_stream &operator>>(bin_stream &s, std::pair<rf_status, bin_data> &status_data_pair);
+    bin_stream &operator>>(bin_stream &s, rf_status &status);
     bin_stream &operator>>(bin_stream &s, gpio_status &gpio);
     bin_stream &operator>>(bin_stream &s, firmware_version &fw);
     bin_stream &operator>>(bin_stream &s, general_status &gs);
@@ -232,8 +241,9 @@ namespace pn532 {
     bin_stream &operator>>(bin_stream &s, target_kbps106_typeb &target);
     bin_stream &operator>>(bin_stream &s, target_kbps106_jewel_tag &target);
     bin_stream &operator>>(bin_stream &s, atr_res_info &atr_res);
-    bin_stream &operator>>(bin_stream &s, std::pair<status, atr_res_info> &status_atr_res);
+    bin_stream &operator>>(bin_stream &s, std::pair<rf_status, atr_res_info> &status_atr_res);
     bin_stream &operator>>(bin_stream &s, reg_antenna_detector &r);
+    bin_stream &operator>>(bin_stream &s, jump_dep_psl &r);
 
 }
 

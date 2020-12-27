@@ -87,9 +87,9 @@ namespace pn532 {
         return s;
     }
 
-    bin_stream &operator>>(bin_stream &s, status &status) {
+    bin_stream &operator>>(bin_stream &s, rf_status &status) {
         if (s.remaining() < 1) {
-            LOGE("Parsing status: expected at least 3 bytes of data, got %ul.", s.remaining());
+            LOGE("Parsing rf_status: expected at least 3 bytes of data, got %ul.", s.remaining());
             s.set_bad();
             return s;
         }
@@ -100,7 +100,7 @@ namespace pn532 {
         return s;
     }
 
-    bin_stream &operator>>(bin_stream &s, std::pair<status, bin_data> &status_data_pair) {
+    bin_stream &operator>>(bin_stream &s, std::pair<rf_status, bin_data> &status_data_pair) {
         s >> status_data_pair.first;
         if (s.good()) {
             status_data_pair.second.resize(s.remaining());
@@ -258,9 +258,9 @@ namespace pn532 {
         return s;
     }
 
-    bin_stream &operator>>(bin_stream &s, std::pair<status, atr_res_info> &status_atr_res) {
+    bin_stream &operator>>(bin_stream &s, std::pair<rf_status, atr_res_info> &status_atr_res) {
         if (s.remaining() < 16) {
-            LOGW("Unable to parse status and atr_res_info, incorrect data length.");
+            LOGW("Unable to parse rf_status and atr_res_info, incorrect data length.");
             s.set_bad();
             return s;
         }
@@ -366,6 +366,15 @@ namespace pn532 {
             s >> target;
         }
         return s;
+    }
+
+    bin_stream &operator>>(bin_stream &s, jump_dep_psl &r) {
+        if (s.remaining() < 17) {
+            LOGE("Parsing jump_dep_psl: not enough data.");
+            s.set_bad();
+            return s;
+        }
+        return s >> r.status >> r.target_logical_index >> r.atr_info;
     }
 
 }

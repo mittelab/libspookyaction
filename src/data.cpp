@@ -117,7 +117,7 @@ namespace pn532 {
             s.set_bad();
             return s;
         }
-        return s >> ts.logical_index >> ts.bitrate_rx >> ts.bitrate_tx >> ts.modulation_type;
+        return s >> ts.logical_index >> ts.baudrate_rx >> ts.baudrate_tx >> ts.modulation_type;
     }
 
     bin_stream &operator>>(bin_stream &s, general_status &gs) {

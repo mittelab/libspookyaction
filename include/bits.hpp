@@ -210,18 +210,15 @@ namespace pn532 {
             analog_iso_iec_14443_4 = 0x0d
         };
 
-        /**
-         * @todo rename to baud rate
-         */
-        enum struct speed : std::uint8_t {
+        enum struct baudrate : std::uint8_t {
             kbps106 = 0x0,
             kbps212 = 0x1,
             kbps424 = 0x2
         };
 
         enum struct modulation : std::uint8_t {
-            mifare_iso_iec_14443_3_type_ab_iso_iec_18092_passive_kbps_106 = 0x00,
-            felica_iso_iec_18092_kbps_212_424 = 0x10,
+            mifare_iso_iec_14443_3_type_ab_iso_iec_18092_passive_kbps106 = 0x00,
+            felica_iso_iec_18092_kbps212_424 = 0x10,
             iso_iec_18092_active = 0x01,
             innovision_jewel_tag = 0x02
         };

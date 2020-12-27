@@ -135,7 +135,7 @@ namespace pn532 {
         r<> rf_configuration_retries(infbyte comm_retries = 0, ms timeout = default_timeout);
 
         r<> rf_configuration_retries(infbyte atr_retries, infbyte psl_retries,
-                                     infbyte passive_activation_retries = inf,
+                                     infbyte passive_activation_retries = infty,
                                      ms timeout = default_timeout);
 
         r<> rf_configuration_analog_106kbps_typea(ciu_reg_106kbps_typea const &config, ms timeout = default_timeout);
@@ -164,7 +164,7 @@ namespace pn532 {
         r<rf_status> initiator_select(std::uint8_t target_logical_index, ms timeout = default_timeout);
         r<rf_status> initiator_deselect(std::uint8_t target_logical_index, ms timeout = default_timeout);
         r<rf_status> initiator_release(std::uint8_t target_logical_index, ms timeout = default_timeout);
-        r<rf_status> initiator_psl(std::uint8_t target_logical_index, speed in_to_trg, speed trg_to_in,
+        r<rf_status> initiator_psl(std::uint8_t target_logical_index, baudrate in_to_trg, baudrate trg_to_in,
                                    ms timeout = default_timeout);
 
         r<std::vector<target_kbps106_typea>> initiator_list_passive_kbps106_typea(
@@ -222,16 +222,16 @@ namespace pn532 {
         r<rf_status, bin_data> initiator_communicate_through(bin_data const &raw_data, ms timeout = default_timeout);
 
 
-        r<jump_dep_psl> initiator_jump_for_dep_active(speed speed, ms timeout = default_timeout);
+        r<jump_dep_psl> initiator_jump_for_dep_active(baudrate speed, ms timeout = default_timeout);
         /**
          * @param general_info Max 48 bytes.
          */
-        r<jump_dep_psl> initiator_jump_for_dep_active(speed speed, std::vector<std::uint8_t> const &general_info, ms timeout = default_timeout);
-        r<jump_dep_psl> initiator_jump_for_dep_active(speed speed, std::array<std::uint8_t, 10> const &nfcid_3t, ms timeout = default_timeout);
+        r<jump_dep_psl> initiator_jump_for_dep_active(baudrate speed, std::vector<std::uint8_t> const &general_info, ms timeout = default_timeout);
+        r<jump_dep_psl> initiator_jump_for_dep_active(baudrate speed, std::array<std::uint8_t, 10> const &nfcid_3t, ms timeout = default_timeout);
         /**
          * @param general_info Max 48 bytes.
          */
-        r<jump_dep_psl> initiator_jump_for_dep_active(speed speed, std::array<std::uint8_t, 10> const &nfcid_3t, std::vector<std::uint8_t> const &general_info, ms timeout = default_timeout);
+        r<jump_dep_psl> initiator_jump_for_dep_active(baudrate speed, std::array<std::uint8_t, 10> const &nfcid_3t, std::vector<std::uint8_t> const &general_info, ms timeout = default_timeout);
         r<jump_dep_psl> initiator_jump_for_dep_passive_106kbps(ms timeout = default_timeout);
         /**
          * @param general_info Max 48 bytes.
@@ -264,16 +264,16 @@ namespace pn532 {
         r<jump_dep_psl> initiator_jump_for_dep_passive_424kbps(std::array<std::uint8_t, 5> const &target_id, std::vector<std::uint8_t> const &general_info, ms timeout = default_timeout);
 
 
-        r<jump_dep_psl> initiator_jump_for_psl_active(speed speed, ms timeout = default_timeout);
+        r<jump_dep_psl> initiator_jump_for_psl_active(baudrate speed, ms timeout = default_timeout);
         /**
          * @param general_info Max 48 bytes.
          */
-        r<jump_dep_psl> initiator_jump_for_psl_active(speed speed, std::vector<std::uint8_t> const &general_info, ms timeout = default_timeout);
-        r<jump_dep_psl> initiator_jump_for_psl_active(speed speed, std::array<std::uint8_t, 10> const &nfcid_3t, ms timeout = default_timeout);
+        r<jump_dep_psl> initiator_jump_for_psl_active(baudrate speed, std::vector<std::uint8_t> const &general_info, ms timeout = default_timeout);
+        r<jump_dep_psl> initiator_jump_for_psl_active(baudrate speed, std::array<std::uint8_t, 10> const &nfcid_3t, ms timeout = default_timeout);
         /**
          * @param general_info Max 48 bytes.
          */
-        r<jump_dep_psl> initiator_jump_for_psl_active(speed speed, std::array<std::uint8_t, 10> const &nfcid_3t, std::vector<std::uint8_t> const &general_info, ms timeout = default_timeout);
+        r<jump_dep_psl> initiator_jump_for_psl_active(baudrate speed, std::array<std::uint8_t, 10> const &nfcid_3t, std::vector<std::uint8_t> const &general_info, ms timeout = default_timeout);
         r<jump_dep_psl> initiator_jump_for_psl_passive_106kbps(ms timeout = default_timeout);
         /**
          * @param general_info Max 48 bytes.

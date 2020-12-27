@@ -17,7 +17,7 @@ namespace pn532 {
     using controller_error = bits::error;
     using command_code = bits::command;
 
-    using bits::speed;
+    using bits::baudrate;
     using bits::modulation;
     using bits::baudrate_modulation;
     using bits::sfr_register;
@@ -46,26 +46,26 @@ namespace pn532 {
     template <target_type Type>
     struct poll_entry : public bits::target<bits::baudrate_modulation_of_target<Type>::value> {};
 
-    struct inf_t {};
+    struct infty_t {};
 
-    static constexpr inf_t inf = inf_t{};
+    static constexpr infty_t infty = infty_t{};
 
     /**
      * @todo rename to with_inf
      */
     template <class Integral, class = typename std::enable_if<std::is_integral<Integral>::value>::type>
-    struct infn {
+    struct with_inf {
         Integral v = Integral{};
-        infn() = default;
-        inline infn(inf_t) : v{std::numeric_limits<Integral>::max()} {}
-        inline infn(Integral n) : v{n} {}
+        with_inf() = default;
+        inline with_inf(infty_t) : v{std::numeric_limits<Integral>::max()} {}
+        inline with_inf(Integral n) : v{n} {}
         inline operator Integral() const { return v; }
-        inline infn &operator=(inf_t) { v = std::numeric_limits<Integral>::max(); }
-        inline bool operator==(inf_t) const { return v == std::numeric_limits<Integral>::max(); }
-        inline bool operator!=(inf_t) const { return v != std::numeric_limits<Integral>::max(); }
+        inline with_inf &operator=(infty_t) { v = std::numeric_limits<Integral>::max(); }
+        inline bool operator==(infty_t) const { return v == std::numeric_limits<Integral>::max(); }
+        inline bool operator!=(infty_t) const { return v != std::numeric_limits<Integral>::max(); }
     };
 
-    using infbyte = infn<std::uint8_t>;
+    using infbyte = with_inf<std::uint8_t>;
 
     struct poll_entry_with_atr {
         atr_res_info atr_info;
@@ -140,8 +140,8 @@ namespace pn532 {
 
     struct target_status {
         std::uint8_t logical_index;
-        speed bitrate_rx;
-        speed bitrate_tx;
+        baudrate baudrate_rx;
+        baudrate baudrate_tx;
         modulation modulation_type;
     };
 

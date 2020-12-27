@@ -5,11 +5,11 @@
 #include "msg.hpp"
 
 namespace pn532 {
-    const char *to_string(bits::speed s) {
+    const char *to_string(bits::baudrate s) {
         switch (s) {
-            case bits::speed::kbps106: return "106 kbps";
-            case bits::speed::kbps212: return "212 kbps";
-            case bits::speed::kbps424: return "424 kbps";
+            case bits::baudrate::kbps106: return "106 kbps";
+            case bits::baudrate::kbps212: return "212 kbps";
+            case bits::baudrate::kbps424: return "424 kbps";
             default: return "UNKNOWN";
         }
     }

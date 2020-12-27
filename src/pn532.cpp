@@ -369,7 +369,7 @@ namespace pn532 {
     }
 
     nfc::r<unsigned, unsigned> nfc::diagnose_poll_target(bool slow, bool fast, ms timeout) {
-        auto get_fails = [&](bool do_test, speed speed) -> nfc::r<unsigned> {
+        auto get_fails = [&](bool do_test, baudrate speed) -> nfc::r<unsigned> {
             if (not do_test) {
                 return std::numeric_limits<unsigned>::max();
             }
@@ -389,9 +389,9 @@ namespace pn532 {
         };
 
         LOGI("%s: running %s...", to_string(command_code::diagnose), to_string(bits::test::poll_target));
-        const auto slow_fails = get_fails(slow, speed::kbps212);
+        const auto slow_fails = get_fails(slow, baudrate::kbps212);
         if (slow_fails) {
-            const auto fast_fails = get_fails(fast, speed::kbps424);
+            const auto fast_fails = get_fails(fast, baudrate::kbps424);
             if (fast_fails) {
                 LOGI("%s: %s test succeeded.", to_string(command_code::diagnose), to_string(bits::test::poll_target));
                 return {*slow_fails, *fast_fails};
@@ -630,7 +630,7 @@ namespace pn532 {
         const std::uint8_t target_byte = get_target(command_code ::in_release, target_logical_index, false);
         return command_parse_response<rf_status>(command_code::in_release, bin_data{target_byte}, timeout);
     }
-    nfc::r<rf_status> nfc::initiator_psl(std::uint8_t target_logical_index, speed in_to_trg, speed trg_to_in,
+    nfc::r<rf_status> nfc::initiator_psl(std::uint8_t target_logical_index, baudrate in_to_trg, baudrate trg_to_in,
                                          ms timeout)
     {
         const std::uint8_t target_byte = get_target(command_code ::in_psl, target_logical_index, false);
@@ -876,7 +876,7 @@ namespace pn532 {
         }
     }
 
-    nfc::r<jump_dep_psl> nfc::initiator_jump_for_dep_active(speed speed, ms timeout) {
+    nfc::r<jump_dep_psl> nfc::initiator_jump_for_dep_active(baudrate speed, ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(false, false, false);
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_dep,
@@ -884,7 +884,7 @@ namespace pn532 {
                 timeout
         );
     }
-    nfc::r<jump_dep_psl> nfc::initiator_jump_for_dep_active(speed speed, std::array<std::uint8_t, 10> const &nfcid_3t, ms timeout) {
+    nfc::r<jump_dep_psl> nfc::initiator_jump_for_dep_active(baudrate speed, std::array<std::uint8_t, 10> const &nfcid_3t, ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(false, true, false);
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_dep,
@@ -896,7 +896,7 @@ namespace pn532 {
         const auto next_byte = get_in_jump_for_dep_psl_next(false, false, false);
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_dep,
-                bin_data::chain(false /* passive */, speed::kbps106, next_byte),
+                bin_data::chain(false /* passive */, baudrate::kbps106, next_byte),
                 timeout
         );
     }
@@ -904,7 +904,7 @@ namespace pn532 {
         const auto next_byte = get_in_jump_for_dep_psl_next(false, true, false);
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_dep,
-                bin_data::chain(false /* passive */, speed::kbps106, next_byte, nfcid_3t),
+                bin_data::chain(false /* passive */, baudrate::kbps106, next_byte, nfcid_3t),
                 timeout
         );
     }
@@ -912,7 +912,7 @@ namespace pn532 {
         const auto next_byte = get_in_jump_for_dep_psl_next(true, false, false);
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_dep,
-                bin_data::chain(false /* passive */, speed::kbps106, next_byte, target_id),
+                bin_data::chain(false /* passive */, baudrate::kbps106, next_byte, target_id),
                 timeout
         );
     }
@@ -920,7 +920,7 @@ namespace pn532 {
         const auto next_byte = get_in_jump_for_dep_psl_next(true, true, false);
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_dep,
-                bin_data::chain(false /* passive */, speed::kbps106, next_byte, target_id, nfcid_3t),
+                bin_data::chain(false /* passive */, baudrate::kbps106, next_byte, target_id, nfcid_3t),
                 timeout
         );
     }
@@ -928,7 +928,7 @@ namespace pn532 {
         const auto next_byte = get_in_jump_for_dep_psl_next(true, false, false);
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_dep,
-                bin_data::chain(false /* passive */, speed::kbps212, next_byte, target_id, target_id),
+                bin_data::chain(false /* passive */, baudrate::kbps212, next_byte, target_id, target_id),
                 timeout
         );
     }
@@ -936,13 +936,13 @@ namespace pn532 {
         const auto next_byte = get_in_jump_for_dep_psl_next(true, false, false);
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_dep,
-                bin_data::chain(false /* passive */, speed::kbps424, next_byte, target_id, target_id),
+                bin_data::chain(false /* passive */, baudrate::kbps424, next_byte, target_id, target_id),
                 timeout
         );
     }
 
 
-    nfc::r<jump_dep_psl> nfc::initiator_jump_for_dep_active(speed speed,
+    nfc::r<jump_dep_psl> nfc::initiator_jump_for_dep_active(baudrate speed,
                                                             std::vector<std::uint8_t> const &general_info, ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(false, false, true);
         const auto gi_view = sanitize_general_info(command_code::in_jump_for_dep, general_info);
@@ -952,7 +952,7 @@ namespace pn532 {
                 timeout
         );
     }
-    nfc::r<jump_dep_psl> nfc::initiator_jump_for_dep_active(speed speed, std::array<std::uint8_t, 10> const &nfcid_3t,
+    nfc::r<jump_dep_psl> nfc::initiator_jump_for_dep_active(baudrate speed, std::array<std::uint8_t, 10> const &nfcid_3t,
                                                             std::vector<std::uint8_t> const &general_info, ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(false, true, true);
         const auto gi_view = sanitize_general_info(command_code::in_jump_for_dep, general_info);
@@ -967,7 +967,7 @@ namespace pn532 {
         const auto gi_view = sanitize_general_info(command_code::in_jump_for_dep, general_info);
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_dep,
-                bin_data::chain(false /* passive */, speed::kbps106, next_byte, gi_view),
+                bin_data::chain(false /* passive */, baudrate::kbps106, next_byte, gi_view),
                 timeout
         );
     }
@@ -977,7 +977,7 @@ namespace pn532 {
         const auto gi_view = sanitize_general_info(command_code::in_jump_for_dep, general_info);
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_dep,
-                bin_data::chain(false /* passive */, speed::kbps106, next_byte, nfcid_3t, gi_view),
+                bin_data::chain(false /* passive */, baudrate::kbps106, next_byte, nfcid_3t, gi_view),
                 timeout
         );
     }
@@ -987,7 +987,7 @@ namespace pn532 {
         const auto gi_view = sanitize_general_info(command_code::in_jump_for_dep, general_info);
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_dep,
-                bin_data::chain(false /* passive */, speed::kbps106, next_byte, target_id, gi_view),
+                bin_data::chain(false /* passive */, baudrate::kbps106, next_byte, target_id, gi_view),
                 timeout
         );
     }
@@ -997,7 +997,7 @@ namespace pn532 {
         const auto gi_view = sanitize_general_info(command_code::in_jump_for_dep, general_info);
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_dep,
-                bin_data::chain(false /* passive */, speed::kbps106, next_byte, target_id, nfcid_3t, gi_view),
+                bin_data::chain(false /* passive */, baudrate::kbps106, next_byte, target_id, nfcid_3t, gi_view),
                 timeout
         );
     }
@@ -1007,7 +1007,7 @@ namespace pn532 {
         const auto gi_view = sanitize_general_info(command_code::in_jump_for_dep, general_info);
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_dep,
-                bin_data::chain(false /* passive */, speed::kbps212, next_byte, target_id, target_id, gi_view),
+                bin_data::chain(false /* passive */, baudrate::kbps212, next_byte, target_id, target_id, gi_view),
                 timeout
         );
     }
@@ -1017,13 +1017,13 @@ namespace pn532 {
         const auto gi_view = sanitize_general_info(command_code::in_jump_for_dep, general_info);
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_dep,
-                bin_data::chain(false /* passive */, speed::kbps424, next_byte, target_id, target_id, gi_view),
+                bin_data::chain(false /* passive */, baudrate::kbps424, next_byte, target_id, target_id, gi_view),
                 timeout
         );
     }
 
 
-    nfc::r<jump_dep_psl> nfc::initiator_jump_for_psl_active(speed speed, ms timeout) {
+    nfc::r<jump_dep_psl> nfc::initiator_jump_for_psl_active(baudrate speed, ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(false, false, false);
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_psl,
@@ -1031,7 +1031,7 @@ namespace pn532 {
                 timeout
         );
     }
-    nfc::r<jump_dep_psl> nfc::initiator_jump_for_psl_active(speed speed, std::array<std::uint8_t, 10> const &nfcid_3t, ms timeout) {
+    nfc::r<jump_dep_psl> nfc::initiator_jump_for_psl_active(baudrate speed, std::array<std::uint8_t, 10> const &nfcid_3t, ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(false, true, false);
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_psl,
@@ -1043,7 +1043,7 @@ namespace pn532 {
         const auto next_byte = get_in_jump_for_dep_psl_next(false, false, false);
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_psl,
-                bin_data::chain(false /* passive */, speed::kbps106, next_byte),
+                bin_data::chain(false /* passive */, baudrate::kbps106, next_byte),
                 timeout
         );
     }
@@ -1051,7 +1051,7 @@ namespace pn532 {
         const auto next_byte = get_in_jump_for_dep_psl_next(false, true, false);
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_psl,
-                bin_data::chain(false /* passive */, speed::kbps106, next_byte, nfcid_3t),
+                bin_data::chain(false /* passive */, baudrate::kbps106, next_byte, nfcid_3t),
                 timeout
         );
     }
@@ -1059,7 +1059,7 @@ namespace pn532 {
         const auto next_byte = get_in_jump_for_dep_psl_next(true, false, false);
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_psl,
-                bin_data::chain(false /* passive */, speed::kbps106, next_byte, target_id),
+                bin_data::chain(false /* passive */, baudrate::kbps106, next_byte, target_id),
                 timeout
         );
     }
@@ -1067,7 +1067,7 @@ namespace pn532 {
         const auto next_byte = get_in_jump_for_dep_psl_next(true, true, false);
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_psl,
-                bin_data::chain(false /* passive */, speed::kbps106, next_byte, target_id, nfcid_3t),
+                bin_data::chain(false /* passive */, baudrate::kbps106, next_byte, target_id, nfcid_3t),
                 timeout
         );
     }
@@ -1075,7 +1075,7 @@ namespace pn532 {
         const auto next_byte = get_in_jump_for_dep_psl_next(true, false, false);
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_psl,
-                bin_data::chain(false /* passive */, speed::kbps212, next_byte, target_id, target_id),
+                bin_data::chain(false /* passive */, baudrate::kbps212, next_byte, target_id, target_id),
                 timeout
         );
     }
@@ -1083,13 +1083,13 @@ namespace pn532 {
         const auto next_byte = get_in_jump_for_dep_psl_next(true, false, false);
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_psl,
-                bin_data::chain(false /* passive */, speed::kbps424, next_byte, target_id, target_id),
+                bin_data::chain(false /* passive */, baudrate::kbps424, next_byte, target_id, target_id),
                 timeout
         );
     }
 
 
-    nfc::r<jump_dep_psl> nfc::initiator_jump_for_psl_active(speed speed,
+    nfc::r<jump_dep_psl> nfc::initiator_jump_for_psl_active(baudrate speed,
                                                             std::vector<std::uint8_t> const &general_info, ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(false, false, true);
         const auto gi_view = sanitize_general_info(command_code::in_jump_for_psl, general_info);
@@ -1099,7 +1099,7 @@ namespace pn532 {
                 timeout
         );
     }
-    nfc::r<jump_dep_psl> nfc::initiator_jump_for_psl_active(speed speed, std::array<std::uint8_t, 10> const &nfcid_3t,
+    nfc::r<jump_dep_psl> nfc::initiator_jump_for_psl_active(baudrate speed, std::array<std::uint8_t, 10> const &nfcid_3t,
                                                             std::vector<std::uint8_t> const &general_info, ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(false, true, true);
         const auto gi_view = sanitize_general_info(command_code::in_jump_for_psl, general_info);
@@ -1114,7 +1114,7 @@ namespace pn532 {
         const auto gi_view = sanitize_general_info(command_code::in_jump_for_psl, general_info);
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_psl,
-                bin_data::chain(false /* passive */, speed::kbps106, next_byte, gi_view),
+                bin_data::chain(false /* passive */, baudrate::kbps106, next_byte, gi_view),
                 timeout
         );
     }
@@ -1124,7 +1124,7 @@ namespace pn532 {
         const auto gi_view = sanitize_general_info(command_code::in_jump_for_psl, general_info);
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_psl,
-                bin_data::chain(false /* passive */, speed::kbps106, next_byte, nfcid_3t, gi_view),
+                bin_data::chain(false /* passive */, baudrate::kbps106, next_byte, nfcid_3t, gi_view),
                 timeout
         );
     }
@@ -1134,7 +1134,7 @@ namespace pn532 {
         const auto gi_view = sanitize_general_info(command_code::in_jump_for_psl, general_info);
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_psl,
-                bin_data::chain(false /* passive */, speed::kbps106, next_byte, target_id, gi_view),
+                bin_data::chain(false /* passive */, baudrate::kbps106, next_byte, target_id, gi_view),
                 timeout
         );
     }
@@ -1144,7 +1144,7 @@ namespace pn532 {
         const auto gi_view = sanitize_general_info(command_code::in_jump_for_psl, general_info);
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_psl,
-                bin_data::chain(false /* passive */, speed::kbps106, next_byte, target_id, nfcid_3t, gi_view),
+                bin_data::chain(false /* passive */, baudrate::kbps106, next_byte, target_id, nfcid_3t, gi_view),
                 timeout
         );
     }
@@ -1154,7 +1154,7 @@ namespace pn532 {
         const auto gi_view = sanitize_general_info(command_code::in_jump_for_psl, general_info);
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_psl,
-                bin_data::chain(false /* passive */, speed::kbps212, next_byte, target_id, target_id, gi_view),
+                bin_data::chain(false /* passive */, baudrate::kbps212, next_byte, target_id, target_id, gi_view),
                 timeout
         );
     }
@@ -1164,7 +1164,7 @@ namespace pn532 {
         const auto gi_view = sanitize_general_info(command_code::in_jump_for_psl, general_info);
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_psl,
-                bin_data::chain(false /* passive */, speed::kbps424, next_byte, target_id, target_id, gi_view),
+                bin_data::chain(false /* passive */, baudrate::kbps424, next_byte, target_id, target_id, gi_view),
                 timeout
         );
     }

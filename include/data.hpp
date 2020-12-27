@@ -52,9 +52,6 @@ namespace pn532 {
 
     static constexpr infty_t infty = infty_t{};
 
-    /**
-     * @todo rename to with_inf
-     */
     template <class Integral, class = typename std::enable_if<std::is_integral<Integral>::value>::type>
     struct with_inf {
         Integral v = Integral{};
@@ -171,14 +168,18 @@ namespace pn532 {
         inline explicit operator bool() const { return error == controller_error::none; }
     };
 
+    struct sam_status {
+        bool neg_pulse_on_clad_line;
+        bool detected_rf_field_off;
+        bool timeout_after_sig_act_irq;
+        bool clad_line_high;
+    };
+
     struct general_status {
         controller_error last_error;
         bool rf_field_present;
         std::vector<target_status> targets;
-        /**
-         * @todo pag 75 has a bit packing for this
-         */
-        std::uint8_t sam_status;
+        sam_status sam;
     };
 
     struct reg_antenna_detector {
@@ -284,6 +285,8 @@ namespace pn532 {
     bin_stream &operator>>(bin_stream &s, reg_antenna_detector &r);
 
     bin_stream &operator>>(bin_stream &s, jump_dep_psl &r);
+
+    bin_stream &operator>>(bin_stream &s, sam_status &sams);
 
 }
 

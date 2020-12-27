@@ -139,7 +139,7 @@ namespace pn532 {
         for (target_status &ts : gs.targets) {
             s >> ts;
         }
-        s >> gs.sam_status;
+        s >> gs.sam;
 
         return s;
     }
@@ -375,6 +375,20 @@ namespace pn532 {
             return s;
         }
         return s >> r.status >> r.target_logical_index >> r.atr_info;
+    }
+
+    bin_stream &operator>>(bin_stream &s, sam_status &sams) {
+        if (s.remaining() < 1) {
+            LOGE("Parsing sam: not enough data.");
+            s.set_bad();
+            return s;
+        }
+        const std::uint8_t sam_byte = s.pop();
+        sams.clad_line_high = 0 != (sam_byte & bits::sam_status_clad_line_high_bit);
+        sams.detected_rf_field_off = 0 != (sam_byte & bits::sam_status_detected_rf_field_off_bit);
+        sams.neg_pulse_on_clad_line = 0 != (sam_byte & bits::sam_status_neg_pulse_on_clad_line_bit);
+        sams.timeout_after_sig_act_irq = 0 != (sam_byte & bits::sam_status_timeout_after_sig_act_irq_bit);
+        return s;
     }
 
 }

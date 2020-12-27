@@ -236,6 +236,11 @@ namespace pn532 {
         static constexpr std::uint8_t status_more_info_mask = 0x1 << 6;
         static constexpr std::uint8_t status_error_mask = 0b00111111;
 
+        static constexpr std::uint8_t sam_status_neg_pulse_on_clad_line_bit = 1 << 0;
+        static constexpr std::uint8_t sam_status_detected_rf_field_off_bit = 1 << 1;
+        static constexpr std::uint8_t sam_status_timeout_after_sig_act_irq_bit = 1 << 2;
+        static constexpr std::uint8_t sam_status_clad_line_high_bit = 1 << 7;
+
         static constexpr std::uint8_t max_num_targets = 2;
 
         enum struct error : std::uint8_t {

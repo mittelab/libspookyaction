@@ -216,6 +216,11 @@ namespace pn532 {
                                                        poll_period period = poll_period::ms_150,
                                                        ms timeout = long_timeout);
 
+        /** @brief Raw data transmission to target.
+         * @param raw_data Max 264 bytes, data will be truncated. To trasmit more, use @ref initiator_data_exchange.
+         */
+        r<status, bin_data> initiator_communicate_through(bin_data const &raw_data, ms timeout = default_timeout);
+
     private:
         channel *_channel;
 

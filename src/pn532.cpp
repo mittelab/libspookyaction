@@ -851,4 +851,10 @@ namespace pn532 {
         return {s, data_in};
     }
 
+
+    nfc::r<status, bin_data> nfc::initiator_communicate_through(bin_data const &raw_data, ms timeout) {
+        return command_parse_response<std::pair<status, bin_data>>(command_code::in_communicate_thru, raw_data, timeout);
+    }
+
+
 }

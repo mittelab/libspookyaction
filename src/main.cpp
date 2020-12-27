@@ -59,7 +59,7 @@ void test_diagnostics() {
     TEST_ASSERT(is_ok(tag_reader->diagnose_rom()));
     TEST_ASSERT(is_ok(tag_reader->diagnose_ram()));
     TEST_ASSERT(is_ok(tag_reader->diagnose_comm_line()));
-    TEST_ASSERT(is_ok(tag_reader->diagnose_self_antenna(pn532::low_current_thr::mA_25, pn532::high_current_thr::mA_130)));
+    TEST_ASSERT(is_ok(tag_reader->diagnose_self_antenna(pn532::low_current_thr::mA_25, pn532::high_current_thr::mA_150)));
 }
 
 void test_scan_mifare() {
@@ -85,6 +85,29 @@ void test_scan_all() {
     }
 }
 
+void test_data_exchange() {
+    ESP_LOGI(TEST_TAG, "Searching for one passive 106 kbps target. Please bring card close.");
+    const auto r_scan = tag_reader->initiator_list_passive_kbps106_typea(1, 10 * pn532::one_sec);
+    if (not r_scan or r_scan->empty()) {
+        TEST_FAIL_MESSAGE("Could not find a suitable card for testing.");
+        return;
+    }
+    ESP_LOGI(TEST_TAG, "Found one target:");
+    auto const &nfcid = r_scan->front().info.nfcid;
+    ESP_LOG_BUFFER_HEX_LEVEL(TEST_TAG, nfcid.data(), nfcid.size(), ESP_LOG_INFO);
+    ESP_LOGI(TEST_TAG, "Exchanging data.");
+    const auto idx = r_scan->front().logical_index;
+    const auto r_exchange = tag_reader->initiator_data_exchange(idx, {0x5a, 0x00, 0x00, 0x00}, false);
+    if (not r_exchange) {
+        TEST_FAIL_MESSAGE("Exchange failed.");
+        return;
+    }
+    ESP_LOGI(TEST_TAG, "Exchange successful, received:");
+    ESP_LOG_BUFFER_HEX_LEVEL(TEST_TAG, r_exchange->second.data(), r_exchange->second.size(), ESP_LOG_INFO);
+    TEST_ASSERT(r_exchange->first.error == pn532::controller_error::none);
+    TEST_ASSERT(r_exchange->second.size() == 1 and r_exchange->second.front() == 0x0);
+}
+
 extern "C" void app_main()
 {
     UNITY_BEGIN();
@@ -93,6 +116,7 @@ extern "C" void app_main()
     RUN_TEST(test_diagnostics);
     RUN_TEST(test_scan_mifare);
     RUN_TEST(test_scan_all);
+    RUN_TEST(test_data_exchange);
     UNITY_END();
 }
 

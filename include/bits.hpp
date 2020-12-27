@@ -377,6 +377,7 @@ namespace pn532 {
         template <>
         struct target_info<baudrate_modulation::kbps212_felica_polling> {
             std::array<std::uint8_t, 8> nfcid_2t;
+            std::array<std::uint8_t, 8> pad;
             std::array<std::uint8_t, 2> syst_code;
         };
 

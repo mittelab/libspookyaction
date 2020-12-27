@@ -198,6 +198,7 @@ namespace pn532 {
         }
 
         s >> target.info.nfcid_2t;
+        s >> target.info.pad;
         if (pol_length == 20) {
             // Copy also SYST_CODE
             s >> target.info.syst_code;

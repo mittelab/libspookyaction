@@ -420,10 +420,56 @@ namespace pn532 {
         s >> st.status;
         const std::uint8_t br_it = s.pop();
         st.initiator_speed = static_cast<baudrate>((br_it >> bits::status_as_target_initiator_speed_shift) &
-                                                   bits::status_as_target_shifted_speed_mask);
+                                                   bits::baudrate_mask);
         st.target_speed = static_cast<baudrate>((br_it >> bits::status_as_target_target_speed_shift) &
-                                                bits::status_as_target_shifted_speed_mask);
+                                                bits::baudrate_mask);
         return s;
     }
 
+    bin_stream &operator>>(bin_stream &s, mode_as_target &mt) {
+        if (s.remaining() < 1) {
+            LOGE("Parsing mode_as_target: not enough data.");
+            s.set_bad();
+            return s;
+        }
+        const std::uint8_t byte = s.pop();
+        mt.speed = static_cast<baudrate>((byte >> bits::init_as_target_res_baudrate_shift) & bits::baudrate_mask);
+        mt.iso_iec_14443_4_picc = 0 != (byte & bits::init_as_target_res_picc_bit);
+        mt.dep = 0 != (byte & bits::init_as_target_res_dep_bit);
+        mt.framing_type = static_cast<framing>(byte & bits::framing_mask);
+        return s;
+    }
+
+    bin_stream &operator>>(bin_stream &s, init_as_target_res &mt) {
+        if (s.remaining() < 1) {
+            LOGE("Parsing init_as_target_res: not enough data.");
+            s.set_bad();
+            return s;
+        }
+        s >> mt.mode;
+        if (s.good()) {
+            mt.initiator_command.resize(s.remaining());
+            s.read(std::begin(mt.initiator_command), s.remaining());
+        }
+        return s;
+    }
+
+    bin_data &operator<<(bin_data &s, mifare_params const &p) {
+        /**
+         * @note Manual says, page 151 that SENS_RES goes LSB first. Odd but ok.
+         * @todo Compare with the ISO/IEC14443-3 spec.
+         */
+        return s << prealloc(6)
+                 << std::uint8_t(p.sens_res & 0xff)
+                 << std::uint8_t(p.sens_res >> 8)
+                 << p.nfcid_1t
+                 << p.sel_res;
+    }
+
+    bin_data &operator<<(bin_data &s, felica_params const &p) {
+        return s << prealloc(18)
+                 << p.nfcid_2t
+                 << p.pad
+                 << p.syst_code;
+    }
 }

@@ -735,16 +735,30 @@ namespace pn532 {
                    | (has_general_info ? bits::in_atr_general_info_present_mask : 0x00);
         }
 
-        range<std::vector<std::uint8_t>::const_iterator> sanitize_general_info(
-                command_code cmd, std::vector<std::uint8_t> const &gi) {
-            if (gi.size() > bits::general_info_max_length) {
-                LOGW("%s: general info array too long (%u), truncating to %u bytes.", to_string(cmd), gi.size(),
-                     bits::general_info_max_length);
+        range<std::vector<std::uint8_t>::const_iterator> sanitize_vector(
+                command_code cmd, const char *v_name, std::vector<std::uint8_t> const &v, std::size_t max_len) {
+            if (v.size() > bits::general_info_max_length) {
+                LOGW("%s: %s vector too long (%u), truncating to %u bytes.", to_string(cmd), v_name, v.size(), max_len);
             }
             return make_range(
-                    std::begin(gi),
-                    std::begin(gi) + std::min(bits::general_info_max_length, gi.size())
+                    std::begin(v),
+                    std::begin(v) + std::min(max_len, v.size())
             );
+        }
+
+        range<std::vector<std::uint8_t>::const_iterator> sanitize_initiator_general_info(
+                command_code cmd, std::vector<std::uint8_t> const &gi) {
+            return sanitize_vector(cmd, "general info", gi, bits::general_info_max_length);
+        }
+
+        range<std::vector<std::uint8_t>::const_iterator> sanitize_target_general_info(
+                command_code cmd, std::vector<std::uint8_t> const &gi) {
+            return sanitize_vector(cmd, "general info", gi, bits::init_as_target_general_info_max_length);
+        }
+
+        range<std::vector<std::uint8_t>::const_iterator> sanitize_target_historical_bytes(
+                command_code cmd, std::vector<std::uint8_t> const &hb) {
+            return sanitize_vector(cmd, "historical bytes", hb, bits::init_as_target_historical_bytes_max_length);
         }
     }
 
@@ -775,7 +789,7 @@ namespace pn532 {
             std::vector<std::uint8_t> const &general_info,
             ms timeout) {
         const auto next_byte = get_in_atr_next(false, true);
-        const auto gi_view = sanitize_general_info(command_code::in_atr, general_info);
+        const auto gi_view = sanitize_initiator_general_info(command_code::in_atr, general_info);
         return command_parse_response<std::pair<rf_status, atr_res_info>>(
                 command_code::in_atr,
                 bin_data::chain(target_logical_index, next_byte, gi_view),
@@ -789,7 +803,7 @@ namespace pn532 {
             std::vector<std::uint8_t> const &general_info,
             ms timeout) {
         const auto next_byte = get_in_atr_next(true, true);
-        const auto gi_view = sanitize_general_info(command_code::in_atr, general_info);
+        const auto gi_view = sanitize_initiator_general_info(command_code::in_atr, general_info);
         return command_parse_response<std::pair<rf_status, atr_res_info>>(
                 command_code::in_atr,
                 bin_data::chain(target_logical_index, next_byte, nfcid_3t, gi_view),
@@ -967,7 +981,7 @@ namespace pn532 {
             baudrate speed,
             std::vector<std::uint8_t> const &general_info, ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(false, false, true);
-        const auto gi_view = sanitize_general_info(command_code::in_jump_for_dep, general_info);
+        const auto gi_view = sanitize_initiator_general_info(command_code::in_jump_for_dep, general_info);
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_dep,
                 bin_data::chain(true /* active */, speed, next_byte, gi_view),
@@ -979,7 +993,7 @@ namespace pn532 {
             baudrate speed, std::array<std::uint8_t, 10> const &nfcid_3t,
             std::vector<std::uint8_t> const &general_info, ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(false, true, true);
-        const auto gi_view = sanitize_general_info(command_code::in_jump_for_dep, general_info);
+        const auto gi_view = sanitize_initiator_general_info(command_code::in_jump_for_dep, general_info);
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_dep,
                 bin_data::chain(true /* active */, speed, next_byte, nfcid_3t, gi_view),
@@ -990,7 +1004,7 @@ namespace pn532 {
     nfc::r<jump_dep_psl> nfc::initiator_jump_for_dep_passive_106kbps(
             std::vector<std::uint8_t> const &general_info, ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(false, false, true);
-        const auto gi_view = sanitize_general_info(command_code::in_jump_for_dep, general_info);
+        const auto gi_view = sanitize_initiator_general_info(command_code::in_jump_for_dep, general_info);
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_dep,
                 bin_data::chain(false /* passive */, baudrate::kbps106, next_byte, gi_view),
@@ -1002,7 +1016,7 @@ namespace pn532 {
             std::array<std::uint8_t, 10> const &nfcid_3t,
             std::vector<std::uint8_t> const &general_info, ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(false, true, true);
-        const auto gi_view = sanitize_general_info(command_code::in_jump_for_dep, general_info);
+        const auto gi_view = sanitize_initiator_general_info(command_code::in_jump_for_dep, general_info);
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_dep,
                 bin_data::chain(false /* passive */, baudrate::kbps106, next_byte, nfcid_3t, gi_view),
@@ -1014,7 +1028,7 @@ namespace pn532 {
             std::array<std::uint8_t, 4> const &target_id,
             std::vector<std::uint8_t> const &general_info, ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(true, false, true);
-        const auto gi_view = sanitize_general_info(command_code::in_jump_for_dep, general_info);
+        const auto gi_view = sanitize_initiator_general_info(command_code::in_jump_for_dep, general_info);
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_dep,
                 bin_data::chain(false /* passive */, baudrate::kbps106, next_byte, target_id, gi_view),
@@ -1026,7 +1040,7 @@ namespace pn532 {
             std::array<std::uint8_t, 4> const &target_id, std::array<std::uint8_t, 10> const &nfcid_3t,
             std::vector<std::uint8_t> const &general_info, ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(true, true, true);
-        const auto gi_view = sanitize_general_info(command_code::in_jump_for_dep, general_info);
+        const auto gi_view = sanitize_initiator_general_info(command_code::in_jump_for_dep, general_info);
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_dep,
                 bin_data::chain(false /* passive */, baudrate::kbps106, next_byte, target_id, nfcid_3t, gi_view),
@@ -1038,7 +1052,7 @@ namespace pn532 {
             std::array<std::uint8_t, 5> const &target_id,
             std::vector<std::uint8_t> const &general_info, ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(true, false, true);
-        const auto gi_view = sanitize_general_info(command_code::in_jump_for_dep, general_info);
+        const auto gi_view = sanitize_initiator_general_info(command_code::in_jump_for_dep, general_info);
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_dep,
                 bin_data::chain(false /* passive */, baudrate::kbps212, next_byte, target_id, target_id, gi_view),
@@ -1050,7 +1064,7 @@ namespace pn532 {
             std::array<std::uint8_t, 5> const &target_id,
             std::vector<std::uint8_t> const &general_info, ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(true, false, true);
-        const auto gi_view = sanitize_general_info(command_code::in_jump_for_dep, general_info);
+        const auto gi_view = sanitize_initiator_general_info(command_code::in_jump_for_dep, general_info);
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_dep,
                 bin_data::chain(false /* passive */, baudrate::kbps424, next_byte, target_id, target_id, gi_view),
@@ -1142,7 +1156,7 @@ namespace pn532 {
             baudrate speed,
             std::vector<std::uint8_t> const &general_info, ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(false, false, true);
-        const auto gi_view = sanitize_general_info(command_code::in_jump_for_psl, general_info);
+        const auto gi_view = sanitize_initiator_general_info(command_code::in_jump_for_psl, general_info);
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_psl,
                 bin_data::chain(true /* active */, speed, next_byte, gi_view),
@@ -1154,7 +1168,7 @@ namespace pn532 {
             baudrate speed, std::array<std::uint8_t, 10> const &nfcid_3t,
             std::vector<std::uint8_t> const &general_info, ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(false, true, true);
-        const auto gi_view = sanitize_general_info(command_code::in_jump_for_psl, general_info);
+        const auto gi_view = sanitize_initiator_general_info(command_code::in_jump_for_psl, general_info);
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_psl,
                 bin_data::chain(true /* active */, speed, next_byte, nfcid_3t, gi_view),
@@ -1165,7 +1179,7 @@ namespace pn532 {
     nfc::r<jump_dep_psl> nfc::initiator_jump_for_psl_passive_106kbps(
             std::vector<std::uint8_t> const &general_info, ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(false, false, true);
-        const auto gi_view = sanitize_general_info(command_code::in_jump_for_psl, general_info);
+        const auto gi_view = sanitize_initiator_general_info(command_code::in_jump_for_psl, general_info);
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_psl,
                 bin_data::chain(false /* passive */, baudrate::kbps106, next_byte, gi_view),
@@ -1177,7 +1191,7 @@ namespace pn532 {
             std::array<std::uint8_t, 10> const &nfcid_3t,
             std::vector<std::uint8_t> const &general_info, ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(false, true, true);
-        const auto gi_view = sanitize_general_info(command_code::in_jump_for_psl, general_info);
+        const auto gi_view = sanitize_initiator_general_info(command_code::in_jump_for_psl, general_info);
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_psl,
                 bin_data::chain(false /* passive */, baudrate::kbps106, next_byte, nfcid_3t, gi_view),
@@ -1189,7 +1203,7 @@ namespace pn532 {
             std::array<std::uint8_t, 4> const &target_id,
             std::vector<std::uint8_t> const &general_info, ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(true, false, true);
-        const auto gi_view = sanitize_general_info(command_code::in_jump_for_psl, general_info);
+        const auto gi_view = sanitize_initiator_general_info(command_code::in_jump_for_psl, general_info);
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_psl,
                 bin_data::chain(false /* passive */, baudrate::kbps106, next_byte, target_id, gi_view),
@@ -1201,7 +1215,7 @@ namespace pn532 {
             std::array<std::uint8_t, 4> const &target_id, std::array<std::uint8_t, 10> const &nfcid_3t,
             std::vector<std::uint8_t> const &general_info, ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(true, true, true);
-        const auto gi_view = sanitize_general_info(command_code::in_jump_for_psl, general_info);
+        const auto gi_view = sanitize_initiator_general_info(command_code::in_jump_for_psl, general_info);
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_psl,
                 bin_data::chain(false /* passive */, baudrate::kbps106, next_byte, target_id, nfcid_3t, gi_view),
@@ -1213,7 +1227,7 @@ namespace pn532 {
             std::array<std::uint8_t, 5> const &target_id,
             std::vector<std::uint8_t> const &general_info, ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(true, false, true);
-        const auto gi_view = sanitize_general_info(command_code::in_jump_for_psl, general_info);
+        const auto gi_view = sanitize_initiator_general_info(command_code::in_jump_for_psl, general_info);
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_psl,
                 bin_data::chain(false /* passive */, baudrate::kbps212, next_byte, target_id, target_id, gi_view),
@@ -1225,7 +1239,7 @@ namespace pn532 {
             std::array<std::uint8_t, 5> const &target_id,
             std::vector<std::uint8_t> const &general_info, ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(true, false, true);
-        const auto gi_view = sanitize_general_info(command_code::in_jump_for_psl, general_info);
+        const auto gi_view = sanitize_initiator_general_info(command_code::in_jump_for_psl, general_info);
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_psl,
                 bin_data::chain(false /* passive */, baudrate::kbps424, next_byte, target_id, target_id, gi_view),
@@ -1253,6 +1267,30 @@ namespace pn532 {
 
     nfc::r<status_as_target> nfc::target_get_target_status(ms timeout) {
         return command_parse_response<status_as_target>(command_code::tg_get_target_status, bin_data{}, timeout);
+    }
+
+    nfc::r<init_as_target_res> nfc::target_init_as_target(
+            bool picc_only, bool dep_only, bool passive_only, mifare_params const &mifare,
+            felica_params const &felica, std::array<std::uint8_t, 10> const &nfcid_3t,
+            std::vector<std::uint8_t> const &general_info,
+            std::vector<std::uint8_t> const &historical_bytes, ms timeout) {
+        const std::uint8_t mode_byte = (picc_only ? bits::init_as_target_picc_only_bit : 0x00)
+                                       | (dep_only ? bits::init_as_target_dep_only_bit : 0x00)
+                                       | (passive_only ? bits::init_as_target_passive_only_bit : 0x00);
+        const auto gi_view = sanitize_target_general_info(command_code::tg_init_as_target, general_info);
+        const auto tk_view = sanitize_target_historical_bytes(command_code::tg_init_as_target, historical_bytes);
+        const bin_data payload = bin_data::chain(
+                prealloc(37 + gi_view.size() + tk_view.size()),
+                mode_byte,
+                mifare,
+                felica,
+                nfcid_3t,
+                std::uint8_t(gi_view.size()),
+                gi_view,
+                std::uint8_t(tk_view.size()),
+                tk_view
+        );
+        return command_parse_response<init_as_target_res>(command_code::tg_init_as_target, payload, timeout);
     }
 
 }

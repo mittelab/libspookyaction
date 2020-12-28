@@ -447,6 +447,16 @@ namespace pn532 {
 
         r<status_as_target> target_get_target_status(ms timeout = default_timeout);
 
+        /**
+         * @param general_info Max 47 bytes, if exceeding, it will be truncated.
+         * @param historical_bytes Max 48 bytes, if exceeding, it will be truncated.
+         */
+        r<init_as_target_res> target_init_as_target(
+                bool picc_only, bool dep_only, bool passive_only, mifare_params const &mifare,
+                felica_params const &felica, std::array<std::uint8_t, 10> const &nfcid_3t,
+                std::vector<std::uint8_t> const &general_info = {},
+                std::vector<std::uint8_t> const &historical_bytes = {}, ms timeout = default_timeout);
+
     private:
         channel *_channel;
 

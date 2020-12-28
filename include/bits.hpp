@@ -262,7 +262,7 @@ namespace pn532 {
 
         static constexpr unsigned status_as_target_initiator_speed_shift = 4;
         static constexpr unsigned status_as_target_target_speed_shift = 0;
-        static constexpr std::uint8_t status_as_target_shifted_speed_mask = 0b111;
+        static constexpr std::uint8_t baudrate_mask = 0b111;
 
         static constexpr unsigned sam_timeout_unit_ms = 50;
 
@@ -465,6 +465,28 @@ namespace pn532 {
             std::uint8_t pp_t;
             std::vector<std::uint8_t> g_t;
         };
+
+        enum struct framing : std::uint8_t {
+            mifare = 0b00,
+            active_mode = 0b01,
+            felica = 0b10
+        };
+
+        static constexpr unsigned init_as_target_res_baudrate_shift = 4;
+        static constexpr std::uint8_t init_as_target_res_picc_bit = 1 << 3;
+        static constexpr std::uint8_t init_as_target_res_dep_bit = 1 << 2;
+
+        static constexpr std::uint8_t framing_mask = 0b11;
+
+        static constexpr std::uint8_t init_as_target_picc_only_bit = 1 << 2;
+        static constexpr std::uint8_t init_as_target_dep_only_bit = 1 << 1;
+        static constexpr std::uint8_t init_as_target_passive_only_bit = 1 << 0;
+
+        static constexpr std::uint8_t sel_res_dep_mask = 0x40;
+        static constexpr std::uint8_t sel_res_picc_mask = 0x60;
+
+        static constexpr std::size_t init_as_target_general_info_max_length = 47;
+        static constexpr std::size_t init_as_target_historical_bytes_max_length = 48;
 
         static constexpr std::uint8_t in_atr_nfcid_3t_present_mask = 0b01;
         static constexpr std::uint8_t in_atr_general_info_present_mask = 0b10;

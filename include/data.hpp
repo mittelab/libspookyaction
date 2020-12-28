@@ -39,6 +39,7 @@ namespace pn532 {
     using bits::target_type;
     using bits::poll_period;
     using bits::wakeup_source;
+    using bits::framing;
 
     using target_kbps106_typea = bits::target<baudrate_modulation::kbps106_iso_iec_14443_typea>;
     using target_kbps212_felica = bits::target<baudrate_modulation::kbps212_felica_polling>;
@@ -214,6 +215,33 @@ namespace pn532 {
         atr_res_info atr_info;
     };
 
+    struct mode_as_target {
+        baudrate speed;
+        bool iso_iec_14443_4_picc;
+        bool dep;
+        framing framing_type;
+    };
+
+    struct mifare_params {
+        std::uint16_t sens_res;
+        std::array<std::uint8_t, 3> nfcid_1t;
+        std::uint8_t sel_res;
+    };
+
+    /**
+     * @note Identical to @ref bits::target_info<baudrate_modulation::kbps212_felica_polling>.
+     */
+    struct felica_params {
+        std::array<std::uint8_t, 8> nfcid_2t;
+        std::array<std::uint8_t, 8> pad;
+        std::array<std::uint8_t, 2> syst_code;
+    };
+
+    struct init_as_target_res {
+        mode_as_target mode;
+        std::vector<std::uint8_t> initiator_command;
+    };
+
     template <std::size_t Length>
     struct uid_cascade : public std::array<std::uint8_t, Length> {
         using std::array<std::uint8_t, Length>::array;
@@ -268,6 +296,10 @@ namespace pn532 {
 
     bin_data &operator<<(bin_data &s, std::vector<wakeup_source> const &vws);
 
+    bin_data &operator<<(bin_data &s, mifare_params const &p);
+
+    bin_data &operator<<(bin_data &s, felica_params const &p);
+
     template <baudrate_modulation BrMd>
     bin_stream &operator>>(bin_stream &s, std::vector<bits::target<BrMd>> &targets);
 
@@ -311,6 +343,10 @@ namespace pn532 {
     bin_stream &operator>>(bin_stream &s, sam_status &sams);
 
     bin_stream &operator>>(bin_stream &s, status_as_target &st);
+
+    bin_stream &operator>>(bin_stream &s, mode_as_target &mt);
+
+    bin_stream &operator>>(bin_stream &s, init_as_target_res &mt);
 
 }
 

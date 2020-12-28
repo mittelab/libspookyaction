@@ -457,6 +457,31 @@ namespace pn532 {
                 std::vector<std::uint8_t> const &general_info = {},
                 std::vector<std::uint8_t> const &historical_bytes = {}, ms timeout = default_timeout);
 
+        /**
+         * @param general_info Max 47 bytes, if exceeding, it will be truncated.
+         */
+        r<rf_status> target_set_general_bytes(
+                std::vector<std::uint8_t> const &general_info, ms timeout = default_timeout);
+
+        r<rf_status, bin_data> target_get_data(ms timeout = default_timeout);
+
+        /**
+         * @param data Max 262 bytes, if exceeding, it will be truncated.
+         */
+        r<rf_status> target_set_data(std::vector<std::uint8_t> const &data, ms timeout = default_timeout);
+
+        /**
+         * @param data Max 262 bytes, if exceeding, it will be truncated.
+         */
+        r<rf_status> target_set_metadata(std::vector<std::uint8_t> const &data, ms timeout = default_timeout);
+
+        r<rf_status, bin_data> target_get_initiator_command(ms timeout = default_timeout);
+
+        /**
+         * @param data Max 262 bytes, if exceeding, it will be truncated.
+         */
+        r<rf_status> target_response_to_initiator(std::vector<std::uint8_t> const &data, ms timeout = default_timeout);
+
     private:
         channel *_channel;
 

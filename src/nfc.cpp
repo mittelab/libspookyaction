@@ -1293,4 +1293,39 @@ namespace pn532 {
         return command_parse_response<init_as_target_res>(command_code::tg_init_as_target, payload, timeout);
     }
 
+    nfc::r<rf_status> nfc::target_set_general_bytes(std::vector<std::uint8_t> const &general_info, ms timeout) {
+        const auto gi_view = sanitize_target_general_info(command_code::tg_set_general_bytes, general_info);
+        return command_parse_response<rf_status>(command_code::tg_set_general_bytes, bin_data::chain(gi_view),
+                                                 timeout);
+    }
+
+    nfc::r<rf_status, bin_data> nfc::target_get_data(ms timeout) {
+        return command_parse_response<std::pair<rf_status, bin_data>>(command_code::tg_get_data, bin_data{}, timeout);
+    }
+
+    nfc::r<rf_status> nfc::target_set_data(std::vector<std::uint8_t> const &data, ms timeout) {
+        const auto view = sanitize_vector(command_code::tg_set_data, "data", data, bits::max_firmware_data_length - 1);
+        return command_parse_response<rf_status>(command_code::tg_set_data, bin_data::chain(view), timeout);
+    }
+
+    nfc::r<rf_status> nfc::target_set_metadata(std::vector<std::uint8_t> const &data, ms timeout) {
+        const auto view = sanitize_vector(command_code::tg_set_metadata, "metadata", data,
+                                          bits::max_firmware_data_length - 1);
+        return command_parse_response<rf_status>(command_code::tg_set_metadata, bin_data::chain(view), timeout);
+
+    }
+
+    nfc::r<rf_status, bin_data> nfc::target_get_initiator_command(ms timeout) {
+        return command_parse_response<std::pair<rf_status, bin_data>>(command_code::tg_get_initiator_command,
+                                                                      bin_data{}, timeout);
+    }
+
+    nfc::r<rf_status> nfc::target_response_to_initiator(std::vector<std::uint8_t> const &data, ms timeout) {
+        const auto view = sanitize_vector(command_code::tg_response_to_initiator, "response", data,
+                                          bits::max_firmware_data_length - 1);
+        return command_parse_response<rf_status>(command_code::tg_response_to_initiator, bin_data::chain(view),
+                                                 timeout);
+    }
+
+
 }

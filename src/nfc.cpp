@@ -861,7 +861,7 @@ namespace pn532 {
             if (n_chunks > 1) {
                 LOGI("%s: sending chunk %u/%u...", to_string(command_code::in_data_exchange), chunk_idx + 1, n_chunks);
             }
-            const bin_data payload = bin_data::chain(prealloc(1 + data_view.size()), target_byte, data_view);
+            const bin_data payload = bin_data::chain(prealloc(1u + data_view.size()), target_byte, data_view);
             auto res_cmd = command_parse_response<std::pair<rf_status, bin_data>>(
                     command_code::in_data_exchange, payload, rt.remaining());
             if (not res_cmd) {
@@ -1280,7 +1280,7 @@ namespace pn532 {
         const auto gi_view = sanitize_target_general_info(command_code::tg_init_as_target, general_info);
         const auto tk_view = sanitize_target_historical_bytes(command_code::tg_init_as_target, historical_bytes);
         const bin_data payload = bin_data::chain(
-                prealloc(37 + gi_view.size() + tk_view.size()),
+                prealloc(37u + gi_view.size() + tk_view.size()),
                 mode_byte,
                 mifare,
                 felica,

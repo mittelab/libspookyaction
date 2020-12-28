@@ -163,7 +163,8 @@ namespace pn532 {
         s.read(std::begin(target.info.nfcid), expected_nfcid_length);
         target.info.ats.clear();
         if (s.good()) {
-            const auto expected_ats_length = s.pop() - 1; // ATS length includes the ats bit
+            // ATS length includes the ats bit
+            const std::uint8_t expected_ats_length = std::max(std::uint8_t(1), s.pop()) - 1;
             if (s.remaining() < expected_ats_length) {
                 LOGW("Unable to parse kbps106_iso_iec_14443_typea target info, not enough data.");
                 s.set_bad();

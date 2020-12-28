@@ -68,7 +68,7 @@ namespace pn532 {
 
         inline operator Integral() const { return v; }
 
-        inline with_inf &operator=(infty_t) { v = std::numeric_limits<Integral>::max(); }
+        inline with_inf &operator=(infty_t) { v = std::numeric_limits<Integral>::max(); return *this; }
 
         inline bool operator==(infty_t) const { return v == std::numeric_limits<Integral>::max(); }
 

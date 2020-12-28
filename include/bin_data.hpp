@@ -137,7 +137,7 @@ namespace pn532 {
             return true;
         }
 
-        template <class U>
+        template <class>
         static constexpr bool test_get(...) {
             return false;
         }
@@ -157,7 +157,7 @@ namespace pn532 {
                 return true;
             }
 
-            template <class U>
+            template <class>
             static constexpr bool test_get(...) {
                 return false;
             }

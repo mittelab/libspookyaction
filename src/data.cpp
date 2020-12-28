@@ -457,8 +457,7 @@ namespace pn532 {
 
     bin_data &operator<<(bin_data &s, mifare_params const &p) {
         /**
-         * @note Manual says, page 151 that SENS_RES goes LSB first. Odd but ok.
-         * @todo Compare with the ISO/IEC14443-3 spec.
+         * @note Manual says, page 151 that SENS_RES goes LSB first; seems the way the ISO/IEC14443-3 spec sends stuff.
          */
         return s << prealloc(6)
                  << std::uint8_t(p.sens_res & 0xff)

@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <vector>
 #include <algorithm>
+#include <type_traits>
 
 namespace pn532 {
 
@@ -15,6 +16,13 @@ namespace pn532 {
     struct range {
         Iterator it_begin;
         Iterator it_end;
+
+        range() = default;
+
+        inline range(Iterator b, Iterator e) : it_begin{b}, it_end{e} {}
+
+        template <class Jterator, class = typename std::enable_if<std::is_convertible<Jterator, Iterator>::value>::type>
+        range(range<Jterator> const &other) : it_begin{other.it_begin}, it_end{other.it_end} {}
 
         inline typename std::iterator_traits<Iterator>::difference_type size() const {
             return std::distance(it_begin, it_end);
@@ -56,6 +64,10 @@ namespace pn532 {
         inline range<const_iterator> view(
                 std::size_t start = 0,
                 std::size_t length = std::numeric_limits<std::size_t>::max()) const;
+
+        inline range<iterator> view(
+                std::size_t start = 0,
+                std::size_t length = std::numeric_limits<std::size_t>::max());
 
         using std::vector<std::uint8_t>::push_back;
 
@@ -259,6 +271,12 @@ namespace pn532 {
 
 
     range<bin_data::const_iterator> bin_data::view(std::size_t start, std::size_t length) const {
+        start = std::min(start, size() - 1);
+        length = std::min(length, size() - start);
+        return make_range(begin() + start, begin() + start + length);
+    }
+
+    range<bin_data::iterator> bin_data::view(std::size_t start, std::size_t length) {
         start = std::min(start, size() - 1);
         length = std::min(length, size() - start);
         return make_range(begin() + start, begin() + start + length);

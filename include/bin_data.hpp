@@ -28,6 +28,14 @@ namespace pn532 {
             return std::distance(it_begin, it_end);
         }
 
+        inline typename std::add_const<typename std::iterator_traits<Iterator>::pointer>::type data() const {
+            return &*it_begin;
+        }
+
+        inline typename std::iterator_traits<Iterator>::pointer data() {
+            return &*it_begin;
+        }
+
         inline Iterator begin() const { return it_begin; }
 
         inline Iterator end() const { return it_end; }

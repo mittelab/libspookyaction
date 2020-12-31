@@ -41,25 +41,23 @@ namespace desfire {
         bool do_crc;        // If required by protocol and comm_mode
     };
 
-    namespace crypto {
-        template <std::size_t BlockSize, std::size_t MACSize, std::size_t CRCSize>
-        struct cipher_traits {
-            static constexpr std::size_t block_size = BlockSize;
-            static constexpr std::size_t mac_size = MACSize;
-            static constexpr std::size_t crc_size = CRCSize;
+    template <std::size_t BlockSize, std::size_t MACSize, std::size_t CRCSize>
+    struct cipher_traits {
+        static constexpr std::size_t block_size = BlockSize;
+        static constexpr std::size_t mac_size = MACSize;
+        static constexpr std::size_t crc_size = CRCSize;
 
-            using block_t = std::array<std::uint8_t, block_size>;
-            using mac_t = std::array<std::uint8_t, mac_size>;
-            using crc_t = std::array<std::uint8_t, crc_size>;
+        using block_t = std::array<std::uint8_t, block_size>;
+        using mac_t = std::array<std::uint8_t, mac_size>;
+        using crc_t = std::array<std::uint8_t, crc_size>;
 
-            static std::size_t padded_length(std::size_t size) {
-                static_assert(BlockSize % 2 == 0, "This version works just with powers of two.");
-                return (size + BlockSize - 1) & -BlockSize;
-            }
-        };
-    }
+        static std::size_t padded_length(std::size_t size) {
+            static_assert(BlockSize % 2 == 0, "This version works just with powers of two.");
+            return (size + BlockSize - 1) & -BlockSize;
+        }
+    };
 
-    class cipher_legacy_scheme : public virtual cipher, public crypto::cipher_traits<8, 4, 2> {
+    class cipher_legacy_scheme : public virtual cipher, public cipher_traits<8, 4, 2> {
     protected:
         /**
          * @param data Data to encipher, in-place. Must have a size that is a multiple of @ref block_size.
@@ -127,9 +125,9 @@ namespace desfire {
     };
 
     template <std::size_t BlockSize>
-    class cipher_scheme : public virtual cipher, public crypto::cipher_traits<BlockSize, 8, 4> {
+    class cipher_scheme : public virtual cipher, public cipher_traits<BlockSize, 8, 4> {
     public:
-        using traits_base = typename crypto::cipher_traits<BlockSize, 8, 4>;
+        using traits_base = cipher_traits<BlockSize, 8, 4>;
         using typename traits_base::mac_t;
         using typename traits_base::crc_t;
         using typename traits_base::block_t;

@@ -8,6 +8,7 @@
 #include <array>
 
 #include <mbedtls/des.h>
+#include <mbedtls/aes.h>
 #include <rom/crc.h>
 #include <cassert>
 #include "bin_data.hpp"
@@ -137,15 +138,18 @@ namespace desfire {
         using traits_base::crc_size;
         using traits_base::block_size;
 
-    protected:
+    private:
         static constexpr std::size_t cmac_subkey_length = 24;
         using cmac_subkey_t = std::array<std::uint8_t, cmac_subkey_length>;
 
         cmac_subkey_t _cmac_subkey_pad;
         cmac_subkey_t _cmac_subkey_nopad;
+        block_t _global_iv;
 
+    protected:
 
-        virtual void encipher(range<bin_data::iterator> data) = 0;
+        virtual void encipher(range<bin_data::iterator> data, block_t &iv) = 0;
+        virtual void decipher(range<bin_data::iterator> data, block_t &iv) = 0;
 
         virtual mac_t compute_mac(range<bin_data::const_iterator> data) {
             static const auto xor_op = [](std::uint8_t l, std::uint8_t r) -> std::uint8_t { return l ^ r; };
@@ -169,8 +173,9 @@ namespace desfire {
             }
 
             // Return the first 8 bytes of the last block
-            const block_t iv = encipher(buffer.view());
-            return {iv[0], iv[1], iv[2], iv[3], iv[4], iv[5], iv[6], iv[7]};
+            encipher(buffer.view(), _global_iv);
+            return {_global_iv[0], _global_iv[1], _global_iv[2], _global_iv[3], _global_iv[4], _global_iv[5],
+                    _global_iv[6], _global_iv[7]};
         }
 
         /**
@@ -207,7 +212,7 @@ namespace desfire {
                     data.reserve(enc_offset + padded_length(data.size() - enc_offset));
                 }
                 data.resize(enc_offset + padded_length(data.size() - enc_offset), 0x00);
-                encipher(data.view(enc_offset));
+                encipher(data.view(enc_offset), _global_iv);
             }
         }
     };
@@ -291,6 +296,77 @@ namespace desfire {
         }
     };
 
+    class cipher_3k3des final : public cipher_scheme<8> {
+        mbedtls_des3_context _enc_context;
+        mbedtls_des3_context _dec_context;
+
+    public:
+        explicit cipher_3k3des(std::array<std::uint8_t, 24> const &key) : _enc_context{}, _dec_context{} {
+            mbedtls_des3_init(&_enc_context);
+            mbedtls_des3_init(&_dec_context);
+            mbedtls_des3_set3key_enc(&_enc_context, key.data());
+            mbedtls_des3_set3key_enc(&_dec_context, key.data());
+        }
+
+        ~cipher_3k3des() override {
+            mbedtls_des3_free(&_enc_context);
+            mbedtls_des3_free(&_dec_context);
+        }
+
+    private:
+        void do_crypto(range<bin_data::iterator> data, block_t &iv, bool encrypt) {
+            assert(data.size() % block_size == 0);
+            if (encrypt) {
+                mbedtls_des3_crypt_cbc(&_enc_context, MBEDTLS_DES_ENCRYPT, data.size(), iv.data(), data.data(), data.data());
+            } else {
+                mbedtls_des3_crypt_cbc(&_dec_context, MBEDTLS_DES_DECRYPT, data.size(), iv.data(), data.data(), data.data());
+            }
+        }
+    protected:
+        void encipher(range<bin_data::iterator> data, block_t &iv) override {
+            do_crypto(data, iv, true);
+        }
+
+        void decipher(range<bin_data::iterator> data, block_t &iv) override {
+            do_crypto(data, iv, false);
+        }
+    };
+
+    class cipher_aes final : public cipher_scheme<16> {
+        mbedtls_aes_context _enc_context;
+        mbedtls_aes_context _dec_context;
+
+    public:
+        explicit cipher_aes(std::array<std::uint8_t, 16> const &key) : _enc_context{}, _dec_context{} {
+            mbedtls_aes_init(&_enc_context);
+            mbedtls_aes_init(&_dec_context);
+            mbedtls_aes_setkey_enc(&_enc_context, key.data(), 8 * key.size());
+            mbedtls_aes_setkey_enc(&_dec_context, key.data(), 8 * key.size());
+        }
+
+        ~cipher_aes() override {
+            mbedtls_aes_free(&_enc_context);
+            mbedtls_aes_free(&_dec_context);
+        }
+
+    private:
+        void do_crypto(range<bin_data::iterator> data, block_t &iv, bool encrypt) {
+            assert(data.size() % block_size == 0);
+            if (encrypt) {
+                mbedtls_aes_crypt_cbc(&_enc_context, MBEDTLS_AES_ENCRYPT, data.size(), iv.data(), data.data(), data.data());
+            } else {
+                mbedtls_aes_crypt_cbc(&_dec_context, MBEDTLS_AES_DECRYPT, data.size(), iv.data(), data.data(), data.data());
+            }
+        }
+    protected:
+        void encipher(range<bin_data::iterator> data, block_t &iv) override {
+            do_crypto(data, iv, true);
+        }
+
+        void decipher(range<bin_data::iterator> data, block_t &iv) override {
+            do_crypto(data, iv, false);
+        }
+    };
 }
 
 #endif //APERTURAPORTA_DESFIRE2_H

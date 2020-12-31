@@ -173,11 +173,17 @@ namespace desfire {
             return {iv[0], iv[1], iv[2], iv[3], iv[4], iv[5], iv[6], iv[7]};
         }
 
+        /**
+         * Computes the CRC32 of @p data, returns LSB first.
+         */
         virtual crc_t compute_crc(range<bin_data::const_iterator> data) {
-            /**
-             * @todo
-             */
-            return {};
+            const std::uint32_t dword = ~crc32_le(0x0, data.data(), data.size());
+            return {
+                    std::uint8_t(dword & 0xff),
+                    std::uint8_t((dword >>  8) & 0xff),
+                    std::uint8_t((dword >> 16) & 0xff),
+                    std::uint8_t((dword >> 24) & 0xff)
+            };
         }
 
         void prepare_tx(bin_data &data, std::size_t enc_offset, config const &cfg) override {

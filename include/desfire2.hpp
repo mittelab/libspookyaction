@@ -17,13 +17,18 @@ namespace desfire {
     using pn532::bin_data;
     template <class It>
     using range = pn532::range<It>;
+    using pn532::bin_stream;
 
 
     class cipher {
     public:
         struct config;
 
-        virtual void prepare_tx(bin_data &data, std::size_t enc_offset, config const &cfg) = 0;
+        virtual void prepare_tx(bin_data &data, std::size_t offset, config const &cfg) = 0;
+        /**
+         * Assume that status byte comes last.
+         */
+        virtual void confirm_rx(bin_data &data, config const &cfg) {}
 
         virtual ~cipher() = default;
     };
@@ -96,28 +101,69 @@ namespace desfire {
             return {std::uint8_t(word & 0xff), std::uint8_t(word >> 8)};
         }
 
-        void prepare_tx(bin_data &data, std::size_t enc_offset, config const &cfg) override {
+        void prepare_tx(bin_data &data, std::size_t offset, config const &cfg) override {
+            if (offset >= data.size()) {
+                return;  // Nothing to do
+            }
+            switch (cfg.mode) {
+                case comm_mode::plain:
+                    break;  // Nothing to do
+                case comm_mode::mac:
+                    assert(offset < data.size() - 1);
+                    if (cfg.do_mac) {
+                        // Apply mac overrides mode.
+                        data << compute_mac(data.view(offset));
+                    }
+                    break;
+                case comm_mode::cipher:
+                    assert(offset < data.size() - 1);
+                    if (cfg.do_cipher) {
+                        if (cfg.do_crc) {
+                            data.reserve(offset + padded_length(data.size() + crc_size - offset));
+                            data << compute_crc(data.view(offset));
+                        } else {
+                            data.reserve(offset + padded_length(data.size() - offset));
+                        }
+                        data.resize(offset + padded_length(data.size() - offset), 0x00);
+                        // This is actually correct. The legacy mode of the Mifare does only encryption and not
+                        // decryption, so we will have to decrypt before sending.
+                        decipher(data.view(offset));
+                    }
+                    break;
+            }
+        }
+
+        void confirm_rx(bin_data &data, config const &cfg) override {
+            if (data.size() == 1) {
+                // Just status byte, return as-is
+                return;
+            }
             switch (cfg.mode) {
                 case comm_mode::plain:
                     break;  // Nothing to do
                 case comm_mode::mac:
                     if (cfg.do_mac) {
-                        // Apply mac overrides mode.
-                        data << compute_mac(data.view(enc_offset));
+                        bin_stream s{data};
+                        // Data, followed by mac, followed by status
+                        const auto data_view = s.read(s.remaining() - mac_size - 1);
+                        // Compute mac on data
+                        const mac_t computed_mac = compute_mac(data_view);
+                        // Extract the transmitted mac
+                        mac_t rxd_mac{};
+                        s >> rxd_mac;
+                        if (rxd_mac == computed_mac) {
+                            // Good, move status byte at the end and drop the mac
+                            data[data.size() - mac_size - 1] = data[data.size() - 1];
+                            data.resize(data.size() - mac_size);
+                            /// @todo return success
+                        } else {
+                            /// @todo return mac_check_failed
+                        }
                     }
                     break;
                 case comm_mode::cipher:
                     if (cfg.do_cipher) {
-                        if (cfg.do_crc) {
-                            data.reserve(enc_offset + padded_length(data.size() + crc_size - enc_offset));
-                            data << compute_crc(data.view(enc_offset));
-                        } else {
-                            data.reserve(enc_offset + padded_length(data.size() - enc_offset));
-                        }
-                        data.resize(enc_offset + padded_length(data.size() - enc_offset), 0x00);
-                        // This is actually correct. The legacy mode of the Mifare does only encryption and not
-                        // decryption, so we will have to decrypt before sending.
-                        decipher(data.view(enc_offset));
+                        ///@todo Need to decipher but then to actually find the CRC, we need rolling CRC
                     }
                     break;
             }
@@ -189,7 +235,10 @@ namespace desfire {
             };
         }
 
-        void prepare_tx(bin_data &data, std::size_t enc_offset, config const &cfg) override {
+        void prepare_tx(bin_data &data, std::size_t offset, config const &cfg) override {
+            if (offset >= data.size()) {
+                return;  // Nothing to do
+            }
             if (cfg.mode != comm_mode::cipher) {
                 // Plain and MAC may still require to pass data through CMAC, unless specified otherwise
                 if (not cfg.do_mac) {
@@ -203,14 +252,14 @@ namespace desfire {
                 }
             } else if (cfg.do_cipher) {
                 if (cfg.do_crc) {
-                    data.reserve(enc_offset + padded_length(data.size() + crc_size - enc_offset));
+                    data.reserve(offset + padded_length(data.size() + crc_size - offset));
                     // CRC has to be computed on the whole data
                     data << compute_crc(data.view());
                 } else {
-                    data.reserve(enc_offset + padded_length(data.size() - enc_offset));
+                    data.reserve(offset + padded_length(data.size() - offset));
                 }
-                data.resize(enc_offset + padded_length(data.size() - enc_offset), 0x00);
-                encipher(data.view(enc_offset), _global_iv);
+                data.resize(offset + padded_length(data.size() - offset), 0x00);
+                encipher(data.view(offset), _global_iv);
             }
         }
     };

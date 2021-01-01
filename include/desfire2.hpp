@@ -90,15 +90,19 @@ namespace desfire {
             return {iv[0], iv[1], iv[2], iv[3]};
         }
 
-        /**
-         * Computes the CRC16 of @p data, using 0x6363 as the initial value, returns ''{LSB, MSB}''.
-         */
-        virtual crc_t compute_crc(range<bin_data::const_iterator> data) {
+        virtual crc_t compute_crc(range<bin_data::const_iterator> data, std::uint16_t init) {
             /* @note This is correct, we need to negate the init value (0x6363, as per spec), negate the output value
              * (that is documented in ESP's CRC header), and remember to send LSB first.
              */
-            const std::uint16_t word = ~crc16_le(~0x6363, data.data(), data.size());
+            const std::uint16_t word = ~crc16_le(~init, data.data(), data.size());
             return {std::uint8_t(word & 0xff), std::uint8_t(word >> 8)};
+        }
+
+        /**
+         * Computes the CRC16 of @p data, using 0x6363 as the initial value, returns ''{LSB, MSB}''.
+         */
+        inline crc_t compute_crc(range<bin_data::const_iterator> data) {
+            return compute_crc(data, 0x6363);
         }
 
         void prepare_tx(bin_data &data, std::size_t offset, config const &cfg) override {
@@ -225,14 +229,17 @@ namespace desfire {
         /**
          * Computes the CRC32 of @p data, returns LSB first.
          */
-        virtual crc_t compute_crc(range<bin_data::const_iterator> data) {
-            const std::uint32_t dword = ~crc32_le(0x0, data.data(), data.size());
+        virtual crc_t compute_crc(range<bin_data::const_iterator> data, std::uint32_t init) {
+            const std::uint32_t dword = ~crc32_le(~init, data.data(), data.size());
             return {
                     std::uint8_t(dword & 0xff),
                     std::uint8_t((dword >>  8) & 0xff),
                     std::uint8_t((dword >> 16) & 0xff),
                     std::uint8_t((dword >> 24) & 0xff)
             };
+        }
+        inline crc_t compute_crc(range<bin_data::const_iterator> data) {
+            return compute_crc(data, 0xffffffff);
         }
 
         void prepare_tx(bin_data &data, std::size_t offset, config const &cfg) override {

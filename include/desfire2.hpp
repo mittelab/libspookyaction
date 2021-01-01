@@ -60,10 +60,54 @@ namespace desfire {
             static_assert(BlockSize % 2 == 0, "This version works just with powers of two.");
             return (size + BlockSize - 1) & -BlockSize;
         }
+
+        /**
+         *
+         * @tparam ByteIterator
+         * @tparam N A unsigned integer size matching the crc size, e.g. ''std::uint32_t'' for a CRC32.
+         * @tparam Fn Must match signature ''N crc_fn(ByteIterator b, ByteIterator e, N init)''.
+         * @param begin
+         * @param end
+         * @param crc_fn
+         * @param init
+         * @return
+         */
+        template <class ByteIterator, class N, class Fn>
+        static std::pair<ByteIterator, bool> find_crc_tail(ByteIterator begin, ByteIterator end, Fn &&crc_fn, N init) {
+            static const auto nonzero_byte_pred = [](std::uint8_t b) -> bool { return b != 0; };
+            // Store the last successful crc and end of the payload
+            ByteIterator last_payload_end = end;
+            bool crc_pass = false;
+            if (begin != end) {
+                assert(std::distance(begin, end) % block_size == 0);
+                // Find the last nonzero byte, get and iterator to the element past that.
+                // This is given by reverse scanning for a nonzero byte, and getting the underlying iterator.
+                // Since the reverse iterator holds an underlying iterator to the next element (in the normal traversal
+                // sense), we can just get that.
+                const auto rev_end = std::reverse_iterator<ByteIterator>(end);
+                auto end_payload = std::find_if(rev_end, rev_end + block_size, nonzero_byte_pred).base();
+                for (   // Compute the crc until the supposed end of the payload
+                        N crc = crc_fn(begin, end_payload, init);
+                    // Keep advancing the supposed end of the payload until end
+                        end_payload != end;
+                    // Update the crc with one byte at a time
+                        crc = crc_fn(end_payload, std::next(end_payload), crc), ++end_payload
+                        ) {
+                    if (crc == N(0)) {
+                        // This is a valid end of the payload with a successful crc check
+                        last_payload_end = end_payload;
+                        crc_pass = true;
+                    }
+                }
+            }
+            return {last_payload_end, crc_pass};
+        }
     };
 
     class cipher_legacy_scheme : public virtual cipher, public cipher_traits<8, 4, 2> {
     protected:
+        static constexpr std::uint16_t crc_init = 0x6363;
+
         /**
          * @param data Data to encipher, in-place. Must have a size that is a multiple of @ref block_size.
          * @return The IV after the encryption is completed
@@ -98,11 +142,18 @@ namespace desfire {
             return {std::uint8_t(word & 0xff), std::uint8_t(word >> 8)};
         }
 
-        /**
-         * Computes the CRC16 of @p data, using 0x6363 as the initial value, returns ''{LSB, MSB}''.
-         */
-        inline crc_t compute_crc(range<bin_data::const_iterator> data) {
-            return compute_crc(data, 0x6363);
+        virtual bool drop_padding_verify_crc(bin_data &d) {
+            static const auto crc_fn = [](bin_data::const_iterator b, bin_data::const_iterator e, std::uint16_t init) -> std::uint16_t {
+                return ~crc16_le(~init, &*b, std::distance(b, e));
+            };
+            const auto end_payload_did_verify = find_crc_tail(std::begin(d), std::end(d), crc_fn, crc_init);
+            if (end_payload_did_verify.second) {
+                const std::size_t payload_length = std::distance(std::begin(d), end_payload_did_verify.first);
+                // In case of error, make sure to not get any weird size/number
+                d.resize(std::max(payload_length, crc_size) - crc_size);
+                return true;
+            }
+            return false;
         }
 
         void prepare_tx(bin_data &data, std::size_t offset, config const &cfg) override {
@@ -124,7 +175,7 @@ namespace desfire {
                     if (cfg.do_cipher) {
                         if (cfg.do_crc) {
                             data.reserve(offset + padded_length(data.size() + crc_size - offset));
-                            data << compute_crc(data.view(offset));
+                            data << compute_crc(data.view(offset), crc_init);
                         } else {
                             data.reserve(offset + padded_length(data.size() - offset));
                         }
@@ -195,6 +246,7 @@ namespace desfire {
         block_t _global_iv;
 
     protected:
+        static constexpr std::uint32_t crc_init = 0xffffffff;
 
         virtual void encipher(range<bin_data::iterator> data, block_t &iv) = 0;
         virtual void decipher(range<bin_data::iterator> data, block_t &iv) = 0;
@@ -238,8 +290,19 @@ namespace desfire {
                     std::uint8_t((dword >> 24) & 0xff)
             };
         }
-        inline crc_t compute_crc(range<bin_data::const_iterator> data) {
-            return compute_crc(data, 0xffffffff);
+
+        virtual bool drop_padding_verify_crc(bin_data &d) {
+            static const auto crc_fn = [](bin_data::const_iterator b, bin_data::const_iterator e, std::uint32_t init) -> std::uint32_t {
+                return ~crc32_le(~init, &*b, std::distance(b, e));
+            };
+            const auto end_payload_did_verify = traits_base::find_crc_tail(std::begin(d), std::end(d), crc_fn, crc_init);
+            if (end_payload_did_verify.second) {
+                const std::size_t payload_length = std::distance(std::begin(d), end_payload_did_verify.first);
+                // In case of error, make sure to not get any weird size/number
+                d.resize(std::max(payload_length, crc_size) - crc_size);
+                return true;
+            }
+            return false;
         }
 
         void prepare_tx(bin_data &data, std::size_t offset, config const &cfg) override {
@@ -261,7 +324,7 @@ namespace desfire {
                 if (cfg.do_crc) {
                     data.reserve(offset + padded_length(data.size() + crc_size - offset));
                     // CRC has to be computed on the whole data
-                    data << compute_crc(data.view());
+                    data << compute_crc(data.view(), crc_init);
                 } else {
                     data.reserve(offset + padded_length(data.size() - offset));
                 }

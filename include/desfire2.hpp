@@ -218,7 +218,16 @@ namespace desfire {
                     break;
                 case comm_mode::cipher:
                     if (cfg.do_cipher) {
-                        ///@todo Need to decipher but then to actually find the CRC, we need rolling CRC
+                        // Pop the status byte
+                        const std::uint8_t status = data.back();
+                        data.pop_back();
+                        // Decipher what's left
+                        decipher(data.view(0, data.size()));
+                        // Truncate the padding and the crc
+                        const bool did_verify = drop_padding_verify_crc(data);
+                        // Reappend the status byte
+                        data << status;
+                        /// @todo Return success or crc_check_failed depending on did_verify
                     }
                     break;
             }

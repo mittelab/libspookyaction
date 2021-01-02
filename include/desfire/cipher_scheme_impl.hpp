@@ -5,6 +5,7 @@
 #ifndef APERTURAPORTA_CIPHER_SCHEME_IMPL_HPP
 #define APERTURAPORTA_CIPHER_SCHEME_IMPL_HPP
 
+#include <esp_log.h>
 #include <rom/crc.h>
 #include "cipher_scheme.hpp"
 #include "crypto_algo.hpp"
@@ -29,14 +30,14 @@ namespace desfire {
             }
         };
 
-        static block_t iv;
-        static bin_data data;
+        static block_t iv{};
+        static bin_data data{};
         // Initialize data and IV at zero
         std::fill_n(std::begin(iv), block_size, 0);
         data.clear();
         data.resize(block_size, 0x0);
         // Crypt on local IV
-        encipher(data.view(), iv);
+        do_crypto(data.view(), true, iv);
 
         // Copy and prep
         std::copy(std::begin(data), std::end(data), std::begin(_cmac_subkey_nopad));
@@ -71,7 +72,7 @@ namespace desfire {
         }
 
         // Return the first 8 bytes of the last block
-        encipher(buffer.view(), _global_iv);
+        do_crypto(buffer.view(), true, _global_iv);
         return {_global_iv[0], _global_iv[1], _global_iv[2], _global_iv[3], _global_iv[4], _global_iv[5],
                 _global_iv[6], _global_iv[7]};
     }
@@ -133,7 +134,7 @@ namespace desfire {
                 data.reserve(offset + padded_length<block_size>(data.size() - offset));
             }
             data.resize(offset + padded_length<block_size>(data.size() - offset), 0x00);
-            encipher(data.view(offset), _global_iv);
+            do_crypto(data.view(offset), true, _global_iv);
         }
     }
 
@@ -176,7 +177,14 @@ namespace desfire {
                     const std::uint8_t status = data.back();
                     data.pop_back();
                     // Decipher what's left
-                    decipher(data.view(), _global_iv);
+                    if (data.size() % block_size != 0) {
+                        ESP_LOGW("DESFIRE",
+                                 "Received enciphered data of length %ul, not a multiple of the block size %ul.",
+                                 data.size(), block_size);
+                        ESP_LOG_BUFFER_HEX_LEVEL("DESFIRE", data.data(), data.size(), ESP_LOG_WARN);
+                        return false;
+                    }
+                    do_crypto(data.view(), false, _global_iv);
                     // Truncate the padding and the crc
                     const bool did_verify = drop_padding_verify_crc(data, status);
                     // Reappend the status byte
@@ -186,6 +194,19 @@ namespace desfire {
                 break;
         }
         return true;
+    }
+
+
+    template <std::size_t BlockSize, std::uint8_t CMACSubkeyR>
+    void cipher_scheme<BlockSize, CMACSubkeyR>::encrypt(bin_data &data) {
+        data.resize(padded_length<block_size>(data.size()), 0x00);
+        do_crypto(data.view(), true, _global_iv);
+    }
+
+    template <std::size_t BlockSize, std::uint8_t CMACSubkeyR>
+    void cipher_scheme<BlockSize, CMACSubkeyR>::decrypt(bin_data &data) {
+        data.resize(padded_length<block_size>(data.size()), 0x00);
+        do_crypto(data.view(), false, _global_iv);
     }
 
 

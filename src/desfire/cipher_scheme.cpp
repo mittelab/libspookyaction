@@ -3,6 +3,7 @@
 //
 
 #include <cassert>
+#include <esp_log.h>
 #include <rom/crc.h>
 #include "desfire/crypto_algo.hpp"
 #include "desfire/cipher_scheme.hpp"
@@ -17,7 +18,8 @@ namespace desfire {
         std::copy(std::begin(data), std::end(data), std::begin(buffer));
 
         // Return the first 4 bytes of the last block
-        const block_t iv = encipher(buffer.view());
+        block_t iv = get_null_iv();  // Copy locally the IV for local usage
+        do_crypto(buffer.view(), true, iv);
         return {iv[0], iv[1], iv[2], iv[3]};
     }
 
@@ -43,6 +45,13 @@ namespace desfire {
             return true;
         }
         return false;
+    }
+
+    cipher_legacy_scheme::block_t &cipher_legacy_scheme::get_null_iv() {
+        static block_t _iv{};
+        // Legacy protocol always uses 0x0
+        std::fill_n(std::begin(_iv), block_size, 0x00);
+        return _iv;
     }
 
     void cipher_legacy_scheme::prepare_tx(bin_data &data, std::size_t offset, cipher::config const &cfg) {
@@ -71,11 +80,22 @@ namespace desfire {
                     data.resize(offset + padded_length<block_size>(data.size() - offset), 0x00);
                     // This is actually correct. The legacy mode of the Mifare does only encryption and not
                     // decryption, so we will have to decrypt before sending.
-                    decipher(data.view(offset));
+                    do_crypto(data.view(offset), false, get_null_iv());
                 }
                 break;
         }
     }
+
+    void cipher_legacy_scheme::encrypt(bin_data &data) {
+        data.resize(padded_length<block_size>(data.size()), 0x00);
+        do_crypto(data.view(), true, get_null_iv());
+    }
+
+    void cipher_legacy_scheme::decrypt(bin_data &data) {
+        data.resize(padded_length<block_size>(data.size()), 0x00);
+        do_crypto(data.view(), false, get_null_iv());
+    }
+
 
     bool cipher_legacy_scheme::confirm_rx(bin_data &data, cipher::config const &cfg) {
         if (data.size() == 1) {
@@ -110,7 +130,14 @@ namespace desfire {
                     const std::uint8_t status = data.back();
                     data.pop_back();
                     // Decipher what's left
-                    decipher(data.view());
+                    if (data.size() % block_size != 0) {
+                        ESP_LOGW("DESFIRE",
+                                 "Received enciphered data of length %ul, not a multiple of the block size %ul.",
+                                 data.size(), block_size);
+                        ESP_LOG_BUFFER_HEX_LEVEL("DESFIRE", data.data(), data.size(), ESP_LOG_WARN);
+                        return false;
+                    }
+                    do_crypto(data.view(), false, get_null_iv());
                     // Truncate the padding and the crc
                     const bool did_verify = drop_padding_verify_crc(data);
                     // Reappend the status byte

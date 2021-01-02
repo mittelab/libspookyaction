@@ -19,17 +19,13 @@ namespace desfire {
         mbedtls_des_free(&_dec_context);
     }
 
-    cipher_des::block_t cipher_des::do_crypto(range<bin_data::iterator> data, bool encrypt) {
+    void cipher_des::do_crypto(range<bin_data::iterator> data, bool encrypt, cipher_des::block_t &iv) {
         assert(data.size() % block_size == 0);
-        static block_t iv{};
-        // In legacy authentication, the IV is reset every time
-        iv = {0, 0, 0, 0, 0, 0, 0, 0};
         if (encrypt) {
             mbedtls_des_crypt_cbc(&_enc_context, MBEDTLS_DES_ENCRYPT, data.size(), iv.data(), data.data(), data.data());
         } else {
             mbedtls_des_crypt_cbc(&_dec_context, MBEDTLS_DES_DECRYPT, data.size(), iv.data(), data.data(), data.data());
         }
-        return iv;
     }
 
     cipher_2k3des::cipher_2k3des(std::array<std::uint8_t, 16> const &key) : _enc_context{}, _dec_context{} {
@@ -44,11 +40,8 @@ namespace desfire {
         mbedtls_des3_free(&_dec_context);
     }
 
-    cipher_2k3des::block_t cipher_2k3des::do_crypto(range <bin_data::iterator> data, bool encrypt) {
+    void cipher_2k3des::do_crypto(range <bin_data::iterator> data, bool encrypt, cipher_2k3des::block_t &iv) {
         assert(data.size() % block_size == 0);
-        static block_t iv{};
-        // In legacy authentication, the IV is reset every time
-        iv = {0, 0, 0, 0, 0, 0, 0, 0};
         if (encrypt) {
             mbedtls_des3_crypt_cbc(&_enc_context, MBEDTLS_DES_ENCRYPT, data.size(), iv.data(), data.data(),
                                    data.data());
@@ -56,7 +49,6 @@ namespace desfire {
             mbedtls_des3_crypt_cbc(&_dec_context, MBEDTLS_DES_DECRYPT, data.size(), iv.data(), data.data(),
                                    data.data());
         }
-        return iv;
     }
 
     cipher_3k3des::cipher_3k3des(std::array<std::uint8_t, 24> const &key) : _enc_context{}, _dec_context{} {
@@ -72,7 +64,7 @@ namespace desfire {
         mbedtls_des3_free(&_dec_context);
     }
 
-    void cipher_3k3des::do_crypto(range <bin_data::iterator> data, cipher_3k3des::block_t &iv, bool encrypt) {
+    void cipher_3k3des::do_crypto(range <bin_data::iterator> data, bool encrypt, cipher_3k3des::block_t &iv) {
         assert(data.size() % block_size == 0);
         if (encrypt) {
             mbedtls_des3_crypt_cbc(&_enc_context, MBEDTLS_DES_ENCRYPT, data.size(), iv.data(), data.data(),
@@ -96,7 +88,7 @@ namespace desfire {
         mbedtls_aes_free(&_dec_context);
     }
 
-    void cipher_aes::do_crypto(range <bin_data::iterator> data, cipher_aes::block_t &iv, bool encrypt) {
+    void cipher_aes::do_crypto(range <bin_data::iterator> data, bool encrypt, cipher_aes::block_t &iv) {
         assert(data.size() % block_size == 0);
         if (encrypt) {
             mbedtls_aes_crypt_cbc(&_enc_context, MBEDTLS_AES_ENCRYPT, data.size(), iv.data(), data.data(), data.data());

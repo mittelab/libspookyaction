@@ -14,16 +14,12 @@ namespace desfire {
         static constexpr std::uint16_t crc_init = 0x6363;
 
         /**
-         * @param data Data to encipher, in-place. Must have a size that is a multiple of @ref block_size.
-         * @return The IV after the encryption is completed
+         *
+         * @param data Data to cipher, in-place. Must have a size that is a multiple of @ref block_size.
+         * @param encrypt True to encrypt, false to decrypt
+         * @param iv Initialization vector to use; modified in place.
          */
-        virtual block_t encipher(range<bin_data::iterator> data) = 0;
-
-        /**
-         * @param data Data to decipher, in-place. Must have a size that is a multiple of @ref block_size.
-         * @return The IV after the encryption is completed
-         */
-        virtual block_t decipher(range<bin_data::iterator> data) = 0;
+        virtual void do_crypto(range<bin_data::iterator> data, bool encrypt, block_t &iv) = 0;
 
         /**
          * Returns the first @ref mac_length bytes of the IV after encrypting @p data.
@@ -37,6 +33,12 @@ namespace desfire {
         void prepare_tx(bin_data &data, std::size_t offset, config const &cfg) final;
 
         bool confirm_rx(bin_data &data, config const &cfg) final;
+
+        void encrypt(bin_data &data) final;
+
+        void decrypt(bin_data &data) final;
+
+        static block_t &get_null_iv() ;
     };
 
     template <std::size_t BlockSize, std::uint8_t CMACSubkeyR>
@@ -65,9 +67,7 @@ namespace desfire {
 
         void generate_cmac_subkeys();
 
-        virtual void encipher(range<bin_data::iterator> data, block_t &iv) = 0;
-
-        virtual void decipher(range<bin_data::iterator> data, block_t &iv) = 0;
+        virtual void do_crypto(range<bin_data::iterator> data, bool encrypt, block_t &iv) = 0;
 
         mac_t compute_mac(range<bin_data::const_iterator> data);
 
@@ -84,6 +84,11 @@ namespace desfire {
         void prepare_tx(bin_data &data, std::size_t offset, config const &cfg) final;
 
         bool confirm_rx(bin_data &data, config const &cfg) final;
+
+        void encrypt(bin_data &data) final;
+
+        void decrypt(bin_data &data) final;
+
     };
 
 

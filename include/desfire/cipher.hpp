@@ -23,6 +23,10 @@ namespace desfire {
          */
         virtual bool confirm_rx(bin_data &data, config const &cfg) = 0;
 
+        virtual void encrypt(bin_data &data) = 0;
+
+        virtual void decrypt(bin_data &data) = 0;
+
         virtual ~cipher() = default;
     };
 

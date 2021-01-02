@@ -81,16 +81,18 @@ namespace desfire {
             if (begin != end) {
                 assert(std::distance(begin, end) % block_size == 0);
                 // Find the last nonzero byte, get and iterator to the element past that.
-                // This is given by reverse scanning for a nonzero byte, and getting the underlying iterator.
+                // You just have to scan the last block, and in the worst case, the last non-padding byte is the first
+                // byte of the last block.
+                // This is achieved by reverse scanning for a nonzero byte, and getting the underlying iterator.
                 // Since the reverse iterator holds an underlying iterator to the next element (in the normal traversal
                 // sense), we can just get that.
                 const auto rev_end = std::reverse_iterator<ByteIterator>(end);
                 auto end_payload = std::find_if(rev_end, rev_end + block_size, nonzero_byte_pred).base();
                 for (   // Compute the crc until the supposed end of the payload
                         N crc = crc_fn(begin, end_payload, init);
-                    // Keep advancing the supposed end of the payload until end
+                        // Keep advancing the supposed end of the payload until end
                         end_payload != end;
-                    // Update the crc with one byte at a time
+                        // Update the crc with one byte at a time
                         crc = crc_fn(end_payload, std::next(end_payload), crc), ++end_payload
                         ) {
                     if (crc == N(0)) {

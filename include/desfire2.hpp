@@ -19,6 +19,19 @@ namespace desfire {
     using range = pn532::range<It>;
     using pn532::bin_stream;
 
+    template <class It>
+    void lshift_sequence(It begin, It end, unsigned lshift) {
+        using value_type = typename std::iterator_traits<It>::value_type;
+        static constexpr unsigned value_nbits = sizeof(value_type) * 8;
+        const unsigned complementary_rshift = value_nbits - std::min(value_nbits, lshift);
+        if (begin != end) {
+            It prev = begin++;
+            for (; begin != end; prev = begin++) {
+                *prev = ((*prev) << lshift) | ((*begin) >> complementary_rshift);
+            }
+            *prev <<= lshift;
+        }
+    }
 
     class cipher {
     public:
@@ -236,7 +249,7 @@ namespace desfire {
         }
     };
 
-    template <std::size_t BlockSize>
+    template <std::size_t BlockSize, std::uint8_t CMACSubkeyR>
     class cipher_scheme : public virtual cipher, public cipher_traits<BlockSize, 8, 4> {
     public:
         using traits_base = cipher_traits<BlockSize, 8, 4>;
@@ -249,8 +262,8 @@ namespace desfire {
         using traits_base::block_size;
 
     private:
-        static constexpr std::size_t cmac_subkey_length = 24;
-        using cmac_subkey_t = std::array<std::uint8_t, cmac_subkey_length>;
+        static constexpr std::uint8_t cmac_subkey_r = CMACSubkeyR;
+        using cmac_subkey_t = std::array<std::uint8_t, block_size>;
 
         cmac_subkey_t _cmac_subkey_pad;
         cmac_subkey_t _cmac_subkey_nopad;
@@ -258,6 +271,40 @@ namespace desfire {
 
     protected:
         static constexpr std::uint32_t crc_init = 0xffffffff;
+
+        cipher_scheme() : _cmac_subkey_pad{}, _cmac_subkey_nopad{}, _global_iv{} {
+            std::fill_n(std::begin(_cmac_subkey_pad), block_size, 0);
+            std::fill_n(std::begin(_cmac_subkey_nopad), block_size, 0);
+            std::fill_n(std::begin(_global_iv), block_size, 0);
+        }
+
+        virtual void generate_cmac_subkeys() {
+            static const auto prepare_subkey = [](cmac_subkey_t &subkey) {
+                // Some app-specific magic: lshift by one
+                lshift_sequence(std::begin(subkey), std::end(subkey), 1);
+                // ...and xor with R if the MSB is one
+                if ((subkey[0] & (1 << 7)) != 0) {
+                    subkey[block_size - 1] ^= cmac_subkey_r;
+                }
+            };
+
+            static block_t iv;
+            static bin_data data;
+            // Initialize data and IV at zero
+            std::fill_n(std::begin(iv), block_size, 0);
+            data.clear();
+            data.resize(block_size, 0x0);
+            // Crypt on local IV
+            encipher(data.view(), iv);
+
+            // Copy and prep
+            std::copy(std::begin(data), std::end(data), std::begin(_cmac_subkey_nopad));
+            prepare_subkey(_cmac_subkey_nopad);
+
+            // Do it again
+            _cmac_subkey_pad = _cmac_subkey_nopad;
+            prepare_subkey(_cmac_subkey_pad);
+        }
 
         virtual void encipher(range<bin_data::iterator> data, block_t &iv) = 0;
         virtual void decipher(range<bin_data::iterator> data, block_t &iv) = 0;
@@ -481,16 +528,18 @@ namespace desfire {
         }
     };
 
-    class cipher_3k3des final : public cipher_scheme<8> {
+    class cipher_3k3des final : public cipher_scheme<8, 0x1b> {
         mbedtls_des3_context _enc_context;
         mbedtls_des3_context _dec_context;
 
     public:
-        explicit cipher_3k3des(std::array<std::uint8_t, 24> const &key) : _enc_context{}, _dec_context{} {
+        explicit cipher_3k3des(std::array<std::uint8_t, 24> const &key) : cipher_scheme<8, 0x1b>{}, _enc_context{}, _dec_context{}
+        {
             mbedtls_des3_init(&_enc_context);
             mbedtls_des3_init(&_dec_context);
             mbedtls_des3_set3key_enc(&_enc_context, key.data());
             mbedtls_des3_set3key_enc(&_dec_context, key.data());
+            generate_cmac_subkeys();
         }
 
         ~cipher_3k3des() override {
@@ -517,16 +566,18 @@ namespace desfire {
         }
     };
 
-    class cipher_aes final : public cipher_scheme<16> {
+    class cipher_aes final : public cipher_scheme<16, 0x87> {
         mbedtls_aes_context _enc_context;
         mbedtls_aes_context _dec_context;
 
     public:
-        explicit cipher_aes(std::array<std::uint8_t, 16> const &key) : _enc_context{}, _dec_context{} {
+        explicit cipher_aes(std::array<std::uint8_t, 16> const &key) : cipher_scheme<16, 0x87>{}, _enc_context{}, _dec_context{}
+        {
             mbedtls_aes_init(&_enc_context);
             mbedtls_aes_init(&_dec_context);
             mbedtls_aes_setkey_enc(&_enc_context, key.data(), 8 * key.size());
             mbedtls_aes_setkey_enc(&_dec_context, key.data(), 8 * key.size());
+            generate_cmac_subkeys();
         }
 
         ~cipher_aes() override {

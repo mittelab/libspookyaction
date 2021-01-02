@@ -137,7 +137,7 @@ namespace desfire {
         /**
          * Returns the first @ref mac_length bytes of the IV after encrypting @p data.
          */
-        virtual mac_t compute_mac(range<bin_data::const_iterator> data) {
+        mac_t compute_mac(range<bin_data::const_iterator> data) {
             static bin_data buffer{};
 
             // Resize the buffer and copy data
@@ -149,7 +149,7 @@ namespace desfire {
             return {iv[0], iv[1], iv[2], iv[3]};
         }
 
-        virtual crc_t compute_crc(range<bin_data::const_iterator> data, std::uint16_t init) {
+        static crc_t compute_crc(range<bin_data::const_iterator> data, std::uint16_t init) {
             /* @note This is correct, we need to negate the init value (0x6363, as per spec), negate the output value
              * (that is documented in ESP's CRC header), and remember to send LSB first.
              */
@@ -157,7 +157,7 @@ namespace desfire {
             return {std::uint8_t(word & 0xff), std::uint8_t(word >> 8)};
         }
 
-        virtual bool drop_padding_verify_crc(bin_data &d) {
+        static bool drop_padding_verify_crc(bin_data &d) {
             static const auto crc_fn = [](bin_data::const_iterator b, bin_data::const_iterator e, std::uint16_t init) -> std::uint16_t {
                 return ~crc16_le(~init, &*b, std::distance(b, e));
             };
@@ -278,7 +278,7 @@ namespace desfire {
             std::fill_n(std::begin(_global_iv), block_size, 0);
         }
 
-        virtual void generate_cmac_subkeys() {
+        void generate_cmac_subkeys() {
             static const auto prepare_subkey = [](cmac_subkey_t &subkey) {
                 // Some app-specific magic: lshift by one
                 lshift_sequence(std::begin(subkey), std::end(subkey), 1);
@@ -309,7 +309,7 @@ namespace desfire {
         virtual void encipher(range<bin_data::iterator> data, block_t &iv) = 0;
         virtual void decipher(range<bin_data::iterator> data, block_t &iv) = 0;
 
-        virtual mac_t compute_mac(range<bin_data::const_iterator> data) {
+        mac_t compute_mac(range<bin_data::const_iterator> data) {
             static const auto xor_op = [](std::uint8_t l, std::uint8_t r) -> std::uint8_t { return l ^ r; };
             static bin_data buffer{};
 
@@ -339,7 +339,7 @@ namespace desfire {
         /**
          * Computes the CRC32 of @p data, returns LSB first.
          */
-        virtual crc_t compute_crc(range<bin_data::const_iterator> data, std::uint32_t init) {
+        crc_t compute_crc(range<bin_data::const_iterator> data, std::uint32_t init) {
             const std::uint32_t dword = ~crc32_le(~init, data.data(), data.size());
             return {
                     std::uint8_t(dword & 0xff),
@@ -352,7 +352,7 @@ namespace desfire {
         /**
          * @param status The CRC is always computed on ''data || status'', so we always need to update it for that
          */
-        virtual bool drop_padding_verify_crc(bin_data &d, std::uint8_t status) {
+        bool drop_padding_verify_crc(bin_data &d, std::uint8_t status) {
             const auto crc_fn = [=](bin_data::const_iterator b, bin_data::const_iterator e, std::uint32_t init) -> std::uint32_t {
                 // Simulate the presence of an extra status byte by doing an extra crc call
                 const std::uint32_t crc_of_data = ~crc32_le(~init, &*b, std::distance(b, e));

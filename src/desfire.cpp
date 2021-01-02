@@ -2,7 +2,7 @@
 #include <algorithm>
 #include <functional>
 #include "desfire.hpp"
-#include "log.h"
+#include "pn532/log.h"
 
 // #define PN532_TAG "APP"
 // #define PN532_TAG "CRYPTO"

@@ -2,8 +2,9 @@
 
 #include <unity.h>
 #include <driver/uart.h>
-#include <hsu.hpp>
-#include <nfc.hpp>
+#include <pn532/hsu.hpp>
+#include <pn532/nfc.hpp>
+#include <esp_log.h>
 
 #define TEST_TAG "UT"
 #define TX_PIN   (GPIO_NUM_17)

@@ -6,8 +6,8 @@
 #include <freertos/portmacro.h>
 #include <freertos/FreeRTOSConfig.h>
 #include <esp_log.h>
-#include "log.h"
-#include "hsu.hpp"
+#include "pn532/log.h"
+#include "pn532/hsu.hpp"
 
 #define PN532_HSU_SEND_TAG "PN532-HSU >>"
 #define PN532_HSU_RECV_TAG "PN532-HSU <<"

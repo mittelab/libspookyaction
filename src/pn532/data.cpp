@@ -2,8 +2,8 @@
 // Created by Pietro Saccardi on 22/12/2020.
 //
 
-#include "data.hpp"
-#include "msg.hpp"
+#include "pn532/data.hpp"
+#include "pn532/msg.hpp"
 
 namespace mlab {
 

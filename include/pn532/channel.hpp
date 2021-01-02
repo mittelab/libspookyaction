@@ -8,7 +8,7 @@
 #include <chrono>
 #include <algorithm>
 #include <array>
-#include "bin_data.hpp"
+#include "mlab/bin_data.hpp"
 
 namespace pn532 {
     using mlab::bin_data;

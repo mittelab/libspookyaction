@@ -8,7 +8,7 @@
 #include <vector>
 #include <memory>
 #include <type_traits>
-#include "log.h"
+#include <esp_log.h>
 
 namespace mlab {
 
@@ -302,7 +302,7 @@ namespace mlab {
     template <class E, class T>
     E const &result<E, T>::e() const {
         if (holds() != result_content::error) {
-            LOGE("Bad! Avoided EXC_BAD_ACCESS: attempt to retrieve the error from a result<> that holds data (or is empty)!");
+            ESP_LOGE("mlab::result<>", "Bad! Avoided EXC_BAD_ACCESS: attempt to retrieve the error from a result<> that holds data (or is empty)!");
             return dummy_error();
         }
         return impl::retrieve_efficiently<E>(_storage);
@@ -311,7 +311,7 @@ namespace mlab {
     template <class E, class T>
     T const &result<E, T>::d() const {
         if (holds() != result_content::data) {
-            LOGE("Bad! Avoided EXC_BAD_ACCESS: attempt to retrieve the data from a result<> that holds error (or is empty)!");
+            ESP_LOGE("mlab::result<>", "Bad! Avoided EXC_BAD_ACCESS: attempt to retrieve the data from a result<> that holds error (or is empty)!");
             return dummy_data();
         }
         return impl::retrieve_efficiently<T>(_storage);

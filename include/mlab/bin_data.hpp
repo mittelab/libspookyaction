@@ -9,6 +9,7 @@
 #include <vector>
 #include <algorithm>
 #include <type_traits>
+#include <array>
 
 namespace mlab {
 

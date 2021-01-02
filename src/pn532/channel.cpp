@@ -2,7 +2,7 @@
 // Created by Pietro Saccardi on 21/12/2020.
 //
 
-#include "channel.hpp"
+#include "pn532/channel.hpp"
 
 namespace pn532 {
 

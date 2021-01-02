@@ -7,7 +7,7 @@
 
 #include <memory>
 #include <functional>
-#include "log.h"
+#include <esp_log.h>
 
 namespace mlab {
 
@@ -119,7 +119,7 @@ namespace mlab {
         if (test_type<T>()) {
             return *reinterpret_cast<T const *>(_p.get());
         }
-        LOGE("Requested incorrect type from an any.");
+        ESP_LOGE("mlab::any", "Requested incorrect type from an any.");
         return *reinterpret_cast<T const *>(nullptr);
     }
 }

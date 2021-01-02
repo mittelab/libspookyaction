@@ -11,7 +11,7 @@
 #include <mbedtls/aes.h>
 #include <rom/crc.h>
 #include <cassert>
-#include "bin_data.hpp"
+#include "mlab/bin_data.hpp"
 
 namespace desfire {
     using mlab::bin_data;

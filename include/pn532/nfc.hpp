@@ -5,7 +5,7 @@
 #ifndef APERTURAPORTA_NFC_HPP
 #define APERTURAPORTA_NFC_HPP
 
-#include "result.hpp"
+#include "mlab/result.hpp"
 #include "bits.hpp"
 #include "data.hpp"
 #include "channel.hpp"

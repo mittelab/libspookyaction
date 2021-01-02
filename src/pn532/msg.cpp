@@ -2,7 +2,7 @@
 // Created by Pietro Saccardi on 22/12/2020.
 //
 
-#include "msg.hpp"
+#include "pn532/msg.hpp"
 
 namespace pn532 {
     const char *to_string(bits::baudrate s) {

@@ -11,7 +11,7 @@
 #include "bin_data.hpp"
 
 namespace pn532 {
-    class bin_data;
+    using mlab::bin_data;
 
     using ms = std::chrono::milliseconds;
     static auto constexpr one_sec = ms{1000};

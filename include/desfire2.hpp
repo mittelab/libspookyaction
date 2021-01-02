@@ -14,10 +14,9 @@
 #include "bin_data.hpp"
 
 namespace desfire {
-    using pn532::bin_data;
-    template <class It>
-    using range = pn532::range<It>;
-    using pn532::bin_stream;
+    using mlab::bin_data;
+    using mlab::bin_stream;
+    using mlab::range;
 
     template <class It>
     void lshift_sequence(It begin, It end, unsigned lshift) {
@@ -533,7 +532,7 @@ namespace desfire {
         mbedtls_des3_context _dec_context;
 
     public:
-        explicit cipher_3k3des(std::array<std::uint8_t, 24> const &key) : cipher_scheme<8, 0x1b>{}, _enc_context{}, _dec_context{}
+        explicit cipher_3k3des(std::array<std::uint8_t, 24> const &key) : _enc_context{}, _dec_context{}
         {
             mbedtls_des3_init(&_enc_context);
             mbedtls_des3_init(&_dec_context);
@@ -571,7 +570,7 @@ namespace desfire {
         mbedtls_aes_context _dec_context;
 
     public:
-        explicit cipher_aes(std::array<std::uint8_t, 16> const &key) : cipher_scheme<16, 0x87>{}, _enc_context{}, _dec_context{}
+        explicit cipher_aes(std::array<std::uint8_t, 16> const &key) : _enc_context{}, _dec_context{}
         {
             mbedtls_aes_init(&_enc_context);
             mbedtls_aes_init(&_dec_context);

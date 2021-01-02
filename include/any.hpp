@@ -9,7 +9,7 @@
 #include <functional>
 #include "log.h"
 
-namespace pn532 {
+namespace mlab {
 
     namespace ctti {
         using id_type = std::uintptr_t;
@@ -66,7 +66,7 @@ namespace pn532 {
 
 }
 
-namespace pn532 {
+namespace mlab {
 
     any::any() : _p{nullptr}, _t{} {}
 

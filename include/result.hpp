@@ -10,7 +10,7 @@
 #include <type_traits>
 #include "log.h"
 
-namespace pn532 {
+namespace mlab {
 
 
     /**
@@ -175,7 +175,7 @@ namespace pn532 {
 
 }
 
-namespace pn532 {
+namespace mlab {
 
     namespace impl {
 

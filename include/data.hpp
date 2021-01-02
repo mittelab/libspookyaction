@@ -13,6 +13,10 @@
 #include "any.hpp"
 
 namespace pn532 {
+    // Locally import all declaration from mlab. I don't
+    namespace {
+        using namespace mlab;
+    }
 
     using controller_error = bits::error;
     using command_code = bits::command;
@@ -137,12 +141,6 @@ namespace pn532 {
         template <target_type Type>
         any_target &operator=(poll_entry<Type> entry);
     };
-
-    namespace ctti {
-        template <target_type Type>
-        struct type_info<poll_entry<Type>> : public std::integral_constant<id_type, static_cast<id_type>(Type)> {
-        };
-    }
 
     enum struct gpio_loc {
         p3, p7, i0i1
@@ -275,6 +273,13 @@ namespace pn532 {
 
         inline bit_ref operator[](std::pair<gpio_loc, std::uint8_t> const &gpio_idx);
     };
+}
+
+namespace mlab {
+    // Locally import pn532 so that these declaration make sense
+    namespace {
+        using namespace pn532;
+    }
 
     bin_data &operator<<(bin_data &bd, ciu_reg_212_424kbps const &reg);
 
@@ -348,6 +353,11 @@ namespace pn532 {
 
     bin_stream &operator>>(bin_stream &s, init_as_target_res &mt);
 
+    namespace ctti {
+        template <target_type Type>
+            struct type_info<poll_entry<Type>> : public std::integral_constant<id_type, static_cast<id_type>(Type)> {
+        };
+    }
 }
 
 namespace pn532 {
@@ -446,7 +456,9 @@ namespace pn532 {
             std::array<std::uint8_t, 2>{{std::uint8_t(xram_mmap_reg >> 8),
                                                 std::uint8_t(xram_mmap_reg & 0xff)}} {}
 
+}
 
+namespace mlab {
     template <baudrate_modulation BrMd>
     bin_stream &operator>>(bin_stream &s, std::vector<bits::target<BrMd>> &targets) {
         if (s.remaining() < 1) {

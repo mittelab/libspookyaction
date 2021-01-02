@@ -13,8 +13,6 @@
 
 namespace pn532 {
 
-    class bin_data;
-
     static constexpr ms default_timeout = one_sec;
     static constexpr ms long_timeout = 3 * default_timeout;
 

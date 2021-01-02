@@ -10,7 +10,7 @@
 #include <algorithm>
 #include <type_traits>
 
-namespace pn532 {
+namespace mlab {
 
     template <class Iterator>
     struct range {
@@ -232,7 +232,7 @@ namespace pn532 {
     bin_data &operator<<(bin_data &bd, T const &t);
 }
 
-namespace pn532 {
+namespace mlab {
 
     bin_data::bin_data(std::initializer_list<std::uint8_t> data) : std::vector<uint8_t>{data} {}
 

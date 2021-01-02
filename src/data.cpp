@@ -5,7 +5,7 @@
 #include "data.hpp"
 #include "msg.hpp"
 
-namespace pn532 {
+namespace mlab {
 
     bin_data &operator<<(bin_data &bd, ciu_reg_212_424kbps const &reg) {
         return bd << prealloc(sizeof(ciu_reg_212_424kbps)) << reg.rf_cfg << reg.gs_n_on << reg.cw_gs_p

@@ -2,8 +2,8 @@
 // Created by Pietro Saccardi on 20/12/2020.
 //
 
-#ifndef APERTURAPORTA_NFC_HPP
-#define APERTURAPORTA_NFC_HPP
+#ifndef PN532_NFC_HPP
+#define PN532_NFC_HPP
 
 #include "mlab/result.hpp"
 #include "bits.hpp"
@@ -555,4 +555,4 @@ namespace pn532 {
 }
 
 
-#endif //APERTURAPORTA_NFC_HPP
+#endif //PN532_NFC_HPP

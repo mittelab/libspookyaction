@@ -2,8 +2,8 @@
 // Created by Pietro Saccardi on 21/12/2020.
 //
 
-#ifndef APERTURAPORTA_HSU_HPP
-#define APERTURAPORTA_HSU_HPP
+#ifndef PN532_HSU_HPP
+#define PN532_HSU_HPP
 
 #include <mbcontroller.h>
 #include "channel.hpp"
@@ -32,4 +32,4 @@ namespace pn532 {
 
 }
 
-#endif //APERTURAPORTA_HSU_HPP
+#endif //PN532_HSU_HPP

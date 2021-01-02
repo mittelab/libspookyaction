@@ -2,8 +2,8 @@
 // Created by Pietro Saccardi on 24/12/2020.
 //
 
-#ifndef APERTURAPORTA_ANY_HPP
-#define APERTURAPORTA_ANY_HPP
+#ifndef MLAB_ANY_HPP
+#define MLAB_ANY_HPP
 
 #include <memory>
 #include <functional>
@@ -124,4 +124,4 @@ namespace mlab {
     }
 }
 
-#endif //APERTURAPORTA_ANY_HPP
+#endif //MLAB_ANY_HPP

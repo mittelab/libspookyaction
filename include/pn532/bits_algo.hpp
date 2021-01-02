@@ -2,8 +2,8 @@
 // Created by Pietro Saccardi on 22/12/2020.
 //
 
-#ifndef APERTURAPORTA_BITS_ALGO_HPP
-#define APERTURAPORTA_BITS_ALGO_HPP
+#ifndef PN532_BITS_ALGO_HPP
+#define PN532_BITS_ALGO_HPP
 
 #include <cstdint>
 #include <array>
@@ -89,4 +89,4 @@ namespace pn532 {
     }
 }
 
-#endif //APERTURAPORTA_BITS_ALGO_HPP
+#endif //PN532_BITS_ALGO_HPP

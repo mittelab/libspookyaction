@@ -2,8 +2,8 @@
 // Created by Pietro Saccardi on 22/12/2020.
 //
 
-#ifndef APERTURAPORTA_MSG_H
-#define APERTURAPORTA_MSG_H
+#ifndef PN532_MSG_HPP
+#define PN532_MSG_HPP
 
 #include <string>
 #include "bits.hpp"
@@ -22,4 +22,4 @@ namespace pn532 {
     const char *to_string(bits::error e);
 }
 
-#endif //APERTURAPORTA_MSG_H
+#endif //PN532_MSG_HPP

@@ -2,8 +2,8 @@
 // Created by Pietro Saccardi on 22/12/2020.
 //
 
-#ifndef APERTURAPORTA_DATA_HPP
-#define APERTURAPORTA_DATA_HPP
+#ifndef PN532_DATA_HPP
+#define PN532_DATA_HPP
 
 #include <limits>
 #include "mlab/bin_data.hpp"
@@ -529,4 +529,4 @@ namespace mlab {
 
 }
 
-#endif //APERTURAPORTA_DATA_HPP
+#endif //PN532_DATA_HPP

@@ -2,8 +2,8 @@
 // Created by Pietro Saccardi on 21/12/2020.
 //
 
-#ifndef APERTURAPORTA_BIN_DATA_HPP
-#define APERTURAPORTA_BIN_DATA_HPP
+#ifndef MLAB_BIN_DATA_HPP
+#define MLAB_BIN_DATA_HPP
 
 #include <cstdint>
 #include <vector>
@@ -472,4 +472,4 @@ namespace mlab {
 
 }
 
-#endif //APERTURAPORTA_BIN_DATA_HPP
+#endif //MLAB_BIN_DATA_HPP

@@ -2,8 +2,8 @@
 // Created by Pietro Saccardi on 02/01/2021.
 //
 
-#ifndef APERTURAPORTA_CRYPTO_ALGO_HPP
-#define APERTURAPORTA_CRYPTO_ALGO_HPP
+#ifndef DESFIRE_CRYPTO_ALGO_HPP
+#define DESFIRE_CRYPTO_ALGO_HPP
 
 #include <cstdint>
 #include <utility>
@@ -91,4 +91,4 @@ namespace desfire {
 
 }
 
-#endif //APERTURAPORTA_CRYPTO_ALGO_HPP
+#endif //DESFIRE_CRYPTO_ALGO_HPP

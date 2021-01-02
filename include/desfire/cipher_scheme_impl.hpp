@@ -2,8 +2,8 @@
 // Created by Pietro Saccardi on 02/01/2021.
 //
 
-#ifndef APERTURAPORTA_CIPHER_SCHEME_IMPL_HPP
-#define APERTURAPORTA_CIPHER_SCHEME_IMPL_HPP
+#ifndef DESFIRE_CIPHER_SCHEME_IMPL_HPP
+#define DESFIRE_CIPHER_SCHEME_IMPL_HPP
 
 #include <esp_log.h>
 #include <rom/crc.h>
@@ -212,4 +212,4 @@ namespace desfire {
 
 }
 
-#endif //APERTURAPORTA_CIPHER_SCHEME_IMPL_HPP
+#endif //DESFIRE_CIPHER_SCHEME_IMPL_HPP

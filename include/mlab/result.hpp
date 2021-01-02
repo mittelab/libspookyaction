@@ -2,8 +2,8 @@
 // Created by Pietro Saccardi on 22/12/2020.
 //
 
-#ifndef APERTURAPORTA_RESULT_HPP
-#define APERTURAPORTA_RESULT_HPP
+#ifndef MLAB_RESULT_HPP
+#define MLAB_RESULT_HPP
 
 #include <vector>
 #include <memory>
@@ -498,4 +498,4 @@ namespace mlab {
             base{std::move(b)} {}
 }
 
-#endif //APERTURAPORTA_RESULT_HPP
+#endif //MLAB_RESULT_HPP

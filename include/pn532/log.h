@@ -2,8 +2,8 @@
 // Created by Pietro Saccardi on 21/12/2020.
 //
 
-#ifndef APERTURAPORTA_LOG_H
-#define APERTURAPORTA_LOG_H
+#ifndef PN532_LOG_H
+#define PN532_LOG_H
 
 #include <esp_log.h>
 
@@ -22,4 +22,4 @@ extern "C" {
 }
 #endif
 
-#endif //APERTURAPORTA_LOG_H
+#endif //PN532_LOG_H

@@ -2,8 +2,8 @@
 // Created by Pietro Saccardi on 02/01/2021.
 //
 
-#ifndef APERTURAPORTA_CIPHER_HPP
-#define APERTURAPORTA_CIPHER_HPP
+#ifndef DESFIRE_CIPHER_HPP
+#define DESFIRE_CIPHER_HPP
 
 #include "mlab/bin_data.hpp"
 
@@ -55,4 +55,4 @@ namespace desfire {
     };
 }
 
-#endif //APERTURAPORTA_CIPHER_HPP
+#endif //DESFIRE_CIPHER_HPP

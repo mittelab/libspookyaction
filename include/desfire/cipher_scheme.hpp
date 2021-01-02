@@ -2,8 +2,8 @@
 // Created by Pietro Saccardi on 02/01/2021.
 //
 
-#ifndef APERTURAPORTA_CIPHER_SCHEME_HPP
-#define APERTURAPORTA_CIPHER_SCHEME_HPP
+#ifndef DESFIRE_CIPHER_SCHEME_HPP
+#define DESFIRE_CIPHER_SCHEME_HPP
 
 #include "cipher.hpp"
 
@@ -94,4 +94,4 @@ namespace desfire {
 
 }
 
-#endif //APERTURAPORTA_CIPHER_SCHEME_HPP
+#endif //DESFIRE_CIPHER_SCHEME_HPP

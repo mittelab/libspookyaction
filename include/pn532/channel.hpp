@@ -2,8 +2,8 @@
 // Created by Pietro Saccardi on 21/12/2020.
 //
 
-#ifndef APERTURAPORTA_CHANNEL_HPP
-#define APERTURAPORTA_CHANNEL_HPP
+#ifndef PN532_CHANNEL_HPP
+#define PN532_CHANNEL_HPP
 
 #include <chrono>
 #include <algorithm>
@@ -167,4 +167,4 @@ namespace pn532 {
 }
 
 
-#endif //APERTURAPORTA_CHANNEL_HPP
+#endif //PN532_CHANNEL_HPP

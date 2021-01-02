@@ -2,8 +2,8 @@
 // Created by Pietro Saccardi on 20/12/2020.
 //
 
-#ifndef APERTURAPORTA_BITS_HPP
-#define APERTURAPORTA_BITS_HPP
+#ifndef PN532_BITS_HPP
+#define PN532_BITS_HPP
 
 #include <array>
 #include <vector>
@@ -508,4 +508,4 @@ namespace pn532 {
     }
 }
 
-#endif //APERTURAPORTA_BITS_HPP
+#endif //PN532_BITS_HPP

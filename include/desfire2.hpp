@@ -94,7 +94,7 @@ namespace desfire {
                         end_payload != end;
                         // Update the crc with one byte at a time
                         crc = crc_fn(end_payload, std::next(end_payload), crc), ++end_payload
-                        ) {
+                ) {
                     if (crc == N(0)) {
                         // This is a valid end of the payload with a successful crc check
                         last_payload_end = end_payload;

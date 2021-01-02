@@ -28,7 +28,7 @@ namespace desfire {
         /**
          * Assume that status byte comes last.
          */
-        virtual void confirm_rx(bin_data &data, config const &cfg) {}
+        virtual bool confirm_rx(bin_data &data, config const &cfg) = 0;
 
         virtual ~cipher() = default;
     };
@@ -188,10 +188,10 @@ namespace desfire {
             }
         }
 
-        void confirm_rx(bin_data &data, config const &cfg) override {
+        bool confirm_rx(bin_data &data, config const &cfg) override {
             if (data.size() == 1) {
                 // Just status byte, return as-is
-                return;
+                return true;
             }
             switch (cfg.mode) {
                 case comm_mode::plain:
@@ -210,10 +210,9 @@ namespace desfire {
                             // Good, move status byte at the end and drop the mac
                             data[data.size() - mac_size - 1] = data[data.size() - 1];
                             data.resize(data.size() - mac_size);
-                            /// @todo return success
-                        } else {
-                            /// @todo return mac_check_failed
+                            return true;
                         }
+                        return false;
                     }
                     break;
                 case comm_mode::cipher:
@@ -222,15 +221,16 @@ namespace desfire {
                         const std::uint8_t status = data.back();
                         data.pop_back();
                         // Decipher what's left
-                        decipher(data.view(0, data.size()));
+                        decipher(data.view());
                         // Truncate the padding and the crc
                         const bool did_verify = drop_padding_verify_crc(data);
                         // Reappend the status byte
                         data << status;
-                        /// @todo Return success or crc_check_failed depending on did_verify
+                        return did_verify;
                     }
                     break;
             }
+            return true;
         }
     };
 
@@ -300,9 +300,15 @@ namespace desfire {
             };
         }
 
-        virtual bool drop_padding_verify_crc(bin_data &d) {
-            static const auto crc_fn = [](bin_data::const_iterator b, bin_data::const_iterator e, std::uint32_t init) -> std::uint32_t {
-                return ~crc32_le(~init, &*b, std::distance(b, e));
+        /**
+         * @param status The CRC is always computed on ''data || status'', so we always need to update it for that
+         */
+        virtual bool drop_padding_verify_crc(bin_data &d, std::uint8_t status) {
+            const auto crc_fn = [=](bin_data::const_iterator b, bin_data::const_iterator e, std::uint32_t init) -> std::uint32_t {
+                // Simulate the presence of an extra status byte by doing an extra crc call
+                const std::uint32_t crc_of_data = ~crc32_le(~init, &*b, std::distance(b, e));
+                const std::uint32_t crc_of_data_and_status = ~crc32_le(~crc_of_data, &status, 1);
+                return crc_of_data_and_status;
             };
             const auto end_payload_did_verify = traits_base::find_crc_tail(std::begin(d), std::end(d), crc_fn, crc_init);
             if (end_payload_did_verify.second) {
@@ -340,6 +346,57 @@ namespace desfire {
                 data.resize(offset + padded_length(data.size() - offset), 0x00);
                 encipher(data.view(offset), _global_iv);
             }
+        }
+
+
+        bool confirm_rx(bin_data &data, config const &cfg) override {
+            if (data.size() == 1) {
+                // Just status byte, return as-is
+                return true;
+            }
+            switch (cfg.mode) {
+                case comm_mode::plain:
+                    // Always pass data + status byte through CMAC, if required
+                    if (cfg.do_mac) {
+                        // This will keep the IV in sync
+                        compute_mac(data.view());
+                    }
+                    break;
+                case comm_mode::mac:
+                    if (cfg.do_mac) {
+                        // [ data || mac || status ] -> [ data || status || mac ]; rotate mac_size + 1 bytes
+                        std::rotate(data.rend(), data.rend() + 1, data.rend() + traits_base::mac_size + 1);
+                        // This will keep the IV in sync
+                        const mac_t computed_mac = compute_mac(data.view(0, data.size() - traits_base::mac_size));
+                        // Extract the transmitted mac
+                        bin_stream s{data};
+                        s.seek(data.size() - traits_base::mac_size);
+                        mac_t rxd_mac{};
+                        s >> rxd_mac;
+                        if (rxd_mac == computed_mac) {
+                            // Good, drop the mac
+                            data.resize(data.size() - traits_base::mac_size);
+                            return true;
+                        }
+                        return false;
+                    }
+                    break;
+                case comm_mode::cipher:
+                    if (cfg.do_cipher) {
+                        // Pop the status byte
+                        const std::uint8_t status = data.back();
+                        data.pop_back();
+                        // Decipher what's left
+                        decipher(data.view(), _global_iv);
+                        // Truncate the padding and the crc
+                        const bool did_verify = drop_padding_verify_crc(data, status);
+                        // Reappend the status byte
+                        data << status;
+                        return did_verify;
+                    }
+                    break;
+            }
+            return true;
         }
     };
 

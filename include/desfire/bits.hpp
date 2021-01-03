@@ -10,6 +10,48 @@
 
 namespace desfire {
     namespace bits {
+        enum struct command_code : std::uint8_t {
+            authenticate_legacy = 0x0a,
+            change_key_settings = 0x54,
+            get_key_settings = 0x45,
+            change_key = 0xc4,
+            get_key_version = 0x64,
+            create_application = 0xca,
+            delete_application = 0xda,
+            get_application_ids = 0x6a,
+            select_application = 0x5a,
+            format_picc = 0xfc,
+            get_version = 0x60,
+            get_file_ids = 0x6f,
+            get_file_settings = 0xf5,
+            change_file_settings = 0x5f,
+            create_std_data_file = 0xcd,
+            create_backup_data_file = 0xcb,
+            create_value_file = 0xcc,
+            create_linear_record_file = 0xc1,
+            create_cyclic_record_file = 0xc0,
+            delete_file = 0xdf,
+            read_data = 0xbd,
+            write_data = 0x3d,
+            get_value = 0x6c,
+            credit = 0x0c,
+            debit = 0xdc,
+            limited_credit = 0x1c,
+            write_record = 0x3b,
+            read_records = 0xbb,
+            clear_record_file = 0xeb,
+            commit_transaction = 0xc7,
+            abort_transaction = 0xa7,
+            additional_frame = 0xaf,
+            authenticate_iso = 0x1a,
+            authenticate_aes = 0xaa,
+            free_mem = 0x6e,
+            get_df_names = 0x6d,
+            get_card_uid = 0x51,
+            get_iso_file_ids = 0x61,
+            set_configuration = 0x5c
+        };
+
         enum struct status : std::uint8_t {
             ok = 0x00,
             no_changes = 0x0c,
@@ -34,6 +76,7 @@ namespace desfire {
             file_not_found = 0xf0,
             file_integrity_error = 0xf1
         };
+
 
     }
 }

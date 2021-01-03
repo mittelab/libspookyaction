@@ -12,6 +12,37 @@
 
 namespace desfire {
     using mlab::any;
+    using bits::status;
+
+
+    enum struct error : std::uint8_t {
+        out_of_eeprom        = static_cast<std::uint8_t>(status::out_of_eeprom),
+        illegal_command      = static_cast<std::uint8_t>(status::illegal_command),
+        integrity_error      = static_cast<std::uint8_t>(status::integrity_error),
+        no_such_key          = static_cast<std::uint8_t>(status::no_such_key),
+        length_error         = static_cast<std::uint8_t>(status::length_error),
+        permission_denied    = static_cast<std::uint8_t>(status::permission_denied),
+        parameter_error      = static_cast<std::uint8_t>(status::parameter_error),
+        app_not_found        = static_cast<std::uint8_t>(status::app_not_found),
+        app_integrity_error  = static_cast<std::uint8_t>(status::app_integrity_error),
+        authentication_error = static_cast<std::uint8_t>(status::authentication_error),
+        additional_frame     = static_cast<std::uint8_t>(status::additional_frame),
+        boundary_error       = static_cast<std::uint8_t>(status::boundary_error),
+        picc_integrity_error = static_cast<std::uint8_t>(status::picc_integrity_error),
+        command_aborted      = static_cast<std::uint8_t>(status::command_aborted),
+        picc_disabled_error  = static_cast<std::uint8_t>(status::picc_disabled_error),
+        count_error          = static_cast<std::uint8_t>(status::count_error),
+        diplicate_error      = static_cast<std::uint8_t>(status::diplicate_error),
+        eeprom_error         = static_cast<std::uint8_t>(status::eeprom_error),
+        file_not_found       = static_cast<std::uint8_t>(status::file_not_found),
+        file_integrity_error = static_cast<std::uint8_t>(status::file_integrity_error),
+        controller_error,    ///< Specific for PCD error
+        malformed,           ///< No data received when some was expected
+        crypto_error         /**< @brief Something went wrong with crypto (@ref cipher::config)
+                              * This could mean invalid MAC, CMAC, or CRC, or data length is not a multiple of block
+                              * size when encrypted; this depends on the specified communication config.
+                              */
+    };
 
     /**
      * @note The numeric assignment is only needed for CTTI (that is later used in ::mlab::any)
@@ -29,6 +60,7 @@ namespace desfire {
         struct key_base {
             static constexpr std::size_t key_length = KeyLength;
             using key_t = std::array<std::uint8_t, key_length>;
+            std::uint8_t key_number;
             key_t k;
 
             std::unique_ptr<cipher> make_cipher() const {
@@ -40,31 +72,33 @@ namespace desfire {
 
     template <cipher_type>
     struct key {
+        std::uint8_t key_number;
         std::unique_ptr<cipher> make_cipher() const { return nullptr; }
+        explicit key(std::uint8_t key_no) : key_number{key_no} {}
     };
 
     template <>
     struct key<cipher_type::des> : public impl::key_base<8, cipher_des> {
         key() = default;
-        explicit key(key_t k) : impl::key_base<8, cipher_des>{.k = k} {}
+        key(std::uint8_t key_no, key_t k) : impl::key_base<8, cipher_des>{.key_number = key_no, .k = k} {}
     };
 
     template <>
     struct key<cipher_type::des3_2k> : public impl::key_base<16, cipher_2k3des> {
         key() = default;
-        explicit key(key_t k) : impl::key_base<16, cipher_2k3des>{.k = k} {}
+        key(std::uint8_t key_no, key_t k) : impl::key_base<16, cipher_2k3des>{.key_number = key_no, .k = k} {}
     };
 
     template <>
     struct key<cipher_type::des3_3k> : public impl::key_base<24, cipher_3k3des> {
         key() = default;
-        explicit key(key_t k) : impl::key_base<24, cipher_3k3des>{.k = k} {}
+        key(std::uint8_t key_no, key_t k) : impl::key_base<24, cipher_3k3des>{.key_number = key_no, .k = k} {}
     };
 
     template <>
     struct key<cipher_type::aes128> : public impl::key_base<16, cipher_aes> {
         key() = default;
-        explicit key(key_t k) : impl::key_base<16, cipher_aes>{.k = k} {}
+        key(std::uint8_t key_no, key_t k) : impl::key_base<16, cipher_aes>{.key_number = key_no, .k = k} {}
     };
 
 

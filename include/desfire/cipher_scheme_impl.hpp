@@ -7,6 +7,7 @@
 
 #include <esp_log.h>
 #include <rom/crc.h>
+#include "log.h"
 #include "cipher_scheme.hpp"
 #include "crypto_algo.hpp"
 
@@ -178,10 +179,9 @@ namespace desfire {
                     data.pop_back();
                     // Decipher what's left
                     if (data.size() % block_size != 0) {
-                        ESP_LOGW("DESFIRE",
-                                 "Received enciphered data of length %ul, not a multiple of the block size %ul.",
-                                 data.size(), block_size);
-                        ESP_LOG_BUFFER_HEX_LEVEL("DESFIRE", data.data(), data.size(), ESP_LOG_WARN);
+                        LOGW("Received enciphered data of length %ul, not a multiple of the block size %ul.",
+                             data.size(), block_size);
+                        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG, data.data(), data.size(), ESP_LOG_WARN);
                         return false;
                     }
                     do_crypto(data.view(), false, _global_iv);

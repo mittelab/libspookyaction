@@ -6,6 +6,7 @@
 #include "desfire/data.hpp"
 #include "desfire/cipher.hpp"
 #include "desfire/tag.hpp"
+#include "desfire/msg.hpp"
 
 namespace desfire {
 
@@ -72,8 +73,9 @@ namespace desfire {
         if (sb == status::ok or sb == status::no_changes) {
             // Can postprocess using crypto
             if (not cipher.confirm_rx(received, rx_cfg)) {
-                LOGW("Crypto failed on payload.");
-                /// @todo Log comm mode and log payload
+                LOGW("Invalid data received under comm mode %s, (C)MAC: %d, CRC: %d, cipher: %d.",
+                     to_string(rx_cfg.mode), rx_cfg.do_mac, rx_cfg.do_crc, rx_cfg.do_cipher);
+                ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG, received.data(), received.size(), ESP_LOG_WARN);
                 return error::crypto_error;
             }
             return received;

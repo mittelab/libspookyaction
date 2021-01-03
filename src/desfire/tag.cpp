@@ -111,8 +111,13 @@ namespace desfire {
         }
 
         LOGI("Authentication: successful. Deriving session key.");
+        pcipher->reinit_with_session_key(bin_data::chain(prealloc(2 * res_rndb->size()), rnda, *res_rndb));
 
-        return error::malformed; // @todo Finish
+        _active_cipher = std::move(pcipher);
+        _active_cipher_type = k.type();
+        _active_key_number = k.key_number();
+
+        return result_success;
     }
 
     tag::r<bin_data> tag::command_response(bin_data &payload, std::size_t secure_data_offset, cipher &cipher,

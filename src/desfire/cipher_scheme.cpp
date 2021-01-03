@@ -2,7 +2,6 @@
 // Created by Pietro Saccardi on 02/01/2021.
 //
 
-#include <cassert>
 #include <esp_log.h>
 #include <rom/crc.h>
 #include "desfire/log.h"
@@ -63,15 +62,21 @@ namespace desfire {
             case comm_mode::plain:
                 break;  // Nothing to do
             case comm_mode::mac:
-                assert(offset < data.size() - 1);
                 if (cfg.do_mac) {
                     // Apply mac overrides mode.
+                    if (offset >= data.size() - 1) {
+                        LOGE("Specified offset leaves no data to mac.");
+                        break;
+                    }
                     data << compute_mac(data.view(offset));
                 }
                 break;
             case comm_mode::cipher:
-                assert(offset < data.size() - 1);
                 if (cfg.do_cipher) {
+                    if (offset >= data.size() - 1) {
+                        LOGE("Specified offset leaves no data to encipher.");
+                        break;
+                    }
                     if (cfg.do_crc) {
                         data.reserve(offset + padded_length<block_size>(data.size() + crc_size - offset));
                         data << compute_crc(data.view(offset), crc_init);

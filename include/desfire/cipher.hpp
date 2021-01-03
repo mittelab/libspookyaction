@@ -27,6 +27,8 @@ namespace desfire {
 
         virtual void decrypt(bin_data &data) = 0;
 
+        virtual void reinit_with_session_key(bin_data const &rndab) = 0;
+
         virtual ~cipher() = default;
     };
 

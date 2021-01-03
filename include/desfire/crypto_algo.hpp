@@ -70,11 +70,14 @@ namespace desfire {
     template <std::size_t BlockSize, class ByteIterator, class N, class Fn>
     static std::pair<ByteIterator, bool> find_crc_tail(ByteIterator begin, ByteIterator end, Fn &&crc_fn, N init) {
         static const auto nonzero_byte_pred = [](std::uint8_t b) -> bool { return b != 0; };
+        const bool multiple_of_block_size = std::distance(begin, end) % BlockSize == 0;
+        if (not multiple_of_block_size) {
+            LOGE("Cannot scan for CRC tail if data length is not a multiple of the block size.");
+        }
         // Store the last successful crc and end of the payload
         ByteIterator last_payload_end = end;
         bool crc_pass = false;
-        if (begin != end) {
-            assert(std::distance(begin, end) % BlockSize == 0);
+        if (begin != end and multiple_of_block_size) {
             // Find the last nonzero byte, get and iterator to the element past that.
             // You just have to scan the last block, and in the worst case, the last non-padding byte is the first
             // byte of the last block.

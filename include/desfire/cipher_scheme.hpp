@@ -63,9 +63,9 @@ namespace desfire {
     protected:
         static constexpr std::uint32_t crc_init = 0xffffffff;
 
-        cipher_scheme();
+        cipher_scheme() = default;
 
-        void generate_cmac_subkeys();
+        void initialize();
 
         virtual void do_crypto(range<bin_data::iterator> data, bool encrypt, block_t &iv) = 0;
 

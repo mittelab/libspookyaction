@@ -74,6 +74,22 @@ namespace desfire {
             std::unique_ptr<cipher> make_cipher() const {
                 return std::unique_ptr<Cipher>(new Cipher(k));
             }
+
+            void store_version(std::uint8_t v) {
+                for (auto &b : k) {
+                    b = (b & 0b11111110) | (v >> 7);
+                    v <<= 1;
+                }
+            }
+
+            std::uint8_t get_version() const {
+                std::uint8_t v = 0x0;
+                for (std::size_t i = 0; i < std::min(key_length, 8u); ++i) {
+                    v = (v << 1) | (k[i] & 0b00000001);
+                }
+                return v;
+            }
+
         };
 
     }
@@ -88,23 +104,43 @@ namespace desfire {
     template <>
     struct key<cipher_type::des> : public impl::key_base<8, cipher_des> {
         key() = default;
-        key(std::uint8_t key_no, key_t k) : impl::key_base<8, cipher_des>{.key_number = key_no, .k = k} {}
+        key(std::uint8_t key_no, key_t k, std::uint8_t version = 0x0) :
+            impl::key_base<8, cipher_des>{.key_number = key_no, .k = k}
+        {
+            store_version(version);
+        }
     };
 
     template <>
     struct key<cipher_type::des3_2k> : public impl::key_base<16, cipher_2k3des> {
         key() = default;
-        key(std::uint8_t key_no, key_t k) : impl::key_base<16, cipher_2k3des>{.key_number = key_no, .k = k} {}
+        key(std::uint8_t key_no, key_t k, std::uint8_t version = 0x0) :
+            impl::key_base<16, cipher_2k3des>{.key_number = key_no, .k = k}
+        {
+            store_version(version);
+        }
     };
 
     template <>
     struct key<cipher_type::des3_3k> : public impl::key_base<24, cipher_3k3des> {
         key() = default;
-        key(std::uint8_t key_no, key_t k) : impl::key_base<24, cipher_3k3des>{.key_number = key_no, .k = k} {}
+        key(std::uint8_t key_no, key_t k, std::uint8_t version = 0x0) :
+            impl::key_base<24, cipher_3k3des>{.key_number = key_no, .k = k}
+        {
+            store_version(version);
+        }
     };
 
     template <>
-    struct key<cipher_type::aes128> : public impl::key_base<16, cipher_aes> {
+    struct key<cipher_type::aes128> : private impl::key_base<16, cipher_aes> {
+        using base = impl::key_base<16, cipher_aes>;
+        // Omit store and get version, because versioning is not implemented as such in AES
+        using base::k;
+        using base::key_length;
+        using base::key_number;
+        using base::key_t;
+        using base::make_cipher;
+
         key() = default;
         key(std::uint8_t key_no, key_t k) : impl::key_base<16, cipher_aes>{.key_number = key_no, .k = k} {}
     };

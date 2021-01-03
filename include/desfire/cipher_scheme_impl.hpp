@@ -14,14 +14,11 @@
 namespace desfire {
 
     template <std::size_t BlockSize, std::uint8_t CMACSubkeyR>
-    cipher_scheme<BlockSize, CMACSubkeyR>::cipher_scheme() : _cmac_subkey_pad{}, _cmac_subkey_nopad{}, _global_iv{} {
+    void cipher_scheme<BlockSize, CMACSubkeyR>::initialize() {
         std::fill_n(std::begin(_cmac_subkey_pad), block_size, 0);
         std::fill_n(std::begin(_cmac_subkey_nopad), block_size, 0);
         std::fill_n(std::begin(_global_iv), block_size, 0);
-    }
 
-    template <std::size_t BlockSize, std::uint8_t CMACSubkeyR>
-    void cipher_scheme<BlockSize, CMACSubkeyR>::generate_cmac_subkeys() {
         static const auto prepare_subkey = [](cmac_subkey_t &subkey) {
             // Some app-specific magic: lshift by one
             lshift_sequence(std::begin(subkey), std::end(subkey), 1);

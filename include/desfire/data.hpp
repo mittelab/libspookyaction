@@ -13,8 +13,13 @@
 namespace desfire {
     using mlab::any;
     using bits::status;
+    using bits::command_code;
 
 
+    /**
+     * @note Misses @ref status::ok, @ref status::no_changes, @ref status::additional_frame. The first two represent
+     * success conditions, the latter has to be handled at communication level.
+     */
     enum struct error : std::uint8_t {
         out_of_eeprom        = static_cast<std::uint8_t>(status::out_of_eeprom),
         illegal_command      = static_cast<std::uint8_t>(status::illegal_command),
@@ -26,7 +31,6 @@ namespace desfire {
         app_not_found        = static_cast<std::uint8_t>(status::app_not_found),
         app_integrity_error  = static_cast<std::uint8_t>(status::app_integrity_error),
         authentication_error = static_cast<std::uint8_t>(status::authentication_error),
-        additional_frame     = static_cast<std::uint8_t>(status::additional_frame),
         boundary_error       = static_cast<std::uint8_t>(status::boundary_error),
         picc_integrity_error = static_cast<std::uint8_t>(status::picc_integrity_error),
         command_aborted      = static_cast<std::uint8_t>(status::command_aborted),
@@ -44,6 +48,8 @@ namespace desfire {
                               */
     };
 
+    inline error error_from_status(status s);
+
     /**
      * @note The numeric assignment is only needed for CTTI (that is later used in ::mlab::any)
      */
@@ -54,6 +60,8 @@ namespace desfire {
         des3_3k = 0x3,
         aes128 = 0x4
     };
+
+    inline command_code auth_command(cipher_type t);
 
     namespace impl {
         template <std::size_t KeyLength, class Cipher>
@@ -112,6 +120,8 @@ namespace desfire {
         inline explicit any_key(key<Type> entry);
 
         inline cipher_type type() const;
+        inline std::uint8_t key_number() const;
+        inline bool is_legacy_scheme() const;
 
         inline std::unique_ptr<cipher> make_cipher() const;
 
@@ -135,7 +145,7 @@ namespace mlab {
 
 namespace desfire {
 
-    any_key::any_key() : _type{cipher_type::none}, _key{key<cipher_type::none>{}} {}
+    any_key::any_key() : _type{cipher_type::none}, _key{} {}
 
     template <cipher_type Type>
     any_key::any_key(key<Type> entry) :
@@ -150,6 +160,38 @@ namespace desfire {
 
     cipher_type any_key::type() const {
         return _type;
+    }
+
+    std::uint8_t any_key::key_number() const {
+        switch (type()) {
+            case cipher_type::none:
+                return get_key<cipher_type::none>().key_number;
+            case cipher_type::des:
+                return get_key<cipher_type::des>().key_number;
+            case cipher_type::des3_2k:
+                return get_key<cipher_type::des3_2k>().key_number;
+            case cipher_type::des3_3k:
+                return get_key<cipher_type::des3_3k>().key_number;
+            case cipher_type::aes128:
+                return get_key<cipher_type::aes128>().key_number;
+            default:
+                LOGE("Unhandled cipher type.");
+                return std::numeric_limits<std::uint8_t>::max();
+        }
+    }
+
+    bool any_key::is_legacy_scheme() const {
+        switch (type()) {
+            case cipher_type::des:
+            case cipher_type::des3_2k:
+                return true;
+            case cipher_type::des3_3k:
+            case cipher_type::aes128:
+                return false;
+            default:
+                LOGE("Requesting whether a cipher is legacy with no cipher!");
+                return true;
+        }
     }
 
     template <cipher_type Type>
@@ -169,7 +211,29 @@ namespace desfire {
                 return get_key<cipher_type::des3_3k>().make_cipher();
             case cipher_type::aes128:
                 return get_key<cipher_type::aes128>().make_cipher();
+            default:
+                LOGE("Unhandled cipher type.");
+                return nullptr;
         }
+    }
+
+    command_code auth_command(cipher_type t) {
+        switch (t) {
+            case cipher_type::des3_2k: return command_code::authenticate_legacy;
+            case cipher_type::des3_3k: return command_code::authenticate_iso;
+            case cipher_type::des:     return command_code::authenticate_legacy;
+            case cipher_type::aes128:  return command_code::authenticate_aes;
+            default:
+                LOGE("Requesting authentication command for no cipher!");
+                return command_code::additional_frame;
+        }
+    }
+
+    error error_from_status(status s) {
+        if (s == status::ok or s == status::no_changes or s == status::additional_frame) {
+            return error::malformed;
+        }
+        return static_cast<error>(s);
     }
 
 }

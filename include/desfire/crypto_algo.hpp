@@ -9,6 +9,8 @@
 #include <utility>
 #include <iterator>
 #include <algorithm>
+#include <esp_system.h>
+#include "mlab/bin_data.hpp"
 
 namespace desfire {
 
@@ -32,6 +34,15 @@ namespace desfire {
      */
     template <std::size_t BlockSize, class ByteIterator, class N, class Fn>
     static std::pair<ByteIterator, bool> find_crc_tail(ByteIterator begin, ByteIterator end, Fn &&crc_fn, N init);
+
+    struct randbytes {
+        std::size_t n;
+        explicit randbytes(std::size_t len) : n{len} {}
+    };
+}
+
+namespace mlab {
+    inline bin_data &operator<<(bin_data &bd, desfire::randbytes const &rndb);
 }
 
 namespace desfire {
@@ -87,6 +98,16 @@ namespace desfire {
             }
         }
         return {last_payload_end, crc_pass};
+    }
+
+}
+namespace mlab {
+
+    bin_data &operator<<(bin_data &bd, desfire::randbytes const &rndb) {
+        const std::size_t old_size = bd.size();
+        bd.resize(bd.size() + rndb.n, 0x00);
+        esp_fill_random(&bd[old_size], rndb.n);
+        return bd;
     }
 
 }

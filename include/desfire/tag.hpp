@@ -27,13 +27,13 @@ namespace desfire {
 
         tag &operator=(tag &&) = default;
 
-        bool authenticate(any_key const &k);
+        r<> authenticate(any_key const &k);
         void clear_authentication();
 
-        r<bin_data> raw_command_response(bin_data const &payload);
+        r<bin_data> raw_command_response(bin_data const &payload, bool rotate_status);
         r<bin_data> command_response(bin_data &payload, std::size_t secure_data_offset, cipher &cipher,
                                      cipher::config const &tx_cfg, cipher::config const &rx_cfg,
-                                     bool handle_additional_frames = true);
+                                     bool strip_status_byte = true, bool handle_additional_frames = true);
 
     private:
         inline controller &ctrl();

@@ -120,7 +120,7 @@ namespace mlab {
             return *reinterpret_cast<T const *>(_p.get());
         }
         ESP_LOGE("mlab::any", "Requested incorrect type from an any.");
-        return *reinterpret_cast<T const *>(nullptr);
+        return *static_cast<T const *>(nullptr);
     }
 }
 

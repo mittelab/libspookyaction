@@ -125,10 +125,6 @@ namespace pn532 {
         target_type _type;
         any _poll_entry;
     public:
-        struct incorrect_cast_t {
-        };
-        static constexpr incorrect_cast_t incorrect_cast{};
-
         inline any_target();
 
         template <target_type Type>

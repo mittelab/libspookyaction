@@ -128,19 +128,29 @@ void test_mifare() {
     auto pcd = pn532::desfire_pcd{*tag_reader, r_scan->front().logical_index};
     auto mifare = desfire::tag{pcd};
 
-    ESP_LOGI(TEST_TAG, "Attempting auth with null DES key.");
-    const desfire::key<desfire::cipher_type::des> k{0, {0, 0, 0, 0, 0, 0, 0, 0}};
-    auto r_auth = mifare.authenticate(k);
-    if (not r_auth) {
-        ESP_LOGW(TEST_TAG, "Authentication failed: %s", desfire::to_string(r_auth.error()));
-        if (not pcd.last_result()) {
-            ESP_LOGW(TEST_TAG, "Last PCD error: %s", pn532::to_string(pcd.last_result().error()));
+    const std::array<desfire::any_key, 4> default_keys = {
+            desfire::any_key{desfire::key<desfire::cipher_type::des>{}},
+            desfire::any_key{desfire::key<desfire::cipher_type::des3_2k>{}},
+            desfire::any_key{desfire::key<desfire::cipher_type::des3_3k>{}},
+            desfire::any_key{desfire::key<desfire::cipher_type::aes128>{}}
+    };
+
+    for (desfire::any_key const &k : default_keys) {
+        ESP_LOGI(TEST_TAG, "Attempting auth with default %s key.", desfire::to_string(k.type()));
+        auto r_auth = mifare.authenticate(k);
+        if (not r_auth) {
+            ESP_LOGW(TEST_TAG, "Authentication failed: %s", desfire::to_string(r_auth.error()));
+            if (not pcd.last_result()) {
+                ESP_LOGW(TEST_TAG, "Last PCD error: %s", pn532::to_string(pcd.last_result().error()));
+            } else {
+                ESP_LOGW(TEST_TAG, "Last controller error: %s", pn532::to_string(pcd.last_result()->error));
+            }
         } else {
-            ESP_LOGW(TEST_TAG, "Last controller error: %s", pn532::to_string(pcd.last_result()->error));
+            ESP_LOGI(TEST_TAG, "Successful.");
         }
+        TEST_ASSERT(bool(r_auth));
+        mifare.clear_authentication();
     }
-    TEST_ASSERT(bool(r_auth));
-    mifare.clear_authentication();
 }
 
 void test_cipher_des() {
@@ -235,8 +245,8 @@ void issue_header(std::string const &title) {
 
 extern "C" void app_main() {
     UNITY_BEGIN();
-//    issue_header("HARDWARE SETUP");
-//    RUN_TEST(setup_uart);
+    issue_header("HARDWARE SETUP");
+    RUN_TEST(setup_uart);
 //    issue_header("PN532 TEST AND DIAGNOSTICS");
 //    RUN_TEST(test_get_fw);
 //    RUN_TEST(test_diagnostics);
@@ -250,8 +260,8 @@ extern "C" void app_main() {
     RUN_TEST(test_cipher_2k3des);
     RUN_TEST(test_cipher_3k3des);
     RUN_TEST(test_cipher_aes);
-//    issue_header("MIFARE AUTHENTICATION TEST (replace Mifare card)");
-//    RUN_TEST(test_mifare);
+    issue_header("MIFARE AUTHENTICATION TEST (replace Mifare card)");
+    RUN_TEST(test_mifare);
     UNITY_END();
 }
 

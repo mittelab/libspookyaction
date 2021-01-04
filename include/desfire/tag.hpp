@@ -38,6 +38,8 @@ namespace desfire {
         r<> authenticate(key<Type> const &k);
         r<> authenticate(any_key const &k);
 
+        r<> select_application(std::array<std::uint8_t, 3> const &aid);
+
         void clear_authentication();
 
         r<bin_data> raw_command_response(bin_data const &payload, bool rotate_status);

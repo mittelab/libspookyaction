@@ -36,6 +36,19 @@ namespace desfire {
         return error::controller_error;
     }
 
+    tag::r<> tag::select_application(std::array<std::uint8_t, 3> const &aid) {
+        bin_data payload = bin_data::chain(prealloc(4), command_code::select_application, aid);
+        const auto res = command_response(payload, active_cipher(), cipher_cfg_plain, cipher_cfg_plain, 0, false);
+        if (res) {
+            if (not res->empty()) {
+                DESFIRE_LOGW("Select application: got stray data.");
+                ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG, res->data(), res->size(), ESP_LOG_WARN);
+            }
+            return result_success;
+        }
+        return res.error();
+    }
+
     tag::r<> tag::authenticate(const any_key &k) {
         static constexpr cipher::config cfc_plain_nomac{
             .mode = comm_mode::plain,

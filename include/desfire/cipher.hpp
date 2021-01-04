@@ -93,6 +93,10 @@ namespace desfire {
     cipher_iv cipher::iv_mode() const {
         return _iv_mode;
     }
+
+    /// @note This is C++14 (pre C++-17) nonsense.
+    template <std::size_t BlockSize, std::size_t MACSize, std::size_t CRCSize>
+    constexpr std::size_t cipher_traits<BlockSize, MACSize, CRCSize>::crc_size;
 }
 
 #endif //DESFIRE_CIPHER_HPP

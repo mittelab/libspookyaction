@@ -143,6 +143,30 @@ void test_mifare() {
     mifare.clear_authentication();
 }
 
+void test_cipher() {
+    // Test using examples from https://hack.cert.pl/files/desfire-9f122c71e0057d4f747d2ee295b0f5f6eef8ac32.html
+    const auto k = desfire::key<desfire::cipher_type::des>{0, {0, 0, 0, 0, 0, 0, 0, 0}};
+    auto pcipher = k.make_cipher();
+    const auto cfg = desfire::cipher::config{
+            .mode = desfire::comm_mode::cipher,
+            .do_mac = false,
+            .do_cipher = true,
+            .do_crc = false
+    };
+    {
+        desfire::bin_data enc_data = {0xaf /* status */, 0x5D, 0x99, 0x4C, 0xE0, 0x85, 0xF2, 0x40, 0x89};
+        const desfire::bin_data dec_data = {0x4F, 0xD1, 0xB7, 0x59, 0x42, 0xA8, 0xB8, 0xE1};
+        TEST_ASSERT(pcipher->confirm_rx(enc_data, cfg));
+        TEST_ASSERT(enc_data == dec_data);
+    }
+    {
+        desfire::bin_data dec_data = {0x84, 0x9B, 0x36, 0xC5, 0xF8, 0xBF, 0x4A, 0x09, 0xD1, 0xB7, 0x59, 0x42, 0xA8, 0xB8, 0xE1, 0x4F};
+        const desfire::bin_data enc_data = {0x21, 0xD0, 0xAD, 0x5F, 0x2F, 0xD9, 0x74, 0x54, 0xA7, 0x46, 0xCC, 0x80, 0x56, 0x7F, 0x1B, 0x1C};
+        pcipher->prepare_tx(dec_data, 0, cfg);
+        TEST_ASSERT(enc_data == dec_data);
+    }
+}
+
 void issue_header(std::string const &title) {
     ESP_LOGI(TEST_TAG, "--------------------------------------------------------------------------------");
     const std::size_t tail_length = std::max(68u, title.length()) - title.length();
@@ -153,18 +177,20 @@ void issue_header(std::string const &title) {
 
 extern "C" void app_main() {
     UNITY_BEGIN();
-    issue_header("HARDWARE SETUP");
-    RUN_TEST(setup_uart);
-    issue_header("PN532 TEST AND DIAGNOSTICS");
-    RUN_TEST(test_get_fw);
-    RUN_TEST(test_diagnostics);
-    issue_header("PN532 SCAN TEST (optionally place card)");
-    RUN_TEST(test_scan_mifare);
-    RUN_TEST(test_scan_all);
-    issue_header("PN532 MIFARE COMM TEST (replace Mifare card)");
-    RUN_TEST(test_data_exchange);
-    issue_header("MIFARE AUTHENTICATION TEST (replace Mifare card)");
-    RUN_TEST(test_mifare);
+//    issue_header("HARDWARE SETUP");
+//    RUN_TEST(setup_uart);
+//    issue_header("PN532 TEST AND DIAGNOSTICS");
+//    RUN_TEST(test_get_fw);
+//    RUN_TEST(test_diagnostics);
+//    issue_header("PN532 SCAN TEST (optionally place card)");
+//    RUN_TEST(test_scan_mifare);
+//    RUN_TEST(test_scan_all);
+//    issue_header("PN532 MIFARE COMM TEST (replace Mifare card)");
+//    RUN_TEST(test_data_exchange);
+    issue_header("MIFARE CIPHER TEST");
+    RUN_TEST(test_cipher);
+//    issue_header("MIFARE AUTHENTICATION TEST (replace Mifare card)");
+//    RUN_TEST(test_mifare);
     UNITY_END();
 }
 

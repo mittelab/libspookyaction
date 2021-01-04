@@ -15,6 +15,10 @@ namespace desfire {
 
     class tag {
     public:
+
+        struct tx_config;
+        struct rx_config;
+
         template <class ...Tn>
         using r = mlab::result<error, Tn...>;
 
@@ -35,10 +39,14 @@ namespace desfire {
         void clear_authentication();
 
         r<bin_data> raw_command_response(bin_data const &payload, bool rotate_status);
-        r<bin_data> command_response(bin_data &payload, std::size_t secure_data_offset, cipher &cipher,
-                                     cipher::config const &tx_cfg, cipher::config const &rx_cfg,
-                                     bool strip_status_byte = true, bool handle_additional_frames = true);
 
+        r<status, bin_data> command_status_response(bin_data &payload, cipher &cipher,
+                                     cipher::config const &tx_cfg, cipher::config const &rx_cfg,
+                                     std::size_t secure_data_offset, bool fetch_additional_frames);
+
+        r<bin_data> command_response(bin_data &payload, cipher &cipher,
+                                     cipher::config const &tx_cfg, cipher::config const &rx_cfg,
+                                     std::size_t secure_data_offset, bool fetch_additional_frames);
     private:
         inline controller &ctrl();
 

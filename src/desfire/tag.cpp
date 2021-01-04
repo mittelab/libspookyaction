@@ -65,28 +65,36 @@ namespace desfire {
         DESFIRE_LOGI("Authentication with key %d: initiating.", k.key_number());
 
         // The authentication is sent in plain test, but we receive it as encrypted data without CRC.
-        const auto res_rndb = command_response(payload, 0, *pcipher, cfc_plain_nomac, cfg_crypto_nocrc, true, false);
+        // Also, do not parse the status into an error, because this packet will have an "additional frame" status,
+        // which we need to handle in a custom way (sending our own payload). We will later assess and return if the
+        // returned status is not "additional frame".
+        const auto res_rndb = command_status_response(payload, *pcipher, cfc_plain_nomac, cfg_crypto_nocrc, 0, false);
 
         if (not res_rndb) {
-            DESFIRE_LOGW("Authentication: failed.");
+            // This is a controller error because we did not look at the status byte
+            DESFIRE_LOGW("Authentication: failed, %s.", to_string(res_rndb.error()));
             return res_rndb.error();
-        } else {
-            DESFIRE_LOGI("Authentication: received RndB (%u bytes).", res_rndb->size());
+        } else if (res_rndb->first != status::additional_frame) {
+            // Our own checking that the frame is as expected
+            DESFIRE_LOGW("Authentication: failed, %s.", to_string(res_rndb->first));
+            return error_from_status(res_rndb->first);
         }
+        bin_data const &rndb = res_rndb->second;
+        DESFIRE_LOGI("Authentication: received RndB (%u bytes).", rndb.size());
 
         /// Prepare and send a response: AdditionalFrames || Crypt(RndA || RndB'), RndB' = RndB << 8, obtain RndA >> 8
-        const bin_data rnda = bin_data::chain(randbytes(res_rndb->size()));
+        const bin_data rnda = bin_data::chain(randbytes(rndb.size()));
 
         payload.clear();
-        payload.reserve(res_rndb->size() * 2 + 1);
+        payload.reserve(rndb.size() * 2 + 1);
         payload << command_code::additional_frame
                 << rnda
-                << res_rndb->view(1) << res_rndb->front();
+                << rndb.view(1) << rndb.front();
 
         DESFIRE_LOGI("Authentication: sending RndA || (RndB << 8).");
 
-        // Send and received encrypted, except the status byte
-        const auto res_rndap = command_response(payload, 1, *pcipher, cfg_crypto_nocrc, cfg_crypto_nocrc, true, false);
+        // Send and received encrypted; this time parse the status byte because we regularly expect a status::ok.
+        const auto res_rndap = command_response(payload, *pcipher, cfg_crypto_nocrc, cfg_crypto_nocrc, 1, false);
 
         if (not res_rndap) {
             DESFIRE_LOGW("Authentication: failed.");
@@ -111,7 +119,7 @@ namespace desfire {
         }
 
         DESFIRE_LOGI("Authentication: successful. Deriving session key.");
-        pcipher->reinit_with_session_key(bin_data::chain(prealloc(2 * res_rndb->size()), rnda, *res_rndb));
+        pcipher->reinit_with_session_key(bin_data::chain(prealloc(2 * rndb.size()), rnda, rndb));
 
         _active_cipher = std::move(pcipher);
         _active_cipher_type = k.type();
@@ -120,9 +128,9 @@ namespace desfire {
         return result_success;
     }
 
-    tag::r<bin_data> tag::command_response(bin_data &payload, std::size_t secure_data_offset, cipher &cipher,
-                                           cipher::config const &tx_cfg, cipher::config const &rx_cfg,
-                                           bool strip_status_byte, bool handle_additional_frames)
+    tag::r<status, bin_data> tag::command_status_response(bin_data &payload, cipher &cipher,
+                                                cipher::config const &tx_cfg, cipher::config const &rx_cfg,
+                                                std::size_t secure_data_offset, bool fetch_additional_frames)
     {
         cipher.prepare_tx(payload, secure_data_offset, tx_cfg);
         bin_data received{};
@@ -140,7 +148,7 @@ namespace desfire {
             received.reserve(received.size() + res->size());
             received << res->view(1) << res->front();
             // Check status byte if necessary
-            if (handle_additional_frames) {
+            if (fetch_additional_frames) {
                 const auto sb = static_cast<status>(received.back());
                 if (sb == status::additional_frame) {
                     // The "more frames" status is not part of the payload
@@ -151,32 +159,45 @@ namespace desfire {
                         payload << command_code::additional_frame;
                     }
                 } else {  // Signal stop
-                    handle_additional_frames = false;
+                    fetch_additional_frames = false;
                 }
             }
-        } while (handle_additional_frames);
+        } while (fetch_additional_frames);
+
+        // Can postprocess using crypto
+        if (not cipher.confirm_rx(received, rx_cfg)) {
+            DESFIRE_LOGW("Invalid data received under comm mode %s, (C)MAC: %d, CRC: %d, cipher: %d.",
+                         to_string(rx_cfg.mode), rx_cfg.do_mac, rx_cfg.do_crc, rx_cfg.do_cipher);
+            ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG, received.data(), received.size(), ESP_LOG_WARN);
+            return error::crypto_error;
+        }
 
         // Now status byte is at the end. Check for possible errors
         const auto sb = static_cast<status>(received.back());
+        received.pop_back();
+        DESFIRE_LOGD("Response received, %u bytes excluded status (%s).", received.size(), to_string(sb));
 
-        if (sb == status::ok or sb == status::no_changes) {
-            // Can postprocess using crypto
-            if (not cipher.confirm_rx(received, rx_cfg)) {
-                DESFIRE_LOGW("Invalid data received under comm mode %s, (C)MAC: %d, CRC: %d, cipher: %d.",
-                     to_string(rx_cfg.mode), rx_cfg.do_mac, rx_cfg.do_crc, rx_cfg.do_cipher);
-                ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG, received.data(), received.size(), ESP_LOG_WARN);
-                return error::crypto_error;
-            }
-            if (strip_status_byte) {
-                received.pop_back();
-            }
-            DESFIRE_LOGD("Response received successfully.");
-            return received;
+        return {sb, std::move(received)};
+    }
+
+    tag::r<bin_data> tag::command_response(bin_data &payload, cipher &cipher,
+                                 cipher::config const &tx_cfg, cipher::config const &rx_cfg,
+                                 std::size_t secure_data_offset, bool fetch_additional_frames)
+    {
+        auto res_cmd = command_status_response(payload, cipher, tx_cfg, rx_cfg, secure_data_offset,
+                                               fetch_additional_frames);
+        if (not res_cmd) {
+            return res_cmd.error();
         }
-        DESFIRE_LOGW("Unsuccessful command (%s); the response contains %u bytes.", to_string(sb), received.size());
-        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG, received.data(), received.size(), ESP_LOG_WARN);
+        // Actually parse the status byte into an error code
+        if (res_cmd->first == status::ok or res_cmd->first == status::no_changes) {
+            return std::move(res_cmd->second);
+        }
+        DESFIRE_LOGW("Command was unsuccessful (%s); the response contains %u bytes.", to_string(res_cmd->first),
+                     res_cmd->second.size());
+        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG, res_cmd->second.data(), res_cmd->second.size(), ESP_LOG_WARN);
         // Status are also error codes
-        return error_from_status(sb);
+        return error_from_status(res_cmd->first);
     }
 
 }

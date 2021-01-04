@@ -182,11 +182,17 @@ namespace desfire {
                         return false;
                     }
                     do_crypto(data.view(), false, _global_iv);
-                    // Truncate the padding and the crc
-                    const bool did_verify = drop_padding_verify_crc(data, status);
-                    // Reappend the status byte
-                    data << status;
-                    return did_verify;
+                    if (cfg.do_crc) {
+                        // Truncate the padding and the crc
+                        const bool did_verify = drop_padding_verify_crc(data, status);
+                        // Reappend the status byte
+                        data << status;
+                        return did_verify;
+                    } else {
+                        // Reappend the status byte
+                        data << status;
+                        return true;
+                    }
                 }
                 break;
         }

@@ -7,11 +7,12 @@
 
 #include <string>
 #include "cipher.hpp"
-#include "bits.hpp"
+#include "data.hpp"
 
 namespace desfire {
     const char * to_string(comm_mode comm);
-    const char * to_string(bits::status s);
+    const char * to_string(status s);
+    const char * to_string(error e);
 }
 
 #endif //DESFIRE_MSG_HPP

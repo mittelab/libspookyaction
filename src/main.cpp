@@ -5,6 +5,10 @@
 #include <pn532/hsu.hpp>
 #include <pn532/nfc.hpp>
 #include <esp_log.h>
+#include <pn532/desfire_pcd.hpp>
+#include <desfire/tag.hpp>
+#include <desfire/data.hpp>
+#include <desfire/msg.hpp>
 
 #define TEST_TAG "UT"
 #define TX_PIN   (GPIO_NUM_17)
@@ -108,6 +112,36 @@ void test_data_exchange() {
     TEST_ASSERT(r_exchange->second.size() == 1 and r_exchange->second.front() == 0x0);
 }
 
+void test_mifare() {
+    ESP_LOGI(TEST_TAG, "Searching for one passive 106 kbps target. Please bring card close.");
+    const auto r_scan = tag_reader->initiator_list_passive_kbps106_typea(1, 10 * pn532::one_sec);
+    if (not r_scan or r_scan->empty()) {
+        TEST_FAIL_MESSAGE("Could not find a suitable card for testing.");
+        return;
+    }
+    ESP_LOGI(TEST_TAG, "Found one target:");
+    auto const &nfcid = r_scan->front().info.nfcid;
+    ESP_LOG_BUFFER_HEX_LEVEL(TEST_TAG, nfcid.data(), nfcid.size(), ESP_LOG_INFO);
+
+    // Build controller
+    auto pcd = pn532::desfire_pcd{*tag_reader, r_scan->front().logical_index};
+    auto mifare = desfire::tag{pcd};
+
+    ESP_LOGI(TEST_TAG, "Attempting auth with null DES key.");
+    const desfire::key<desfire::cipher_type::des> k{0, {0, 0, 0, 0, 0, 0, 0, 0}};
+    auto r_auth = mifare.authenticate(k);
+    if (not r_auth) {
+        ESP_LOGW(TEST_TAG, "Authentication failed: %s", desfire::to_string(r_auth.error()));
+        if (not pcd.last_result()) {
+            ESP_LOGW(TEST_TAG, "Last PCD error: %s", pn532::to_string(pcd.last_result().error()));
+        } else {
+            ESP_LOGW(TEST_TAG, "Last controller error: %s", pn532::to_string(pcd.last_result()->error));
+        }
+    }
+    TEST_ASSERT(bool(r_auth));
+    mifare.clear_authentication();
+}
+
 extern "C" void app_main() {
     UNITY_BEGIN();
     RUN_TEST(setup_uart);
@@ -116,6 +150,7 @@ extern "C" void app_main() {
     RUN_TEST(test_scan_mifare);
     RUN_TEST(test_scan_all);
     RUN_TEST(test_data_exchange);
+    RUN_TEST(test_mifare);
     UNITY_END();
 }
 

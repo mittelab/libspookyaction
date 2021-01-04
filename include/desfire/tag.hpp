@@ -9,6 +9,7 @@
 #include "mlab/result.hpp"
 #include "cipher.hpp"
 #include "controller.hpp"
+#include "data.hpp"
 
 namespace desfire {
 
@@ -27,7 +28,10 @@ namespace desfire {
 
         tag &operator=(tag &&) = default;
 
+        template <cipher_type Type>
+        r<> authenticate(key<Type> const &k);
         r<> authenticate(any_key const &k);
+
         void clear_authentication();
 
         r<bin_data> raw_command_response(bin_data const &payload, bool rotate_status);
@@ -56,6 +60,10 @@ namespace desfire {
 
     tag::tag(controller &controller) : _controller{&controller} {}
 
+    template <cipher_type Type>
+    tag::r<> tag::authenticate(key<Type> const &k) {
+        return authenticate(any_key{k});
+    }
 }
 
 #endif //DESFIRE_TAG_HPP

@@ -9,6 +9,7 @@
 #include <desfire/tag.hpp>
 #include <desfire/data.hpp>
 #include <desfire/msg.hpp>
+#include <string>
 
 #define TEST_TAG "UT"
 #define TX_PIN   (GPIO_NUM_17)
@@ -142,14 +143,27 @@ void test_mifare() {
     mifare.clear_authentication();
 }
 
+void issue_header(std::string const &title) {
+    ESP_LOGI(TEST_TAG, "--------------------------------------------------------------------------------");
+    const std::size_t tail_length = std::max(68u, title.length()) - title.length();
+    const std::string header = "---------- " + title + " " + std::string(tail_length, '-');
+    ESP_LOGI(TEST_TAG, "%s", header.c_str());
+    vTaskDelay(2000 / portTICK_PERIOD_MS);
+}
+
 extern "C" void app_main() {
     UNITY_BEGIN();
+    issue_header("HARDWARE SETUP");
     RUN_TEST(setup_uart);
+    issue_header("PN532 TEST AND DIAGNOSTICS");
     RUN_TEST(test_get_fw);
     RUN_TEST(test_diagnostics);
+    issue_header("PN532 SCAN TEST (optionally place card)");
     RUN_TEST(test_scan_mifare);
     RUN_TEST(test_scan_all);
+    issue_header("PN532 MIFARE COMM TEST (replace Mifare card)");
     RUN_TEST(test_data_exchange);
+    issue_header("MIFARE AUTHENTICATION TEST (replace Mifare card)");
     RUN_TEST(test_mifare);
     UNITY_END();
 }

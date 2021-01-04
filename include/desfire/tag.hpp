@@ -32,6 +32,8 @@ namespace desfire {
 
         tag &operator=(tag &&) = default;
 
+        inline cipher const &active_cipher() const;
+
         template <cipher_type Type>
         r<> authenticate(key<Type> const &k);
         r<> authenticate(any_key const &k);
@@ -49,6 +51,7 @@ namespace desfire {
                                      std::size_t secure_data_offset, bool fetch_additional_frames);
     private:
         inline controller &ctrl();
+        inline cipher &active_cipher();
 
         controller *_controller;
 
@@ -66,11 +69,26 @@ namespace desfire {
         return *_controller;
     }
 
-    tag::tag(controller &controller) : _controller{&controller} {}
+    tag::tag(controller &controller) :
+        _controller{&controller},
+        _active_cipher{},
+        _active_cipher_type{cipher_type::none},
+        _active_key_number{std::numeric_limits<std::uint8_t>::max()}
+    {
+        clear_authentication();
+    }
 
     template <cipher_type Type>
     tag::r<> tag::authenticate(key<Type> const &k) {
         return authenticate(any_key{k});
+    }
+
+    cipher const &tag::active_cipher() const {
+        return *_active_cipher;
+    }
+
+    cipher &tag::active_cipher() {
+        return *_active_cipher;
     }
 }
 

@@ -15,10 +15,10 @@ namespace desfire {
     void tag::clear_authentication() {
         if (_active_cipher != nullptr) {
             DESFIRE_LOGI("Releasing authentication.");
-            _active_cipher = nullptr;
-            _active_key_number = std::numeric_limits<std::uint8_t>::max();
-            _active_cipher_type = cipher_type::none;
         }
+        _active_cipher = std::unique_ptr<cipher>(new cipher_dummy{});
+        _active_cipher_type = cipher_type::none;
+        _active_key_number = std::numeric_limits<std::uint8_t>::max();
     }
 
     tag::r<bin_data> tag::raw_command_response(bin_data const &payload, bool rotate_status) {

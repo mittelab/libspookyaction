@@ -102,9 +102,9 @@ namespace desfire {
 
     template <cipher_type>
     struct key {
-        std::uint8_t key_number;
-        std::unique_ptr<cipher> make_cipher() const { return nullptr; }
-        explicit key(std::uint8_t key_no) : key_number{key_no} {}
+        std::unique_ptr<cipher> make_cipher() const {
+            return std::unique_ptr<cipher>(new cipher_dummy());
+        }
     };
 
     template <>
@@ -207,7 +207,7 @@ namespace desfire {
     std::uint8_t any_key::key_number() const {
         switch (type()) {
             case cipher_type::none:
-                return get_key<cipher_type::none>().key_number;
+                return std::numeric_limits<std::uint8_t>::max();
             case cipher_type::des:
                 return get_key<cipher_type::des>().key_number;
             case cipher_type::des3_2k:

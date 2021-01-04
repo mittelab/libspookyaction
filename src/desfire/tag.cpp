@@ -21,15 +21,11 @@ namespace desfire {
         _active_key_number = std::numeric_limits<std::uint8_t>::max();
     }
 
-    tag::r<bin_data> tag::raw_command_response(bin_data const &payload, bool rotate_status) {
+    tag::r<bin_data> tag::raw_command_response(bin_data const &payload) {
         ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " >>", payload.data(), payload.size(), ESP_LOG_VERBOSE);
         auto res_cmd = ctrl().communicate(payload);
         if (res_cmd.second) {
             ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " <<", res_cmd.first.data(), res_cmd.first.size(), ESP_LOG_VERBOSE);
-            if (rotate_status) {
-                // Move status byte at the back of the data
-                std::rotate(std::begin(res_cmd.first), std::begin(res_cmd.first) + 1, std::end(res_cmd.first));
-            }
             return std::move(res_cmd.first);
         }
         DESFIRE_LOGW("Could not send/receive data to/from the PICC (controller transmission failed).");
@@ -149,7 +145,7 @@ namespace desfire {
         bin_data received{};
 
         do {
-            const auto res = raw_command_response(payload, false);
+            const auto res = raw_command_response(payload);
             if (not res) {
                 return res.error();
             }

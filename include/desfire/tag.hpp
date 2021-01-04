@@ -42,7 +42,7 @@ namespace desfire {
 
         void clear_authentication();
 
-        r<bin_data> raw_command_response(bin_data const &payload, bool rotate_status);
+        r<bin_data> raw_command_response(bin_data const &payload);
 
         r<status, bin_data> command_status_response(bin_data &payload, cipher &cipher,
                                      cipher::config const &tx_cfg, cipher::config const &rx_cfg,

@@ -137,7 +137,7 @@ namespace desfire {
                     data.pop_back();
                     // Decipher what's left
                     if (data.size() % block_size != 0) {
-                        DESFIRE_LOGW("Received enciphered data of length %ul, not a multiple of the block size %ul.",
+                        DESFIRE_LOGW("Received enciphered data of length %u, not a multiple of the block size %u.",
                              data.size(), block_size);
                         ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG, data.data(), data.size(), ESP_LOG_WARN);
                         return false;

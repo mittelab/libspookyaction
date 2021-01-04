@@ -71,7 +71,7 @@ namespace desfire {
             DESFIRE_LOGW("Authentication: failed.");
             return res_rndb.error();
         } else {
-            DESFIRE_LOGI("Authentication: received RndB (%ul bytes).", res_rndb->size());
+            DESFIRE_LOGI("Authentication: received RndB (%u bytes).", res_rndb->size());
         }
 
         /// Prepare and send a response: AdditionalFrames || Crypt(RndA || RndB'), RndB' = RndB << 8, obtain RndA >> 8
@@ -92,7 +92,7 @@ namespace desfire {
             DESFIRE_LOGW("Authentication: failed.");
             return res_rndap.error();
         } else {
-            DESFIRE_LOGI("Authentication: received RndA >> 8 (%ul bytes).", res_rndap->size());
+            DESFIRE_LOGI("Authentication: received RndA >> 8 (%u bytes).", res_rndap->size());
         }
 
         /// Verify that the received RndA is correct.
@@ -173,7 +173,7 @@ namespace desfire {
             DESFIRE_LOGD("Response received successfully.");
             return received;
         }
-        DESFIRE_LOGW("Unsuccessful command (%s); the response contains %ul bytes.", to_string(sb), received.size());
+        DESFIRE_LOGW("Unsuccessful command (%s); the response contains %u bytes.", to_string(sb), received.size());
         ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG, received.data(), received.size(), ESP_LOG_WARN);
         // Status are also error codes
         return error_from_status(sb);

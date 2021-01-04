@@ -62,7 +62,7 @@ namespace mlab {
 
     bin_stream &operator>>(bin_stream &s, firmware_version &fw) {
         if (s.remaining() < 4) {
-            PN532_LOGE("Parsing firmware_version: expected at least 4 bytes of data, got %ul.", s.remaining());
+            PN532_LOGE("Parsing firmware_version: expected at least 4 bytes of data, got %u.", s.remaining());
             s.set_bad();
             return s;
         }
@@ -76,7 +76,7 @@ namespace mlab {
 
     bin_stream &operator>>(bin_stream &s, gpio_status &gpio) {
         if (s.remaining() < 3) {
-            PN532_LOGE("Parsing gpio_status: expected at least 3 bytes of data, got %ul.", s.remaining());
+            PN532_LOGE("Parsing gpio_status: expected at least 3 bytes of data, got %u.", s.remaining());
             s.set_bad();
             return s;
         }
@@ -89,7 +89,7 @@ namespace mlab {
 
     bin_stream &operator>>(bin_stream &s, rf_status &status) {
         if (s.remaining() < 1) {
-            PN532_LOGE("Parsing rf_status: expected at least 3 bytes of data, got %ul.", s.remaining());
+            PN532_LOGE("Parsing rf_status: expected at least 3 bytes of data, got %u.", s.remaining());
             s.set_bad();
             return s;
         }
@@ -113,7 +113,7 @@ namespace mlab {
 
     bin_stream &operator>>(bin_stream &s, target_status &ts) {
         if (s.remaining() < 4) {
-            PN532_LOGE("Parsing target_status: expected at least 4 bytes of data, got %ul.", s.remaining());
+            PN532_LOGE("Parsing target_status: expected at least 4 bytes of data, got %u.", s.remaining());
             s.set_bad();
             return s;
         }
@@ -122,7 +122,7 @@ namespace mlab {
 
     bin_stream &operator>>(bin_stream &s, general_status &gs) {
         if (s.remaining() < 4) {
-            PN532_LOGE("Parsing general_stastus: expected at least 4 bytes of data, got %ul.", s.remaining());
+            PN532_LOGE("Parsing general_stastus: expected at least 4 bytes of data, got %u.", s.remaining());
             s.set_bad();
             return s;
         }

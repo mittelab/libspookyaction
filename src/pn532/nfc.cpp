@@ -65,7 +65,7 @@ namespace pn532 {
         // "2" because must count transport info and command_code
         const bool use_extended_format = (payload.size() > 0xff - 2);
         if (payload.size() > bits::max_firmware_data_length) {
-            PN532_LOGE("%s: payload too long for an info frame, truncating %ul bytes to %ul:",
+            PN532_LOGE("%s: payload too long for an info frame, truncating %u bytes to %u:",
                  to_string(cmd),
                  payload.size(),
                  bits::max_firmware_data_length);
@@ -185,7 +185,7 @@ namespace pn532 {
         }
         // All info known frames must have the transport and the command
         if (hdr.length < 2) {
-            PN532_LOGE("Cannot parse frame body if frame length %ul is less than 2.", hdr.length);
+            PN532_LOGE("Cannot parse frame body if frame length %u is less than 2.", hdr.length);
             return error::comm_malformed;
         }
         // Can output
@@ -360,7 +360,7 @@ namespace pn532 {
             }
             // Test that the reurned data coincides
             if (res_cmd->size() != 1) {
-                PN532_LOGW("%s: %s test received %ul bytes instead of 1.",
+                PN532_LOGW("%s: %s test received %u bytes instead of 1.",
                      to_string(command_code::diagnose), to_string(test), res_cmd->size());
                 return nfc::error::comm_malformed;
             }
@@ -455,7 +455,7 @@ namespace pn532 {
     nfc::r<std::vector<uint8_t>> nfc::read_registers(std::vector<reg_addr> const &addresses, ms timeout) {
         static constexpr std::size_t max_addr_count = bits::max_firmware_data_length / 2;
         if (addresses.size() > max_addr_count) {
-            PN532_LOGE("%s: requested %ul addresses, but can read at most %ul in a single batch.",
+            PN532_LOGE("%s: requested %u addresses, but can read at most %u in a single batch.",
                  to_string(command_code::read_register), addresses.size(), max_addr_count);
         }
         const std::size_t effective_length = std::min(addresses.size(), max_addr_count);
@@ -469,7 +469,7 @@ namespace pn532 {
             return res_cmd.error();
         }
         if (res_cmd->size() != effective_length) {
-            PN532_LOGE("%s: requested %ul registers, got %ul instead.", to_string(command_code::read_register),
+            PN532_LOGE("%s: requested %u registers, got %u instead.", to_string(command_code::read_register),
                  addresses.size(), res_cmd->size());
         }
         return std::move(*res_cmd);
@@ -478,7 +478,7 @@ namespace pn532 {
     nfc::r<> nfc::write_registers(std::vector<std::pair<reg_addr, std::uint8_t>> const &addr_value_pairs, ms timeout) {
         static constexpr std::size_t max_avp_count = bits::max_firmware_data_length / 3;
         if (addr_value_pairs.size() > max_avp_count) {
-            PN532_LOGE("%s: requested %ul addresses, but can read at most %ul in a single batch.",
+            PN532_LOGE("%s: requested %u addresses, but can read at most %u in a single batch.",
                  to_string(command_code::write_register), addr_value_pairs.size(), max_avp_count);
         }
         const std::size_t effective_length = std::min(addr_value_pairs.size(), max_avp_count);
@@ -820,7 +820,7 @@ namespace pn532 {
             return std::vector<any_target>{};
         }
         if (types_to_poll.size() > bits::autopoll_max_types) {
-            PN532_LOGW("%s: too many (%ul) types to poll, at most %u will be considered.",
+            PN532_LOGW("%s: too many (%u) types to poll, at most %u will be considered.",
                  to_string(command_code::in_autopoll), types_to_poll.size(), bits::autopoll_max_types);
         }
         const auto num_types = std::min(bits::autopoll_max_types, types_to_poll.size());
@@ -844,7 +844,7 @@ namespace pn532 {
         static constexpr std::size_t max_chunk_length = bits::max_firmware_data_length - 1;  // - target byte
         const auto n_chunks = std::max(1u, (data.size() + max_chunk_length - 1) / max_chunk_length);
         if (n_chunks > 1) {
-            PN532_LOGI("%s: %ul bytes will be sent in %u chunks.", to_string(command_code::in_data_exchange), data.size(),
+            PN532_LOGI("%s: %u bytes will be sent in %u chunks.", to_string(command_code::in_data_exchange), data.size(),
                  n_chunks);
         }
         PN532_LOGD("%s: sending the following data to target %u:", to_string(command_code::in_data_exchange),

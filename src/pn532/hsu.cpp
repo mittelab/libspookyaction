@@ -70,11 +70,11 @@ namespace pn532 {
                                                      data.data() + read_length,
                                                      buffer_length, duration_cast(rt.remaining()));
                 if (n_bytes < 0) {
-                    PN532_LOGE("Failed to read %ul bytes from uart %d.", buffer_length, static_cast<int>(_port));
+                    PN532_LOGE("Failed to read %u bytes from uart %d.", buffer_length, static_cast<int>(_port));
                 } else {
                     read_length += n_bytes;
                     if (n_bytes != buffer_length) {
-                        PN532_LOGW("Read only %ul bytes out of %ul in uart %d.", n_bytes, buffer_length,
+                        PN532_LOGW("Read only %u bytes out of %u in uart %d.", n_bytes, buffer_length,
                              static_cast<int>(_port));
                     }
                 }

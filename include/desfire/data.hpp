@@ -71,6 +71,12 @@ namespace desfire {
             std::uint8_t key_number;
             key_t k;
 
+            inline key_base() : key_number{0}, k{} {
+                std::fill_n(std::begin(k), key_length, 0x00);
+            }
+
+            inline key_base(std::uint8_t key_no, key_t k_) : key_number{key_no}, k{k_} {}
+
             std::unique_ptr<cipher> make_cipher() const {
                 return std::unique_ptr<Cipher>(new Cipher(k));
             }
@@ -105,7 +111,7 @@ namespace desfire {
     struct key<cipher_type::des> : public impl::key_base<8, cipher_des> {
         key() = default;
         key(std::uint8_t key_no, key_t k, std::uint8_t version = 0x0) :
-            impl::key_base<8, cipher_des>{.key_number = key_no, .k = k}
+            impl::key_base<8, cipher_des>{key_no, k}
         {
             store_version(version);
         }
@@ -115,7 +121,7 @@ namespace desfire {
     struct key<cipher_type::des3_2k> : public impl::key_base<16, cipher_2k3des> {
         key() = default;
         key(std::uint8_t key_no, key_t k, std::uint8_t version = 0x0) :
-            impl::key_base<16, cipher_2k3des>{.key_number = key_no, .k = k}
+            impl::key_base<16, cipher_2k3des>{key_no, k}
         {
             store_version(version);
         }
@@ -125,7 +131,7 @@ namespace desfire {
     struct key<cipher_type::des3_3k> : public impl::key_base<24, cipher_3k3des> {
         key() = default;
         key(std::uint8_t key_no, key_t k, std::uint8_t version = 0x0) :
-            impl::key_base<24, cipher_3k3des>{.key_number = key_no, .k = k}
+            impl::key_base<24, cipher_3k3des>{key_no, k}
         {
             store_version(version);
         }
@@ -142,7 +148,7 @@ namespace desfire {
         using base::make_cipher;
 
         key() = default;
-        key(std::uint8_t key_no, key_t k) : impl::key_base<16, cipher_aes>{.key_number = key_no, .k = k} {}
+        key(std::uint8_t key_no, key_t k) : impl::key_base<16, cipher_aes>{key_no, k} {}
     };
 
 

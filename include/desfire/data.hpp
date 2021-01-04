@@ -5,10 +5,10 @@
 #ifndef DESFIRE_DATA_HPP
 #define DESFIRE_DATA_HPP
 
-#include "bits.hpp"
-#include "cipher_impl.hpp"
 #include <memory>
 #include "mlab/any.hpp"
+#include "bits.hpp"
+#include "cipher_impl.hpp"
 
 namespace desfire {
     using mlab::any;

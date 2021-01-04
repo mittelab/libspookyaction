@@ -10,6 +10,13 @@
 
 namespace desfire {
     namespace bits {
+
+        enum struct comm_mode {
+            plain,
+            mac,
+            cipher
+        };
+
         enum struct command_code : std::uint8_t {
             authenticate_legacy = 0x0a,
             change_key_settings = 0x54,

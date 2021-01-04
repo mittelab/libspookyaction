@@ -6,8 +6,10 @@
 #define DESFIRE_CIPHER_HPP
 
 #include "mlab/bin_data.hpp"
+#include "bits.hpp"
 
 namespace desfire {
+    using bits::comm_mode;
     namespace {
         using namespace mlab;
     }
@@ -30,12 +32,6 @@ namespace desfire {
         virtual void reinit_with_session_key(bin_data const &rndab) = 0;
 
         virtual ~cipher() = default;
-    };
-
-    enum struct comm_mode {
-        plain,
-        mac,
-        cipher
     };
 
     struct cipher::config {

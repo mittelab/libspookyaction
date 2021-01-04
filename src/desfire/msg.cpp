@@ -53,4 +53,16 @@ namespace desfire {
                 return to_string(static_cast<status>(e));
         }
     }
+
+    const char *to_string(cipher_type c) {
+        switch (c) {
+            case cipher_type::none:    return "none";
+            case cipher_type::des:     return "DES";
+            case cipher_type::des3_2k: return "2K3DES";
+            case cipher_type::des3_3k: return "3K3DES";
+            case cipher_type::aes128:  return "AES128";
+            default:
+                return "UNKNOWN";
+        }
+    }
 }

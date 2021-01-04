@@ -60,7 +60,19 @@ namespace desfire {
         bool do_crc;        // If required by protocol and comm_mode
     };
 
-    static constexpr cipher::config cipher_cfg_plain{comm_mode::plain, true, true, true};
+    static constexpr cipher::config cipher_cfg_plain{
+        .mode = comm_mode::plain,
+        .do_mac = true,
+        .do_cipher = true,
+        .do_crc = true
+    };
+
+    static constexpr cipher::config cipher_cfg_crypto_nocrc{
+            .mode = comm_mode::cipher,
+            .do_mac = false,
+            .do_cipher = true,
+            .do_crc = false
+    };
 
     template <std::size_t BlockSize, std::size_t MACSize, std::size_t CRCSize>
     struct cipher_traits {

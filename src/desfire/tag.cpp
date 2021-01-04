@@ -46,19 +46,6 @@ namespace desfire {
     }
 
     tag::r<> tag::authenticate(const any_key &k) {
-        static constexpr cipher::config cfc_plain_nomac{
-            .mode = comm_mode::plain,
-            .do_mac = false,
-            .do_cipher = false,
-            .do_crc = false
-        };
-        static constexpr cipher::config cfg_crypto_nocrc{
-            .mode = comm_mode::cipher,
-            .do_mac = false,
-            .do_cipher = true,
-            .do_crc = false
-        };
-
         /// Clear preexisting authentication, check parms
 
         clear_authentication();
@@ -69,6 +56,9 @@ namespace desfire {
         /// Initialize a new cipher of the appropriate type for the key exchange protocol
         auto pcipher = k.make_cipher();
 
+        /// Immediately switch also legacy ciphers to global IV mode: this whole exchange uses one IV
+        iv_session session{*pcipher, cipher_iv::global};
+
         /// Send the right authentication command for the key type and the key number, get RndB
         bin_data payload = bin_data::chain(prealloc(2), auth_command(k.type()), k.key_number());
         DESFIRE_LOGI("Authentication with key %d: initiating.", k.key_number());
@@ -77,7 +67,7 @@ namespace desfire {
         // Also, do not parse the status into an error, because this packet will have an "additional frame" status,
         // which we need to handle in a custom way (sending our own payload). We will later assess and return if the
         // returned status is not "additional frame".
-        const auto res_rndb = command_status_response(payload, *pcipher, cfc_plain_nomac, cfg_crypto_nocrc, 0, false);
+        const auto res_rndb = command_status_response(payload, *pcipher, cipher_cfg_plain, cipher_cfg_crypto_nocrc, 0, false);
 
         if (not res_rndb) {
             // This is a controller error because we did not look at the status byte
@@ -103,7 +93,7 @@ namespace desfire {
         DESFIRE_LOGI("Authentication: sending RndA || (RndB << 8).");
 
         // Send and received encrypted; this time parse the status byte because we regularly expect a status::ok.
-        const auto res_rndap = command_response(payload, *pcipher, cfg_crypto_nocrc, cfg_crypto_nocrc, 1, false);
+        const auto res_rndap = command_response(payload, *pcipher, cipher_cfg_crypto_nocrc, cipher_cfg_crypto_nocrc, 1, false);
 
         if (not res_rndap) {
             DESFIRE_LOGW("Authentication: failed.");

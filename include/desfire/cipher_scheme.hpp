@@ -10,7 +10,7 @@
 namespace desfire {
 
     class cipher_legacy_scheme : public virtual cipher, public cipher_traits<8, 4, 2> {
-    protected:
+    public:
         static constexpr std::uint16_t crc_init = 0x6363;
 
         /**
@@ -61,11 +61,13 @@ namespace desfire {
         block_t _global_iv;
 
     protected:
-        static constexpr std::uint32_t crc_init = 0xffffffff;
 
         cipher_scheme() = default;
 
         void initialize();
+
+    public:
+        static constexpr std::uint32_t crc_init = 0xffffffff;
 
         virtual void do_crypto(range<bin_data::iterator> data, bool encrypt, block_t &iv) = 0;
 

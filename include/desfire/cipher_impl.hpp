@@ -19,7 +19,6 @@ namespace desfire {
         void reinit_with_session_key(bin_data const &rndab) override;
         ~cipher_des() override;
 
-    protected:
         void do_crypto(range<bin_data::iterator> data, bool encrypt, block_t &iv) override;
     };
 
@@ -32,7 +31,6 @@ namespace desfire {
         void reinit_with_session_key(bin_data const &rndab) override;
         ~cipher_2k3des() override;
 
-    protected:
         void do_crypto(range<bin_data::iterator> data, bool encrypt, block_t &iv) override;
     };
 
@@ -45,7 +43,6 @@ namespace desfire {
         void reinit_with_session_key(bin_data const &rndab) override;
         ~cipher_3k3des() override;
 
-    protected:
         void do_crypto(range<bin_data::iterator> data, bool encrypt, block_t &iv) override;
     };
 
@@ -58,7 +55,6 @@ namespace desfire {
         void reinit_with_session_key(bin_data const &rndab) override;
         ~cipher_aes() override;
 
-    protected:
         void do_crypto(range<bin_data::iterator> data, bool encrypt, block_t &iv) override;
     };
 }

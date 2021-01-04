@@ -62,7 +62,7 @@ namespace mlab {
 
     bin_stream &operator>>(bin_stream &s, firmware_version &fw) {
         if (s.remaining() < 4) {
-            LOGE("Parsing firmware_version: expected at least 4 bytes of data, got %ul.", s.remaining());
+            PN532_LOGE("Parsing firmware_version: expected at least 4 bytes of data, got %ul.", s.remaining());
             s.set_bad();
             return s;
         }
@@ -76,7 +76,7 @@ namespace mlab {
 
     bin_stream &operator>>(bin_stream &s, gpio_status &gpio) {
         if (s.remaining() < 3) {
-            LOGE("Parsing gpio_status: expected at least 3 bytes of data, got %ul.", s.remaining());
+            PN532_LOGE("Parsing gpio_status: expected at least 3 bytes of data, got %ul.", s.remaining());
             s.set_bad();
             return s;
         }
@@ -89,7 +89,7 @@ namespace mlab {
 
     bin_stream &operator>>(bin_stream &s, rf_status &status) {
         if (s.remaining() < 1) {
-            LOGE("Parsing rf_status: expected at least 3 bytes of data, got %ul.", s.remaining());
+            PN532_LOGE("Parsing rf_status: expected at least 3 bytes of data, got %ul.", s.remaining());
             s.set_bad();
             return s;
         }
@@ -113,7 +113,7 @@ namespace mlab {
 
     bin_stream &operator>>(bin_stream &s, target_status &ts) {
         if (s.remaining() < 4) {
-            LOGE("Parsing target_status: expected at least 4 bytes of data, got %ul.", s.remaining());
+            PN532_LOGE("Parsing target_status: expected at least 4 bytes of data, got %ul.", s.remaining());
             s.set_bad();
             return s;
         }
@@ -122,7 +122,7 @@ namespace mlab {
 
     bin_stream &operator>>(bin_stream &s, general_status &gs) {
         if (s.remaining() < 4) {
-            LOGE("Parsing general_stastus: expected at least 4 bytes of data, got %ul.", s.remaining());
+            PN532_LOGE("Parsing general_stastus: expected at least 4 bytes of data, got %ul.", s.remaining());
             s.set_bad();
             return s;
         }
@@ -132,7 +132,7 @@ namespace mlab {
 
         const auto num_targets = s.pop();
         if (num_targets > bits::max_num_targets) {
-            LOGW("%s: detected %u targets, more than %u targets handled by PN532, most likely an error.",
+            PN532_LOGW("%s: detected %u targets, more than %u targets handled by PN532, most likely an error.",
                  to_string(command_code::get_general_status), num_targets, bits::max_num_targets);
         }
         gs.targets.resize(num_targets, target_status{});
@@ -146,7 +146,7 @@ namespace mlab {
 
     bin_stream &operator>>(bin_stream &s, target_kbps106_typea &target) {
         if (s.remaining() < 5) {
-            LOGW("Unable to parse kbps106_iso_iec_14443_typea target info, too little data.");
+            PN532_LOGW("Unable to parse kbps106_iso_iec_14443_typea target info, too little data.");
             s.set_bad();
             return s;
         }
@@ -155,7 +155,7 @@ namespace mlab {
 
         const auto expected_nfcid_length = s.pop();
         if (s.remaining() < expected_nfcid_length) {
-            LOGW("Unable to parse kbps106_iso_iec_14443_typea target info, missing NFC ID data.");
+            PN532_LOGW("Unable to parse kbps106_iso_iec_14443_typea target info, missing NFC ID data.");
             s.set_bad();
             return s;
         }
@@ -166,7 +166,7 @@ namespace mlab {
             // ATS length includes the ats bit
             const std::uint8_t expected_ats_length = std::max(std::uint8_t(1), s.pop()) - 1;
             if (s.remaining() < expected_ats_length) {
-                LOGW("Unable to parse kbps106_iso_iec_14443_typea target info, not enough data.");
+                PN532_LOGW("Unable to parse kbps106_iso_iec_14443_typea target info, not enough data.");
                 s.set_bad();
                 return s;
             }
@@ -179,7 +179,7 @@ namespace mlab {
 
     bin_stream &operator>>(bin_stream &s, target_kbps424_felica &target) {
         if (s.remaining() < 19) {
-            LOGW("Unable to parse target_kbps212/424_felica target info, insufficient length.");
+            PN532_LOGW("Unable to parse target_kbps212/424_felica target info, insufficient length.");
             s.set_bad();
             return s;
         }
@@ -187,14 +187,14 @@ namespace mlab {
 
         const auto pol_length = s.pop();
         if (pol_length != 18 and pol_length != 20) {
-            LOGW("Unable to parse target_kbps212/424_felica target info, mismatch POL_RES length.");
+            PN532_LOGW("Unable to parse target_kbps212/424_felica target info, mismatch POL_RES length.");
             s.set_bad();
             return s;
         }
 
         const auto response_code = s.pop();
         if (response_code != 0x01) {
-            LOGW("Incorrect response code (%u)  parsing target_kbps212/424_felica target info; continuing...",
+            PN532_LOGW("Incorrect response code (%u)  parsing target_kbps212/424_felica target info; continuing...",
                  response_code);
         }
 
@@ -216,7 +216,7 @@ namespace mlab {
 
     bin_stream &operator>>(bin_stream &s, target_kbps106_typeb &target) {
         if (s.remaining() < 14) {
-            LOGW("Unable to parse target_kbps106_typeb target info, too little data.");
+            PN532_LOGW("Unable to parse target_kbps106_typeb target info, too little data.");
             s.set_bad();
             return s;
         }
@@ -225,7 +225,7 @@ namespace mlab {
 
         const auto expected_attrib_res_length = s.pop();
         if (s.remaining() < expected_attrib_res_length) {
-            LOGW("Unable to parse target_kbps106_typeb target info, incorrect ATTRIB_RES length.");
+            PN532_LOGW("Unable to parse target_kbps106_typeb target info, incorrect ATTRIB_RES length.");
             s.set_bad();
             return s;
         }
@@ -238,7 +238,7 @@ namespace mlab {
 
     bin_stream &operator>>(bin_stream &s, target_kbps106_jewel_tag &target) {
         if (s.remaining() < 7) {
-            LOGW("Unable to parse target_kbps106_jewel_tag target info, incorrect data length.");
+            PN532_LOGW("Unable to parse target_kbps106_jewel_tag target info, incorrect data length.");
             s.set_bad();
             return s;
         }
@@ -249,7 +249,7 @@ namespace mlab {
 
     bin_stream &operator>>(bin_stream &s, atr_res_info &atr_res) {
         if (s.remaining() < 15) {
-            LOGW("Unable to parse atr_res_info, incorrect data length.");
+            PN532_LOGW("Unable to parse atr_res_info, incorrect data length.");
             s.set_bad();
             return s;
         }
@@ -262,7 +262,7 @@ namespace mlab {
 
     bin_stream &operator>>(bin_stream &s, std::pair<rf_status, atr_res_info> &status_atr_res) {
         if (s.remaining() < 16) {
-            LOGW("Unable to parse rf_status and atr_res_info, incorrect data length.");
+            PN532_LOGW("Unable to parse rf_status and atr_res_info, incorrect data length.");
             s.set_bad();
             return s;
         }
@@ -281,7 +281,7 @@ namespace mlab {
 
     bin_stream &operator>>(bin_stream &s, any_target &t) {
         if (s.remaining() < 2) {
-            LOGW("Unable to parse any_target, missing target type and data length.");
+            PN532_LOGW("Unable to parse any_target, missing target type and data length.");
             s.set_bad();
             return s;
         }
@@ -336,14 +336,14 @@ namespace mlab {
             case target_type::generic_passive_212kbps:
             case target_type::generic_passive_424kbps:
             default:
-                LOGW("Unsupported target type %s", to_string(type));
+                PN532_LOGW("Unsupported target type %s", to_string(type));
                 s.set_bad();
                 break;
         }
         if (s.bad()) {
-            LOGW("Unable to parse any_target.");
+            PN532_LOGW("Unable to parse any_target.");
         } else if (s.tell() - old_pos != length) {
-            LOGW("Parsing any_target: mismatch in declared payload length and read data.");
+            PN532_LOGW("Parsing any_target: mismatch in declared payload length and read data.");
             s.set_bad();
         }
         return s;
@@ -351,13 +351,13 @@ namespace mlab {
 
     bin_stream &operator>>(bin_stream &s, std::vector<any_target> &targets) {
         if (s.remaining() < 1) {
-            LOGE("Parsing vector<any_target>: not enough data.");
+            PN532_LOGE("Parsing vector<any_target>: not enough data.");
             s.set_bad();
             return s;
         }
         const auto num_targets = s.pop();
         if (num_targets > bits::max_num_targets) {
-            LOGW("Parsing vector<any_target>: found %u targets, which is more than the number of supported targets %u.",
+            PN532_LOGW("Parsing vector<any_target>: found %u targets, which is more than the number of supported targets %u.",
                  num_targets, bits::max_num_targets);
         }
         targets.resize(num_targets);
@@ -372,7 +372,7 @@ namespace mlab {
 
     bin_stream &operator>>(bin_stream &s, jump_dep_psl &r) {
         if (s.remaining() < 17) {
-            LOGE("Parsing jump_dep_psl: not enough data.");
+            PN532_LOGE("Parsing jump_dep_psl: not enough data.");
             s.set_bad();
             return s;
         }
@@ -381,7 +381,7 @@ namespace mlab {
 
     bin_stream &operator>>(bin_stream &s, sam_status &sams) {
         if (s.remaining() < 1) {
-            LOGE("Parsing sam_status: not enough data.");
+            PN532_LOGE("Parsing sam_status: not enough data.");
             s.set_bad();
             return s;
         }
@@ -414,7 +414,7 @@ namespace mlab {
 
     bin_stream &operator>>(bin_stream &s, status_as_target &st) {
         if (s.remaining() < 2) {
-            LOGE("Parsing status_as_target: not enough data.");
+            PN532_LOGE("Parsing status_as_target: not enough data.");
             s.set_bad();
             return s;
         }
@@ -429,7 +429,7 @@ namespace mlab {
 
     bin_stream &operator>>(bin_stream &s, mode_as_target &mt) {
         if (s.remaining() < 1) {
-            LOGE("Parsing mode_as_target: not enough data.");
+            PN532_LOGE("Parsing mode_as_target: not enough data.");
             s.set_bad();
             return s;
         }
@@ -443,7 +443,7 @@ namespace mlab {
 
     bin_stream &operator>>(bin_stream &s, init_as_target_res &mt) {
         if (s.remaining() < 1) {
-            LOGE("Parsing init_as_target_res: not enough data.");
+            PN532_LOGE("Parsing init_as_target_res: not enough data.");
             s.set_bad();
             return s;
         }

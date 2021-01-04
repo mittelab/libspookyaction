@@ -375,7 +375,7 @@ namespace pn532 {
 
     target_type any_target::type() const {
         if (_poll_entry.empty()) {
-            LOGE("Requested target type of an empty any_target.");
+            PN532_LOGE("Requested target type of an empty any_target.");
             return {};
         }
         return _type;
@@ -459,13 +459,13 @@ namespace mlab {
     template <baudrate_modulation BrMd>
     bin_stream &operator>>(bin_stream &s, std::vector<bits::target<BrMd>> &targets) {
         if (s.remaining() < 1) {
-            LOGE("Parsing vector<target<%s>>: not enough data.", to_string(BrMd));
+            PN532_LOGE("Parsing vector<target<%s>>: not enough data.", to_string(BrMd));
             s.set_bad();
             return s;
         }
         const auto num_targets = s.pop();
         if (num_targets > bits::max_num_targets) {
-            LOGW("Parsing vector<target<%s>>: found %u targets, which is more than the number of supported targets %u.",
+            PN532_LOGW("Parsing vector<target<%s>>: found %u targets, which is more than the number of supported targets %u.",
                  to_string(BrMd), num_targets, bits::max_num_targets);
         }
         targets.resize(num_targets);

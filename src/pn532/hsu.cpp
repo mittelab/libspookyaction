@@ -44,9 +44,9 @@ namespace pn532 {
         if (result == ESP_OK) {
             return true;
         } else if (result == ESP_FAIL) {
-            LOGE("Failure to send data via HSU, parameter error (port = %d).", static_cast<int>(_port));
+            PN532_LOGE("Failure to send data via HSU, parameter error (port = %d).", static_cast<int>(_port));
         } else if (result != ESP_ERR_TIMEOUT) {
-            LOGE("Unexpected result from uart_wait_tx_done: %d.", static_cast<int>(result));
+            PN532_LOGE("Unexpected result from uart_wait_tx_done: %d.", static_cast<int>(result));
         }
         // Timeout or error
         return false;
@@ -59,7 +59,7 @@ namespace pn532 {
         while (read_length < length and rt) {
             std::size_t buffer_length = 0;
             if (uart_get_buffered_data_len(_port, &buffer_length) != ESP_OK) {
-                LOGE("Error when getting buffered data at uart %d.", static_cast<int>(_port));
+                PN532_LOGE("Error when getting buffered data at uart %d.", static_cast<int>(_port));
             }
             if (buffer_length == 0) {
                 // Wait a bit before retrying
@@ -70,11 +70,11 @@ namespace pn532 {
                                                      data.data() + read_length,
                                                      buffer_length, duration_cast(rt.remaining()));
                 if (n_bytes < 0) {
-                    LOGE("Failed to read %ul bytes from uart %d.", buffer_length, static_cast<int>(_port));
+                    PN532_LOGE("Failed to read %ul bytes from uart %d.", buffer_length, static_cast<int>(_port));
                 } else {
                     read_length += n_bytes;
                     if (n_bytes != buffer_length) {
-                        LOGW("Read only %ul bytes out of %ul in uart %d.", n_bytes, buffer_length,
+                        PN532_LOGW("Read only %ul bytes out of %ul in uart %d.", n_bytes, buffer_length,
                              static_cast<int>(_port));
                     }
                 }

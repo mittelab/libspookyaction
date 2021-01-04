@@ -540,7 +540,7 @@ namespace pn532 {
         Data data{};
         s >> data;
         if (s.bad()) {
-            LOGE("%s: could not parse result from response data.", to_string(cmd));
+            PN532_LOGE("%s: could not parse result from response data.", to_string(cmd));
             return error::comm_malformed;
         }
         return data;

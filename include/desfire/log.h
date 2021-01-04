@@ -12,11 +12,11 @@ extern "C" {
 #endif
 
 #define DESFIRE_TAG "DESFIRE"
-#define LOGE(format, ...) ESP_LOGE(DESFIRE_TAG, format, ##__VA_ARGS__)
-#define LOGW(format, ...) ESP_LOGW(DESFIRE_TAG, format, ##__VA_ARGS__)
-#define LOGI(format, ...) ESP_LOGI(DESFIRE_TAG, format, ##__VA_ARGS__)
-#define LOGD(format, ...) ESP_LOGD(DESFIRE_TAG, format, ##__VA_ARGS__)
-#define LOGV(format, ...) ESP_LOGV(DESFIRE_TAG, format, ##__VA_ARGS__)
+#define DESFIRE_LOGE(format, ...) ESP_LOGE(DESFIRE_TAG, format, ##__VA_ARGS__)
+#define DESFIRE_LOGW(format, ...) ESP_LOGW(DESFIRE_TAG, format, ##__VA_ARGS__)
+#define DESFIRE_LOGI(format, ...) ESP_LOGI(DESFIRE_TAG, format, ##__VA_ARGS__)
+#define DESFIRE_LOGD(format, ...) ESP_LOGD(DESFIRE_TAG, format, ##__VA_ARGS__)
+#define DESFIRE_LOGV(format, ...) ESP_LOGV(DESFIRE_TAG, format, ##__VA_ARGS__)
 
 #ifdef __cplusplus
 }

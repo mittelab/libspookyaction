@@ -65,7 +65,7 @@ namespace desfire {
                 if (cfg.do_mac) {
                     // Apply mac overrides mode.
                     if (offset >= data.size() - 1) {
-                        LOGE("Specified offset leaves no data to mac.");
+                        DESFIRE_LOGE("Specified offset leaves no data to mac.");
                         break;
                     }
                     data << compute_mac(data.view(offset));
@@ -74,7 +74,7 @@ namespace desfire {
             case comm_mode::cipher:
                 if (cfg.do_cipher) {
                     if (offset >= data.size() - 1) {
-                        LOGE("Specified offset leaves no data to encipher.");
+                        DESFIRE_LOGE("Specified offset leaves no data to encipher.");
                         break;
                     }
                     if (cfg.do_crc) {
@@ -137,7 +137,7 @@ namespace desfire {
                     data.pop_back();
                     // Decipher what's left
                     if (data.size() % block_size != 0) {
-                        LOGW("Received enciphered data of length %ul, not a multiple of the block size %ul.",
+                        DESFIRE_LOGW("Received enciphered data of length %ul, not a multiple of the block size %ul.",
                              data.size(), block_size);
                         ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG, data.data(), data.size(), ESP_LOG_WARN);
                         return false;

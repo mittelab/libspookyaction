@@ -14,7 +14,7 @@ namespace desfire {
 
     void tag::clear_authentication() {
         if (_active_cipher != nullptr) {
-            LOGI("Releasing authentication.");
+            DESFIRE_LOGI("Releasing authentication.");
             _active_cipher = nullptr;
             _active_key_number = std::numeric_limits<std::uint8_t>::max();
             _active_cipher_type = cipher_type::none;
@@ -32,7 +32,7 @@ namespace desfire {
             }
             return std::move(res_cmd.first);
         }
-        LOGW("Could not send/receive data to/from the PICC (controller transmission failed).");
+        DESFIRE_LOGW("Could not send/receive data to/from the PICC (controller transmission failed).");
         return error::controller_error;
     }
 
@@ -62,16 +62,16 @@ namespace desfire {
 
         /// Send the right authentication command for the key type and the key number, get RndB
         bin_data payload = bin_data::chain(prealloc(2), auth_command(k.type()), k.key_number());
-        LOGI("Authentication with key %d: initiating.", k.key_number());
+        DESFIRE_LOGI("Authentication with key %d: initiating.", k.key_number());
 
         // The authentication is sent in plain test, but we receive it as encrypted data without CRC.
         const auto res_rndb = command_response(payload, 0, *pcipher, cfc_plain_nomac, cfg_crypto_nocrc, true, false);
 
         if (not res_rndb) {
-            LOGW("Authentication: failed.");
+            DESFIRE_LOGW("Authentication: failed.");
             return res_rndb.error();
         } else {
-            LOGI("Authentication: received RndB (%ul bytes).", res_rndb->size());
+            DESFIRE_LOGI("Authentication: received RndB (%ul bytes).", res_rndb->size());
         }
 
         /// Prepare and send a response: AdditionalFrames || Crypt(RndA || RndB'), RndB' = RndB << 8, obtain RndA >> 8
@@ -83,34 +83,34 @@ namespace desfire {
                 << rnda
                 << res_rndb->view(1) << res_rndb->front();
 
-        LOGI("Authentication: sending RndA || (RndB << 8).");
+        DESFIRE_LOGI("Authentication: sending RndA || (RndB << 8).");
 
         // Send and received encrypted, except the status byte
         const auto res_rndap = command_response(payload, 1, *pcipher, cfg_crypto_nocrc, cfg_crypto_nocrc, true, false);
 
         if (not res_rndap) {
-            LOGW("Authentication: failed.");
+            DESFIRE_LOGW("Authentication: failed.");
             return res_rndap.error();
         } else {
-            LOGI("Authentication: received RndA >> 8 (%ul bytes).", res_rndap->size());
+            DESFIRE_LOGI("Authentication: received RndA >> 8 (%ul bytes).", res_rndap->size());
         }
 
         /// Verify that the received RndA is correct.
         if (rnda.size() != res_rndap->size()) {
-            LOGW("Authentication: RndA mismatch size.");
+            DESFIRE_LOGW("Authentication: RndA mismatch size.");
             return error::crypto_error;
         }
         // This is just a test for equality when shifted
         if (not std::equal(std::begin(rnda) + 1, std::end(rnda), std::begin(*res_rndap))
             or rnda.front() != res_rndap->back())
         {
-            LOGW("Authentication: RndA mismatch.");
+            DESFIRE_LOGW("Authentication: RndA mismatch.");
             ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " RndA orig", rnda.data(), rnda.size(), ESP_LOG_WARN);
             ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " RndA >> 8", res_rndap->data(), res_rndap->size(), ESP_LOG_WARN);
             return error::crypto_error;
         }
 
-        LOGI("Authentication: successful. Deriving session key.");
+        DESFIRE_LOGI("Authentication: successful. Deriving session key.");
         pcipher->reinit_with_session_key(bin_data::chain(prealloc(2 * res_rndb->size()), rnda, *res_rndb));
 
         _active_cipher = std::move(pcipher);
@@ -133,7 +133,7 @@ namespace desfire {
                 return res.error();
             }
             if (res.empty()) {
-                LOGE("Received empty payload from card.");
+                DESFIRE_LOGE("Received empty payload from card.");
                 return error::malformed;
             }
             // Append data, move status byte at the end
@@ -162,7 +162,7 @@ namespace desfire {
         if (sb == status::ok or sb == status::no_changes) {
             // Can postprocess using crypto
             if (not cipher.confirm_rx(received, rx_cfg)) {
-                LOGW("Invalid data received under comm mode %s, (C)MAC: %d, CRC: %d, cipher: %d.",
+                DESFIRE_LOGW("Invalid data received under comm mode %s, (C)MAC: %d, CRC: %d, cipher: %d.",
                      to_string(rx_cfg.mode), rx_cfg.do_mac, rx_cfg.do_crc, rx_cfg.do_cipher);
                 ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG, received.data(), received.size(), ESP_LOG_WARN);
                 return error::crypto_error;
@@ -170,10 +170,10 @@ namespace desfire {
             if (strip_status_byte) {
                 received.pop_back();
             }
-            LOGD("Response received successfully.");
+            DESFIRE_LOGD("Response received successfully.");
             return received;
         }
-        LOGW("Unsuccessful command (%s); the response contains %ul bytes.", to_string(sb), received.size());
+        DESFIRE_LOGW("Unsuccessful command (%s); the response contains %ul bytes.", to_string(sb), received.size());
         ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG, received.data(), received.size(), ESP_LOG_WARN);
         // Status are also error codes
         return error_from_status(sb);

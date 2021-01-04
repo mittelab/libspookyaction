@@ -65,7 +65,7 @@ namespace pn532 {
         // "2" because must count transport info and command_code
         const bool use_extended_format = (payload.size() > 0xff - 2);
         if (payload.size() > bits::max_firmware_data_length) {
-            LOGE("%s: payload too long for an info frame, truncating %ul bytes to %ul:",
+            PN532_LOGE("%s: payload too long for an info frame, truncating %ul bytes to %ul:",
                  to_string(cmd),
                  payload.size(),
                  bits::max_firmware_data_length);
@@ -154,7 +154,7 @@ namespace pn532 {
             length_checksum_pass = bits::check_length_checksum(code_or_length);
         }
         if (not length_checksum_pass.second) {
-            LOGE("Length checksum failed.");
+            PN532_LOGE("Length checksum failed.");
             return error::comm_checksum_fail;
         }
         return frame_header{frame_type::info, length_checksum_pass.first};
@@ -162,7 +162,7 @@ namespace pn532 {
 
     nfc::r<nfc::frame_body> nfc::read_response_body(frame_header const &hdr, ms timeout) {
         if (hdr.type != frame_type::info) {
-            LOGE("Ack and nack frames do not have body.");
+            PN532_LOGE("Ack and nack frames do not have body.");
             return error::comm_malformed;
         }
         const auto res = chn().receive(hdr.length + 1, timeout);  // Data includes checksum
@@ -171,21 +171,21 @@ namespace pn532 {
         }
         bin_data const &data = res.first;
         if (data.size() != hdr.length + 1) {
-            LOGE("Cannot parse frame body if expected frame length differs from actual data.");
+            PN532_LOGE("Cannot parse frame body if expected frame length differs from actual data.");
             return error::comm_malformed;
         }
         if (not bits::checksum(std::begin(data), std::end(data))) {
-            LOGE("Frame body checksum failed.");
+            PN532_LOGE("Frame body checksum failed.");
             return error::comm_checksum_fail;
         }
         // This could be a special error frame
         if (hdr.length == 1 and data[0] == bits::specific_app_level_err_code) {
-            LOGW("Received error from controller.");
+            PN532_LOGW("Received error from controller.");
             return error::failure;
         }
         // All info known frames must have the transport and the command
         if (hdr.length < 2) {
-            LOGE("Cannot parse frame body if frame length %ul is less than 2.", hdr.length);
+            PN532_LOGE("Cannot parse frame body if frame length %ul is less than 2.", hdr.length);
             return error::comm_malformed;
         }
         // Can output
@@ -212,13 +212,13 @@ namespace pn532 {
             return res_hdr->type == frame_type::ack;
         }
         // Make sure to consume the command_code
-        LOGE("Expected ack/nack, got a standard info response instead; will consume the data now.");
+        PN532_LOGE("Expected ack/nack, got a standard info response instead; will consume the data now.");
         const auto res_body = read_response_body(*res_hdr, rt.remaining());
         if (res_body) {
-            LOGE("%s: dropped response.", to_string(res_body->command));
+            PN532_LOGE("%s: dropped response.", to_string(res_body->command));
             ESP_LOG_BUFFER_HEX_LEVEL(PN532_TAG, res_body->info.data(), res_body->info.size(), ESP_LOG_ERROR);
         } else if (res_body.error() == error::failure) {
-            LOGE("Received an error instead of an ack");
+            PN532_LOGE("Received an error instead of an ack");
             return error::comm_error;
         }
         return error::comm_malformed;
@@ -239,7 +239,7 @@ namespace pn532 {
             return res_hdr.error();
         }
         if (res_hdr->type != frame_type::info) {
-            LOGE("Expected info command, got ack/nack.");
+            PN532_LOGE("Expected info command, got ack/nack.");
             return error::comm_malformed;
         }
         auto res_body = read_response_body(*res_hdr, rt.remaining());
@@ -247,12 +247,12 @@ namespace pn532 {
             return res_body.error();
         }
         if (res_body->command != cmd) {
-            LOGW("%s: got a reply to command %s instead.",
+            PN532_LOGW("%s: got a reply to command %s instead.",
                  to_string(res_body->command), to_string(cmd));
             return error::comm_malformed;
         }
         if (res_body->transport != bits::transport::pn532_to_host) {
-            LOGE("Received a message from the host instead of pn532.");
+            PN532_LOGE("Received a message from the host instead of pn532.");
             return error::comm_malformed;
         }
         return std::move(res_body->info);
@@ -262,20 +262,20 @@ namespace pn532 {
         reduce_timeout rt{timeout};
         const auto res_cmd = raw_send_command(cmd, payload, rt.remaining());
         if (not res_cmd) {
-            LOGW("%s: unable to send command: %s.", to_string(cmd), to_string(res_cmd.error()));
+            PN532_LOGW("%s: unable to send command: %s.", to_string(cmd), to_string(res_cmd.error()));
             return res_cmd.error();
         }
-        LOGD("%s: command sent.", to_string(cmd));
+        PN532_LOGD("%s: command sent.", to_string(cmd));
         const auto res_ack = raw_await_ack(rt.remaining());
         if (res_ack) {
             if (*res_ack) {
-                LOGD("%s: acknowledged.", to_string(cmd));
+                PN532_LOGD("%s: acknowledged.", to_string(cmd));
                 return result_success;
             }
-            LOGD("%s: NOT acknowledged.", to_string(cmd));
+            PN532_LOGD("%s: NOT acknowledged.", to_string(cmd));
             return error::nack;
         }
-        LOGW("%s: ACK/NACK not received: %s.", to_string(cmd), to_string(res_ack.error()));
+        PN532_LOGW("%s: ACK/NACK not received: %s.", to_string(cmd), to_string(res_ack.error()));
         return res_ack.error();
     }
 
@@ -293,27 +293,27 @@ namespace pn532 {
                 // Send a nack only if the error is malformed communication
                 if (res_response.error() == error::comm_malformed or
                     res_response.error() == error::comm_checksum_fail) {
-                    LOGW("%s: requesting response again (%s).", to_string(cmd), to_string(res_response.error()));
+                    PN532_LOGW("%s: requesting response again (%s).", to_string(cmd), to_string(res_response.error()));
                     // Retry command response
                     raw_send_ack(false, rt.remaining());
                 } else if (res_response.error() != error::comm_timeout) {
                     // Assert that this is the only other return code possible, aka timeout, but then break because we
                     // do not know what we should be doing
-                    LOGE("Implementation error unexpected error code from pn532::nfc::raw_await_response: %s",
+                    PN532_LOGE("Implementation error unexpected error code from pn532::nfc::raw_await_response: %s",
                          to_string(res_response.error()));
                     break;
                 }
             }
         } while (not res_response and res_response.error() != error::comm_timeout);
         if (not res_response) {
-            LOGW("%s: canceling command after %lld ms.", to_string(cmd), rt.elapsed().count());
+            PN532_LOGW("%s: canceling command after %lld ms.", to_string(cmd), rt.elapsed().count());
             raw_send_ack(true, one_sec); // Abort command, allow large timeout time for this
             if (res_response.error() == error::comm_timeout) {
                 return error::canceled;
             }
             return res_response.error();
         } else {
-            LOGD("%s: success, command took %lld ms.", to_string(cmd), rt.elapsed().count());
+            PN532_LOGD("%s: success, command took %lld ms.", to_string(cmd), rt.elapsed().count());
             raw_send_ack(true, one_sec); // Confirm response, allow large timeout time for this
             return std::move(*res_response);
         }
@@ -324,7 +324,7 @@ namespace pn532 {
      */
 
     nfc::r<bool> nfc::diagnose_comm_line(ms timeout) {
-        LOGI("%s: running %s...", to_string(command_code::diagnose), to_string(bits::test::comm_line));
+        PN532_LOGI("%s: running %s...", to_string(command_code::diagnose), to_string(bits::test::comm_line));
         // Generate 256 bytes of random data to test
         bin_data payload;
         payload.resize(0xff);
@@ -338,10 +338,10 @@ namespace pn532 {
         // Test that the reurned data coincides
         if (payload.size() == res_cmd->size() and
             std::equal(std::begin(payload), std::end(payload), std::begin(*res_cmd))) {
-            LOGI("%s: %s test succeeded.", to_string(command_code::diagnose), to_string(bits::test::comm_line));
+            PN532_LOGI("%s: %s test succeeded.", to_string(command_code::diagnose), to_string(bits::test::comm_line));
             return true;
         } else {
-            LOGW("%s: %s test failed.", to_string(command_code::diagnose), to_string(bits::test::comm_line));
+            PN532_LOGW("%s: %s test failed.", to_string(command_code::diagnose), to_string(bits::test::comm_line));
             return false;
         }
     }
@@ -351,7 +351,7 @@ namespace pn532 {
         nfc::r<bool> nfc_diagnose_simple(
                 nfc &controller, bits::test test, std::uint8_t expected, ms timeout,
                 std::size_t expected_body_size = 0, Args &&...append_to_body) {
-            LOGI("%s: running %s...", to_string(command_code::diagnose), to_string(test));
+            PN532_LOGI("%s: running %s...", to_string(command_code::diagnose), to_string(test));
             const bin_data payload = bin_data::chain(prealloc(expected_body_size + 1), test,
                                                      std::forward<Args>(append_to_body)...);
             const auto res_cmd = controller.command_response(command_code::diagnose, payload, timeout);
@@ -360,15 +360,15 @@ namespace pn532 {
             }
             // Test that the reurned data coincides
             if (res_cmd->size() != 1) {
-                LOGW("%s: %s test received %ul bytes instead of 1.",
+                PN532_LOGW("%s: %s test received %ul bytes instead of 1.",
                      to_string(command_code::diagnose), to_string(test), res_cmd->size());
                 return nfc::error::comm_malformed;
             }
             if (res_cmd->at(0) == expected) {
-                LOGI("%s: %s test succeeded.", to_string(command_code::diagnose), to_string(test));
+                PN532_LOGI("%s: %s test succeeded.", to_string(command_code::diagnose), to_string(test));
                 return true;
             } else {
-                LOGW("%s: %s test failed.", to_string(command_code::diagnose), to_string(test));
+                PN532_LOGW("%s: %s test failed.", to_string(command_code::diagnose), to_string(test));
                 return false;
             }
         }
@@ -387,19 +387,19 @@ namespace pn532 {
                 if (res_cmd->size() == 1) {
                     return res_cmd->at(0);
                 } else {
-                    LOGW("%s: %s test failed at %s.", to_string(command_code::diagnose),
+                    PN532_LOGW("%s: %s test failed at %s.", to_string(command_code::diagnose),
                          to_string(bits::test::poll_target), to_string(speed));
                 }
             }
             return res_cmd.error();
         };
 
-        LOGI("%s: running %s...", to_string(command_code::diagnose), to_string(bits::test::poll_target));
+        PN532_LOGI("%s: running %s...", to_string(command_code::diagnose), to_string(bits::test::poll_target));
         const auto slow_fails = get_fails(slow, baudrate::kbps212);
         if (slow_fails) {
             const auto fast_fails = get_fails(fast, baudrate::kbps424);
             if (fast_fails) {
-                LOGI("%s: %s test succeeded.", to_string(command_code::diagnose), to_string(bits::test::poll_target));
+                PN532_LOGI("%s: %s test succeeded.", to_string(command_code::diagnose), to_string(bits::test::poll_target));
                 return {*slow_fails, *fast_fails};
             }
             return fast_fails.error();
@@ -408,7 +408,7 @@ namespace pn532 {
     }
 
     nfc::r<> nfc::diagnose_echo_back(ms reply_delay, std::uint8_t tx_mode, std::uint8_t rx_mode, ms timeout) {
-        LOGI("%s: running %s...", to_string(command_code::diagnose), to_string(bits::test::echo_back));
+        PN532_LOGI("%s: running %s...", to_string(command_code::diagnose), to_string(bits::test::echo_back));
         const bin_data payload = bin_data::chain(
                 prealloc(4),
                 bits::test::echo_back,
@@ -455,7 +455,7 @@ namespace pn532 {
     nfc::r<std::vector<uint8_t>> nfc::read_registers(std::vector<reg_addr> const &addresses, ms timeout) {
         static constexpr std::size_t max_addr_count = bits::max_firmware_data_length / 2;
         if (addresses.size() > max_addr_count) {
-            LOGE("%s: requested %ul addresses, but can read at most %ul in a single batch.",
+            PN532_LOGE("%s: requested %ul addresses, but can read at most %ul in a single batch.",
                  to_string(command_code::read_register), addresses.size(), max_addr_count);
         }
         const std::size_t effective_length = std::min(addresses.size(), max_addr_count);
@@ -469,7 +469,7 @@ namespace pn532 {
             return res_cmd.error();
         }
         if (res_cmd->size() != effective_length) {
-            LOGE("%s: requested %ul registers, got %ul instead.", to_string(command_code::read_register),
+            PN532_LOGE("%s: requested %ul registers, got %ul instead.", to_string(command_code::read_register),
                  addresses.size(), res_cmd->size());
         }
         return std::move(*res_cmd);
@@ -478,7 +478,7 @@ namespace pn532 {
     nfc::r<> nfc::write_registers(std::vector<std::pair<reg_addr, std::uint8_t>> const &addr_value_pairs, ms timeout) {
         static constexpr std::size_t max_avp_count = bits::max_firmware_data_length / 3;
         if (addr_value_pairs.size() > max_avp_count) {
-            LOGE("%s: requested %ul addresses, but can read at most %ul in a single batch.",
+            PN532_LOGE("%s: requested %ul addresses, but can read at most %ul in a single batch.",
                  to_string(command_code::write_register), addr_value_pairs.size(), max_avp_count);
         }
         const std::size_t effective_length = std::min(addr_value_pairs.size(), max_avp_count);
@@ -496,7 +496,7 @@ namespace pn532 {
 
     nfc::r<> nfc::write_gpio(gpio_status const &status, bool write_p3, bool write_p7, ms timeout) {
         if (not write_p3 and not write_p7) {
-            LOGW("Attempt to write nothing on the GPIO, did you miss to pass some parameter?");
+            PN532_LOGW("Attempt to write nothing on the GPIO, did you miss to pass some parameter?");
             return result_success;
         }
         bin_data payload{};
@@ -617,7 +617,7 @@ namespace pn532 {
 
     std::uint8_t nfc::get_target(command_code cmd, std::uint8_t target_logical_index, bool expect_more_data) {
         if (target_logical_index > bits::max_num_targets) {
-            LOGE("%s: out of range (unsupported) logical target index %u (> %u).",
+            PN532_LOGE("%s: out of range (unsupported) logical target index %u (> %u).",
                  to_string(cmd), target_logical_index, bits::max_num_targets);
         }
         target_logical_index = std::min(target_logical_index, bits::max_num_targets);
@@ -650,7 +650,7 @@ namespace pn532 {
     namespace {
         void sanitize_max_targets(std::uint8_t &max_targets, const char *fname) {
             if (max_targets < 1 or max_targets > bits::max_num_targets) {
-                LOGW("%s: incorrect max targets %u for %s, clamping.",
+                PN532_LOGW("%s: incorrect max targets %u for %s, clamping.",
                      to_string(command_code::in_list_passive_target), max_targets, fname);
                 max_targets = std::min(std::max(max_targets, std::uint8_t(1)), bits::max_num_targets);
             }
@@ -738,7 +738,7 @@ namespace pn532 {
         range<std::vector<std::uint8_t>::const_iterator> sanitize_vector(
                 command_code cmd, const char *v_name, std::vector<std::uint8_t> const &v, std::size_t max_len) {
             if (v.size() > bits::general_info_max_length) {
-                LOGW("%s: %s vector too long (%u), truncating to %u bytes.", to_string(cmd), v_name, v.size(), max_len);
+                PN532_LOGW("%s: %s vector too long (%u), truncating to %u bytes.", to_string(cmd), v_name, v.size(), max_len);
             }
             return make_range(
                     std::begin(v),
@@ -816,11 +816,11 @@ namespace pn532 {
             infbyte polls_per_type, poll_period period,
             ms timeout) {
         if (types_to_poll.empty()) {
-            LOGW("%s: no target types specified.", to_string(command_code::in_autopoll));
+            PN532_LOGW("%s: no target types specified.", to_string(command_code::in_autopoll));
             return std::vector<any_target>{};
         }
         if (types_to_poll.size() > bits::autopoll_max_types) {
-            LOGW("%s: too many (%ul) types to poll, at most %u will be considered.",
+            PN532_LOGW("%s: too many (%ul) types to poll, at most %u will be considered.",
                  to_string(command_code::in_autopoll), types_to_poll.size(), bits::autopoll_max_types);
         }
         const auto num_types = std::min(bits::autopoll_max_types, types_to_poll.size());
@@ -844,10 +844,10 @@ namespace pn532 {
         static constexpr std::size_t max_chunk_length = bits::max_firmware_data_length - 1;  // - target byte
         const auto n_chunks = std::max(1u, (data.size() + max_chunk_length - 1) / max_chunk_length);
         if (n_chunks > 1) {
-            LOGI("%s: %ul bytes will be sent in %u chunks.", to_string(command_code::in_data_exchange), data.size(),
+            PN532_LOGI("%s: %ul bytes will be sent in %u chunks.", to_string(command_code::in_data_exchange), data.size(),
                  n_chunks);
         }
-        LOGD("%s: sending the following data to target %u:", to_string(command_code::in_data_exchange),
+        PN532_LOGD("%s: sending the following data to target %u:", to_string(command_code::in_data_exchange),
              target_logical_index);
         ESP_LOG_BUFFER_HEX_LEVEL(PN532_TAG, data.data(), data.size(), ESP_LOG_DEBUG);
         reduce_timeout rt{timeout};
@@ -859,7 +859,7 @@ namespace pn532 {
             const std::uint8_t target_byte = get_target(command_code::in_data_exchange, target_logical_index,
                                                         more_data);
             if (n_chunks > 1) {
-                LOGI("%s: sending chunk %u/%u...", to_string(command_code::in_data_exchange), chunk_idx + 1, n_chunks);
+                PN532_LOGI("%s: sending chunk %u/%u...", to_string(command_code::in_data_exchange), chunk_idx + 1, n_chunks);
             }
             const bin_data payload = bin_data::chain(prealloc(1u + data_view.size()), target_byte, data_view);
             auto res_cmd = command_parse_response<std::pair<rf_status, bin_data>>(
@@ -869,7 +869,7 @@ namespace pn532 {
             }
             if (res_cmd->first.error != controller_error::none) {
                 if (more_data) {
-                    LOGE("%s: aborting multiple chunks transfer because controller returned error %s.",
+                    PN532_LOGE("%s: aborting multiple chunks transfer because controller returned error %s.",
                          to_string(command_code::in_data_exchange), to_string(res_cmd->first.error));
                     // Send an ack to abort whatever is left in the controller.
                     raw_send_ack(true, one_sec);

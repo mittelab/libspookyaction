@@ -211,7 +211,7 @@ namespace desfire {
             case cipher_type::aes128:
                 return get_key<cipher_type::aes128>().key_number;
             default:
-                LOGE("Unhandled cipher type.");
+                DESFIRE_LOGE("Unhandled cipher type.");
                 return std::numeric_limits<std::uint8_t>::max();
         }
     }
@@ -225,7 +225,7 @@ namespace desfire {
             case cipher_type::aes128:
                 return false;
             default:
-                LOGE("Requesting whether a cipher is legacy with no cipher!");
+                DESFIRE_LOGE("Requesting whether a cipher is legacy with no cipher!");
                 return true;
         }
     }
@@ -248,7 +248,7 @@ namespace desfire {
             case cipher_type::aes128:
                 return get_key<cipher_type::aes128>().make_cipher();
             default:
-                LOGE("Unhandled cipher type.");
+                DESFIRE_LOGE("Unhandled cipher type.");
                 return nullptr;
         }
     }
@@ -260,7 +260,7 @@ namespace desfire {
             case cipher_type::des:     return command_code::authenticate_legacy;
             case cipher_type::aes128:  return command_code::authenticate_aes;
             default:
-                LOGE("Requesting authentication command for no cipher!");
+                DESFIRE_LOGE("Requesting authentication command for no cipher!");
                 return command_code::additional_frame;
         }
     }

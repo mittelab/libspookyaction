@@ -72,7 +72,7 @@ namespace desfire {
         static const auto nonzero_byte_pred = [](std::uint8_t b) -> bool { return b != 0; };
         const bool multiple_of_block_size = std::distance(begin, end) % BlockSize == 0;
         if (not multiple_of_block_size) {
-            LOGE("Cannot scan for CRC tail if data length is not a multiple of the block size.");
+            DESFIRE_LOGE("Cannot scan for CRC tail if data length is not a multiple of the block size.");
         }
         // Store the last successful crc and end of the payload
         ByteIterator last_payload_end = end;

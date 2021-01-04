@@ -16,10 +16,17 @@ namespace desfire {
     const char *to_string(comm_mode);
 
     template <std::size_t BlockSize, std::uint8_t CMACSubkeyR>
+    cipher_scheme<BlockSize, CMACSubkeyR>::cipher_scheme() : _cmac_subkey_pad{}, _cmac_subkey_nopad{}, _global_iv{} {
+        set_iv_mode(cipher_iv::global);
+    }
+
+    template <std::size_t BlockSize, std::uint8_t CMACSubkeyR>
     void cipher_scheme<BlockSize, CMACSubkeyR>::initialize() {
         std::fill_n(std::begin(_cmac_subkey_pad), block_size, 0);
         std::fill_n(std::begin(_cmac_subkey_nopad), block_size, 0);
         std::fill_n(std::begin(_global_iv), block_size, 0);
+
+        /// Perform key derivation
 
         static const auto prepare_subkey = [](cmac_subkey_t &subkey) {
             // Some app-specific magic: lshift by one
@@ -30,17 +37,16 @@ namespace desfire {
             }
         };
 
-        static block_t iv{};
-        static bin_data data{};
-        // Initialize data and IV at zero
-        std::fill_n(std::begin(iv), block_size, 0);
-        data.clear();
-        data.resize(block_size, 0x0);
-        // Crypt on local IV
-        do_crypto(data.view(), true, iv);
+        bin_data subkey_data{};
+        subkey_data.resize(block_size, 0x0);
+        {
+            // Switch to IV zero
+            iv_session session{*this, cipher_iv::zero};
+            do_crypto(subkey_data.view(), true, get_iv());
+        }
 
         // Copy and prep
-        std::copy(std::begin(data), std::end(data), std::begin(_cmac_subkey_nopad));
+        std::copy(std::begin(subkey_data), std::end(subkey_data), std::begin(_cmac_subkey_nopad));
         prepare_subkey(_cmac_subkey_nopad);
 
         // Do it again
@@ -72,9 +78,9 @@ namespace desfire {
         }
 
         // Return the first 8 bytes of the last block
-        do_crypto(buffer.view(), true, _global_iv);
-        return {_global_iv[0], _global_iv[1], _global_iv[2], _global_iv[3], _global_iv[4], _global_iv[5],
-                _global_iv[6], _global_iv[7]};
+        block_t &iv = get_iv();
+        do_crypto(buffer.view(), true, iv);
+        return {iv[0], iv[1], iv[2], iv[3], iv[4], iv[5], iv[6], iv[7]};
     }
 
     template <std::size_t BlockSize, std::uint8_t CMACSubkeyR>
@@ -136,7 +142,7 @@ namespace desfire {
                 data.reserve(offset + padded_length<block_size>(data.size() - offset));
             }
             data.resize(offset + padded_length<block_size>(data.size() - offset), 0x00);
-            do_crypto(data.view(offset), true, _global_iv);
+            do_crypto(data.view(offset), true, get_iv());
         }
     }
 
@@ -187,7 +193,7 @@ namespace desfire {
                         ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG, data.data(), data.size(), ESP_LOG_WARN);
                         return false;
                     }
-                    do_crypto(data.view(), false, _global_iv);
+                    do_crypto(data.view(), false, get_iv());
                     if (cfg.do_crc) {
                         // Truncate the padding and the crc
                         const bool did_verify = drop_padding_verify_crc(data, status);
@@ -205,19 +211,16 @@ namespace desfire {
         return true;
     }
 
-
     template <std::size_t BlockSize, std::uint8_t CMACSubkeyR>
-    void cipher_scheme<BlockSize, CMACSubkeyR>::encrypt(bin_data &data) {
-        data.resize(padded_length<block_size>(data.size()), 0x00);
-        do_crypto(data.view(), true, _global_iv);
+    typename cipher_scheme<BlockSize, CMACSubkeyR>::block_t &cipher_scheme<BlockSize, CMACSubkeyR>::get_iv() {
+        static block_t _null_iv{};
+        if (iv_mode() == cipher_iv::global) {
+            return _global_iv;
+        }
+        // Reset every time
+        std::fill_n(std::begin(_null_iv), block_size, 0x00);
+        return _null_iv;
     }
-
-    template <std::size_t BlockSize, std::uint8_t CMACSubkeyR>
-    void cipher_scheme<BlockSize, CMACSubkeyR>::decrypt(bin_data &data) {
-        data.resize(padded_length<block_size>(data.size()), 0x00);
-        do_crypto(data.view(), false, _global_iv);
-    }
-
 
 }
 

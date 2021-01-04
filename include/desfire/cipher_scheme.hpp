@@ -10,8 +10,15 @@
 namespace desfire {
 
     class cipher_legacy_scheme : public virtual cipher, public cipher_traits<8, 4, 2> {
+        block_t _global_iv;
+
+        block_t &get_iv();
     public:
         static constexpr std::uint16_t crc_init = 0x6363;
+
+        cipher_legacy_scheme();
+
+        void initialize();
 
         /**
          *
@@ -33,12 +40,6 @@ namespace desfire {
         void prepare_tx(bin_data &data, std::size_t offset, config const &cfg) final;
 
         bool confirm_rx(bin_data &data, config const &cfg) final;
-
-        void encrypt(bin_data &data) final;
-
-        void decrypt(bin_data &data) final;
-
-        static block_t &get_null_iv() ;
     };
 
     template <std::size_t BlockSize, std::uint8_t CMACSubkeyR>
@@ -60,9 +61,10 @@ namespace desfire {
         cmac_subkey_t _cmac_subkey_nopad;
         block_t _global_iv;
 
-    protected:
+        block_t &get_iv();
 
-        cipher_scheme() = default;
+    protected:
+        cipher_scheme();
 
         void initialize();
 
@@ -86,10 +88,6 @@ namespace desfire {
         void prepare_tx(bin_data &data, std::size_t offset, config const &cfg) final;
 
         bool confirm_rx(bin_data &data, config const &cfg) final;
-
-        void encrypt(bin_data &data) final;
-
-        void decrypt(bin_data &data) final;
 
     };
 

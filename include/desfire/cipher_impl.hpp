@@ -73,10 +73,6 @@ namespace desfire {
             return true;
         }
 
-        void encrypt(bin_data &) override {}
-
-        void decrypt(bin_data &) override {}
-
         void reinit_with_session_key(bin_data const &) override {}
     };
 }

@@ -14,9 +14,19 @@ namespace desfire {
         using namespace mlab;
     }
 
+    enum cipher_iv {
+        global,
+        zero
+    };
+
     class cipher {
+        cipher_iv _iv_mode = cipher_iv::global;
     public:
         struct config;
+
+        inline void set_iv_mode(cipher_iv v);
+
+        inline cipher_iv iv_mode() const;
 
         virtual void prepare_tx(bin_data &data, std::size_t offset, config const &cfg) = 0;
 
@@ -25,13 +35,22 @@ namespace desfire {
          */
         virtual bool confirm_rx(bin_data &data, config const &cfg) = 0;
 
-        virtual void encrypt(bin_data &data) = 0;
-
-        virtual void decrypt(bin_data &data) = 0;
-
         virtual void reinit_with_session_key(bin_data const &rndab) = 0;
 
         virtual ~cipher() = default;
+    };
+
+    class iv_session {
+    private:
+        cipher &_c;
+        cipher_iv _old_iv_mode;
+    public:
+        explicit iv_session(cipher &c, cipher_iv iv_mode) : _c{c}, _old_iv_mode{c.iv_mode()} {
+            _c.set_iv_mode(iv_mode);
+        }
+        ~iv_session() {
+            _c.set_iv_mode(_old_iv_mode);
+        }
     };
 
     struct cipher::config {
@@ -53,6 +72,15 @@ namespace desfire {
         using mac_t = std::array<std::uint8_t, mac_size>;
         using crc_t = std::array<std::uint8_t, crc_size>;
     };
+}
+
+namespace desfire {
+    void cipher::set_iv_mode(cipher_iv v) {
+        _iv_mode = v;
+    }
+    cipher_iv cipher::iv_mode() const {
+        return _iv_mode;
+    }
 }
 
 #endif //DESFIRE_CIPHER_HPP

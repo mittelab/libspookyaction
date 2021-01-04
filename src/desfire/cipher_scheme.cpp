@@ -10,6 +10,23 @@
 #include "desfire/cipher_scheme.hpp"
 
 namespace desfire {
+    cipher_legacy_scheme::cipher_legacy_scheme() : _global_iv{} {
+        set_iv_mode(cipher_iv::zero);
+    }
+
+    void cipher_legacy_scheme::initialize() {
+        std::fill_n(std::begin(_global_iv), block_size, 0);
+    }
+
+    cipher_legacy_scheme::block_t &cipher_legacy_scheme::get_iv() {
+        static block_t dummy_iv{};
+        if (iv_mode() == cipher_iv::global) {
+            return _global_iv;
+        }
+        // Reset every time
+        std::fill_n(std::begin(dummy_iv), block_size, 0x00);
+        return dummy_iv;
+    }
 
     cipher_legacy_scheme::mac_t cipher_legacy_scheme::compute_mac(range <bin_data::const_iterator> data) {
         static bin_data buffer{};
@@ -19,7 +36,7 @@ namespace desfire {
         std::copy(std::begin(data), std::end(data), std::begin(buffer));
 
         // Return the first 4 bytes of the last block
-        block_t iv = get_null_iv();  // Copy locally the IV for local usage
+        block_t &iv = get_iv();
         do_crypto(buffer.view(), true, iv);
         return {iv[0], iv[1], iv[2], iv[3]};
     }
@@ -46,13 +63,6 @@ namespace desfire {
             return true;
         }
         return false;
-    }
-
-    cipher_legacy_scheme::block_t &cipher_legacy_scheme::get_null_iv() {
-        static block_t _iv{};
-        // Legacy protocol always uses 0x0
-        std::fill_n(std::begin(_iv), block_size, 0x00);
-        return _iv;
     }
 
     void cipher_legacy_scheme::prepare_tx(bin_data &data, std::size_t offset, cipher::config const &cfg) {
@@ -89,20 +99,10 @@ namespace desfire {
                     data.resize(offset + padded_length<block_size>(data.size() - offset), 0x00);
                     // This is actually correct. The legacy mode of the Mifare does only encryption and not
                     // decryption, so we will have to decrypt before sending.
-                    do_crypto(data.view(offset), false, get_null_iv());
+                    do_crypto(data.view(offset), false, get_iv());
                 }
                 break;
         }
-    }
-
-    void cipher_legacy_scheme::encrypt(bin_data &data) {
-        data.resize(padded_length<block_size>(data.size()), 0x00);
-        do_crypto(data.view(), true, get_null_iv());
-    }
-
-    void cipher_legacy_scheme::decrypt(bin_data &data) {
-        data.resize(padded_length<block_size>(data.size()), 0x00);
-        do_crypto(data.view(), false, get_null_iv());
     }
 
 
@@ -147,7 +147,7 @@ namespace desfire {
                         ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG, data.data(), data.size(), ESP_LOG_WARN);
                         return false;
                     }
-                    do_crypto(data.view(), false, get_null_iv());
+                    do_crypto(data.view(), false, get_iv());
                     if (cfg.do_crc) {
                         // Truncate the padding and the crc
                         const bool did_verify = drop_padding_verify_crc(data);

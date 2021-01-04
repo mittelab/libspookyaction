@@ -12,6 +12,7 @@ namespace desfire {
         mbedtls_des_init(&_dec_context);
         mbedtls_des_setkey_enc(&_enc_context, key.data());
         mbedtls_des_setkey_dec(&_dec_context, key.data());
+        initialize();
     }
 
     void cipher_des::reinit_with_session_key(bin_data const &rndab) {
@@ -30,6 +31,7 @@ namespace desfire {
         mbedtls_des_init(&_dec_context);
         mbedtls_des_setkey_enc(&_enc_context, new_key.data());
         mbedtls_des_setkey_dec(&_dec_context, new_key.data());
+        initialize();
     }
 
     cipher_des::~cipher_des() {
@@ -51,6 +53,7 @@ namespace desfire {
         mbedtls_des3_init(&_dec_context);
         mbedtls_des3_set2key_enc(&_enc_context, key.data());
         mbedtls_des3_set2key_enc(&_dec_context, key.data());
+        initialize();
     }
 
     void cipher_2k3des::reinit_with_session_key(bin_data const &rndab) {
@@ -71,6 +74,7 @@ namespace desfire {
         mbedtls_des3_init(&_dec_context);
         mbedtls_des3_set2key_enc(&_enc_context, new_key.data());
         mbedtls_des3_set2key_dec(&_dec_context, new_key.data());
+        initialize();
     }
 
     cipher_2k3des::~cipher_2k3des() {

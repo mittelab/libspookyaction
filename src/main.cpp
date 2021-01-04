@@ -128,6 +128,10 @@ void test_mifare() {
     auto pcd = pn532::desfire_pcd{*tag_reader, r_scan->front().logical_index};
     auto mifare = desfire::tag{pcd};
 
+    ESP_LOGI(TEST_TAG, "Selecting default application.");
+    const auto res_select = mifare.select_application({0, 0, 0});
+    TEST_ASSERT(bool(res_select));
+
     const std::array<desfire::any_key, 4> default_keys = {
             desfire::any_key{desfire::key<desfire::cipher_type::des>{}},
             desfire::any_key{desfire::key<desfire::cipher_type::des3_2k>{}},
@@ -247,14 +251,14 @@ extern "C" void app_main() {
     UNITY_BEGIN();
     issue_header("HARDWARE SETUP");
     RUN_TEST(setup_uart);
-//    issue_header("PN532 TEST AND DIAGNOSTICS");
-//    RUN_TEST(test_get_fw);
-//    RUN_TEST(test_diagnostics);
-//    issue_header("PN532 SCAN TEST (optionally place card)");
-//    RUN_TEST(test_scan_mifare);
-//    RUN_TEST(test_scan_all);
-//    issue_header("PN532 MIFARE COMM TEST (replace Mifare card)");
-//    RUN_TEST(test_data_exchange);
+    issue_header("PN532 TEST AND DIAGNOSTICS");
+    RUN_TEST(test_get_fw);
+    RUN_TEST(test_diagnostics);
+    issue_header("PN532 SCAN TEST (optionally place card)");
+    RUN_TEST(test_scan_mifare);
+    RUN_TEST(test_scan_all);
+    issue_header("PN532 MIFARE COMM TEST (replace Mifare card)");
+    RUN_TEST(test_data_exchange);
     issue_header("MIFARE CIPHER TEST");
     RUN_TEST(test_cipher_des);
     RUN_TEST(test_cipher_2k3des);

@@ -4,6 +4,7 @@
 
 #include <esp_log.h>
 #include <rom/crc.h>
+#include "desfire/msg.hpp"
 #include "desfire/log.h"
 #include "desfire/crypto_algo.hpp"
 #include "desfire/cipher_scheme.hpp"
@@ -55,6 +56,8 @@ namespace desfire {
     }
 
     void cipher_legacy_scheme::prepare_tx(bin_data &data, std::size_t offset, cipher::config const &cfg) {
+        DESFIRE_LOGD("Legacy protocol, preparing outgoing data with comm mode %s", to_string(cfg.mode));
+        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG, data.data(), data.size(), ESP_LOG_DEBUG);
         if (offset >= data.size()) {
             return;  // Nothing to do
         }
@@ -104,6 +107,8 @@ namespace desfire {
 
 
     bool cipher_legacy_scheme::confirm_rx(bin_data &data, cipher::config const &cfg) {
+        DESFIRE_LOGD("Legacy protocol, validating incoming data with comm mode %s", to_string(cfg.mode));
+        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG, data.data(), data.size(), ESP_LOG_DEBUG);
         if (data.size() == 1) {
             // Just status byte, return as-is
             return true;

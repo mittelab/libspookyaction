@@ -13,6 +13,8 @@
 
 namespace desfire {
 
+    const char *to_string(comm_mode);
+
     template <std::size_t BlockSize, std::uint8_t CMACSubkeyR>
     void cipher_scheme<BlockSize, CMACSubkeyR>::initialize() {
         std::fill_n(std::begin(_cmac_subkey_pad), block_size, 0);
@@ -109,6 +111,8 @@ namespace desfire {
     template <std::size_t BlockSize, std::uint8_t CMACSubkeyR>
     void cipher_scheme<BlockSize, CMACSubkeyR>::prepare_tx(
             bin_data &data, std::size_t offset, cipher::config const &cfg) {
+        DESFIRE_LOGD("Modern protocol, preparing outgoing data with comm mode %s", to_string(cfg.mode));
+        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG, data.data(), data.size(), ESP_LOG_DEBUG);
         if (offset >= data.size()) {
             return;  // Nothing to do
         }
@@ -138,6 +142,8 @@ namespace desfire {
 
     template <std::size_t BlockSize, std::uint8_t CMACSubkeyR>
     bool cipher_scheme<BlockSize, CMACSubkeyR>::confirm_rx(bin_data &data, cipher::config const &cfg) {
+        DESFIRE_LOGD("Modern protocol, validating incoming data with comm mode %s", to_string(cfg.mode));
+        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG, data.data(), data.size(), ESP_LOG_DEBUG);
         if (data.size() == 1) {
             // Just status byte, return as-is
             return true;

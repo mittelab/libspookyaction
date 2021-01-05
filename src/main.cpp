@@ -264,23 +264,23 @@ void issue_header(std::string const &title) {
 
 extern "C" void app_main() {
     UNITY_BEGIN();
-//    issue_header("HARDWARE SETUP");
-//    RUN_TEST(setup_uart_pn532);
-//    issue_header("PN532 TEST AND DIAGNOSTICS");
-//    RUN_TEST(test_get_fw);
-//    RUN_TEST(test_diagnostics);
-//    issue_header("PN532 SCAN TEST (optionally place card)");
-//    RUN_TEST(test_scan_mifare);
-//    RUN_TEST(test_scan_all);
-//    issue_header("PN532 MIFARE COMM TEST (replace Mifare card)");
-//    RUN_TEST(test_data_exchange);
+    issue_header("HARDWARE SETUP");
+    RUN_TEST(setup_uart_pn532);
+    issue_header("PN532 TEST AND DIAGNOSTICS");
+    RUN_TEST(test_get_fw);
+    RUN_TEST(test_diagnostics);
+    issue_header("PN532 SCAN TEST (optionally place card)");
+    RUN_TEST(test_scan_mifare);
+    RUN_TEST(test_scan_all);
+    issue_header("PN532 MIFARE COMM TEST (replace Mifare card)");
+    RUN_TEST(test_data_exchange);
     issue_header("MIFARE CIPHER TEST");
     RUN_TEST(test_auth_des);
-//    RUN_TEST(test_cipher_2k3des);
-//    RUN_TEST(test_cipher_3k3des);
-//    RUN_TEST(test_cipher_aes);
-//    issue_header("MIFARE AUTHENTICATION TEST (replace Mifare card)");
-//    RUN_TEST(test_mifare);
+    RUN_TEST(test_cipher_2k3des);
+    RUN_TEST(test_cipher_3k3des);
+    RUN_TEST(test_cipher_aes);
+    issue_header("MIFARE AUTHENTICATION TEST (replace Mifare card)");
+    RUN_TEST(test_mifare);
     UNITY_END();
 }
 

@@ -114,50 +114,6 @@ void test_data_exchange() {
     TEST_ASSERT(r_exchange->second.size() == 1 and r_exchange->second.front() == 0x0);
 }
 
-void test_mifare() {
-    ESP_LOGI(TEST_TAG, "Searching for one passive 106 kbps target. Please bring card close.");
-    const auto r_scan = tag_reader->initiator_list_passive_kbps106_typea(1, 10 * pn532::one_sec);
-    if (not r_scan or r_scan->empty()) {
-        TEST_FAIL_MESSAGE("Could not find a suitable card for testing.");
-        return;
-    }
-    ESP_LOGI(TEST_TAG, "Found one target:");
-    auto const &nfcid = r_scan->front().info.nfcid;
-    ESP_LOG_BUFFER_HEX_LEVEL(TEST_TAG, nfcid.data(), nfcid.size(), ESP_LOG_INFO);
-
-    // Build controller
-    auto pcd = pn532::desfire_pcd{*tag_reader, r_scan->front().logical_index};
-    auto mifare = desfire::tag{pcd};
-
-    ESP_LOGI(TEST_TAG, "Selecting default application.");
-    const auto res_select = mifare.select_application({0, 0, 0});
-    TEST_ASSERT(bool(res_select));
-
-    const std::array<desfire::any_key, 4> default_keys = {
-            desfire::any_key{desfire::key<desfire::cipher_type::des>{}},
-            desfire::any_key{desfire::key<desfire::cipher_type::des3_2k>{}},
-            desfire::any_key{desfire::key<desfire::cipher_type::des3_3k>{}},
-            desfire::any_key{desfire::key<desfire::cipher_type::aes128>{}}
-    };
-
-    for (desfire::any_key const &k : default_keys) {
-        ESP_LOGI(TEST_TAG, "Attempting auth with default %s key.", desfire::to_string(k.type()));
-        auto r_auth = mifare.authenticate(k);
-        if (not r_auth) {
-            ESP_LOGW(TEST_TAG, "Authentication failed: %s", desfire::to_string(r_auth.error()));
-            if (not pcd.last_result()) {
-                ESP_LOGW(TEST_TAG, "Last PCD error: %s", pn532::to_string(pcd.last_result().error()));
-            } else {
-                ESP_LOGW(TEST_TAG, "Last controller error: %s", pn532::to_string(pcd.last_result()->error));
-            }
-        } else {
-            ESP_LOGI(TEST_TAG, "Successful.");
-        }
-        TEST_ASSERT(bool(r_auth));
-        mifare.clear_authentication();
-    }
-}
-
 void test_cipher_des() {
     // Test using examples from https://hack.cert.pl/files/desfire-9f122c71e0057d4f747d2ee295b0f5f6eef8ac32.html
     const auto k = desfire::key<desfire::cipher_type::des>{0, {0, 0, 0, 0, 0, 0, 0, 0}};
@@ -264,6 +220,43 @@ void issue_header(std::string const &title) {
     const std::string header = "---------- " + title + " " + std::string(tail_length, '-');
     ESP_LOGI(TEST_TAG, "%s", header.c_str());
     vTaskDelay(2000 / portTICK_PERIOD_MS);
+}
+
+void test_mifare_auth_base() {
+    ESP_LOGI(TEST_TAG, "Searching for one passive 106 kbps target. Please bring card close.");
+    const auto r_scan = tag_reader->initiator_list_passive_kbps106_typea(1, 10 * pn532::one_sec);
+    if (not r_scan or r_scan->empty()) {
+        TEST_FAIL_MESSAGE("Could not find a suitable card for testing.");
+        return;
+    }
+    ESP_LOGI(TEST_TAG, "Found one target:");
+    auto const &nfcid = r_scan->front().info.nfcid;
+    ESP_LOG_BUFFER_HEX_LEVEL(TEST_TAG, nfcid.data(), nfcid.size(), ESP_LOG_INFO);
+
+    // Build controller
+    auto pcd = pn532::desfire_pcd{*tag_reader, r_scan->front().logical_index};
+    auto mifare = desfire::tag{pcd};
+
+    ESP_LOGI(TEST_TAG, "Selecting default application.");
+    const auto res_select = mifare.select_application({0, 0, 0});
+    TEST_ASSERT(bool(res_select));
+
+    const auto default_k = desfire::key<desfire::cipher_type::des>{};
+
+    ESP_LOGI(TEST_TAG, "Attempting auth with default DES key.");
+    auto r_auth = mifare.authenticate(default_k);
+    if (not r_auth) {
+        ESP_LOGW(TEST_TAG, "Authentication failed: %s", desfire::to_string(r_auth.error()));
+        if (not pcd.last_result()) {
+            ESP_LOGW(TEST_TAG, "Last PCD error: %s", pn532::to_string(pcd.last_result().error()));
+        } else {
+            ESP_LOGW(TEST_TAG, "Last controller error: %s", pn532::to_string(pcd.last_result()->error));
+        }
+    } else {
+        ESP_LOGI(TEST_TAG, "Successful.");
+    }
+    TEST_ASSERT(bool(r_auth));
+    mifare.clear_authentication();
 }
 
 extern "C" void app_main() {

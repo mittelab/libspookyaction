@@ -158,25 +158,29 @@ void test_mifare() {
     }
 }
 
-struct dummy_controller final : public desfire::controller {
-    std::pair<mlab::bin_data, bool> communicate(mlab::bin_data const &data) override {
-        TEST_FAIL_MESSAGE("Attempt to communicate through dummy controller.");
-        return {mlab::bin_data{}, false};
-    }
-};
-
-void test_auth_des() {
+void test_cipher_des() {
     // Test using examples from https://hack.cert.pl/files/desfire-9f122c71e0057d4f747d2ee295b0f5f6eef8ac32.html
     const auto k = desfire::key<desfire::cipher_type::des>{0, {0, 0, 0, 0, 0, 0, 0, 0}};
-    auto ctrl = dummy_controller{};
-    auto tag = desfire::tag(ctrl);
-    tag.debug_next_plain_exchange({{0x0a, 0x00}, true, {0x4f, 0xd1, 0xb7, 0x59, 0x42, 0xa8, 0xb8, 0xe1, 0xaf}, true, true});
-    tag.debug_next_raw_exchange({{0x0a, 0x00}, true, {0xaf, 0x5d, 0x99, 0x4c, 0xe0, 0x85, 0xf2, 0x40, 0x89}, true, false});
-    tag.debug_next_plain_exchange({{0xaf, 0x84, 0x9b, 0x36, 0xc5, 0xf8, 0xbf, 0x4a, 0x09, 0xd1, 0xb7, 0x59, 0x42, 0xa8, 0xb8, 0xe1, 0x4f}, false, {0x9b, 0x36, 0xc5, 0xf8, 0xbf, 0x4a, 0x09, 0x84, 0x00}, true, true});
-    tag.debug_next_raw_exchange({{0xaf, 0x21, 0xd0, 0xad, 0x5f, 0x2f, 0xd9, 0x74, 0x54, 0xa7, 0x46, 0xcc, 0x80, 0x56, 0x7f, 0x1b, 0x1c}, true, {0x00, 0x91, 0x3c, 0x6d, 0xed, 0x84, 0x22, 0x1c, 0x41}, true, false});
-    const auto res_auth = tag.authenticate(k);
-    TEST_ASSERT(tag.debug_failed_checks() == 0);
-    TEST_ASSERT(bool(res_auth));
+    desfire::cipher_des c{k.k};
+    desfire::iv_session session{c, desfire::cipher_iv::global};
+    {
+        desfire::bin_data enc_data = {0x5D, 0x99, 0x4C, 0xE0, 0x85, 0xF2, 0x40, 0x89, /* status */ 0xAF};
+        const desfire::bin_data dec_data = {0x4F, 0xD1, 0xB7, 0x59, 0x42, 0xA8, 0xB8, 0xE1, /* status */ 0xAF};
+        c.confirm_rx(enc_data, desfire::cipher_cfg_crypto_nocrc);
+        TEST_ASSERT(enc_data == dec_data);
+    }
+    {
+        desfire::bin_data dec_data = {0x84, 0x9B, 0x36, 0xC5, 0xF8, 0xBF, 0x4A, 0x09, 0xD1, 0xB7, 0x59, 0x42, 0xA8, 0xB8, 0xE1, 0x4F};
+        const desfire::bin_data enc_data = {0x21, 0xD0, 0xAD, 0x5F, 0x2F, 0xD9, 0x74, 0x54, 0xA7, 0x46, 0xCC, 0x80, 0x56, 0x7F, 0x1B, 0x1C};
+        c.prepare_tx(dec_data, 0, desfire::cipher_cfg_crypto_nocrc);
+        TEST_ASSERT(enc_data == dec_data);
+    }
+    {
+        desfire::bin_data enc_data = {0x91, 0x3C, 0x6D, 0xED, 0x84, 0x22, 0x1C, 0x41, /* status */ 0x00};
+        const desfire::bin_data dec_data = {0x9B, 0x36, 0xC5, 0xF8, 0xBF, 0x4A, 0x09, 0x84, /* status */ 0x00};
+        c.confirm_rx(enc_data, desfire::cipher_cfg_crypto_nocrc);
+        TEST_ASSERT(enc_data == dec_data);
+    }
 }
 
 void test_cipher_2k3des() {
@@ -275,7 +279,7 @@ extern "C" void app_main() {
     issue_header("PN532 MIFARE COMM TEST (replace Mifare card)");
     RUN_TEST(test_data_exchange);
     issue_header("MIFARE CIPHER TEST");
-    RUN_TEST(test_auth_des);
+    RUN_TEST(test_cipher_des);
     RUN_TEST(test_cipher_2k3des);
     RUN_TEST(test_cipher_3k3des);
     RUN_TEST(test_cipher_aes);

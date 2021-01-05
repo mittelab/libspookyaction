@@ -12,6 +12,10 @@
 
 namespace desfire {
 
+    void tag::debug_next_exchange(tag::comm_override next_comm) {
+        _debug_overrides.push_back(std::move(next_comm));
+    }
+
     void tag::clear_authentication() {
         if (_active_cipher != nullptr) {
             DESFIRE_LOGI("Releasing authentication.");
@@ -22,14 +26,66 @@ namespace desfire {
     }
 
     tag::r<bin_data> tag::raw_command_response(bin_data const &payload) {
-        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " >>", payload.data(), payload.size(), ESP_LOG_VERBOSE);
-        auto res_cmd = ctrl().communicate(payload);
-        if (res_cmd.second) {
-            ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " <<", res_cmd.first.data(), res_cmd.first.size(), ESP_LOG_VERBOSE);
-            return std::move(res_cmd.first);
+        if (_debug_overrides.empty()) {
+            ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " >>", payload.data(), payload.size(), ESP_LOG_VERBOSE);
+            auto res_cmd = ctrl().communicate(payload);
+            if (res_cmd.second) {
+                ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " <<", res_cmd.first.data(), res_cmd.first.size(),
+                                         ESP_LOG_VERBOSE);
+                return std::move(res_cmd.first);
+            }
+            DESFIRE_LOGW("Could not send/receive data to/from the PICC (controller transmission failed).");
+            return error::controller_error;
+        } else {
+            /**
+             * @note This code is purely for debugging purposes.
+             * @{
+             */
+            comm_override override = std::move(_debug_overrides.front());
+            _debug_overrides.pop_front();
+
+            ESP_LOGI(DESFIRE_TAG " OVERRIDE", "Override: an override is in place for this command.");
+            if (override.check_tx) {
+                if (payload == override.tx) {
+                    ESP_LOGI(DESFIRE_TAG " OVERRIDE", "The command begin sent is the same as the expected one.");
+                } else {
+                    ++_debug_overrides_failed_checks;
+                    ESP_LOGW(DESFIRE_TAG " OVERRIDE", "The command begin sent differs from the expected one.");
+                    ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " OVERRIDE EXPECTED", override.tx.data(), override.tx.size(),
+                                             ESP_LOG_WARN);
+                    ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " OVERRIDE ACTUAL  ", payload.data(), payload.size(),
+                                             ESP_LOG_WARN);
+                }
+            }
+            ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " >>", override.tx.data(), override.tx.size(), ESP_LOG_VERBOSE);
+            if (override.actually_transceive) {
+                auto res_cmd = ctrl().communicate(override.tx);
+                if (res_cmd.second) {
+                    ESP_LOGI(DESFIRE_TAG " OVERRIDE", "Communication successful.");
+                    if (override.check_rx) {
+                        if (res_cmd.first == override.rx) {
+                            ESP_LOGI(DESFIRE_TAG " OVERRIDE", "The response received is the same as the expected one.");
+                        } else {
+                            ++_debug_overrides_failed_checks;
+                            ESP_LOGW(DESFIRE_TAG " OVERRIDE", "The response received differs from the expected one.");
+                            ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " OVERRIDE EXPECTED", override.rx.data(),
+                                                     override.rx.size(), ESP_LOG_WARN);
+                            ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " OVERRIDE ACTUAL  ", res_cmd.first.data(),
+                                                     res_cmd.first.size(), ESP_LOG_WARN);
+                        }
+                    }
+                } else {
+                    ESP_LOGE(DESFIRE_TAG " OVERRIDE", "Communication failed.");
+                }
+            } else {
+                ESP_LOGI(DESFIRE_TAG " OVERRIDE", "Skipping communication.");
+            }
+            ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " <<", override.rx.data(), override.rx.size(), ESP_LOG_VERBOSE);
+            return std::move(override.rx);
+            /**
+             * @}
+             */
         }
-        DESFIRE_LOGW("Could not send/receive data to/from the PICC (controller transmission failed).");
-        return error::controller_error;
     }
 
     tag::r<> tag::select_application(std::array<std::uint8_t, 3> const &aid) {

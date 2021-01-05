@@ -6,6 +6,7 @@
 #define DESFIRE_TAG_HPP
 
 #include <memory>
+#include <list>
 #include "mlab/result.hpp"
 #include "cipher.hpp"
 #include "controller.hpp"
@@ -15,9 +16,6 @@ namespace desfire {
 
     class tag {
     public:
-
-        struct tx_config;
-        struct rx_config;
 
         template <class ...Tn>
         using r = mlab::result<error, Tn...>;
@@ -51,6 +49,26 @@ namespace desfire {
         r<bin_data> command_response(bin_data &payload, cipher &cipher,
                                      cipher::config const &tx_cfg, cipher::config const &rx_cfg,
                                      std::size_t secure_data_offset, bool fetch_additional_frames);
+
+        struct comm_override {
+            bin_data tx;
+            bool check_tx;
+            bin_data rx;
+            bool check_rx;
+            bool actually_transceive;
+
+            comm_override() : tx{}, check_tx{false}, rx{}, check_rx{false}, actually_transceive{false} {}
+            comm_override(bin_data tx_, bool check_tx_, bin_data rx_, bool check_rx_, bool do_actually_transceive) :
+                    tx{std::move(tx_)},
+                    check_tx{check_tx_},
+                    rx{std::move(rx_)},
+                    check_rx{check_rx_},
+                    actually_transceive{do_actually_transceive}
+            {}
+        };
+
+        void debug_next_exchange(comm_override next_comm);
+        inline unsigned debug_failed_checks() const;
     private:
         inline controller &ctrl();
         inline cipher &active_cipher();
@@ -61,8 +79,10 @@ namespace desfire {
         cipher_type _active_cipher_type;
         std::uint8_t _active_key_number;
 
-
+        std::list<comm_override> _debug_overrides;
+        unsigned _debug_overrides_failed_checks;
     };
+
 }
 
 namespace desfire {
@@ -75,7 +95,9 @@ namespace desfire {
         _controller{&controller},
         _active_cipher{},
         _active_cipher_type{cipher_type::none},
-        _active_key_number{std::numeric_limits<std::uint8_t>::max()}
+        _active_key_number{std::numeric_limits<std::uint8_t>::max()},
+        _debug_overrides{},
+        _debug_overrides_failed_checks{0}
     {
         clear_authentication();
     }
@@ -91,6 +113,10 @@ namespace desfire {
 
     cipher &tag::active_cipher() {
         return *_active_cipher;
+    }
+
+    unsigned tag::debug_failed_checks() const {
+        return _debug_overrides_failed_checks;
     }
 }
 

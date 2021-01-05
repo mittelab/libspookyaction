@@ -77,8 +77,6 @@ namespace mlab {
 
         inline result_content holds() const;
 
-        inline bool empty() const;
-
         inline E error() const;
 
         inline ~result();
@@ -115,7 +113,6 @@ namespace mlab {
         using base::base;
         using base::holds;
         using base::error;
-        using base::empty;
         using base::operator=;
         using base::operator*;
         using base::operator->;
@@ -134,7 +131,6 @@ namespace mlab {
         using base::base;
         using base::holds;
         using base::error;
-        using base::empty;
         using base::operator=;
         using base::operator*;
         using base::operator->;
@@ -156,7 +152,6 @@ namespace mlab {
         using base::holds;
         using base::error;
         using base::operator bool;
-        using base::empty;
     };
 
     template <class E>
@@ -169,7 +164,6 @@ namespace mlab {
         using base::holds;
         using base::error;
         using base::operator bool;
-        using base::empty;
     };
 
 
@@ -376,11 +370,6 @@ namespace mlab {
     /*
      * Nothing interesting happening in these methods:
      */
-
-    template <class E, class T>
-    bool result<E, T>::empty() const {
-        return holds() == result_content::empty;
-    }
 
     template <class E, class T>
     result<E, T>::operator bool() const {

@@ -97,9 +97,7 @@ namespace desfire {
                         data.reserve(offset + padded_length<block_size>(data.size() - offset));
                     }
                     data.resize(offset + padded_length<block_size>(data.size() - offset), 0x00);
-                    // This is actually correct. The legacy mode of the Mifare does only encryption and not
-                    // decryption, so we will have to decrypt before sending.
-                    do_crypto(data.view(offset), false, get_iv());
+                    do_crypto(data.view(offset), true, get_iv());
                 }
                 break;
         }

@@ -855,7 +855,7 @@ namespace pn532 {
         rf_status s{};
         for (std::size_t chunk_idx = 0; chunk_idx < n_chunks; ++chunk_idx) {
             const auto data_view = data.view(chunk_idx * max_chunk_length, max_chunk_length);
-            const bool more_data = (chunk_idx + 1 >= n_chunks);
+            const bool more_data = (chunk_idx < n_chunks - 1);
             const std::uint8_t target_byte = get_target(command_code::in_data_exchange, target_logical_index,
                                                         more_data);
             if (n_chunks > 1) {

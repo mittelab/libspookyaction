@@ -50,26 +50,6 @@ namespace desfire {
                                      cipher::config const &tx_cfg, cipher::config const &rx_cfg,
                                      std::size_t secure_data_offset, bool fetch_additional_frames);
 
-        struct comm_override {
-            bin_data tx;
-            bool check_tx;
-            bin_data rx;
-            bool check_rx;
-            bool actually_transceive;
-
-            comm_override() : tx{}, check_tx{false}, rx{}, check_rx{false}, actually_transceive{false} {}
-            comm_override(bin_data tx_, bool check_tx_, bin_data rx_, bool check_rx_, bool do_actually_transceive) :
-                    tx{std::move(tx_)},
-                    check_tx{check_tx_},
-                    rx{std::move(rx_)},
-                    check_rx{check_rx_},
-                    actually_transceive{do_actually_transceive}
-            {}
-        };
-
-        void debug_next_raw_exchange(comm_override next_comm);
-        void debug_next_plain_exchange(comm_override next_comm);
-        inline unsigned debug_failed_checks() const;
     private:
         inline controller &ctrl();
         inline cipher &active_cipher();
@@ -79,10 +59,6 @@ namespace desfire {
         std::unique_ptr<cipher> _active_cipher;
         cipher_type _active_cipher_type;
         std::uint8_t _active_key_number;
-
-        std::list<comm_override> _debug_raw_overrides;
-        std::list<comm_override> _debug_plain_overrides;
-        unsigned _debug_overrides_failed_checks;
     };
 
 }
@@ -97,9 +73,7 @@ namespace desfire {
             _controller{&controller},
             _active_cipher{},
             _active_cipher_type{cipher_type::none},
-            _active_key_number{std::numeric_limits<std::uint8_t>::max()},
-            _debug_raw_overrides{},
-            _debug_overrides_failed_checks{0}
+            _active_key_number{std::numeric_limits<std::uint8_t>::max()}
     {
         clear_authentication();
     }
@@ -117,9 +91,6 @@ namespace desfire {
         return *_active_cipher;
     }
 
-    unsigned tag::debug_failed_checks() const {
-        return _debug_overrides_failed_checks;
-    }
 }
 
 #endif //DESFIRE_TAG_HPP

@@ -12,13 +12,6 @@
 
 namespace desfire {
 
-    void tag::debug_next_raw_exchange(tag::comm_override next_comm) {
-        _debug_raw_overrides.push_back(std::move(next_comm));
-    }
-    void tag::debug_next_plain_exchange(tag::comm_override next_comm) {
-        _debug_plain_overrides.push_back(std::move(next_comm));
-    }
-
     void tag::clear_authentication() {
         if (_active_cipher != nullptr) {
             DESFIRE_LOGI("Releasing authentication.");
@@ -29,66 +22,15 @@ namespace desfire {
     }
 
     tag::r<bin_data> tag::raw_command_response(bin_data const &payload) {
-        if (_debug_raw_overrides.empty()) {
-            ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " >>", payload.data(), payload.size(), ESP_LOG_VERBOSE);
-            auto res_cmd = ctrl().communicate(payload);
-            if (res_cmd.second) {
-                ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " <<", res_cmd.first.data(), res_cmd.first.size(),
-                                         ESP_LOG_VERBOSE);
-                return std::move(res_cmd.first);
-            }
-            DESFIRE_LOGW("Could not send/receive data to/from the PICC (controller transmission failed).");
-            return error::controller_error;
-        } else {
-            /**
-             * @note This code is purely for debugging purposes.
-             * @{
-             */
-            comm_override override = std::move(_debug_raw_overrides.front());
-            _debug_raw_overrides.pop_front();
-
-            ESP_LOGI(DESFIRE_TAG " RAW OVERRIDE", "Override: an override is in place for this command.");
-            if (override.check_tx) {
-                if (payload == override.tx) {
-                    ESP_LOGI(DESFIRE_TAG " RAW OVERRIDE", "The command begin sent is the same as the expected one.");
-                } else {
-                    ++_debug_overrides_failed_checks;
-                    ESP_LOGW(DESFIRE_TAG " RAW OVERRIDE", "The command begin sent differs from the expected one.");
-                    ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " RAW OVERRIDE EXPECTED", override.tx.data(), override.tx.size(),
-                                             ESP_LOG_WARN);
-                    ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " RAW OVERRIDE ACTUAL  ", payload.data(), payload.size(),
-                                             ESP_LOG_WARN);
-                }
-            }
-            ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " >>", override.tx.data(), override.tx.size(), ESP_LOG_VERBOSE);
-            if (override.actually_transceive) {
-                auto res_cmd = ctrl().communicate(override.tx);
-                if (res_cmd.second) {
-                    ESP_LOGI(DESFIRE_TAG " RAW OVERRIDE", "Communication successful.");
-                    if (override.check_rx) {
-                        if (res_cmd.first == override.rx) {
-                            ESP_LOGI(DESFIRE_TAG " RAW OVERRIDE", "The response received is the same as the expected one.");
-                        } else {
-                            ++_debug_overrides_failed_checks;
-                            ESP_LOGW(DESFIRE_TAG " RAW OVERRIDE", "The response received differs from the expected one.");
-                            ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " RAW OVERRIDE EXPECTED", override.rx.data(),
-                                                     override.rx.size(), ESP_LOG_WARN);
-                            ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " RAW OVERRIDE ACTUAL  ", res_cmd.first.data(),
-                                                     res_cmd.first.size(), ESP_LOG_WARN);
-                        }
-                    }
-                } else {
-                    ESP_LOGE(DESFIRE_TAG " RAW OVERRIDE", "Communication failed.");
-                }
-            } else {
-                ESP_LOGI(DESFIRE_TAG " RAW OVERRIDE", "Skipping communication.");
-            }
-            ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " <<", override.rx.data(), override.rx.size(), ESP_LOG_VERBOSE);
-            return std::move(override.rx);
-            /**
-             * @}
-             */
+        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " >>", payload.data(), payload.size(), ESP_LOG_VERBOSE);
+        auto res_cmd = ctrl().communicate(payload);
+        if (res_cmd.second) {
+            ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " <<", res_cmd.first.data(), res_cmd.first.size(),
+                                     ESP_LOG_VERBOSE);
+            return std::move(res_cmd.first);
         }
+        DESFIRE_LOGW("Could not send/receive data to/from the PICC (controller transmission failed).");
+        return error::controller_error;
     }
 
     tag::r<> tag::select_application(std::array<std::uint8_t, 3> const &aid) {
@@ -187,105 +129,44 @@ namespace desfire {
                                                 cipher::config const &tx_cfg, cipher::config const &rx_cfg,
                                                 std::size_t secure_data_offset, bool fetch_additional_frames)
     {
-        std::unique_ptr<comm_override> override = nullptr;
-        if (not _debug_plain_overrides.empty()) {
-            override = std::unique_ptr<comm_override>(new comm_override{std::move(_debug_plain_overrides.front())});
-            _debug_plain_overrides.pop_front();
-        }
-
-        if (override != nullptr) {
-            /**
-             * @note This code is purely for debugging purposes.
-             * @{
-             */
-            ESP_LOGI(DESFIRE_TAG " OVERRIDE", "Override: an override is in place for this command.");
-            if (override->check_tx) {
-                if (payload == override->tx) {
-                    ESP_LOGI(DESFIRE_TAG " OVERRIDE", "The command begin sent is the same as the expected one.");
-                } else {
-                    ++_debug_overrides_failed_checks;
-                    ESP_LOGW(DESFIRE_TAG " OVERRIDE", "The command begin sent differs from the expected one.");
-                    ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " OVERRIDE EXPECTED", override->tx.data(), override->tx.size(),
-                                             ESP_LOG_WARN);
-                    ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " OVERRIDE ACTUAL  ", payload.data(), payload.size(),
-                                             ESP_LOG_WARN);
-                }
-            }
-
-            payload.clear();
-            payload.resize(override->tx.size(), 0x00);
-            std::copy(std::begin(override->tx), std::end(override->tx), std::begin(payload));
-            /**
-             * @}
-             */
-        }
-
         cipher.prepare_tx(payload, secure_data_offset, tx_cfg);
         bin_data received{};
 
-        if (override == nullptr or override->actually_transceive) {
-            do {
-                const auto res = raw_command_response(payload);
-                if (not res) {
-                    return res.error();
-                }
-                if (res->empty()) {
-                    DESFIRE_LOGE("Received empty payload from card.");
-                    return error::malformed;
-                }
-                // Append data, move status byte at the end
-                received.reserve(received.size() + res->size());
-                received << res->view(1) << res->front();
-                // Check status byte if necessary
-                if (fetch_additional_frames) {
-                    const auto sb = static_cast<status>(received.back());
-                    if (sb == status::additional_frame) {
-                        // The "more frames" status is not part of the payload
-                        received.pop_back();
-                        if (received.size() == res->size()) {
-                            // Only one payload was received, clear and insert a single byte asking for more frames
-                            payload.clear();
-                            payload << command_code::additional_frame;
-                        }
-                    } else {  // Signal stop
-                        fetch_additional_frames = false;
+        do {
+            const auto res = raw_command_response(payload);
+            if (not res) {
+                return res.error();
+            }
+            if (res->empty()) {
+                DESFIRE_LOGE("Received empty payload from card.");
+                return error::malformed;
+            }
+            // Append data, move status byte at the end
+            received.reserve(received.size() + res->size());
+            received << res->view(1) << res->front();
+            // Check status byte if necessary
+            if (fetch_additional_frames) {
+                const auto sb = static_cast<status>(received.back());
+                if (sb == status::additional_frame) {
+                    // The "more frames" status is not part of the payload
+                    received.pop_back();
+                    if (received.size() == res->size()) {
+                        // Only one payload was received, clear and insert a single byte asking for more frames
+                        payload.clear();
+                        payload << command_code::additional_frame;
                     }
-                }
-            } while (fetch_additional_frames);
-
-            // Can postprocess using crypto
-            if (not cipher.confirm_rx(received, rx_cfg)) {
-                DESFIRE_LOGW("Invalid data received under comm mode %s, (C)MAC: %d, CRC: %d, cipher: %d.",
-                             to_string(rx_cfg.mode), rx_cfg.do_mac, rx_cfg.do_crc, rx_cfg.do_cipher);
-                ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG, received.data(), received.size(), ESP_LOG_WARN);
-                return error::crypto_error;
-            }
-        }
-
-        if (override != nullptr) {
-            /**
-             * @note This code is purely for debugging purposes.
-             * @{
-             */
-            if (override->check_rx) {
-                if (received == override->rx) {
-                    ESP_LOGI(DESFIRE_TAG " OVERRIDE", "The response received is the same as the expected one.");
-                } else {
-                    ++_debug_overrides_failed_checks;
-                    ESP_LOGW(DESFIRE_TAG " OVERRIDE", "The response received differs from the expected one.");
-                    ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " OVERRIDE EXPECTED", override->rx.data(), override->rx.size(),
-                                             ESP_LOG_WARN);
-                    ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " OVERRIDE ACTUAL  ", received.data(), received.size(),
-                                             ESP_LOG_WARN);
+                } else {  // Signal stop
+                    fetch_additional_frames = false;
                 }
             }
+        } while (fetch_additional_frames);
 
-            received.clear();
-            received.resize(override->rx.size(), 0x00);
-            std::copy(std::begin(override->rx), std::end(override->rx), std::begin(received));
-            /**
-             * @}
-             */
+        // Can postprocess using crypto
+        if (not cipher.confirm_rx(received, rx_cfg)) {
+            DESFIRE_LOGW("Invalid data received under comm mode %s, (C)MAC: %d, CRC: %d, cipher: %d.",
+                         to_string(rx_cfg.mode), rx_cfg.do_mac, rx_cfg.do_crc, rx_cfg.do_cipher);
+            ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG, received.data(), received.size(), ESP_LOG_WARN);
+            return error::crypto_error;
         }
 
         // Now status byte is at the end. Check for possible errors

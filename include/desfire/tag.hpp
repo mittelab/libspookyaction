@@ -67,7 +67,8 @@ namespace desfire {
             {}
         };
 
-        void debug_next_exchange(comm_override next_comm);
+        void debug_next_raw_exchange(comm_override next_comm);
+        void debug_next_plain_exchange(comm_override next_comm);
         inline unsigned debug_failed_checks() const;
     private:
         inline controller &ctrl();
@@ -79,7 +80,8 @@ namespace desfire {
         cipher_type _active_cipher_type;
         std::uint8_t _active_key_number;
 
-        std::list<comm_override> _debug_overrides;
+        std::list<comm_override> _debug_raw_overrides;
+        std::list<comm_override> _debug_plain_overrides;
         unsigned _debug_overrides_failed_checks;
     };
 
@@ -92,12 +94,12 @@ namespace desfire {
     }
 
     tag::tag(controller &controller) :
-        _controller{&controller},
-        _active_cipher{},
-        _active_cipher_type{cipher_type::none},
-        _active_key_number{std::numeric_limits<std::uint8_t>::max()},
-        _debug_overrides{},
-        _debug_overrides_failed_checks{0}
+            _controller{&controller},
+            _active_cipher{},
+            _active_cipher_type{cipher_type::none},
+            _active_key_number{std::numeric_limits<std::uint8_t>::max()},
+            _debug_raw_overrides{},
+            _debug_overrides_failed_checks{0}
     {
         clear_authentication();
     }

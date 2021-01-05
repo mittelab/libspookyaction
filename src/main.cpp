@@ -162,6 +162,7 @@ void test_cipher_des() {
     // Test using examples from https://hack.cert.pl/files/desfire-9f122c71e0057d4f747d2ee295b0f5f6eef8ac32.html
     const auto k = desfire::key<desfire::cipher_type::des>{0, {0, 0, 0, 0, 0, 0, 0, 0}};
     desfire::cipher_des c{k.k};
+    // The examples from the website use ISO auth also for legacy auth, which means we need to use global IV
     desfire::iv_session session{c, desfire::cipher_iv::global};
     {
         desfire::bin_data enc_data = {0x5D, 0x99, 0x4C, 0xE0, 0x85, 0xF2, 0x40, 0x89, /* status */ 0xAF};
@@ -187,6 +188,7 @@ void test_cipher_2k3des() {
     // Test using examples from https://hack.cert.pl/files/desfire-9f122c71e0057d4f747d2ee295b0f5f6eef8ac32.html
     const auto k = desfire::key<desfire::cipher_type::des3_2k>{0, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}};
     desfire::cipher_2k3des c{k.k};
+    // The examples from the website use ISO auth also for legacy auth, which means we need to use global IV
     desfire::iv_session session{c, desfire::cipher_iv::global};
     {
         desfire::bin_data enc_data = {0xDE, 0x50, 0xF9, 0x23, 0x10, 0xCA, 0xF5, 0xA5, /* status */ 0xAF};
@@ -212,7 +214,6 @@ void test_cipher_3k3des() {
     // Test using examples from https://hack.cert.pl/files/desfire-9f122c71e0057d4f747d2ee295b0f5f6eef8ac32.html
     const auto k = desfire::key<desfire::cipher_type::des3_3k>{0, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}};
     desfire::cipher_3k3des c{k.k};
-    desfire::iv_session session{c, desfire::cipher_iv::global};
     {
         desfire::bin_data enc_data = {0xBC, 0x1C, 0x57, 0x0B, 0xC9, 0x48, 0x15, 0x61, 0x87, 0x13, 0x23, 0x64, 0xE4, 0xDC, 0xE1, 0x76, /* status */ 0xAF};
         const desfire::bin_data dec_data = {0x31, 0x6E, 0x6D, 0x76, 0xA4, 0x49, 0xF9, 0x25, 0xBA, 0x30, 0x4F, 0xB2, 0x65, 0x36, 0x56, 0xA2, /* status */ 0xAF};
@@ -237,7 +238,6 @@ void test_cipher_aes() {
     // Test using examples from https://hack.cert.pl/files/desfire-9f122c71e0057d4f747d2ee295b0f5f6eef8ac32.html
     const auto k = desfire::key<desfire::cipher_type::aes128>{0, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}};
     desfire::cipher_aes c{k.k};
-    desfire::iv_session session{c, desfire::cipher_iv::global};
     {
         desfire::bin_data enc_data = {0xB9, 0x69, 0xFD, 0xFE, 0x56, 0xFD, 0x91, 0xFC, 0x9D, 0xE6, 0xF6, 0xF2, 0x13, 0xB8, 0xFD, 0x1E, /* status */ 0xAF};
         const desfire::bin_data dec_data = {0xC0, 0x5D, 0xDD, 0x71, 0x4F, 0xD7, 0x88, 0xA6, 0xB7, 0xB7, 0x54, 0xF3, 0xC4, 0xD0, 0x66, 0xE8, /* status */ 0xAF};

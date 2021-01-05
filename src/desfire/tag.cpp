@@ -139,7 +139,7 @@ namespace desfire {
             if (not res) {
                 return res.error();
             }
-            if (res.empty()) {
+            if (res->empty()) {
                 DESFIRE_LOGE("Received empty payload from card.");
                 return error::malformed;
             }

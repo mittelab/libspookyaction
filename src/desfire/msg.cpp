@@ -48,7 +48,7 @@ namespace desfire {
         switch (e) {
             case error::controller_error: return "controller error";
             case error::malformed:        return "malformed frame";
-            case error::crypto_error:     return "cryto error";
+            case error::crypto_error:     return "crypto error";
             default:
                 return to_string(static_cast<status>(e));
         }

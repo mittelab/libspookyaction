@@ -115,9 +115,6 @@ namespace desfire {
         /// Initialize a new cipher of the appropriate type for the key exchange protocol
         auto pcipher = k.make_cipher();
 
-        /// Immediately switch also legacy ciphers to global IV mode: this whole exchange uses one IV
-        iv_session session{*pcipher, cipher_iv::global};
-
         /// Send the right authentication command for the key type and the key number, get RndB
         bin_data payload = bin_data::chain(prealloc(2), auth_command(k.type()), k.key_number());
         DESFIRE_LOGI("Authentication with key %d: initiating.", k.key_number());

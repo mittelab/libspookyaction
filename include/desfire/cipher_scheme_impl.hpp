@@ -117,7 +117,8 @@ namespace desfire {
     template <std::size_t BlockSize, std::uint8_t CMACSubkeyR>
     void cipher_scheme<BlockSize, CMACSubkeyR>::prepare_tx(
             bin_data &data, std::size_t offset, cipher::config const &cfg) {
-        DESFIRE_LOGD("Modern protocol, preparing outgoing data with comm mode %s", to_string(cfg.mode));
+        DESFIRE_LOGD("Modern protocol, preparing outgoing data with comm mode %s, (C)MAC: %d, CRC: %d, cipher: %d, global IV: %d.",
+                     to_string(cfg.mode), cfg.do_mac, cfg.do_crc, cfg.do_cipher, iv_mode() == cipher_iv::global);
         ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG, data.data(), data.size(), ESP_LOG_DEBUG);
         if (offset >= data.size()) {
             return;  // Nothing to do

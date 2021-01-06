@@ -15,6 +15,10 @@ namespace desfire {
     using bits::status;
     using bits::command_code;
 
+    using app_id = std::array<std::uint8_t, bits::app_id_length>;
+
+    static constexpr app_id root_app{0x0, 0x0, 0x0};
+
 
     /**
      * @note The numeric assignment is only needed for CTTI (that is later used in ::mlab::any)
@@ -63,55 +67,53 @@ namespace desfire {
     command_code auth_command(cipher_type t);
 
     struct same_key_t {};
-    struct freeze_keys_t{};
+    struct no_key_t{};
 
     static constexpr same_key_t same_key{};
-    static constexpr freeze_keys_t freeze_keys{};
+    static constexpr no_key_t no_key{};
 
-    class change_key_right {
+    class key_actor {
         std::uint8_t _repr;
     public:
-        inline change_key_right(std::uint8_t key_index = 0);
-        inline change_key_right(same_key_t);
-        inline change_key_right(freeze_keys_t);
+        inline key_actor(std::uint8_t key_index = 0);
+        inline key_actor(same_key_t);
+        inline key_actor(no_key_t);
 
-        inline change_key_right &operator=(std::uint8_t key_index);
-        inline change_key_right &operator=(same_key_t);
-        inline change_key_right &operator=(freeze_keys_t);
+        inline key_actor &operator=(std::uint8_t key_index);
+        inline key_actor &operator=(same_key_t);
+        inline key_actor &operator=(no_key_t);
 
-        inline bool operator==(change_key_right const &other) const;
-        inline bool operator!=(change_key_right const &other) const;
+        inline bool operator==(key_actor const &other) const;
+        inline bool operator!=(key_actor const &other) const;
 
         inline std::uint8_t bitflag() const;
     };
 
-    struct master_key_settings {
+    struct key_rights {
+        key_actor allowed_to_change_keys;
+
         /**
          * Settings this to false freezes the master key.
          */
-        bool allow_change_master_key = true;
+        bool master_key_changeable = true;
 
         /**
          * On an app level, it is possible to list file IDs, get their settings and the key settings.
          * On a PICC level, it is possible to list app IDs and key settings.
          */
-        bool allow_dir_access_without_auth = true;
+        bool dir_access_without_auth = true;
 
         /**
          * On an app level, this means files can be created or deleted without authentication.
          * On a PICC level, applications can be created without authentication and deleted with their own master keys.
          */
-        bool allow_create_delete_without_auth = true;
+        bool create_delete_without_auth = true;
 
         /**
          * Setting this to false freezes the configuration of the PICC or the app. Changing still requires to
          * authenticate with the appropriate master key.
          */
-        bool allow_change_config = true;
-    };
-
-    struct app_master_key_settings : public master_key_settings {
-        change_key_right allow_change_keys;
+        bool config_changeable = true;
     };
 
 
@@ -208,10 +210,8 @@ namespace mlab {
         };
     }
 
-    bin_data &operator<<(bin_data &bd, desfire::master_key_settings const &s);
-    bin_data &operator<<(bin_data &bd, desfire::app_master_key_settings const &s);
-    bin_stream &operator>>(bin_stream &s, desfire::master_key_settings &mks);
-    bin_stream &operator>>(bin_stream &s, desfire::app_master_key_settings &mks);
+    bin_data &operator<<(bin_data &bd, desfire::key_rights const &kr);
+    bin_stream &operator>>(bin_stream &s, desfire::key_rights &kr);
 }
 
 namespace desfire {
@@ -271,17 +271,17 @@ namespace desfire {
         return _key.template get<key<Type>>();
     }
 
-    change_key_right::change_key_right(std::uint8_t key_index) : _repr{} {
+    key_actor::key_actor(std::uint8_t key_index) : _repr{} {
         *this = key_index;
     }
-    change_key_right::change_key_right(same_key_t) : _repr{} {
+    key_actor::key_actor(same_key_t) : _repr{} {
         *this = same_key;
     }
-    change_key_right::change_key_right(freeze_keys_t) : _repr{} {
-        *this = freeze_keys;
+    key_actor::key_actor(no_key_t) : _repr{} {
+        *this = no_key;
     }
 
-    change_key_right &change_key_right::operator=(std::uint8_t key_index) {
+    key_actor &key_actor::operator=(std::uint8_t key_index) {
         if (key_index >= bits::max_keys_per_app) {
             DESFIRE_LOGE("Specified key index %u is not valid, master key (0) assumed.", key_index);
             key_index = 0;
@@ -289,22 +289,22 @@ namespace desfire {
         _repr = key_index << bits::app_change_keys_right_shift;
         return *this;
     }
-    change_key_right &change_key_right::operator=(same_key_t) {
+    key_actor &key_actor::operator=(same_key_t) {
         _repr = bits::app_change_keys_right_same_flag;
         return *this;
     }
-    change_key_right &change_key_right::operator=(freeze_keys_t) {
+    key_actor &key_actor::operator=(no_key_t) {
         _repr = bits::app_change_keys_right_freeze_flag;
         return *this;
     }
 
-    bool change_key_right::operator==(change_key_right const &other) const {
+    bool key_actor::operator==(key_actor const &other) const {
         return bitflag() == other.bitflag();
     }
-    bool change_key_right::operator!=(change_key_right const &other) const {
+    bool key_actor::operator!=(key_actor const &other) const {
         return bitflag() != other.bitflag();
     }
-    std::uint8_t change_key_right::bitflag() const {
+    std::uint8_t key_actor::bitflag() const {
         return _repr;
     }
 

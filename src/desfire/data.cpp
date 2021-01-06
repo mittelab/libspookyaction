@@ -85,45 +85,30 @@ namespace desfire {
 namespace mlab {
     namespace {
         namespace bits = desfire::bits;
-
-        std::uint8_t flag_from_master_key_settings(desfire::master_key_settings const &s) {
-            return (s.allow_change_config ? bits::app_change_config_allowed_flag : 0x0)
-                   | (s.allow_change_master_key ? bits::app_changeable_master_key_flag : 0x0)
-                   | (s.allow_create_delete_without_auth ? bits::app_create_delete_without_master_key_flag : 0x0)
-                   | (s.allow_dir_access_without_auth ? bits::app_list_without_master_key_flag : 0x0);
-        }
-
-        void master_key_settings_from_flag(std::uint8_t flag, desfire::master_key_settings &mks) {
-            mks.allow_dir_access_without_auth = 0 != (flag & bits::app_list_without_master_key_flag);
-            mks.allow_create_delete_without_auth = 0 != (flag & bits::app_create_delete_without_master_key_flag);
-            mks.allow_change_master_key = 0 != (flag & bits::app_changeable_master_key_flag);
-            mks.allow_change_config = 0 != (flag & bits::app_change_config_allowed_flag);
-        }
-    }
-    bin_data &operator<<(bin_data &bd, desfire::master_key_settings const &s) {
-        return bd << flag_from_master_key_settings(s);
     }
 
-    bin_data &operator<<(bin_data &bd, desfire::app_master_key_settings const &s) {
-        const std::uint8_t flag = flag_from_master_key_settings(s) | s.allow_change_keys.bitflag();
+    bin_data &operator<<(bin_data &bd, desfire::key_rights const &kr) {
+        const std::uint8_t flag = kr.allowed_to_change_keys.bitflag()
+                | (kr.config_changeable ? bits::app_change_config_allowed_flag : 0x0)
+                | (kr.master_key_changeable ? bits::app_changeable_master_key_flag : 0x0)
+                | (kr.create_delete_without_auth ? bits::app_create_delete_without_master_key_flag : 0x0)
+                | (kr.dir_access_without_auth ? bits::app_list_without_master_key_flag : 0x0);
         return bd << flag;
     }
 
-    bin_stream &operator>>(bin_stream &s, desfire::master_key_settings &mks) {
-        master_key_settings_from_flag(s.pop(), mks);
-        return s;
-    }
-
-    bin_stream &operator>>(bin_stream &s, desfire::app_master_key_settings &mks) {
+    bin_stream &operator>>(bin_stream &s, desfire::key_rights &kr) {
         const std::uint8_t flag = s.pop();
-        master_key_settings_from_flag(flag, mks);
         if (0 != (flag & bits::app_change_keys_right_freeze_flag)) {
-            mks.allow_change_keys = desfire::freeze_keys;
+            kr.allowed_to_change_keys = desfire::no_key;
         } else if (0 != (flag & bits::app_change_keys_right_same_flag)) {
-            mks.allow_change_keys = desfire::same_key;
+            kr.allowed_to_change_keys = desfire::same_key;
         } else {
-            mks.allow_change_keys = flag >> bits::app_change_keys_right_shift;
+            kr.allowed_to_change_keys = flag >> bits::app_change_keys_right_shift;
         }
+        kr.dir_access_without_auth = 0 != (flag & bits::app_list_without_master_key_flag);
+        kr.create_delete_without_auth = 0 != (flag & bits::app_create_delete_without_master_key_flag);
+        kr.master_key_changeable = 0 != (flag & bits::app_changeable_master_key_flag);
+        kr.config_changeable = 0 != (flag & bits::app_change_config_allowed_flag);
         return s;
     }
 

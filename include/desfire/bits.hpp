@@ -93,6 +93,8 @@ namespace desfire {
         static constexpr std::uint8_t app_list_without_master_key_flag = 1 << 1;
         static constexpr std::uint8_t app_changeable_master_key_flag = 1 << 0;
 
+        static constexpr unsigned app_id_length = 3;
+
     }
 }
 

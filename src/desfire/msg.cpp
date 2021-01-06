@@ -65,4 +65,50 @@ namespace desfire {
                 return "UNKNOWN";
         }
     }
+
+    const char *to_string(command_code c) {
+        switch (c) {
+            case command_code::authenticate_legacy:       return "authenticate_legacy";
+            case command_code::change_key_settings:       return "change_key_settings";
+            case command_code::get_key_settings:          return "get_key_settings";
+            case command_code::change_key:                return "change_key";
+            case command_code::get_key_version:           return "get_key_version";
+            case command_code::create_application:        return "create_application";
+            case command_code::delete_application:        return "delete_application";
+            case command_code::get_application_ids:       return "get_application_ids";
+            case command_code::select_application:        return "select_application";
+            case command_code::format_picc:               return "format_picc";
+            case command_code::get_version:               return "get_version";
+            case command_code::get_file_ids:              return "get_file_ids";
+            case command_code::get_file_settings:         return "get_file_settings";
+            case command_code::change_file_settings:      return "change_file_settings";
+            case command_code::create_std_data_file:      return "create_std_data_file";
+            case command_code::create_backup_data_file:   return "create_backup_data_file";
+            case command_code::create_value_file:         return "create_value_file";
+            case command_code::create_linear_record_file: return "create_linear_record_file";
+            case command_code::create_cyclic_record_file: return "create_cyclic_record_file";
+            case command_code::delete_file:               return "delete_file";
+            case command_code::read_data:                 return "read_data";
+            case command_code::write_data:                return "write_data";
+            case command_code::get_value:                 return "get_value";
+            case command_code::credit:                    return "credit";
+            case command_code::debit:                     return "debit";
+            case command_code::limited_credit:            return "limited_credit";
+            case command_code::write_record:              return "write_record";
+            case command_code::read_records:              return "read_records";
+            case command_code::clear_record_file:         return "clear_record_file";
+            case command_code::commit_transaction:        return "commit_transaction";
+            case command_code::abort_transaction:         return "abort_transaction";
+            case command_code::additional_frame:          return "additional_frame";
+            case command_code::authenticate_iso:          return "authenticate_iso";
+            case command_code::authenticate_aes:          return "authenticate_aes";
+            case command_code::free_mem:                  return "free_mem";
+            case command_code::get_df_names:              return "get_df_names";
+            case command_code::get_card_uid:              return "get_card_uid";
+            case command_code::get_iso_file_ids:          return "get_iso_file_ids";
+            case command_code::set_configuration:         return "set_configuration";
+            default:
+                return "UNKNOWN";
+        }
+    }
 }

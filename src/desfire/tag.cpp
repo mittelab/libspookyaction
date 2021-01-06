@@ -125,7 +125,15 @@ namespace desfire {
     }
 
     tag::r<status, bin_data> tag::command_status_response(bin_data &payload, tag::comm_cfg const &cfg) {
-        assert(_active_cipher != nullptr or cfg.override_cipher != nullptr);
+        if (_active_cipher == nullptr and cfg.override_cipher == nullptr) {
+            DESFIRE_LOGE("No active cipher and no override cipher: 'tag' was put in an invalid state. This is a coding "
+                         "mistake.");
+            return error::crypto_error;
+        }
+        DESFIRE_LOGD("TX mode: %s, (C)MAC: %d, CRC: %d, cipher: %d, ofs: %u/%u", to_string(cfg.tx.mode), cfg.tx.do_mac,
+                     cfg.tx.do_crc, cfg.tx.do_cipher, cfg.tx_secure_data_offset, payload.size());
+        DESFIRE_LOGD("RX mode: %s, (C)MAC: %d, CRC: %d, cipher: %d, additional frames: %u", to_string(cfg.rx.mode),
+                     cfg.rx.do_mac, cfg.rx.do_crc, cfg.rx.do_cipher, cfg.rx_auto_fetch_additional_frames);
         // Select the cipher
         cipher &c = cfg.override_cipher == nullptr ? *_active_cipher : *cfg.override_cipher;
         bin_data received{};
@@ -164,9 +172,7 @@ namespace desfire {
 
         // Can postprocess using crypto
         if (not c.confirm_rx(received, cfg.rx)) {
-            /// @todo Always log tx and rx before, then just the message.
-            DESFIRE_LOGW("Invalid data received under comm mode %s, (C)MAC: %d, CRC: %d, cipher: %d.",
-                         to_string(cfg.rx.mode), cfg.rx.do_mac, cfg.rx.do_crc, cfg.rx.do_cipher);
+            DESFIRE_LOGW("Invalid data received (see debug log for furhter information):");
             ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG, received.data(), received.size(), ESP_LOG_WARN);
             return error::crypto_error;
         }
@@ -193,7 +199,7 @@ namespace desfire {
 
         // Override the config
         const comm_cfg cmd_comm_cfg = base_cfg.with(secure_offset, fetch_additional_frames);
-        /// @todo Log that command is being sent
+        DESFIRE_LOGD("%s: sending command.", to_string(cmd));
         return command_status_response(buffer, cmd_comm_cfg);
     }
 
@@ -208,9 +214,8 @@ namespace desfire {
         if (res_cmd->first == status::ok or res_cmd->first == status::no_changes) {
             return std::move(res_cmd->second);
         }
-        /// @todo Log that command received
-        DESFIRE_LOGW("Command was unsuccessful (%s); the response contains %u bytes.", to_string(res_cmd->first),
-                     res_cmd->second.size());
+        DESFIRE_LOGW("%s: unsuccessful (%s); the response contains %u bytes.", to_string(cmd),
+                     to_string(res_cmd->first), res_cmd->second.size());
         ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG, res_cmd->second.data(), res_cmd->second.size(), ESP_LOG_WARN);
         // Status are also error codes
         return error_from_status(res_cmd->first);

@@ -11,6 +11,7 @@
 #include "cipher.hpp"
 #include "controller.hpp"
 #include "data.hpp"
+#include "msg.hpp"
 
 namespace desfire {
 
@@ -140,13 +141,11 @@ namespace desfire {
 
     tag::tag(controller &controller) :
             _controller{&controller},
-            _active_cipher{},
+            _active_cipher{new cipher_dummy{}},
             _active_cipher_type{cipher_type::none},
             _active_key_number{std::numeric_limits<std::uint8_t>::max()},
             _active_app{root_app}
-    {
-        clear_authentication();
-    }
+    {}
 
     template <cipher_type Type>
     tag::r<> tag::authenticate(key<Type> const &k) {
@@ -235,8 +234,7 @@ namespace desfire {
         Data data{};
         s >> data;
         if (s.bad()) {
-            /// @todo Log the command being sent
-            DESFIRE_LOGE("Could not parse result from response data.");
+            DESFIRE_LOGE("%s: could not parse result from response data.", to_string(cmd));
             return error::malformed;
         }
         return data;

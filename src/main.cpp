@@ -277,7 +277,7 @@ extern "C" void app_main() {
     RUN_TEST(test_cipher_3k3des);
     RUN_TEST(test_cipher_aes);
     issue_header("MIFARE AUTHENTICATION TEST (replace Mifare card)");
-    RUN_TEST(test_mifare);
+    RUN_TEST(test_mifare_auth_base);
     UNITY_END();
 }
 

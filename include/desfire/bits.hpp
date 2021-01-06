@@ -84,6 +84,14 @@ namespace desfire {
             file_integrity_error = 0xf1
         };
 
+        static constexpr std::uint8_t max_keys_per_app = 14;
+        static constexpr unsigned app_change_keys_right_shift = 4;
+        static constexpr std::uint8_t app_change_keys_right_same_flag = 0x0e << app_change_keys_right_shift;
+        static constexpr std::uint8_t app_change_keys_right_freeze_flag = 0x0f << app_change_keys_right_shift;
+        static constexpr std::uint8_t app_change_config_allowed_flag = 1 << 3;
+        static constexpr std::uint8_t app_create_delete_without_master_key_flag = 1 << 2;
+        static constexpr std::uint8_t app_list_without_master_key_flag = 1 << 1;
+        static constexpr std::uint8_t app_changeable_master_key_flag = 1 << 0;
 
     }
 }

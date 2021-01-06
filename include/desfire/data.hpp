@@ -17,6 +17,17 @@ namespace desfire {
 
 
     /**
+     * @note The numeric assignment is only needed for CTTI (that is later used in ::mlab::any)
+     */
+    enum struct cipher_type : std::uint8_t {
+        none = 0x0,
+        des = 0x1,
+        des3_2k = 0x2,
+        des3_3k = 0x3,
+        aes128 = 0x4
+    };
+
+    /**
      * @note Misses @ref status::ok, @ref status::no_changes, @ref status::additional_frame. The first two represent
      * success conditions, the latter has to be handled at communication level.
      */
@@ -48,57 +59,61 @@ namespace desfire {
                               */
     };
 
-    inline error error_from_status(status s);
+    error error_from_status(status s);
+    command_code auth_command(cipher_type t);
 
-    /**
-     * @note The numeric assignment is only needed for CTTI (that is later used in ::mlab::any)
-     */
-    enum struct cipher_type : std::uint8_t {
-        none = 0x0,
-        des = 0x1,
-        des3_2k = 0x2,
-        des3_3k = 0x3,
-        aes128 = 0x4
+    struct same_key_t {};
+    struct freeze_keys_t{};
+
+    static constexpr same_key_t same_key{};
+    static constexpr freeze_keys_t freeze_keys{};
+
+    class change_key_right {
+        std::uint8_t _repr;
+    public:
+        inline change_key_right(std::uint8_t key_index = 0);
+        inline change_key_right(same_key_t);
+        inline change_key_right(freeze_keys_t);
+
+        inline change_key_right &operator=(std::uint8_t key_index);
+        inline change_key_right &operator=(same_key_t);
+        inline change_key_right &operator=(freeze_keys_t);
+
+        inline bool operator==(change_key_right const &other) const;
+        inline bool operator!=(change_key_right const &other) const;
+
+        inline std::uint8_t bitflag() const;
     };
 
-    inline command_code auth_command(cipher_type t);
+    struct master_key_settings {
+        /**
+         * Settings this to false freezes the master key.
+         */
+        bool allow_change_master_key = true;
 
-    namespace impl {
-        template <std::size_t KeyLength, class Cipher>
-        struct key_base {
-            static constexpr std::size_t key_length = KeyLength;
-            using key_t = std::array<std::uint8_t, key_length>;
-            std::uint8_t key_number;
-            key_t k;
+        /**
+         * On an app level, it is possible to list file IDs, get their settings and the key settings.
+         * On a PICC level, it is possible to list app IDs and key settings.
+         */
+        bool allow_dir_access_without_auth = true;
 
-            inline key_base() : key_number{0}, k{} {
-                std::fill_n(std::begin(k), key_length, 0x00);
-            }
+        /**
+         * On an app level, this means files can be created or deleted without authentication.
+         * On a PICC level, applications can be created without authentication and deleted with their own master keys.
+         */
+        bool allow_create_delete_without_auth = true;
 
-            inline key_base(std::uint8_t key_no, key_t k_) : key_number{key_no}, k{k_} {}
+        /**
+         * Setting this to false freezes the configuration of the PICC or the app. Changing still requires to
+         * authenticate with the appropriate master key.
+         */
+        bool allow_change_config = true;
+    };
 
-            std::unique_ptr<cipher> make_cipher() const {
-                return std::unique_ptr<Cipher>(new Cipher(k));
-            }
+    struct app_master_key_settings : public master_key_settings {
+        change_key_right allow_change_keys;
+    };
 
-            void store_version(std::uint8_t v) {
-                for (auto &b : k) {
-                    b = (b & 0b11111110) | (v >> 7);
-                    v <<= 1;
-                }
-            }
-
-            std::uint8_t get_version() const {
-                std::uint8_t v = 0x0;
-                for (std::size_t i = 0; i < std::min(key_length, 8u); ++i) {
-                    v = (v << 1) | (k[i] & 0b00000001);
-                }
-                return v;
-            }
-
-        };
-
-    }
 
     template <cipher_type>
     struct key {
@@ -106,51 +121,6 @@ namespace desfire {
             return std::unique_ptr<cipher>(new cipher_dummy());
         }
     };
-
-    template <>
-    struct key<cipher_type::des> : public impl::key_base<8, cipher_des> {
-        key() = default;
-        key(std::uint8_t key_no, key_t k, std::uint8_t version = 0x0) :
-            impl::key_base<8, cipher_des>{key_no, k}
-        {
-            store_version(version);
-        }
-    };
-
-    template <>
-    struct key<cipher_type::des3_2k> : public impl::key_base<16, cipher_2k3des> {
-        key() = default;
-        key(std::uint8_t key_no, key_t k, std::uint8_t version = 0x0) :
-            impl::key_base<16, cipher_2k3des>{key_no, k}
-        {
-            store_version(version);
-        }
-    };
-
-    template <>
-    struct key<cipher_type::des3_3k> : public impl::key_base<24, cipher_3k3des> {
-        key() = default;
-        key(std::uint8_t key_no, key_t k, std::uint8_t version = 0x0) :
-            impl::key_base<24, cipher_3k3des>{key_no, k}
-        {
-            store_version(version);
-        }
-    };
-
-    template <>
-    struct key<cipher_type::aes128> : private impl::key_base<16, cipher_aes> {
-        using base = impl::key_base<16, cipher_aes>;
-        // Omit store and get version, because versioning is not implemented as such in AES
-        using base::k;
-        using base::key_length;
-        using base::key_number;
-        using base::key_t;
-        using base::make_cipher;
-
-        key() = default;
-        key(std::uint8_t key_no, key_t k) : impl::key_base<16, cipher_aes>{key_no, k} {}
-    };
-
 
     class any_key {
         cipher_type _type;
@@ -162,10 +132,9 @@ namespace desfire {
         inline explicit any_key(key<Type> entry);
 
         inline cipher_type type() const;
-        inline std::uint8_t key_number() const;
-        inline bool is_legacy_scheme() const;
-
-        inline std::unique_ptr<cipher> make_cipher() const;
+        std::uint8_t key_number() const;
+        bool is_legacy_scheme() const;
+        std::unique_ptr<cipher> make_cipher() const;
 
         template <cipher_type Type>
         key<Type> const &get_key() const;
@@ -173,6 +142,61 @@ namespace desfire {
         template <cipher_type Type>
         any_key &operator=(key<Type> entry);
     };
+
+
+    template <std::size_t KeyLength, class Cipher>
+    struct key_base {
+        static constexpr std::size_t key_length = KeyLength;
+
+        using key_t = std::array<std::uint8_t, key_length>;
+        std::uint8_t key_number;
+        key_t k;
+
+        key_base();
+        key_base(std::uint8_t key_no, key_t k_);
+        std::unique_ptr<cipher> make_cipher() const;
+        void store_version(std::uint8_t v);
+        std::uint8_t get_version() const;
+    };
+
+    template <>
+    struct key<cipher_type::des> : public key_base<8, cipher_des> {
+        key() = default;
+        key(std::uint8_t key_no, key_t k, std::uint8_t version = 0x0) : key_base<8, cipher_des>{key_no, k} {
+            store_version(version);
+        }
+    };
+
+    template <>
+    struct key<cipher_type::des3_2k> : public key_base<16, cipher_2k3des> {
+        key() = default;
+        key(std::uint8_t key_no, key_t k, std::uint8_t version = 0x0) : key_base<16, cipher_2k3des>{key_no, k} {
+            store_version(version);
+        }
+    };
+
+    template <>
+    struct key<cipher_type::des3_3k> : public key_base<24, cipher_3k3des> {
+        key() = default;
+        key(std::uint8_t key_no, key_t k, std::uint8_t version = 0x0) : key_base<24, cipher_3k3des>{key_no, k} {
+            store_version(version);
+        }
+    };
+
+    template <>
+    struct key<cipher_type::aes128> : private key_base<16, cipher_aes> {
+        using base = key_base<16, cipher_aes>;
+        // Omit store and get version, because versioning is not implemented as such in AES
+        using base::k;
+        using base::key_length;
+        using base::key_number;
+        using base::key_t;
+        using base::make_cipher;
+
+        key() = default;
+        key(std::uint8_t key_no, key_t k) : key_base<16, cipher_aes>{key_no, k} {}
+    };
+
 }
 
 namespace mlab {
@@ -183,9 +207,46 @@ namespace mlab {
         struct type_info<desfire::key<Type>> : public std::integral_constant<id_type, static_cast<id_type>(Type)> {
         };
     }
+
+    bin_data &operator<<(bin_data &bd, desfire::master_key_settings const &s);
+    bin_data &operator<<(bin_data &bd, desfire::app_master_key_settings const &s);
+    bin_stream &operator>>(bin_stream &s, desfire::master_key_settings &mks);
+    bin_stream &operator>>(bin_stream &s, desfire::app_master_key_settings &mks);
 }
 
 namespace desfire {
+
+
+    template <std::size_t KeyLength, class Cipher>
+    key_base<KeyLength, Cipher>::key_base() : key_number{0}, k{} {
+        std::fill_n(std::begin(k), key_length, 0x00);
+    }
+
+    template <std::size_t KeyLength, class Cipher>
+    key_base<KeyLength, Cipher>::key_base(std::uint8_t key_no, key_t k_) : key_number{key_no}, k{k_} {}
+
+    template <std::size_t KeyLength, class Cipher>
+    std::unique_ptr<cipher> key_base<KeyLength, Cipher>::make_cipher() const {
+        return std::unique_ptr<Cipher>(new Cipher(k));
+    }
+
+    template <std::size_t KeyLength, class Cipher>
+    void key_base<KeyLength, Cipher>::store_version(std::uint8_t v) {
+        for (auto &b : k) {
+            b = (b & 0b11111110) | (v >> 7);
+            v <<= 1;
+        }
+    }
+
+    template <std::size_t KeyLength, class Cipher>
+    std::uint8_t key_base<KeyLength, Cipher>::get_version() const {
+        std::uint8_t v = 0x0;
+        for (std::size_t i = 0; i < std::min(key_length, 8u); ++i) {
+            v = (v << 1) | (k[i] & 0b00000001);
+        }
+        return v;
+    }
+
 
     any_key::any_key() : _type{cipher_type::none}, _key{} {}
 
@@ -204,78 +265,47 @@ namespace desfire {
         return _type;
     }
 
-    std::uint8_t any_key::key_number() const {
-        switch (type()) {
-            case cipher_type::none:
-                return std::numeric_limits<std::uint8_t>::max();
-            case cipher_type::des:
-                return get_key<cipher_type::des>().key_number;
-            case cipher_type::des3_2k:
-                return get_key<cipher_type::des3_2k>().key_number;
-            case cipher_type::des3_3k:
-                return get_key<cipher_type::des3_3k>().key_number;
-            case cipher_type::aes128:
-                return get_key<cipher_type::aes128>().key_number;
-            default:
-                DESFIRE_LOGE("Unhandled cipher type.");
-                return std::numeric_limits<std::uint8_t>::max();
-        }
-    }
-
-    bool any_key::is_legacy_scheme() const {
-        switch (type()) {
-            case cipher_type::des:
-            case cipher_type::des3_2k:
-                return true;
-            case cipher_type::des3_3k:
-            case cipher_type::aes128:
-                return false;
-            default:
-                DESFIRE_LOGE("Requesting whether a cipher is legacy with no cipher!");
-                return true;
-        }
-    }
 
     template <cipher_type Type>
     key<Type> const &any_key::get_key() const {
         return _key.template get<key<Type>>();
     }
 
-    std::unique_ptr<cipher> any_key::make_cipher() const {
-        switch (type()) {
-            case cipher_type::none:
-                return get_key<cipher_type::none>().make_cipher();
-            case cipher_type::des:
-                return get_key<cipher_type::des>().make_cipher();
-            case cipher_type::des3_2k:
-                return get_key<cipher_type::des3_2k>().make_cipher();
-            case cipher_type::des3_3k:
-                return get_key<cipher_type::des3_3k>().make_cipher();
-            case cipher_type::aes128:
-                return get_key<cipher_type::aes128>().make_cipher();
-            default:
-                DESFIRE_LOGE("Unhandled cipher type.");
-                return nullptr;
-        }
+    change_key_right::change_key_right(std::uint8_t key_index) : _repr{} {
+        *this = key_index;
+    }
+    change_key_right::change_key_right(same_key_t) : _repr{} {
+        *this = same_key;
+    }
+    change_key_right::change_key_right(freeze_keys_t) : _repr{} {
+        *this = freeze_keys;
     }
 
-    command_code auth_command(cipher_type t) {
-        switch (t) {
-            case cipher_type::des3_2k: return command_code::authenticate_legacy;
-            case cipher_type::des3_3k: return command_code::authenticate_iso;
-            case cipher_type::des:     return command_code::authenticate_legacy;
-            case cipher_type::aes128:  return command_code::authenticate_aes;
-            default:
-                DESFIRE_LOGE("Requesting authentication command for no cipher!");
-                return command_code::additional_frame;
+    change_key_right &change_key_right::operator=(std::uint8_t key_index) {
+        if (key_index >= bits::max_keys_per_app) {
+            DESFIRE_LOGE("Specified key index %u is not valid, master key (0) assumed.", key_index);
+            key_index = 0;
         }
+        _repr = key_index << bits::app_change_keys_right_shift;
+        return *this;
+    }
+    change_key_right &change_key_right::operator=(same_key_t) {
+        _repr = bits::app_change_keys_right_same_flag;
+        return *this;
+    }
+    change_key_right &change_key_right::operator=(freeze_keys_t) {
+        _repr = bits::app_change_keys_right_freeze_flag;
+        return *this;
     }
 
-    error error_from_status(status s) {
-        if (s == status::ok or s == status::no_changes or s == status::additional_frame) {
-            return error::malformed;
-        }
-        return static_cast<error>(s);
+    bool change_key_right::operator==(change_key_right const &other) const {
+        return bitflag() == other.bitflag();
+    }
+    bool change_key_right::operator!=(change_key_right const &other) const {
+        return bitflag() != other.bitflag();
+    }
+    std::uint8_t change_key_right::bitflag() const {
+        return _repr;
     }
 
 }

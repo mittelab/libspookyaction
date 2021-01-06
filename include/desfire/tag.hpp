@@ -79,16 +79,30 @@ namespace desfire {
         r<Data> command_parse_response(command_code cmd, bin_data const &payload, comm_cfg const &base_cfg,
                                        std::size_t secure_offset);
 
+        /**
+         * @return Always returns something but it may be @ref cipher_dummy if no authentication has took place.
+         */
         inline cipher const &active_cipher() const;
+
+        /**
+         * @return @ref root_app if no app was selected, otherwise the app id.
+         */
+        inline app_id const &active_app() const;
+        inline cipher_type active_cipher_type() const;
+
+        /**
+         * @return ''std::numeric_limits<std::uint8_t>::max'' when no authentication has took place, the the key number.
+         */
+        inline std::uint8_t active_key_no() const;
 
         template <cipher_type Type>
         r<> authenticate(key<Type> const &k);
         r<> authenticate(any_key const &k);
 
+        void logout();
 
         r<> select_application(app_id const &app = root_app);
 
-        void clear_authentication();
 
     private:
         inline controller &ctrl();
@@ -99,6 +113,7 @@ namespace desfire {
         std::unique_ptr<cipher> _active_cipher;
         cipher_type _active_cipher_type;
         std::uint8_t _active_key_number;
+        app_id _active_app;
     };
 
 
@@ -127,7 +142,8 @@ namespace desfire {
             _controller{&controller},
             _active_cipher{},
             _active_cipher_type{cipher_type::none},
-            _active_key_number{std::numeric_limits<std::uint8_t>::max()}
+            _active_key_number{std::numeric_limits<std::uint8_t>::max()},
+            _active_app{root_app}
     {
         clear_authentication();
     }
@@ -143,6 +159,16 @@ namespace desfire {
 
     cipher &tag::active_cipher() {
         return *_active_cipher;
+    }
+
+    app_id const &tag::active_app() const {
+        return _active_app;
+    }
+    cipher_type tag::active_cipher_type() const {
+        return _active_cipher_type;
+    }
+    std::uint8_t tag::active_key_no() const {
+        return _active_key_number;
     }
 
     tag::comm_cfg::comm_cfg(comm_mode mode, std::size_t sec_data_ofs, bool fetch_af, cipher *custom_c) :

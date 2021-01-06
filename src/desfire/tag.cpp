@@ -12,10 +12,11 @@
 
 namespace desfire {
 
-    void tag::clear_authentication() {
+    void tag::logout() {
         if (_active_cipher != nullptr) {
             DESFIRE_LOGI("Releasing authentication.");
         }
+        /// @todo Actually deauth
         _active_cipher = std::unique_ptr<cipher>(new cipher_dummy{});
         _active_cipher_type = cipher_type::none;
         _active_key_number = std::numeric_limits<std::uint8_t>::max();
@@ -34,13 +35,17 @@ namespace desfire {
     }
 
     tag::r<> tag::select_application(app_id const &app) {
-        return command_response(command_code::select_application, bin_data::chain(app), comm_mode::plain);
+        const auto res_cmd =  command_response(command_code::select_application, bin_data::chain(app), comm_mode::plain);
+        if (res_cmd) {
+            _active_app = app;
+        }
+        return res_cmd;
     }
 
     tag::r<> tag::authenticate(const any_key &k) {
 
         /// Clear preexisting authentication, check parms
-        clear_authentication();
+        logout();
         if (k.type() == cipher_type::none) {
             return error::parameter_error;
         }

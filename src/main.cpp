@@ -238,7 +238,7 @@ void test_mifare_auth_base() {
     auto mifare = desfire::tag{pcd};
 
     ESP_LOGI(TEST_TAG, "Selecting default application.");
-    const auto res_select = mifare.select_application({0, 0, 0});
+    const auto res_select = mifare.select_application(desfire::root_app);
     TEST_ASSERT(bool(res_select));
 
     const auto default_k = desfire::key<desfire::cipher_type::des>{};
@@ -256,7 +256,7 @@ void test_mifare_auth_base() {
         ESP_LOGI(TEST_TAG, "Successful.");
     }
     TEST_ASSERT(bool(r_auth));
-    mifare.clear_authentication();
+    mifare.logout();
 }
 
 extern "C" void app_main() {

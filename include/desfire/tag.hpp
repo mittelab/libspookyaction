@@ -100,10 +100,16 @@ namespace desfire {
         r<> authenticate(key<Type> const &k);
         r<> authenticate(any_key const &k);
 
+        /**
+         * Clers data __locally__ (i.e. it may be out of sync with the card if not called at the right time).
+         */
         void logout();
 
         r<> select_application(app_id const &app = root_app);
 
+        /**
+         * @note Must be on the @ref root_app for this to succeed.
+         */
         r<> create_application(app_id const &new_app_id, key_settings settings);
 
         r<> change_key_settings(key_rights new_rights);
@@ -112,6 +118,9 @@ namespace desfire {
 
         r<std::uint8_t> get_key_version(std::uint8_t key_num);
 
+        /**
+         * @note Must be on the @ref root_app for this to succeed.
+         */
         r<> format_picc();
 
 

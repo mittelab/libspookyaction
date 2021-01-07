@@ -223,6 +223,14 @@ void issue_header(std::string const &title) {
 }
 
 void test_mifare_auth_base() {
+    const auto default_k = desfire::key<desfire::cipher_type::des>{};
+    const std::array<desfire::any_key, 4> keys{
+            desfire::any_key{desfire::key<desfire::cipher_type::des>{}},
+            desfire::any_key{desfire::key<desfire::cipher_type::des3_2k>{}},
+            desfire::any_key{desfire::key<desfire::cipher_type::des3_3k>{}},
+            desfire::any_key{desfire::key<desfire::cipher_type::aes128>{}}
+    };
+
     ESP_LOGI(TEST_TAG, "Searching for one passive 106 kbps target. Please bring card close.");
     const auto r_scan = tag_reader->initiator_list_passive_kbps106_typea(1, 10 * pn532::one_sec);
     if (not r_scan or r_scan->empty()) {
@@ -233,29 +241,42 @@ void test_mifare_auth_base() {
     auto const &nfcid = r_scan->front().info.nfcid;
     ESP_LOG_BUFFER_HEX_LEVEL(TEST_TAG, nfcid.data(), nfcid.size(), ESP_LOG_INFO);
 
-    // Build controller
+
+    /// ACTUAL TEST BODY -----------------------------------------------------------------------------------------------
     auto pcd = pn532::desfire_pcd{*tag_reader, r_scan->front().logical_index};
     auto mifare = desfire::tag{pcd};
 
-    ESP_LOGI(TEST_TAG, "Selecting default application.");
-    const auto res_select = mifare.select_application(desfire::root_app);
-    TEST_ASSERT(bool(res_select));
-
-    const auto default_k = desfire::key<desfire::cipher_type::des>{};
-
-    ESP_LOGI(TEST_TAG, "Attempting auth with default DES key.");
-    auto r_auth = mifare.authenticate(default_k);
-    if (not r_auth) {
-        ESP_LOGW(TEST_TAG, "Authentication failed: %s", desfire::to_string(r_auth.error()));
-        if (not pcd.last_result()) {
-            ESP_LOGW(TEST_TAG, "Last PCD error: %s", pn532::to_string(pcd.last_result().error()));
+    const auto test_auth_attempt = [&](desfire::tag::r<> const &r) {
+        if (not r) {
+            ESP_LOGW(TEST_TAG, "Authentication failed: %s", desfire::to_string(r.error()));
+            if (not pcd.last_result()) {
+                ESP_LOGW(TEST_TAG, "Last PCD error: %s", pn532::to_string(pcd.last_result().error()));
+            } else {
+                ESP_LOGW(TEST_TAG, "Last controller error: %s", pn532::to_string(pcd.last_result()->error));
+            }
+            TEST_FAIL();
         } else {
-            ESP_LOGW(TEST_TAG, "Last controller error: %s", pn532::to_string(pcd.last_result()->error));
+            ESP_LOGI(TEST_TAG, "Successful.");
         }
-    } else {
-        ESP_LOGI(TEST_TAG, "Successful.");
+    };
+
+    ESP_LOGI(TEST_TAG, "Selecting default application.");
+    TEST_ASSERT(mifare.select_application(desfire::root_app));
+    ESP_LOGI(TEST_TAG, "Attempting auth with default DES key.");
+    test_auth_attempt(mifare.authenticate(default_k));
+    ESP_LOGI(TEST_TAG, "Formatting PICC for testing.");
+    TEST_ASSERT(mifare.format_picc());
+
+    desfire::app_id app_id{0, 0, 0};
+    for (desfire::any_key const &k : keys) {
+        ++app_id.back();
+        ESP_LOGI(TEST_TAG, "Attempting to create apps with cipher %s.", desfire::to_string(k.type()));
+        TEST_ASSERT(mifare.create_application(app_id, desfire::key_settings{k.type()}));
+        TEST_ASSERT(mifare.select_application(app_id));
+        test_auth_attempt(mifare.authenticate(k));
     }
-    TEST_ASSERT(bool(r_auth));
+
+    TEST_ASSERT(mifare.format_picc());
     mifare.logout();
 }
 

@@ -222,7 +222,7 @@ void issue_header(std::string const &title) {
     vTaskDelay(2000 / portTICK_PERIOD_MS);
 }
 
-void test_mifare_auth_base() {
+void test_mifare() {
     const auto default_k = desfire::key<desfire::cipher_type::des>{};
     const std::array<desfire::any_key, 4> keys{
             desfire::any_key{desfire::key<desfire::cipher_type::des>{}},
@@ -297,8 +297,8 @@ extern "C" void app_main() {
     RUN_TEST(test_cipher_2k3des);
     RUN_TEST(test_cipher_3k3des);
     RUN_TEST(test_cipher_aes);
-    issue_header("MIFARE AUTHENTICATION TEST (replace Mifare card)");
-    RUN_TEST(test_mifare_auth_base);
+    issue_header("MIFARE TEST (replace Mifare card)");
+    RUN_TEST(test_mifare);
     UNITY_END();
 }
 

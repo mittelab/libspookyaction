@@ -221,4 +221,33 @@ namespace desfire {
         return error_from_status(res_cmd->first);
     }
 
+    tag::r<key_settings> tag::get_key_settings() {
+        return command_parse_response<key_settings>(command_code::get_key_settings, bin_data{}, comm_mode::plain);
+    }
+
+    tag::r<std::uint8_t> tag::get_key_version(std::uint8_t key_num) {
+        if (key_num >= bits::max_keys_per_app) {
+            DESFIRE_LOGE("%s: invalid key num %u (max %u).", to_string(command_code::get_key_version), key_num, bits::max_keys_per_app);
+            return error::parameter_error;
+        }
+        return command_parse_response<std::uint8_t>(command_code::get_key_version, bin_data::chain(key_num),
+                                                    comm_mode::plain);
+    }
+
+    tag::r<> tag::create_application(app_id const &new_app_id, key_settings settings) {
+        if (settings.max_num_keys == 0 or settings.max_num_keys > bits::max_keys_per_app) {
+            DESFIRE_LOGW("%s: attempt to create an app with a maximum number of keys of %u, will be clamped in the "
+                         "range 1..%u.", to_string(command_code::create_application), settings.max_num_keys,
+                         bits::max_keys_per_app);
+            settings.max_num_keys = std::min(std::max(settings.max_num_keys, std::uint8_t(1)), bits::max_keys_per_app);
+        }
+        if (settings.rights.allowed_to_change_keys == no_key and not settings.rights.config_changeable) {
+            DESFIRE_LOGW("%s: attempt to create an app where keys and settings cannot be changed; this is probably a "
+                         "mistake.", to_string(command_code::create_application));
+        }
+        return command_response(command_code::create_application,
+                                bin_data::chain(prealloc(5), new_app_id, settings),
+                                comm_mode::plain);
+    }
+
 }

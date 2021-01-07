@@ -14,6 +14,7 @@ namespace desfire {
     using mlab::any;
     using bits::status;
     using bits::command_code;
+    using bits::app_crypto;
 
     using app_id = std::array<std::uint8_t, bits::app_id_length>;
 
@@ -117,6 +118,13 @@ namespace desfire {
     };
 
 
+    struct key_settings {
+        key_rights rights;
+        std::uint8_t max_num_keys = 0;
+        app_crypto crypto = app_crypto::legacy_des_2k3des;
+    };
+
+
     template <cipher_type>
     struct key {
         std::unique_ptr<cipher> make_cipher() const {
@@ -211,7 +219,9 @@ namespace mlab {
     }
 
     bin_data &operator<<(bin_data &bd, desfire::key_rights const &kr);
+    bin_data &operator<<(bin_data &bd, desfire::key_settings const &ks);
     bin_stream &operator>>(bin_stream &s, desfire::key_rights &kr);
+    bin_stream &operator>>(bin_stream &s, desfire::key_settings &ks);
 }
 
 namespace desfire {

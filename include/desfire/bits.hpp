@@ -95,6 +95,17 @@ namespace desfire {
 
         static constexpr unsigned app_id_length = 3;
 
+        enum struct app_crypto : std::uint8_t {
+            legacy_des_2k3des = 0x00,
+            iso_3k3des = 0x40,
+            aes_128 = 0x80
+        };
+
+        static constexpr std::uint8_t max_keys_mask = 0xf;
+
+        static_assert((max_keys_per_app & max_keys_mask) == max_keys_per_app,
+                "There's no spec for this max key mask, so let's make sure at least it works.");
+
     }
 }
 

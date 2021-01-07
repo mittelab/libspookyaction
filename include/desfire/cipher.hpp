@@ -61,10 +61,10 @@ namespace desfire {
     };
 
     static constexpr cipher::config cipher_cfg_plain{
-        .mode = comm_mode::plain,
-        .do_mac = true,
-        .do_cipher = true,
-        .do_crc = true
+            .mode = comm_mode::plain,
+            .do_mac = true,
+            .do_cipher = true,
+            .do_crc = true
     };
 
     static constexpr cipher::config cipher_cfg_crypto_nocrc{

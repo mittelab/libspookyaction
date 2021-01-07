@@ -97,6 +97,11 @@ namespace mlab {
     }
 
     bin_stream &operator>>(bin_stream &s, desfire::key_rights &kr) {
+        if (s.remaining() < 1) {
+            DESFIRE_LOGE("Cannot parse key_rights, not enough data.");
+            s.set_bad();
+            return s;
+        }
         const std::uint8_t flag = s.pop();
         if (0 != (flag & bits::app_change_keys_right_freeze_flag)) {
             kr.allowed_to_change_keys = desfire::no_key;
@@ -110,6 +115,44 @@ namespace mlab {
         kr.master_key_changeable = 0 != (flag & bits::app_changeable_master_key_flag);
         kr.config_changeable = 0 != (flag & bits::app_change_config_allowed_flag);
         return s;
+    }
+
+    bin_stream &operator>>(bin_stream &s, desfire::key_settings &ks) {
+        if (s.remaining() < 2) {
+            DESFIRE_LOGE("Cannot parse key_settings, not enough data.");
+            s.set_bad();
+            return s;
+        }
+        s >> ks.rights;
+        const std::uint8_t keys_crypto_flag = s.pop();
+        ks.max_num_keys = (keys_crypto_flag & bits::max_keys_mask);
+        if (ks.max_num_keys > bits::max_keys_per_app) {
+            DESFIRE_LOGW("Error while parsing key_settings: the specified max number of keys exceed the maximum "
+                         "number of keys declared: %u > %u.", ks.max_num_keys, bits::max_keys_per_app);
+            ks.max_num_keys = bits::max_keys_per_app;
+        }
+        static_assert(0 == static_cast<std::uint8_t>(bits::app_crypto::legacy_des_2k3des),
+                "This code relies on the fact that by default it's legacy, i.e. legacy has no bit set.");
+        const bool wants_iso_3k3des = 0 != (keys_crypto_flag & static_cast<std::uint8_t>(bits::app_crypto::iso_3k3des));
+        const bool wants_aes_128 = 0 != (keys_crypto_flag & static_cast<std::uint8_t>(bits::app_crypto::aes_128));
+        if (not wants_aes_128 and not wants_iso_3k3des) {
+            ks.crypto = bits::app_crypto::legacy_des_2k3des;
+        } else if (wants_iso_3k3des) {
+            ks.crypto = bits::app_crypto::iso_3k3des;
+            if (wants_aes_128) {
+                DESFIRE_LOGE("Error while parsing key_settings, the selected app has both the AES128 bit and the ISO "
+                             "3K3DES bit. Will assume 3K3DES.");
+            }
+        } else {
+            ks.crypto = bits::app_crypto::aes_128;
+        }
+        return s;
+    }
+
+    bin_data &operator<<(bin_data &bd, desfire::key_settings const &ks) {
+        const std::uint8_t flag = std::min(std::max(ks.max_num_keys, std::uint8_t(1)), bits::max_keys_per_app)
+                | static_cast<std::uint8_t>(ks.crypto);
+        return bd << prealloc(2) << ks.rights << flag;
     }
 
 }

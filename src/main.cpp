@@ -19,6 +19,8 @@
 namespace {
     std::unique_ptr<pn532::hsu> serial = nullptr;
     std::unique_ptr<pn532::nfc> tag_reader = nullptr;
+    std::unique_ptr<pn532::desfire_pcd> pcd = nullptr;
+    std::unique_ptr<desfire::tag> mifare = nullptr;
 
 
     template <class T, class ...Args>
@@ -55,12 +57,16 @@ void setup_uart_pn532() {
 
 
 void test_get_fw() {
+    TEST_ASSERT(tag_reader != nullptr);
+
     const auto r_fw = tag_reader->get_firmware_version();
     TEST_ASSERT(bool(r_fw));
     ESP_LOGI(TEST_TAG, "IC version %u, version: %u.%u", r_fw->ic, r_fw->version, r_fw->revision);
 }
 
 void test_diagnostics() {
+    TEST_ASSERT(tag_reader != nullptr);
+
     TEST_ASSERT(is_ok(tag_reader->diagnose_rom()));
     TEST_ASSERT(is_ok(tag_reader->diagnose_ram()));
     TEST_ASSERT(is_ok(tag_reader->diagnose_comm_line()));
@@ -69,6 +75,7 @@ void test_diagnostics() {
 }
 
 void test_scan_mifare() {
+    TEST_ASSERT(tag_reader != nullptr);
     const auto r_scan = tag_reader->initiator_list_passive_kbps106_typea();
     TEST_ASSERT(bool(r_scan));
     ESP_LOGI(TEST_TAG, "Found %u targets (passive, 106 kbps, type A).", r_scan->size());
@@ -81,6 +88,7 @@ void test_scan_mifare() {
 }
 
 void test_scan_all() {
+    TEST_ASSERT(tag_reader != nullptr);
     const auto r_scan = tag_reader->initiator_auto_poll();
     TEST_ASSERT(bool(r_scan));
     ESP_LOGI(TEST_TAG, "Found %u targets.", r_scan->size());
@@ -92,6 +100,7 @@ void test_scan_all() {
 }
 
 void test_data_exchange() {
+    TEST_ASSERT(tag_reader != nullptr);
     ESP_LOGI(TEST_TAG, "Searching for one passive 106 kbps target. Please bring card close.");
     const auto r_scan = tag_reader->initiator_list_passive_kbps106_typea(1, 10 * pn532::one_sec);
     if (not r_scan or r_scan->empty()) {
@@ -222,14 +231,24 @@ void issue_header(std::string const &title) {
     vTaskDelay(2000 / portTICK_PERIOD_MS);
 }
 
-void test_mifare() {
-    const auto default_k = desfire::key<desfire::cipher_type::des>{};
-    const std::array<desfire::any_key, 4> keys{
-            desfire::any_key{desfire::key<desfire::cipher_type::des>{}},
-            desfire::any_key{desfire::key<desfire::cipher_type::des3_2k>{}},
-            desfire::any_key{desfire::key<desfire::cipher_type::des3_3k>{}},
-            desfire::any_key{desfire::key<desfire::cipher_type::aes128>{}}
-    };
+
+void test_auth_attempt(desfire::tag::r<> const &r) {
+    TEST_ASSERT(pcd != nullptr);
+    if (not r) {
+        ESP_LOGW(TEST_TAG, "Authentication failed: %s", desfire::to_string(r.error()));
+        if (not pcd->last_result()) {
+            ESP_LOGW(TEST_TAG, "Last PCD error: %s", pn532::to_string(pcd->last_result().error()));
+        } else {
+            ESP_LOGW(TEST_TAG, "Last controller error: %s", pn532::to_string(pcd->last_result()->error));
+        }
+        TEST_FAIL();
+    } else {
+        ESP_LOGI(TEST_TAG, "Successful.");
+    }
+}
+
+void setup_mifare() {
+    TEST_ASSERT(tag_reader != nullptr);
 
     ESP_LOGI(TEST_TAG, "Searching for one passive 106 kbps target. Please bring card close.");
     const auto r_scan = tag_reader->initiator_list_passive_kbps106_typea(1, 10 * pn532::one_sec);
@@ -241,43 +260,41 @@ void test_mifare() {
     auto const &nfcid = r_scan->front().info.nfcid;
     ESP_LOG_BUFFER_HEX_LEVEL(TEST_TAG, nfcid.data(), nfcid.size(), ESP_LOG_INFO);
 
+    pcd = std::unique_ptr<pn532::desfire_pcd>(new pn532::desfire_pcd(*tag_reader, r_scan->front().logical_index));
+    mifare = std::unique_ptr<desfire::tag>(new desfire::tag(*pcd));
+}
 
-    /// ACTUAL TEST BODY -----------------------------------------------------------------------------------------------
-    auto pcd = pn532::desfire_pcd{*tag_reader, r_scan->front().logical_index};
-    auto mifare = desfire::tag{pcd};
-
-    const auto test_auth_attempt = [&](desfire::tag::r<> const &r) {
-        if (not r) {
-            ESP_LOGW(TEST_TAG, "Authentication failed: %s", desfire::to_string(r.error()));
-            if (not pcd.last_result()) {
-                ESP_LOGW(TEST_TAG, "Last PCD error: %s", pn532::to_string(pcd.last_result().error()));
-            } else {
-                ESP_LOGW(TEST_TAG, "Last controller error: %s", pn532::to_string(pcd.last_result()->error));
-            }
-            TEST_FAIL();
-        } else {
-            ESP_LOGI(TEST_TAG, "Successful.");
-        }
-    };
-
+void test_mifare_base() {
+    TEST_ASSERT(pcd != nullptr and mifare != nullptr);
     ESP_LOGI(TEST_TAG, "Selecting default application.");
-    TEST_ASSERT(mifare.select_application(desfire::root_app));
+    TEST_ASSERT(mifare->select_application(desfire::root_app));
     ESP_LOGI(TEST_TAG, "Attempting auth with default DES key.");
-    test_auth_attempt(mifare.authenticate(default_k));
+    test_auth_attempt(mifare->authenticate(desfire::key<desfire::cipher_type::des>{}));
     ESP_LOGI(TEST_TAG, "Formatting PICC for testing.");
-    TEST_ASSERT(mifare.format_picc());
+    TEST_ASSERT(mifare->format_picc());
+}
+
+void test_mifare_create_apps() {
+    TEST_ASSERT(pcd != nullptr and mifare != nullptr);
+
+    const std::array<desfire::any_key, 4> keys{
+            desfire::any_key{desfire::key<desfire::cipher_type::des>{}},
+            desfire::any_key{desfire::key<desfire::cipher_type::des3_2k>{}},
+            desfire::any_key{desfire::key<desfire::cipher_type::des3_3k>{}},
+            desfire::any_key{desfire::key<desfire::cipher_type::aes128>{}}
+    };
 
     desfire::app_id app_id{0, 0, 0};
     for (desfire::any_key const &k : keys) {
         ++app_id.back();
         ESP_LOGI(TEST_TAG, "Attempting to create apps with cipher %s.", desfire::to_string(k.type()));
-        TEST_ASSERT(mifare.create_application(app_id, desfire::key_settings{k.type()}));
-        TEST_ASSERT(mifare.select_application(app_id));
-        test_auth_attempt(mifare.authenticate(k));
+        TEST_ASSERT(mifare->select_application(desfire::root_app));
+        TEST_ASSERT(mifare->authenticate(desfire::key<desfire::cipher_type::des>{}));
+        TEST_ASSERT(mifare->create_application(app_id, desfire::key_settings{k.type()}));
+        TEST_ASSERT(mifare->select_application(app_id));
+        test_auth_attempt(mifare->authenticate(k));
     }
-
-    TEST_ASSERT(mifare.format_picc());
-    mifare.logout();
+    TEST_ASSERT(mifare->format_picc());
 }
 
 extern "C" void app_main() {
@@ -298,7 +315,9 @@ extern "C" void app_main() {
     RUN_TEST(test_cipher_3k3des);
     RUN_TEST(test_cipher_aes);
     issue_header("MIFARE TEST (replace Mifare card)");
-    RUN_TEST(test_mifare);
+    RUN_TEST(setup_mifare);
+    RUN_TEST(test_mifare_base);
+    RUN_TEST(test_mifare_create_apps);
     UNITY_END();
 }
 

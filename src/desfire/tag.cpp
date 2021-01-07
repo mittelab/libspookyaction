@@ -266,4 +266,8 @@ namespace desfire {
                                 {cipher_cfg_crypto, cipher_cfg_plain});
     }
 
+    tag::r<> tag::format_picc() {
+        return command_response(command_code::format_picc, bin_data{}, comm_mode::plain);
+    }
+
 }

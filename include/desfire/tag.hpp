@@ -112,6 +112,8 @@ namespace desfire {
 
         r<std::uint8_t> get_key_version(std::uint8_t key_num);
 
+        r<> format_picc();
+
 
     private:
         inline controller &ctrl();

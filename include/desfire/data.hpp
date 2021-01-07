@@ -32,6 +32,8 @@ namespace desfire {
         aes128 = 0x4
     };
 
+    app_crypto app_crypto_from_cipher(cipher_type c);
+
     /**
      * @note Misses @ref status::ok, @ref status::no_changes, @ref status::additional_frame. The first two represent
      * success conditions, the latter has to be handled at communication level.
@@ -120,8 +122,16 @@ namespace desfire {
 
     struct key_settings {
         key_rights rights;
-        std::uint8_t max_num_keys = 0;
-        app_crypto crypto = app_crypto::legacy_des_2k3des;
+        std::uint8_t max_num_keys;
+        app_crypto crypto;
+
+        inline explicit key_settings(app_crypto crypto_ = app_crypto::legacy_des_2k3des,
+                                     key_rights rights_ = key_rights{},
+                                     std::uint8_t max_num_keys_ = bits::max_keys_per_app);
+
+        inline explicit key_settings(cipher_type cipher,
+                                     key_rights rights_ = key_rights{},
+                                     std::uint8_t max_num_keys_ = bits::max_keys_per_app);
     };
 
 
@@ -318,6 +328,11 @@ namespace desfire {
         return _repr;
     }
 
+    key_settings::key_settings(app_crypto crypto_, key_rights rights_, std::uint8_t max_num_keys_) :
+            rights{rights_}, max_num_keys{max_num_keys_}, crypto{crypto_} {}
+
+    key_settings::key_settings(cipher_type cipher, key_rights rights_, std::uint8_t max_num_keys_) :
+            rights{rights_}, max_num_keys{max_num_keys_}, crypto{app_crypto_from_cipher(cipher)} {}
 }
 
 #endif //DESFIRE_DATA_HPP

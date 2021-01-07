@@ -74,6 +74,7 @@ void test_diagnostics() {
 
 void test_scan_mifare() {
     TEST_ASSERT(tag_reader != nullptr);
+    ESP_LOGI(TEST_TAG, "Please bring card close now (searching for one passive 106 kbps target)...");
     const auto r_scan = tag_reader->initiator_list_passive_kbps106_typea();
     TEST_ASSERT(bool(r_scan));
     ESP_LOGI(TEST_TAG, "Found %u targets (passive, 106 kbps, type A).", r_scan->size());
@@ -87,6 +88,7 @@ void test_scan_mifare() {
 
 void test_scan_all() {
     TEST_ASSERT(tag_reader != nullptr);
+    ESP_LOGI(TEST_TAG, "Please bring card close now (searching for any target)...");
     const auto r_scan = tag_reader->initiator_auto_poll();
     TEST_ASSERT(bool(r_scan));
     ESP_LOGI(TEST_TAG, "Found %u targets.", r_scan->size());
@@ -99,7 +101,7 @@ void test_scan_all() {
 
 void test_data_exchange() {
     TEST_ASSERT(tag_reader != nullptr);
-    ESP_LOGI(TEST_TAG, "Searching for one passive 106 kbps target. Please bring card close.");
+    ESP_LOGI(TEST_TAG, "Please bring card close now (searching for one passive 106 kbps target)...");
     const auto r_scan = tag_reader->initiator_list_passive_kbps106_typea(1, 10 * pn532::one_sec);
     if (not r_scan or r_scan->empty()) {
         TEST_FAIL_MESSAGE("Could not find a suitable card for testing.");
@@ -252,7 +254,7 @@ void test_auth_attempt(desfire::tag::r<> const &r) {
 void setup_mifare() {
     TEST_ASSERT(tag_reader != nullptr);
 
-    ESP_LOGI(TEST_TAG, "Searching for one passive 106 kbps target. Please bring card close.");
+    ESP_LOGI(TEST_TAG, "Please bring card close now (searching for one passive 106 kbps target)...");
     const auto r_scan = tag_reader->initiator_list_passive_kbps106_typea(1, 10 * pn532::one_sec);
     if (not r_scan or r_scan->empty()) {
         TEST_FAIL_MESSAGE("Could not find a suitable card for testing.");
@@ -296,29 +298,42 @@ void test_mifare_create_apps() {
         TEST_ASSERT(mifare->select_application(app_id));
         test_auth_attempt(mifare->authenticate(k));
     }
+
     TEST_ASSERT(mifare->select_application(desfire::root_app));
-    TEST_ASSERT(mifare->authenticate(desfire::key<desfire::cipher_type::des>{}));
-    TEST_ASSERT(mifare->format_picc());
+    const auto r_app_ids = mifare->get_application_ids();
+    TEST_ASSERT(r_app_ids);
+    if (r_app_ids) {
+        std::array<bool, 4> got_all_ids = {false, false, false, false};
+        TEST_ASSERT(r_app_ids->size() >= 4);
+        for (std::size_t i = 0; i < r_app_ids->size(); ++i) {
+            desfire::app_id const &aid = r_app_ids->at(i);
+            ESP_LOGI(TEST_TAG, "  %d. AID %02x %02x %02x", i + 1, aid[0], aid[1], aid[2]);
+            if (aid[0] == aid[1] and aid[0] == 0 and 0 < aid[2] and aid[2] < 5) {
+                got_all_ids[aid[2] - 1] = true;
+            }
+        }
+        TEST_ASSERT(got_all_ids[0] and got_all_ids[1] and got_all_ids[2] and got_all_ids[3]);
+    }
 }
 
 extern "C" void app_main() {
     UNITY_BEGIN();
-    issue_header("HARDWARE SETUP");
-    RUN_TEST(setup_uart_pn532);
-    issue_header("PN532 TEST AND DIAGNOSTICS");
-    RUN_TEST(test_get_fw);
-    RUN_TEST(test_diagnostics);
-    issue_header("PN532 SCAN TEST (optionally place card)");
-    RUN_TEST(test_scan_mifare);
-    RUN_TEST(test_scan_all);
-    issue_header("PN532 MIFARE COMM TEST (replace Mifare card)");
-    RUN_TEST(test_data_exchange);
-    issue_header("MIFARE CIPHER TEST");
+    issue_header("MIFARE CIPHER TEST (no card)");
     RUN_TEST(test_cipher_des);
     RUN_TEST(test_cipher_2k3des);
     RUN_TEST(test_cipher_3k3des);
     RUN_TEST(test_cipher_aes);
-    issue_header("MIFARE TEST (replace Mifare card)");
+    issue_header("HARDWARE SETUP (no card)");
+    RUN_TEST(setup_uart_pn532);
+    issue_header("PN532 TEST AND DIAGNOSTICS (no card)");
+    RUN_TEST(test_get_fw);
+    RUN_TEST(test_diagnostics);
+    issue_header("PN532 SCAN TEST (optionally requires card)");
+    RUN_TEST(test_scan_mifare);
+    RUN_TEST(test_scan_all);
+    issue_header("PN532 MIFARE COMM TEST (requires card, lift previous card)");
+    RUN_TEST(test_data_exchange);
+    issue_header("MIFARE TEST (requires card, lift previous card)");
     RUN_TEST(setup_mifare);
     RUN_TEST(test_mifare_base);
     RUN_TEST(test_mifare_create_apps);

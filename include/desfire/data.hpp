@@ -232,6 +232,7 @@ namespace mlab {
     bin_data &operator<<(bin_data &bd, desfire::key_settings const &ks);
     bin_stream &operator>>(bin_stream &s, desfire::key_rights &kr);
     bin_stream &operator>>(bin_stream &s, desfire::key_settings &ks);
+    bin_stream &operator>>(bin_stream &s, std::vector<desfire::app_id> &ids);
 }
 
 namespace desfire {

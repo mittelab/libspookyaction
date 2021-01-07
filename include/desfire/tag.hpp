@@ -119,6 +119,18 @@ namespace desfire {
         r<std::uint8_t> get_key_version(std::uint8_t key_num);
 
         /**
+         * @note Must be on the @ref root_app, possibly authenticated.
+         */
+        r<std::vector<app_id>> get_application_ids();
+
+        /**
+         * @note Must be on the @ref root_app or in @p app, with the appropriate master key.
+         */
+        r<> delete_application(app_id const &app);
+
+
+
+        /**
          * @note Must be on the @ref root_app for this to succeed, and authenticated with the master key.
          */
         r<> format_picc();

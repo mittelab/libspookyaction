@@ -169,6 +169,19 @@ namespace mlab {
         return s;
     }
 
+    bin_stream &operator>>(bin_stream &s, std::vector<desfire::app_id> &ids) {
+        if (s.remaining() % bits::app_id_length != 0) {
+            DESFIRE_LOGE("Cannot parse vector<app_id>, data length is not an integer multiple of the app id size.");
+            s.set_bad();
+            return s;
+        }
+        ids.resize(s.remaining() / bits::app_id_length, desfire::app_id{});
+        for (auto &aid : ids) {
+            s >> aid;
+        }
+        return s;
+    }
+
     bin_data &operator<<(bin_data &bd, desfire::key_settings const &ks) {
         const std::uint8_t flag = std::min(std::max(ks.max_num_keys, std::uint8_t(1)), bits::max_keys_per_app)
                 | static_cast<std::uint8_t>(ks.crypto);

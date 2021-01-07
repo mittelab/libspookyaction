@@ -1,5 +1,3 @@
-#ifdef TEST_MAIN
-
 #include <unity.h>
 #include <driver/uart.h>
 #include <pn532/hsu.hpp>
@@ -326,5 +324,3 @@ extern "C" void app_main() {
     RUN_TEST(test_mifare_create_apps);
     UNITY_END();
 }
-
-#endif

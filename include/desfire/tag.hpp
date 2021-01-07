@@ -119,7 +119,7 @@ namespace desfire {
         r<std::uint8_t> get_key_version(std::uint8_t key_num);
 
         /**
-         * @note Must be on the @ref root_app for this to succeed.
+         * @note Must be on the @ref root_app for this to succeed, and authenticated with the master key.
          */
         r<> format_picc();
 

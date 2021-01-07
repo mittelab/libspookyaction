@@ -299,6 +299,7 @@ void test_mifare_create_apps() {
         test_auth_attempt(mifare->authenticate(k));
     }
     TEST_ASSERT(mifare->select_application(desfire::root_app));
+    TEST_ASSERT(mifare->authenticate(desfire::key<desfire::cipher_type::des>{}));
     TEST_ASSERT(mifare->format_picc());
 }
 

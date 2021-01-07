@@ -104,11 +104,13 @@ namespace desfire {
 
         r<> select_application(app_id const &app = root_app);
 
+        r<> create_application(app_id const &new_app_id, key_settings settings);
+
+        r<> change_key_settings(key_rights new_rights);
+
         r<key_settings> get_key_settings();
 
         r<std::uint8_t> get_key_version(std::uint8_t key_num);
-
-        r<> create_application(app_id const &new_app_id, key_settings settings);
 
 
     private:

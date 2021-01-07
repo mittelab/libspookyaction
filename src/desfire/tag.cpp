@@ -250,4 +250,20 @@ namespace desfire {
                                 comm_mode::plain);
     }
 
+    tag::r<> tag::change_key_settings(key_rights new_rights) {
+        if (active_app() == root_app) {
+            if (new_rights.allowed_to_change_keys != 0) {
+                DESFIRE_LOGW("%s: only the unique master key can have the right to change keys in the root app.",
+                             to_string(command_code::change_key_settings));
+                new_rights.allowed_to_change_keys = 0;
+            }
+        }
+        if (active_cipher_type() == cipher_type::none) {
+            DESFIRE_LOGW("%s: not authenticated, likely to fail.", to_string(command_code::change_key_settings));
+        }
+        return command_response(command_code::change_key_settings,
+                                bin_data::chain(new_rights),
+                                {cipher_cfg_crypto, cipher_cfg_plain});
+    }
+
 }

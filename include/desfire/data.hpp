@@ -134,6 +134,40 @@ namespace desfire {
                                      std::uint8_t max_num_keys_ = bits::max_keys_per_app);
     };
 
+    class storage_size {
+        std::uint8_t _flag;
+
+        inline unsigned exponent() const;
+        inline bool approx() const;
+    public:
+        explicit storage_size(std::size_t nbytes = 0);
+
+        inline std::size_t bytes_lower_bound() const;
+        inline std::size_t bytes_upper_bound() const;
+
+        mlab::bin_stream &operator>>(mlab::bin_stream &s);
+        mlab::bin_data &operator<<(mlab::bin_data &s) const;
+    };
+
+    struct ware_info {
+        std::uint8_t vendor_id = 0;
+        std::uint8_t type = 0;
+        std::uint8_t subtype = 0;
+        std::uint8_t version_major = 0;
+        std::uint8_t version_minor = 0;
+        storage_size size;
+        std::uint8_t comm_protocol_type = 0;
+    };
+
+    struct manufacturing_info {
+        ware_info hardware;
+        ware_info software;
+        std::array<std::uint8_t, 7> serial_no{};
+        std::array<std::uint8_t, 5> batch_no{};
+        std::uint8_t production_week = 0;
+        std::uint8_t production_year = 0;
+    };
+
 
     template <cipher_type>
     struct key {
@@ -233,6 +267,8 @@ namespace mlab {
     bin_stream &operator>>(bin_stream &s, desfire::key_rights &kr);
     bin_stream &operator>>(bin_stream &s, desfire::key_settings &ks);
     bin_stream &operator>>(bin_stream &s, std::vector<desfire::app_id> &ids);
+    bin_stream &operator>>(bin_stream &s, desfire::ware_info &wi);
+    bin_stream &operator>>(bin_stream &s, desfire::manufacturing_info &mi);
 }
 
 namespace desfire {
@@ -334,6 +370,19 @@ namespace desfire {
 
     key_settings::key_settings(cipher_type cipher, key_rights rights_, std::uint8_t max_num_keys_) :
             rights{rights_}, max_num_keys{max_num_keys_}, crypto{app_crypto_from_cipher(cipher)} {}
+
+    unsigned storage_size::exponent() const {
+        return _flag >> bits::storage_size_exponent_shift;
+    }
+    bool storage_size::approx() const {
+        return 0 != (_flag & bits::storage_size_approx_bit);
+    }
+    std::size_t storage_size::bytes_lower_bound() const {
+        return 1 << exponent();
+    }
+    std::size_t storage_size::bytes_upper_bound() const {
+        return 1 << (approx() ? exponent() + 1 : exponent());
+    }
 }
 
 #endif //DESFIRE_DATA_HPP

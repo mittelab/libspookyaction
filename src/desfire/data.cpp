@@ -4,6 +4,7 @@
 
 #include "desfire/data.hpp"
 #include "desfire/msg.hpp"
+#include "desfire/crypto_algo.hpp"
 
 namespace desfire {
 
@@ -99,6 +100,28 @@ namespace desfire {
         }
     }
 
+    storage_size::storage_size(std::size_t nbytes) : _flag{0} {
+        if (nbytes > 0) {
+            const auto log_remainder = log2_remainder(nbytes);
+            _flag = (log_remainder.first << bits::storage_size_exponent_shift);
+            if (log_remainder.second != 0) {
+                _flag |= bits::storage_size_approx_bit;
+            }
+        }
+    }
+
+
+    mlab::bin_stream &storage_size::operator>>(mlab::bin_stream &s) {
+        if (s.remaining() == 0) {
+            DESFIRE_LOGE("Cannot parse storage_size, not enough data.");
+            s.set_bad();
+            return s;
+        }
+        return s >> _flag;
+    }
+    mlab::bin_data &storage_size::operator<<(mlab::bin_data &s) const {
+        return s << _flag;
+    }
 
 }
 
@@ -187,5 +210,28 @@ namespace mlab {
                 | static_cast<std::uint8_t>(ks.crypto);
         return bd << prealloc(2) << ks.rights << flag;
     }
+
+    bin_stream &operator>>(bin_stream &s, desfire::ware_info &wi) {
+        if (s.remaining() < 7) {
+            DESFIRE_LOGE("Cannot parse ware_info: not enough data.");
+            s.set_bad();
+            return s;
+        }
+        s >> wi.vendor_id >> wi.type >> wi.subtype >> wi.version_major >> wi.version_minor;
+        wi.size.operator>>(s);
+        s >> wi.comm_protocol_type;
+        return s;
+    }
+
+    bin_stream &operator>>(bin_stream &s, desfire::manufacturing_info &mi) {
+        if (s.remaining() < 28) {
+            DESFIRE_LOGE("Cannot parse manufacturing_info: not enough data.");
+            s.set_bad();
+            return s;
+        }
+        s >> mi.hardware >> mi.software >> mi.serial_no >> mi.batch_no >> mi.production_week >> mi.production_year;
+        return s;
+    }
+
 
 }

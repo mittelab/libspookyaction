@@ -276,6 +276,24 @@ void test_mifare_base() {
     test_auth_attempt(mifare->authenticate(desfire::key<desfire::cipher_type::des>{}));
     ESP_LOGI(TEST_TAG, "Formatting PICC for testing.");
     TEST_ASSERT(mifare->format_picc());
+
+    const auto r_info = mifare->get_info();
+    TEST_ASSERT(r_info);
+    if (r_info) {
+        ESP_LOGI(TEST_TAG, "Card info:");
+        ESP_LOGI(TEST_TAG, "    vendor id: %02x", r_info->hardware.vendor_id);
+        ESP_LOGI(TEST_TAG, "   hw version: %d.%d", r_info->hardware.version_major, r_info->hardware.version_minor);
+        ESP_LOGI(TEST_TAG, "   sw version: %d.%d", r_info->software.version_major, r_info->software.version_minor);
+        ESP_LOGI(TEST_TAG, "  storage [B]: %s%u",
+                 (r_info->hardware.size.bytes_upper_bound() > r_info->hardware.size.bytes_lower_bound() ? "> " : ""),
+                 r_info->hardware.size.bytes_lower_bound());
+        ESP_LOGI(TEST_TAG, "    serial no: %02x %02x %02x %02x %02x %02x %02x",
+                 r_info->serial_no[0], r_info->serial_no[1], r_info->serial_no[2], r_info->serial_no[3],
+                 r_info->serial_no[4], r_info->serial_no[5], r_info->serial_no[6]);
+        ESP_LOGI(TEST_TAG, "     batch no: %02x %02x %02x %02x %02x",
+                 r_info->batch_no[0], r_info->batch_no[1], r_info->batch_no[2], r_info->batch_no[3], r_info->batch_no[4]);
+        ESP_LOGI(TEST_TAG, "   production: %02u, week %u", r_info->production_year, r_info->production_week);
+    }
 }
 
 void test_mifare_create_apps() {

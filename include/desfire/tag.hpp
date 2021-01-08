@@ -129,6 +129,8 @@ namespace desfire {
         r<> delete_application(app_id const &app);
 
 
+        r<manufacturing_info> get_info();
+
 
         /**
          * @note Must be on the @ref root_app for this to succeed, and authenticated with the master key.

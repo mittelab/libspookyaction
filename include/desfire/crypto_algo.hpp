@@ -14,6 +14,9 @@
 
 namespace desfire {
 
+    template <class Integral, class = typename std::enable_if<std::is_integral<Integral>::value and std::is_unsigned<Integral>::value>::type>
+    std::pair<unsigned, Integral> log2_remainder(Integral n);
+
     template <class It>
     void lshift_sequence(It begin, It end, unsigned lshift);
 
@@ -102,6 +105,20 @@ namespace desfire {
         }
         return {last_payload_end, crc_pass};
     }
+
+    template <class Integral, class>
+    std::pair<unsigned, Integral> log2_remainder(Integral n) {
+        Integral mask = ~Integral{0};
+        for (unsigned i = 0; i < sizeof(Integral) * 8; ++i) {
+            mask >>= 1;
+            const Integral remainder = n & mask;
+            if (remainder != n) {
+                return {sizeof(Integral) * 8 - i - 1, remainder};
+            }
+        }
+        return {0, n};
+    }
+
 
 }
 namespace mlab {

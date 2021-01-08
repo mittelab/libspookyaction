@@ -106,6 +106,8 @@ namespace desfire {
         static_assert((max_keys_per_app & max_keys_mask) == max_keys_per_app,
                 "There's no spec for this max key mask, so let's make sure at least it works.");
 
+        static constexpr std::uint8_t storage_size_approx_bit = 0b1;
+        static constexpr unsigned storage_size_exponent_shift = 1;
     }
 }
 

@@ -272,6 +272,10 @@ namespace desfire {
         return command_parse_response<std::vector<app_id>>(command_code::get_application_ids, {}, comm_mode::plain);
     }
 
+    tag::r<manufacturing_info> tag::get_info() {
+        return command_parse_response<manufacturing_info>(command_code::get_version, bin_data{}, comm_mode::plain);
+    }
+
     tag::r<> tag::format_picc() {
         return command_response(command_code::format_picc, bin_data{}, comm_mode::plain);
     }

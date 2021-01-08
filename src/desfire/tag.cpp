@@ -111,7 +111,7 @@ namespace desfire {
 
         DESFIRE_LOGD("Authentication with key %u: deriving session key...", k.key_number());
         pcipher->reinit_with_session_key(bin_data::chain(prealloc(2 * rndb.size()), rnda, rndb));
-        DESFIRE_LOGI("Authentication with key %u: sucessful.", k.key_number());
+        DESFIRE_LOGI("Authentication with key %u: successful.", k.key_number());
 
         _active_cipher = std::move(pcipher);
         _active_cipher_type = k.type();

@@ -292,7 +292,8 @@ void test_mifare_base() {
                  r_info->serial_no[4], r_info->serial_no[5], r_info->serial_no[6]);
         ESP_LOGI(TEST_TAG, "     batch no: %02x %02x %02x %02x %02x",
                  r_info->batch_no[0], r_info->batch_no[1], r_info->batch_no[2], r_info->batch_no[3], r_info->batch_no[4]);
-        ESP_LOGI(TEST_TAG, "   production: %02u, week %u", r_info->production_year, r_info->production_week);
+        ESP_LOGI(TEST_TAG, "   production: %02x %02x -> year %02u, week %u", r_info->production_week,
+                 r_info->production_year, r_info->production_year, r_info->production_week);
     }
 }
 

@@ -155,7 +155,7 @@ namespace desfire {
                 if (sb == status::additional_frame) {
                     // The "more frames" status is not part of the payload
                     received.pop_back();
-                    if (received.size() == res->size()) {
+                    if (received.size() + 1 == res->size()) {
                         // Only one payload was received, clear and insert a single byte asking for more frames
                         payload.clear();
                         payload << command_code::additional_frame;

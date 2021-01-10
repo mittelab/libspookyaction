@@ -7,6 +7,7 @@
 
 #include "mlab/bin_data.hpp"
 #include "bits.hpp"
+#include "log.h"
 
 namespace desfire {
     using bits::comm_mode;
@@ -36,6 +37,8 @@ namespace desfire {
         virtual bool confirm_rx(bin_data &data, config const &cfg) = 0;
 
         virtual void reinit_with_session_key(bin_data const &rndab) = 0;
+
+        inline static bool is_legacy(bits::cipher_type type);
 
         virtual ~cipher() = default;
     };
@@ -104,6 +107,20 @@ namespace desfire {
     /// @note This is C++14 (pre C++-17) nonsense.
     template <std::size_t BlockSize, std::size_t MACSize, std::size_t CRCSize>
     constexpr std::size_t cipher_traits<BlockSize, MACSize, CRCSize>::crc_size;
+
+    bool cipher::is_legacy(bits::cipher_type type) {
+        switch (type) {
+            case bits::cipher_type::des:
+            case bits::cipher_type::des3_2k:
+                return true;
+            case bits::cipher_type::des3_3k:
+            case bits::cipher_type::aes128:
+                return false;
+            default:
+                DESFIRE_LOGE("Requesting whether a cipher is legacy with no cipher!");
+                return true;
+        }
+    }
 }
 
 #endif //DESFIRE_CIPHER_HPP

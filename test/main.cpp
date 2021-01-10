@@ -355,6 +355,6 @@ extern "C" void app_main() {
     issue_header("MIFARE TEST (requires card, lift previous card)");
     RUN_TEST(setup_mifare);
     RUN_TEST(test_mifare_base);
-    RUN_TEST(test_mifare_create_apps);
+//    RUN_TEST(test_mifare_create_apps);
     UNITY_END();
 }

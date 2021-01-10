@@ -13,24 +13,13 @@
 namespace desfire {
     using mlab::any;
     using bits::status;
+    using bits::cipher_type;
     using bits::command_code;
     using bits::app_crypto;
 
     using app_id = std::array<std::uint8_t, bits::app_id_length>;
 
     static constexpr app_id root_app{0x0, 0x0, 0x0};
-
-
-    /**
-     * @note The numeric assignment is only needed for CTTI (that is later used in ::mlab::any)
-     */
-    enum struct cipher_type : std::uint8_t {
-        none = 0x0,
-        des = 0x1,
-        des3_2k = 0x2,
-        des3_3k = 0x3,
-        aes128 = 0x4
-    };
 
     app_crypto app_crypto_from_cipher(cipher_type c);
 
@@ -174,6 +163,10 @@ namespace desfire {
         std::unique_ptr<cipher> make_cipher() const {
             return std::unique_ptr<cipher>(new cipher_dummy());
         }
+        inline bin_data &operator<<(bin_data &bd) const {
+            DESFIRE_LOGE("Attempt at writing key of an invalid cipher type.");
+            return bd;
+        }
     };
 
     class any_key {
@@ -187,14 +180,21 @@ namespace desfire {
 
         inline cipher_type type() const;
         std::uint8_t key_number() const;
-        bool is_legacy_scheme() const;
         std::unique_ptr<cipher> make_cipher() const;
 
         template <cipher_type Type>
         key<Type> const &get_key() const;
+        template <cipher_type Type>
+        key<Type> &get_key();
 
         template <cipher_type Type>
         any_key &operator=(key<Type> entry);
+
+        /**
+         * @return AES128 version byte excluded, DES key is doubled to reach 16 bytes.
+         */
+        bin_data copy_key_data() const;
+        any_key copy_xored(any_key const &key_to_xor_with) const;
     };
 
 
@@ -219,6 +219,10 @@ namespace desfire {
         key(std::uint8_t key_no, key_t k, std::uint8_t version = 0x0) : key_base<8, cipher_des>{key_no, k} {
             store_version(version);
         }
+        bin_data &operator<<(bin_data &bd) const {
+            // Key must be copied twice in two identical parts because it's DES.
+            return bd << k << k;
+        }
     };
 
     template <>
@@ -227,6 +231,7 @@ namespace desfire {
         key(std::uint8_t key_no, key_t k, std::uint8_t version = 0x0) : key_base<16, cipher_2k3des>{key_no, k} {
             store_version(version);
         }
+        bin_data &operator<<(bin_data &bd) const { return bd << k; }
     };
 
     template <>
@@ -235,6 +240,7 @@ namespace desfire {
         key(std::uint8_t key_no, key_t k, std::uint8_t version = 0x0) : key_base<24, cipher_3k3des>{key_no, k} {
             store_version(version);
         }
+        bin_data &operator<<(bin_data &bd) const { return bd << k; }
     };
 
     template <>
@@ -247,8 +253,17 @@ namespace desfire {
         using base::key_t;
         using base::make_cipher;
 
+        std::uint8_t version = 0x0;
+
+        inline void store_version(std::uint8_t v_) { version = v_; }
+        inline std::uint8_t get_version() const { return version; }
+
         key() = default;
-        key(std::uint8_t key_no, key_t k) : key_base<16, cipher_aes>{key_no, k} {}
+        key(std::uint8_t key_no, key_t k, std::uint8_t version = 0x0) : key_base<16, cipher_aes>{key_no, k} {
+            store_version(version);
+        }
+
+        bin_data &operator<<(bin_data &bd) const { return bd << k << version; }
     };
 
 }
@@ -269,6 +284,10 @@ namespace mlab {
     bin_stream &operator>>(bin_stream &s, std::vector<desfire::app_id> &ids);
     bin_stream &operator>>(bin_stream &s, desfire::ware_info &wi);
     bin_stream &operator>>(bin_stream &s, desfire::manufacturing_info &mi);
+
+    bin_data &operator<<(bin_data &bd, desfire::any_key const &k);
+    template <cipher_type Type>
+    bin_data &operator<<(bin_data &bd, desfire::key<Type> const &k);
 }
 
 namespace desfire {
@@ -328,6 +347,13 @@ namespace desfire {
         return _key.template get<key<Type>>();
     }
 
+    template <cipher_type Type>
+    key<Type> &any_key::get_key() {
+        return _key.template get<key<Type>>();
+    }
+
+
+
     key_actor::key_actor(std::uint8_t key_index) : _repr{} {
         *this = key_index;
     }
@@ -382,6 +408,22 @@ namespace desfire {
     }
     std::size_t storage_size::bytes_upper_bound() const {
         return 1 << (approx() ? exponent() + 1 : exponent());
+    }
+}
+
+namespace mlab {
+
+    namespace impl {
+        template <cipher_type Type>
+        struct injector {
+            inline bin_data &operator()(bin_data &bd, desfire::key<Type> const &k) {
+                return k.operator<<(bd);
+            }
+        };
+    }
+    template <cipher_type Type>
+    bin_data &operator<<(bin_data &bd, desfire::key<Type> const &k) {
+        return k.operator<<(bd);
     }
 }
 

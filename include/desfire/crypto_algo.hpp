@@ -11,8 +11,10 @@
 #include <algorithm>
 #include <esp_system.h>
 #include "mlab/bin_data.hpp"
+#include "log.h"
 
 namespace desfire {
+
 
     template <class Integral, class = typename std::enable_if<std::is_integral<Integral>::value and std::is_unsigned<Integral>::value>::type>
     std::pair<unsigned, Integral> log2_remainder(Integral n);
@@ -42,6 +44,14 @@ namespace desfire {
         std::size_t n;
         explicit randbytes(std::size_t len) : n{len} {}
     };
+
+    static constexpr std::uint16_t crc16_init = 0x6363;
+    static constexpr std::uint32_t crc32_init = 0xffffffff;
+
+    std::array<std::uint8_t, 2> compute_crc16(mlab::range<mlab::bin_data::const_iterator> data, std::uint16_t init = crc16_init);
+    std::array<std::uint8_t, 4> compute_crc32(mlab::range<mlab::bin_data::const_iterator> data, std::uint32_t init = crc32_init);
+    std::uint16_t compute_crc16n(mlab::range<mlab::bin_data::const_iterator> data, std::uint16_t init = crc16_init);
+    std::uint32_t compute_crc32n(mlab::range<mlab::bin_data::const_iterator> data, std::uint32_t init = crc32_init);
 }
 
 namespace mlab {

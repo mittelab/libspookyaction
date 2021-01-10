@@ -6,6 +6,7 @@
 #define DESFIRE_CIPHER_SCHEME_HPP
 
 #include "cipher.hpp"
+#include "crypto_algo.hpp"
 
 namespace desfire {
 
@@ -14,8 +15,6 @@ namespace desfire {
 
         block_t &get_iv();
     public:
-        static constexpr std::uint16_t crc_init = 0x6363;
-
         cipher_legacy_scheme();
 
         void initialize();
@@ -33,7 +32,7 @@ namespace desfire {
          */
         mac_t compute_mac(range<bin_data::const_iterator> data);
 
-        static crc_t compute_crc(range<bin_data::const_iterator> data, std::uint16_t init);
+        static crc_t compute_crc(range<bin_data::const_iterator> data, std::uint16_t init = crc16_init);
 
         static bool drop_padding_verify_crc(bin_data &d);
 
@@ -69,8 +68,6 @@ namespace desfire {
         void initialize();
 
     public:
-        static constexpr std::uint32_t crc_init = 0xffffffff;
-
         virtual void do_crypto(range<bin_data::iterator> data, bool encrypt, block_t &iv) = 0;
 
         mac_t compute_mac(range<bin_data::const_iterator> data);
@@ -78,7 +75,7 @@ namespace desfire {
         /**
          * Computes the CRC32 of @p data, returns LSB first.
          */
-        crc_t compute_crc(range<bin_data::const_iterator> data, std::uint32_t init);
+        static crc_t compute_crc(range<bin_data::const_iterator> data, std::uint32_t init = crc32_init);
 
         /**
          * @param status The CRC is always computed on ''data || status'', so we always need to update it for that

@@ -254,7 +254,7 @@ namespace desfire {
                 new_rights.allowed_to_change_keys = 0;
             }
         }
-        if (active_cipher_type() == cipher_type::none) {
+        if (active_key_no() >= bits::max_keys_per_app) {
             DESFIRE_LOGW("%s: not authenticated, likely to fail.", to_string(command_code::change_key_settings));
         }
         return command_response(command_code::change_key_settings,
@@ -277,7 +277,89 @@ namespace desfire {
     }
 
     tag::r<> tag::format_picc() {
-        return command_response(command_code::format_picc, bin_data{}, comm_mode::plain);
+        const auto res_cmd = command_response(command_code::format_picc, bin_data{}, comm_mode::plain);
+        if (res_cmd) {
+            logout();
+            _active_app = root_app;
+        }
+        return res_cmd;
+    }
+
+    tag::r<> tag::change_key(any_key const &new_key)
+    {
+        if (active_key_no() >= bits::max_keys_per_app) {
+            DESFIRE_LOGE("%s: not authenticated.", to_string(command_code::change_key));
+            return error::authentication_error;
+        }
+        // Make sure that they are compatible. The root app makes exception
+        if (active_app() != root_app and
+            app_crypto_from_cipher(active_cipher_type()) != app_crypto_from_cipher(new_key.type()))
+        {
+            DESFIRE_LOGE("%s: cannot change a %s key into a %s key.", to_string(command_code::change_key),
+                         to_string(active_cipher_type()), to_string(new_key.type()));
+            return error::parameter_error;
+        }
+        return change_key_internal(nullptr, active_key_no(), new_key);
+    }
+
+    tag::r<> tag::change_key(any_key const &current_key, std::uint8_t key_no_to_change, any_key const &new_key)
+    {
+        if (key_no_to_change >= bits::max_keys_per_app) {
+            DESFIRE_LOGE("%s: invalid key num %u (max %u).", to_string(command_code::change_key), key_no_to_change, bits::max_keys_per_app);
+            return error::parameter_error;
+        }
+        // Make sure that the keys are compatible. The root app makes exception
+        if (active_app() != root_app and
+            app_crypto_from_cipher(current_key.type()) != app_crypto_from_cipher(new_key.type()))
+        {
+            DESFIRE_LOGE("%s: cannot change a key to %s, using a %s key.", to_string(command_code::change_key),
+                         to_string(new_key.type()), to_string(current_key.type()));
+            return error::parameter_error;
+        }
+        if (active_cipher_type() == cipher_type::none) {
+            DESFIRE_LOGE("%s: not authenticated.", to_string(command_code::change_key));
+            return error::authentication_error;
+        }
+        return change_key_internal(&current_key, key_no_to_change, new_key);
+    }
+
+    tag::r<> tag::change_key_internal(any_key const *current_key, std::uint8_t key_no_to_change, any_key const &new_key)
+    {
+        // Tweak the key number to allow change type of key on the root app (since cipher type must be set at creation).
+        const std::uint8_t key_no_flag = (active_app() == root_app
+                ? key_no_to_change | static_cast<std::uint8_t>(app_crypto_from_cipher(new_key.type()))
+                : key_no_to_change);
+        bin_data payload{};
+        payload << prealloc(33) << key_no_flag;
+        // Changing from a different key requires to xor it with that other key
+        if (current_key != nullptr) {
+            payload << new_key.copy_xored(*current_key);
+        } else {
+            payload << new_key;
+        }
+
+
+        // Now we need to compute CRCs, here we need to make distinction depending on legacy/non-legacy protocol.
+        // There is no way to fit this business into the cipher model.
+        if (cipher::is_legacy(active_cipher_type())) {
+            // CRC on (maybe xored data)
+            payload << compute_crc16(payload.view(2));
+            if (current_key != nullptr) {
+                // Extra CRC on new key
+                const bin_data key_data = new_key.copy_key_data();
+                payload << compute_crc16(key_data.view());
+            }
+        } else {
+            // CRC on whole stuff
+            payload << compute_crc32(payload.view());
+            if (current_key != nullptr) {
+                // Extra CRC on new key
+                const bin_data key_data = new_key.copy_key_data();
+                payload << compute_crc32(key_data.view());
+            }
+        }
+
+        return command_response(command_code::change_key, payload, cipher_cfg_crypto_nocrc, 2);
     }
 
 }

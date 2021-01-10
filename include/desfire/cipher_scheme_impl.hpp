@@ -6,7 +6,6 @@
 #define DESFIRE_CIPHER_SCHEME_IMPL_HPP
 
 #include <esp_log.h>
-#include <rom/crc.h>
 #include "log.h"
 #include "cipher_scheme.hpp"
 #include "crypto_algo.hpp"
@@ -86,25 +85,21 @@ namespace desfire {
     template <std::size_t BlockSize, std::uint8_t CMACSubkeyR>
     typename cipher_scheme<BlockSize, CMACSubkeyR>::crc_t cipher_scheme<BlockSize, CMACSubkeyR>::compute_crc(
             range <bin_data::const_iterator> data, std::uint32_t init) {
-        const std::uint32_t dword = ~crc32_le(~init, data.data(), data.size());
-        return {
-                std::uint8_t(dword & 0xff),
-                std::uint8_t((dword >> 8) & 0xff),
-                std::uint8_t((dword >> 16) & 0xff),
-                std::uint8_t((dword >> 24) & 0xff)
-        };
+        return compute_crc32(data, init);
     }
 
     template <std::size_t BlockSize, std::uint8_t CMACSubkeyR>
     bool cipher_scheme<BlockSize, CMACSubkeyR>::drop_padding_verify_crc(bin_data &d, std::uint8_t status) {
         const auto crc_fn = [=](
-                bin_data::const_iterator b, bin_data::const_iterator e, std::uint32_t init) -> std::uint32_t {
+                bin_data::const_iterator b, bin_data::const_iterator e, std::uint32_t init) -> std::uint32_t
+        {
+            const bin_data status_byte = bin_data::chain(status);
             // Simulate the presence of an extra status byte by doing an extra crc call
-            const std::uint32_t crc_of_data = ~crc32_le(~init, &*b, std::distance(b, e));
-            const std::uint32_t crc_of_data_and_status = ~crc32_le(~crc_of_data, &status, 1);
+            const std::uint32_t crc_of_data = compute_crc32n({b, e}, init);
+            const std::uint32_t crc_of_data_and_status = compute_crc32n(status_byte.view(), crc_of_data);
             return crc_of_data_and_status;
         };
-        const auto end_payload_did_verify = find_crc_tail<block_size>(std::begin(d), std::end(d), crc_fn, crc_init);
+        const auto end_payload_did_verify = find_crc_tail<block_size>(std::begin(d), std::end(d), crc_fn, crc32_init);
         if (end_payload_did_verify.second) {
             const std::size_t payload_length = std::distance(std::begin(d), end_payload_did_verify.first);
             // In case of error, make sure to not get any weird size/number
@@ -138,7 +133,7 @@ namespace desfire {
             if (cfg.do_crc) {
                 data.reserve(offset + padded_length<block_size>(data.size() + crc_size - offset));
                 // CRC has to be computed on the whole data
-                data << compute_crc(data.view(), crc_init);
+                data << compute_crc(data.view());
             } else {
                 data.reserve(offset + padded_length<block_size>(data.size() - offset));
             }

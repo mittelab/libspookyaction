@@ -26,20 +26,6 @@ namespace desfire {
         }
     }
 
-    bool any_key::is_legacy_scheme() const {
-        switch (type()) {
-            case cipher_type::des:
-            case cipher_type::des3_2k:
-                return true;
-            case cipher_type::des3_3k:
-            case cipher_type::aes128:
-                return false;
-            default:
-                DESFIRE_LOGE("Requesting whether a cipher is legacy with no cipher!");
-                return true;
-        }
-    }
-
     std::unique_ptr<cipher> any_key::make_cipher() const {
         switch (type()) {
             case cipher_type::none:
@@ -121,6 +107,73 @@ namespace desfire {
     }
     mlab::bin_data &storage_size::operator<<(mlab::bin_data &s) const {
         return s << _flag;
+    }
+
+    namespace {
+        template <std::size_t Size>
+        void xor_with(std::array<std::uint8_t, Size> &data, std::vector<std::uint8_t> const &xor_with) {
+            for (std::size_t i = 0; i < std::min(data.size(), xor_with.size()); ++i) {
+                data[i] |= xor_with[i];
+            }
+        }
+    }
+
+    bin_data any_key::copy_key_data() const {
+        bin_data retval;
+        switch (type()) {
+            case cipher_type::none:
+                DESFIRE_LOGE("Cannot extract data payload with a key of type cipher_type::none.");
+                break;
+            case cipher_type::des:
+                // Special treatment for DES: copy twice into 16 bytes
+                retval << prealloc(16) << get_key<cipher_type::des>().k << get_key<cipher_type::des>().k;
+                break;
+            case cipher_type::des3_2k:
+                retval << get_key<cipher_type::des3_2k>().k;
+                break;
+            case cipher_type::des3_3k:
+                retval << get_key<cipher_type::des3_3k>().k;
+                break;
+            case cipher_type::aes128:
+                retval << get_key<cipher_type::aes128>().k;
+                break;
+            default:
+                DESFIRE_LOGE("Unhandled cipher type: %s", to_string(type()));
+                break;
+        }
+        return retval;
+    }
+
+    any_key any_key::copy_xored(any_key const &key_to_xor_with) const {
+        const std::vector<std::uint8_t> bytes_to_xor_with = copy_key_data();
+        switch (type()) {
+            case cipher_type::none:
+                DESFIRE_LOGE("Cannot XOR a key of type cipher_type::none.");
+                return any_key{key<cipher_type::none>()};
+            case cipher_type::des: {
+                any_key copy{get_key<cipher_type::des>()};
+                xor_with(copy.get_key<cipher_type::des>().k, bytes_to_xor_with);
+                return copy;
+            }
+            case cipher_type::des3_2k: {
+                any_key copy{get_key<cipher_type::des3_2k>()};
+                xor_with(copy.get_key<cipher_type::des3_2k>().k, bytes_to_xor_with);
+                return copy;
+            }
+            case cipher_type::des3_3k: {
+                any_key copy{get_key<cipher_type::des3_3k>()};
+                xor_with(copy.get_key<cipher_type::des3_3k>().k, bytes_to_xor_with);
+                return copy;
+            }
+            case cipher_type::aes128: {
+                any_key copy{get_key<cipher_type::aes128>()};
+                xor_with(copy.get_key<cipher_type::aes128>().k, bytes_to_xor_with);
+                return copy;
+            }
+            default:
+                DESFIRE_LOGE("Unhandled cipher type: %s", to_string(type()));
+                return any_key{key<cipher_type::none>()};
+        }
     }
 
 }
@@ -231,6 +284,25 @@ namespace mlab {
         }
         s >> mi.hardware >> mi.software >> mi.serial_no >> mi.batch_no >> mi.production_week >> mi.production_year;
         return s;
+    }
+
+    bin_data &operator<<(bin_data &bd, desfire::any_key const &k) {
+        switch (k.type()) {
+            case cipher_type::none:
+                DESFIRE_LOGE("cipher_type::none cannot be converted into binary data!.");
+                return bd;
+            case cipher_type::des:
+                return bd << k.get_key<cipher_type::none>();
+            case cipher_type::des3_2k:
+                return bd << k.get_key<cipher_type::des3_2k>();
+            case cipher_type::des3_3k:
+                return bd << k.get_key<cipher_type::des3_3k>();
+            case cipher_type::aes128:
+                return bd << k.get_key<cipher_type::aes128>();
+            default:
+                DESFIRE_LOGE("Unhandled cipher type: %s", desfire::to_string(k.type()));
+                return bd;
+        }
     }
 
 

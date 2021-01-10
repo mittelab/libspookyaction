@@ -101,6 +101,17 @@ namespace desfire {
             aes_128 = 0x80
         };
 
+        /**
+         * @note The numeric assignment is only needed for CTTI (that is later used in ::mlab::any)
+         */
+        enum struct cipher_type : std::uint8_t {
+            none = 0x0,
+            des = 0x1,
+            des3_2k = 0x2,
+            des3_3k = 0x3,
+            aes128 = 0x4
+        };
+
         static constexpr std::uint8_t max_keys_mask = 0xf;
 
         static_assert((max_keys_per_app & max_keys_mask) == max_keys_per_app,

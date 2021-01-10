@@ -87,8 +87,13 @@ namespace desfire {
 
         /**
          * @return @ref root_app if no app was selected, otherwise the app id.
+         * @todo Make sure active_app is always in sync
          */
         inline app_id const &active_app() const;
+
+        /**
+         * @todo Rename this to active_key_type
+         */
         inline cipher_type active_cipher_type() const;
 
         /**
@@ -101,10 +106,13 @@ namespace desfire {
         r<> authenticate(any_key const &k);
 
         /**
-         * Clers data __locally__ (i.e. it may be out of sync with the card if not called at the right time).
+         * Clears data __locally__ (i.e. it may be out of sync with the card if not called at the right time).
          */
         void logout();
 
+        /**
+         * @note After selecting a new application, the controller is logged out and a new authentication is necessary.
+         */
         r<> select_application(app_id const &app = root_app);
 
         /**
@@ -133,14 +141,32 @@ namespace desfire {
 
 
         /**
-         * @note Must be on the @ref root_app for this to succeed, and authenticated with the master key.
+         * @note Must be on the @ref root_app for this to succeed, and authenticated with the master key. After
+         * formatting the controller will be logged out and on the @ref root_app.
          */
         r<> format_picc();
+
+        /**
+         * @note Assumes authentication has happened and the key settings allow the change.
+         */
+        template <cipher_type Type>
+        r<> change_key(key<Type> const &new_key);
+        r<> change_key(any_key const &new_key);
+
+
+        /**
+         * @note Used to change a different key than the current (when key settings allow to do so). It is necessary to
+         * pass the current key in order to change another, even if already authenticated.
+         */
+        template <cipher_type Type1, cipher_type Type2>
+        r<> change_key(key<Type1> const &current_key, std::uint8_t key_no_to_change, key<Type2> const &new_key);
+        r<> change_key(any_key const &current_key, std::uint8_t key_no_to_change, any_key const &new_key);
 
 
     private:
         inline controller &ctrl();
         inline cipher &active_cipher();
+        r<> change_key_internal(any_key const *current_key, std::uint8_t key_no_to_change, any_key const &new_key);
 
         controller *_controller;
 
@@ -184,6 +210,18 @@ namespace desfire {
     tag::r<> tag::authenticate(key<Type> const &k) {
         return authenticate(any_key{k});
     }
+    template <cipher_type Type>
+    tag::r<> tag::change_key(key<Type> const &new_key)
+    {
+        return change_key(any_key{new_key});
+    }
+
+    template <cipher_type Type1, cipher_type Type2>
+    tag::r<> tag::change_key(key<Type1> const &current_key, std::uint8_t key_no_to_change, key<Type2> const &new_key)
+    {
+        return change_key(any_key{current_key}, key_no_to_change, any_key{new_key});
+    }
+
 
     cipher const &tag::active_cipher() const {
         return *_active_cipher;

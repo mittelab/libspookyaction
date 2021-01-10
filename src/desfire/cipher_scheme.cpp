@@ -3,7 +3,6 @@
 //
 
 #include <esp_log.h>
-#include <rom/crc.h>
 #include "desfire/msg.hpp"
 #include "desfire/log.h"
 #include "desfire/crypto_algo.hpp"
@@ -42,20 +41,17 @@ namespace desfire {
     }
 
     cipher_legacy_scheme::crc_t cipher_legacy_scheme::compute_crc(
-            range <bin_data::const_iterator> data, std::uint16_t init) {
-        /* @note This is correct, we need to negate the init value (0x6363, as per spec), negate the output value
-         * (that is documented in ESP's CRC header), and remember to send LSB first.
-         */
-        const std::uint16_t word = ~crc16_le(~init, data.data(), data.size());
-        return {std::uint8_t(word & 0xff), std::uint8_t(word >> 8)};
+            range <bin_data::const_iterator> data, std::uint16_t init)
+    {
+        return compute_crc16(data, init);
     }
 
     bool cipher_legacy_scheme::drop_padding_verify_crc(bin_data &d) {
         static const auto crc_fn = [](
                 bin_data::const_iterator b, bin_data::const_iterator e, std::uint16_t init) -> std::uint16_t {
-            return ~crc16_le(~init, &*b, std::distance(b, e));
+            return compute_crc16n({b, e}, init);
         };
-        const auto end_payload_did_verify = find_crc_tail<block_size>(std::begin(d), std::end(d), crc_fn, crc_init);
+        const auto end_payload_did_verify = find_crc_tail<block_size>(std::begin(d), std::end(d), crc_fn, crc16_init);
         if (end_payload_did_verify.second) {
             const std::size_t payload_length = std::distance(std::begin(d), end_payload_did_verify.first);
             // In case of error, make sure to not get any weird size/number
@@ -92,7 +88,7 @@ namespace desfire {
                     }
                     if (cfg.do_crc) {
                         data.reserve(offset + padded_length<block_size>(data.size() + crc_size - offset));
-                        data << compute_crc(data.view(offset), crc_init);
+                        data << compute_crc(data.view(offset));
                     } else {
                         data.reserve(offset + padded_length<block_size>(data.size() - offset));
                     }

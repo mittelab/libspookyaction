@@ -119,7 +119,7 @@ namespace mlab {
         if (test_type<T>()) {
             return *reinterpret_cast<T const *>(_p.get());
         }
-        ESP_LOGE("mlab::any", "Requested incorrect type from an any.");
+        ESP_LOGE("mlab::any", "Requested incorrect type from an any; got: %08x, request: %08x.", _t, ctti::id<T>());
         abort();
     }
 }

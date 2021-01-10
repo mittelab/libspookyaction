@@ -85,10 +85,6 @@ namespace mlab {
         result_content _content;
         void *_storage{};
 
-        static T &dummy_data();
-
-        static E &dummy_error();
-
         inline E &e();
 
         inline E const &e() const;
@@ -297,7 +293,7 @@ namespace mlab {
     E const &result<E, T>::e() const {
         if (holds() != result_content::error) {
             ESP_LOGE("mlab::result<>", "Bad! Avoided EXC_BAD_ACCESS: attempt to retrieve the error from a result<> that holds data (or is empty)!");
-            return dummy_error();
+            abort();
         }
         return impl::retrieve_efficiently<E>(_storage);
     }
@@ -306,7 +302,7 @@ namespace mlab {
     T const &result<E, T>::d() const {
         if (holds() != result_content::data) {
             ESP_LOGE("mlab::result<>", "Bad! Avoided EXC_BAD_ACCESS: attempt to retrieve the data from a result<> that holds error (or is empty)!");
-            return dummy_data();
+            abort();
         }
         return impl::retrieve_efficiently<T>(_storage);
     }
@@ -399,18 +395,6 @@ namespace mlab {
     template <class E, class T>
     E result<E, T>::error() const {
         return e();
-    }
-
-    template <class E, class T>
-    T &result<E, T>::dummy_data() {
-        static T _d{};
-        return _d;
-    }
-
-    template <class E, class T>
-    E &result<E, T>::dummy_error() {
-        static E _e{};
-        return _e;
     }
 
     template <class E, class T>

@@ -151,24 +151,24 @@ namespace desfire {
                 DESFIRE_LOGE("Cannot XOR a key of type cipher_type::none.");
                 return any_key{key<cipher_type::none>()};
             case cipher_type::des: {
-                any_key copy{get_key<cipher_type::des>()};
-                xor_with(copy.get_key<cipher_type::des>().k, bytes_to_xor_with);
-                return copy;
+                key<cipher_type::des> copy = get_key<cipher_type::des>();
+                xor_with(copy.k, bytes_to_xor_with);
+                return any_key{copy};
             }
             case cipher_type::des3_2k: {
-                any_key copy{get_key<cipher_type::des3_2k>()};
-                xor_with(copy.get_key<cipher_type::des3_2k>().k, bytes_to_xor_with);
-                return copy;
+                key<cipher_type::des3_2k> copy = get_key<cipher_type::des3_2k>();
+                xor_with(copy.k, bytes_to_xor_with);
+                return any_key{copy};
             }
             case cipher_type::des3_3k: {
-                any_key copy{get_key<cipher_type::des3_3k>()};
-                xor_with(copy.get_key<cipher_type::des3_3k>().k, bytes_to_xor_with);
-                return copy;
+                key<cipher_type::des3_3k> copy = get_key<cipher_type::des3_3k>();
+                xor_with(copy.k, bytes_to_xor_with);
+                return any_key{copy};
             }
             case cipher_type::aes128: {
-                any_key copy{get_key<cipher_type::aes128>()};
-                xor_with(copy.get_key<cipher_type::aes128>().k, bytes_to_xor_with);
-                return copy;
+                key<cipher_type::aes128> copy = get_key<cipher_type::aes128>();
+                xor_with(copy.k, bytes_to_xor_with);
+                return any_key{copy};
             }
             default:
                 DESFIRE_LOGE("Unhandled cipher type: %s", to_string(type()));
@@ -292,7 +292,7 @@ namespace mlab {
                 DESFIRE_LOGE("cipher_type::none cannot be converted into binary data!.");
                 return bd;
             case cipher_type::des:
-                return bd << k.get_key<cipher_type::none>();
+                return bd << k.get_key<cipher_type::des>();
             case cipher_type::des3_2k:
                 return bd << k.get_key<cipher_type::des3_2k>();
             case cipher_type::des3_3k:

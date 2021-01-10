@@ -324,7 +324,7 @@ namespace desfire {
     }
 
 
-    any_key::any_key() : _type{cipher_type::none}, _key{} {}
+    any_key::any_key() : _type{cipher_type::none}, _key{key<cipher_type::none>{}} {}
 
     template <cipher_type Type>
     any_key::any_key(key<Type> entry) :
@@ -413,14 +413,6 @@ namespace desfire {
 
 namespace mlab {
 
-    namespace impl {
-        template <cipher_type Type>
-        struct injector {
-            inline bin_data &operator()(bin_data &bd, desfire::key<Type> const &k) {
-                return k.operator<<(bd);
-            }
-        };
-    }
     template <cipher_type Type>
     bin_data &operator<<(bin_data &bd, desfire::key<Type> const &k) {
         return k.operator<<(bd);

@@ -335,6 +335,40 @@ void test_mifare_create_apps() {
     }
 }
 
+void test_mifare_change_app_key() {
+    TEST_ASSERT(pcd != nullptr and mifare != nullptr);
+
+    const std::array<std::pair<desfire::any_key, desfire::any_key>, 4> old_new_keys{{
+            {
+                desfire::any_key{desfire::key<desfire::cipher_type::des>{}},
+                desfire::any_key{desfire::key<desfire::cipher_type::des>{0, {0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7}}}
+            },
+            {
+                desfire::any_key{desfire::key<desfire::cipher_type::des3_2k>{}},
+                desfire::any_key{desfire::key<desfire::cipher_type::des3_2k>{0, {0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf}}}
+            },
+            {
+                desfire::any_key{desfire::key<desfire::cipher_type::des3_3k>{}},
+                desfire::any_key{desfire::key<desfire::cipher_type::des3_3k>{0, {0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17}}}
+            },
+            {
+                desfire::any_key{desfire::key<desfire::cipher_type::aes128>{}},
+                desfire::any_key{desfire::key<desfire::cipher_type::aes128>{0, {0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf}}}
+            }
+    }};
+    desfire::app_id app_id{0, 0, 0};
+    for (auto const &kp : old_new_keys) {
+        ++app_id.back();
+        desfire::any_key const &old_k = kp.first;
+        desfire::any_key const &new_k = kp.second;
+        ESP_LOGI(TEST_TAG, "Changing same key of app with cipher %s.", desfire::to_string(new_k.type()));
+        TEST_ASSERT(mifare->select_application(app_id));
+        TEST_ASSERT(mifare->authenticate(old_k));
+        TEST_ASSERT(mifare->change_key(new_k));
+    }
+
+}
+
 extern "C" void app_main() {
     UNITY_BEGIN();
     issue_header("MIFARE CIPHER TEST (no card)");

@@ -30,6 +30,18 @@ namespace {
         return r and *r;
     }
 
+    struct assert_comm_controller final : public desfire::controller {
+        std::list<std::pair<mlab::bin_data, mlab::bin_data>> txrx_fifo;
+
+        std::pair<mlab::bin_data, bool> communicate(mlab::bin_data const &data) override {
+            auto txrx_pair = std::move(txrx_fifo.front());
+            txrx_fifo.pop_front();
+            TEST_ASSERT_EQUAL(txrx_pair.first.size(), data.size());
+            TEST_ASSERT_EQUAL_HEX8_ARRAY(txrx_pair.first.data(), data.data(), std::min(txrx_pair.first.size(), data.size()));
+            return {std::move(txrx_pair.second), true};
+        }
+    };
+
 }
 
 void setup_uart_pn532() {
@@ -50,20 +62,20 @@ void setup_uart_pn532() {
     tag_reader = make_unique<pn532::nfc>(*serial);
     serial->wake();
     const auto r_sam = tag_reader->sam_configuration(pn532::sam_mode::normal, pn532::one_sec);
-    TEST_ASSERT(bool(r_sam));
+    TEST_ASSERT(r_sam);
 }
 
 
 void test_get_fw() {
-    TEST_ASSERT(tag_reader != nullptr);
+    TEST_ASSERT_NOT_EQUAL(tag_reader, nullptr);
 
     const auto r_fw = tag_reader->get_firmware_version();
-    TEST_ASSERT(bool(r_fw));
+    TEST_ASSERT(r_fw);
     ESP_LOGI(TEST_TAG, "IC version %u, version: %u.%u", r_fw->ic, r_fw->version, r_fw->revision);
 }
 
 void test_diagnostics() {
-    TEST_ASSERT(tag_reader != nullptr);
+    TEST_ASSERT_NOT_EQUAL(tag_reader, nullptr);
 
     TEST_ASSERT(is_ok(tag_reader->diagnose_rom()));
     TEST_ASSERT(is_ok(tag_reader->diagnose_ram()));
@@ -73,10 +85,10 @@ void test_diagnostics() {
 }
 
 void test_scan_mifare() {
-    TEST_ASSERT(tag_reader != nullptr);
+    TEST_ASSERT_NOT_EQUAL(tag_reader, nullptr);
     ESP_LOGI(TEST_TAG, "Please bring card close now (searching for one passive 106 kbps target)...");
     const auto r_scan = tag_reader->initiator_list_passive_kbps106_typea();
-    TEST_ASSERT(bool(r_scan));
+    TEST_ASSERT(r_scan);
     ESP_LOGI(TEST_TAG, "Found %u targets (passive, 106 kbps, type A).", r_scan->size());
     if (r_scan) {
         for (pn532::target_kbps106_typea const &target : *r_scan) {
@@ -87,10 +99,10 @@ void test_scan_mifare() {
 }
 
 void test_scan_all() {
-    TEST_ASSERT(tag_reader != nullptr);
+    TEST_ASSERT_NOT_EQUAL(tag_reader, nullptr);
     ESP_LOGI(TEST_TAG, "Please bring card close now (searching for any target)...");
     const auto r_scan = tag_reader->initiator_auto_poll();
-    TEST_ASSERT(bool(r_scan));
+    TEST_ASSERT(r_scan);
     ESP_LOGI(TEST_TAG, "Found %u targets.", r_scan->size());
     if (r_scan) {
         for (std::size_t i = 0; i < r_scan->size(); ++i) {
@@ -100,7 +112,7 @@ void test_scan_all() {
 }
 
 void test_data_exchange() {
-    TEST_ASSERT(tag_reader != nullptr);
+    TEST_ASSERT_NOT_EQUAL(tag_reader, nullptr);
     ESP_LOGI(TEST_TAG, "Please bring card close now (searching for one passive 106 kbps target)...");
     const auto r_scan = tag_reader->initiator_list_passive_kbps106_typea(1, 10 * pn532::one_sec);
     if (not r_scan or r_scan->empty()) {
@@ -119,8 +131,9 @@ void test_data_exchange() {
     }
     ESP_LOGI(TEST_TAG, "Exchange successful, received:");
     ESP_LOG_BUFFER_HEX_LEVEL(TEST_TAG, r_exchange->second.data(), r_exchange->second.size(), ESP_LOG_INFO);
-    TEST_ASSERT(r_exchange->first.error == pn532::controller_error::none);
-    TEST_ASSERT(r_exchange->second.size() == 1 and r_exchange->second.front() == 0x0);
+    TEST_ASSERT_EQUAL(r_exchange->first.error, pn532::controller_error::none);
+    TEST_ASSERT_EQUAL(r_exchange->second.size(), 1);
+    TEST_ASSERT_EQUAL(r_exchange->second.front(), 0x0);
 }
 
 void test_cipher_des() {
@@ -134,19 +147,22 @@ void test_cipher_des() {
             desfire::bin_data enc_data = {0x5D, 0x99, 0x4C, 0xE0, 0x85, 0xF2, 0x40, 0x89, /* status */ 0xAF};
             const desfire::bin_data dec_data = {0x4F, 0xD1, 0xB7, 0x59, 0x42, 0xA8, 0xB8, 0xE1, /* status */ 0xAF};
             c.confirm_rx(enc_data, desfire::cipher_cfg_crypto_nocrc);
-            TEST_ASSERT(enc_data == dec_data);
+            TEST_ASSERT_EQUAL(enc_data.size(), dec_data.size());
+            TEST_ASSERT_EQUAL_HEX8_ARRAY(enc_data.data(), dec_data.data(), std::min(enc_data.size(), dec_data.size()));
         }
         {
             desfire::bin_data dec_data = {0x84, 0x9B, 0x36, 0xC5, 0xF8, 0xBF, 0x4A, 0x09, 0xD1, 0xB7, 0x59, 0x42, 0xA8, 0xB8, 0xE1, 0x4F};
             const desfire::bin_data enc_data = {0x21, 0xD0, 0xAD, 0x5F, 0x2F, 0xD9, 0x74, 0x54, 0xA7, 0x46, 0xCC, 0x80, 0x56, 0x7F, 0x1B, 0x1C};
             c.prepare_tx(dec_data, 0, desfire::cipher_cfg_crypto_nocrc);
-            TEST_ASSERT(enc_data == dec_data);
+            TEST_ASSERT_EQUAL(enc_data.size(), dec_data.size());
+            TEST_ASSERT_EQUAL_HEX8_ARRAY(enc_data.data(), dec_data.data(), std::min(enc_data.size(), dec_data.size()));
         }
         {
             desfire::bin_data enc_data = {0x91, 0x3C, 0x6D, 0xED, 0x84, 0x22, 0x1C, 0x41, /* status */ 0x00};
             const desfire::bin_data dec_data = {0x9B, 0x36, 0xC5, 0xF8, 0xBF, 0x4A, 0x09, 0x84, /* status */ 0x00};
             c.confirm_rx(enc_data, desfire::cipher_cfg_crypto_nocrc);
-            TEST_ASSERT(enc_data == dec_data);
+            TEST_ASSERT_EQUAL(enc_data.size(), dec_data.size());
+            TEST_ASSERT_EQUAL_HEX8_ARRAY(enc_data.data(), dec_data.data(), std::min(enc_data.size(), dec_data.size()));
         }
     }
 }
@@ -162,19 +178,22 @@ void test_cipher_2k3des() {
             desfire::bin_data enc_data = {0xDE, 0x50, 0xF9, 0x23, 0x10, 0xCA, 0xF5, 0xA5, /* status */ 0xAF};
             const desfire::bin_data dec_data = {0x4C, 0x64, 0x7E, 0x56, 0x72, 0xE2, 0xA6, 0x51, /* status */ 0xAF};
             c.confirm_rx(enc_data, desfire::cipher_cfg_crypto_nocrc);
-            TEST_ASSERT(enc_data == dec_data);
+            TEST_ASSERT_EQUAL(enc_data.size(), dec_data.size());
+            TEST_ASSERT_EQUAL_HEX8_ARRAY(enc_data.data(), dec_data.data(), std::min(enc_data.size(), dec_data.size()));
         }
         {
             desfire::bin_data dec_data = {0xC9, 0x6C, 0xE3, 0x5E, 0x4D, 0x60, 0x87, 0xF2, 0x64, 0x7E, 0x56, 0x72, 0xE2, 0xA6, 0x51, 0x4C};
             const desfire::bin_data enc_data = {0xE0, 0x06, 0x16, 0x66, 0x87, 0x04, 0xD5, 0x54, 0x9C, 0x8D, 0x6A, 0x13, 0xA0, 0xF8, 0xFC, 0xED};
             c.prepare_tx(dec_data, 0, desfire::cipher_cfg_crypto_nocrc);
-            TEST_ASSERT(enc_data == dec_data);
+            TEST_ASSERT_EQUAL(enc_data.size(), dec_data.size());
+            TEST_ASSERT_EQUAL_HEX8_ARRAY(enc_data.data(), dec_data.data(), std::min(enc_data.size(), dec_data.size()));
         }
         {
             desfire::bin_data enc_data = {0x1D, 0x9D, 0x29, 0x54, 0x69, 0x7D, 0xE7, 0x60, /* status */ 0x00};
             const desfire::bin_data dec_data = {0x6C, 0xE3, 0x5E, 0x4D, 0x60, 0x87, 0xF2, 0xC9, /* status */ 0x00};
             c.confirm_rx(enc_data, desfire::cipher_cfg_crypto_nocrc);
-            TEST_ASSERT(enc_data == dec_data);
+            TEST_ASSERT_EQUAL(enc_data.size(), dec_data.size());
+            TEST_ASSERT_EQUAL_HEX8_ARRAY(enc_data.data(), dec_data.data(), std::min(enc_data.size(), dec_data.size()));
         }
     }
 }
@@ -187,19 +206,22 @@ void test_cipher_3k3des() {
         desfire::bin_data enc_data = {0xBC, 0x1C, 0x57, 0x0B, 0xC9, 0x48, 0x15, 0x61, 0x87, 0x13, 0x23, 0x64, 0xE4, 0xDC, 0xE1, 0x76, /* status */ 0xAF};
         const desfire::bin_data dec_data = {0x31, 0x6E, 0x6D, 0x76, 0xA4, 0x49, 0xF9, 0x25, 0xBA, 0x30, 0x4F, 0xB2, 0x65, 0x36, 0x56, 0xA2, /* status */ 0xAF};
         c.confirm_rx(enc_data, desfire::cipher_cfg_crypto_nocrc);
-        TEST_ASSERT(enc_data == dec_data);
+        TEST_ASSERT_EQUAL(enc_data.size(), dec_data.size());
+        TEST_ASSERT_EQUAL_HEX8_ARRAY(enc_data.data(), dec_data.data(), std::min(enc_data.size(), dec_data.size()));
     }
     {
         desfire::bin_data dec_data = {0x36, 0xC5, 0xF8, 0xBF, 0x4A, 0x09, 0xAC, 0x23, 0x9E, 0x8D, 0xA0, 0xC7, 0x32, 0x51, 0xD4, 0xAB, 0x6E, 0x6D, 0x76, 0xA4, 0x49, 0xF9, 0x25, 0xBA, 0x30, 0x4F, 0xB2, 0x65, 0x36, 0x56, 0xA2, 0x31};
         const desfire::bin_data enc_data = {0xDD, 0xDC, 0x9A, 0x77, 0x59, 0x7F, 0x03, 0xA4, 0x0C, 0x7F, 0xAA, 0x36, 0x2F, 0x45, 0xA8, 0xEA, 0xDB, 0xE4, 0x6A, 0x11, 0x5D, 0x98, 0x19, 0x8C, 0xBF, 0x36, 0xA6, 0xE5, 0x1B, 0x39, 0xD8, 0x7C};
         c.prepare_tx(dec_data, 0, desfire::cipher_cfg_crypto_nocrc);
-        TEST_ASSERT(enc_data == dec_data);
+        TEST_ASSERT_EQUAL(enc_data.size(), dec_data.size());
+        TEST_ASSERT_EQUAL_HEX8_ARRAY(enc_data.data(), dec_data.data(), std::min(enc_data.size(), dec_data.size()));
     }
     {
         desfire::bin_data enc_data = {0x72, 0x44, 0xD9, 0x35, 0xED, 0x9A, 0x13, 0x06, 0xCD, 0x8C, 0x84, 0x1A, 0x7C, 0x1D, 0xE3, 0x9A, /* status */ 0x00};
         const desfire::bin_data dec_data = {0xC5, 0xF8, 0xBF, 0x4A, 0x09, 0xAC, 0x23, 0x9E, 0x8D, 0xA0, 0xC7, 0x32, 0x51, 0xD4, 0xAB, 0x36, /* status */ 0x00};
         c.confirm_rx(enc_data, desfire::cipher_cfg_crypto_nocrc);
-        TEST_ASSERT(enc_data == dec_data);
+        TEST_ASSERT_EQUAL(enc_data.size(), dec_data.size());
+        TEST_ASSERT_EQUAL_HEX8_ARRAY(enc_data.data(), dec_data.data(), std::min(enc_data.size(), dec_data.size()));
     }
 }
 
@@ -211,19 +233,22 @@ void test_cipher_aes() {
         desfire::bin_data enc_data = {0xB9, 0x69, 0xFD, 0xFE, 0x56, 0xFD, 0x91, 0xFC, 0x9D, 0xE6, 0xF6, 0xF2, 0x13, 0xB8, 0xFD, 0x1E, /* status */ 0xAF};
         const desfire::bin_data dec_data = {0xC0, 0x5D, 0xDD, 0x71, 0x4F, 0xD7, 0x88, 0xA6, 0xB7, 0xB7, 0x54, 0xF3, 0xC4, 0xD0, 0x66, 0xE8, /* status */ 0xAF};
         c.confirm_rx(enc_data, desfire::cipher_cfg_crypto_nocrc);
-        TEST_ASSERT(enc_data == dec_data);
+        TEST_ASSERT_EQUAL(enc_data.size(), dec_data.size());
+        TEST_ASSERT_EQUAL_HEX8_ARRAY(enc_data.data(), dec_data.data(), std::min(enc_data.size(), dec_data.size()));
     }
     {
         desfire::bin_data dec_data = {0xF4, 0x4B, 0x26, 0xF5, 0x68, 0x6F, 0x3A, 0x39, 0x1C, 0xD3, 0x8E, 0xBD, 0x10, 0x77, 0x22, 0x81, 0x5D, 0xDD, 0x71, 0x4F, 0xD7, 0x88, 0xA6, 0xB7, 0xB7, 0x54, 0xF3, 0xC4, 0xD0, 0x66, 0xE8, 0xC0};
         const desfire::bin_data enc_data = {0x36, 0xAA, 0xD7, 0xDF, 0x6E, 0x43, 0x6B, 0xA0, 0x8D, 0x18, 0x61, 0x38, 0x30, 0xA7, 0x0D, 0x5A, 0xD4, 0x3E, 0x3D, 0x3F, 0x4A, 0x8D, 0x47, 0x54, 0x1E, 0xEE, 0x62, 0x3A, 0x93, 0x4E, 0x47, 0x74};
         c.prepare_tx(dec_data, 0, desfire::cipher_cfg_crypto_nocrc);
-        TEST_ASSERT(enc_data == dec_data);
+        TEST_ASSERT_EQUAL(enc_data.size(), dec_data.size());
+        TEST_ASSERT_EQUAL_HEX8_ARRAY(enc_data.data(), dec_data.data(), std::min(enc_data.size(), dec_data.size()));
     }
     {
         desfire::bin_data enc_data = {0x80, 0x0D, 0xB6, 0x80, 0xBC, 0x14, 0x6B, 0xD1, 0x21, 0xD6, 0x57, 0x8F, 0x2D, 0x2E, 0x20, 0x59, /* status */ 0x00};
         const desfire::bin_data dec_data = {0x4B, 0x26, 0xF5, 0x68, 0x6F, 0x3A, 0x39, 0x1C, 0xD3, 0x8E, 0xBD, 0x10, 0x77, 0x22, 0x81, 0xF4, /* status */ 0x00};
         c.confirm_rx(enc_data, desfire::cipher_cfg_crypto_nocrc);
-        TEST_ASSERT(enc_data == dec_data);
+        TEST_ASSERT_EQUAL(enc_data.size(), dec_data.size());
+        TEST_ASSERT_EQUAL_HEX8_ARRAY(enc_data.data(), dec_data.data(), std::min(enc_data.size(), dec_data.size()));
     }
 }
 
@@ -237,7 +262,7 @@ void issue_header(std::string const &title) {
 
 
 void test_auth_attempt(desfire::tag::r<> const &r) {
-    TEST_ASSERT(pcd != nullptr);
+    TEST_ASSERT_NOT_EQUAL(tag_reader, nullptr);
     if (not r) {
         ESP_LOGW(TEST_TAG, "Authentication failed: %s", desfire::to_string(r.error()));
         if (not pcd->last_result()) {
@@ -252,7 +277,7 @@ void test_auth_attempt(desfire::tag::r<> const &r) {
 }
 
 void setup_mifare() {
-    TEST_ASSERT(tag_reader != nullptr);
+    TEST_ASSERT_NOT_EQUAL(tag_reader, nullptr);
 
     ESP_LOGI(TEST_TAG, "Please bring card close now (searching for one passive 106 kbps target)...");
     const auto r_scan = tag_reader->initiator_list_passive_kbps106_typea(1, 10 * pn532::one_sec);
@@ -269,7 +294,8 @@ void setup_mifare() {
 }
 
 void test_mifare_base() {
-    TEST_ASSERT(pcd != nullptr and mifare != nullptr);
+    TEST_ASSERT_NOT_EQUAL(pcd, nullptr);
+    TEST_ASSERT_NOT_EQUAL(mifare, nullptr);
     ESP_LOGI(TEST_TAG, "Selecting default application.");
     TEST_ASSERT(mifare->select_application(desfire::root_app));
     ESP_LOGI(TEST_TAG, "Attempting auth with default DES key.");
@@ -298,7 +324,8 @@ void test_mifare_base() {
 }
 
 void test_mifare_create_apps() {
-    TEST_ASSERT(pcd != nullptr and mifare != nullptr);
+    TEST_ASSERT_NOT_EQUAL(pcd, nullptr);
+    TEST_ASSERT_NOT_EQUAL(mifare, nullptr);
 
     const std::array<desfire::any_key, 4> keys{
             desfire::any_key{desfire::key<desfire::cipher_type::des>{}},
@@ -323,7 +350,7 @@ void test_mifare_create_apps() {
     TEST_ASSERT(r_app_ids);
     if (r_app_ids) {
         std::array<bool, 4> got_all_ids = {false, false, false, false};
-        TEST_ASSERT(r_app_ids->size() >= 4);
+        TEST_ASSERT_GREATER_OR_EQUAL(r_app_ids->size(), 4);
         for (std::size_t i = 0; i < r_app_ids->size(); ++i) {
             desfire::app_id const &aid = r_app_ids->at(i);
             ESP_LOGI(TEST_TAG, "  %d. AID %02x %02x %02x", i + 1, aid[0], aid[1], aid[2]);
@@ -331,7 +358,10 @@ void test_mifare_create_apps() {
                 got_all_ids[aid[2] - 1] = true;
             }
         }
-        TEST_ASSERT(got_all_ids[0] and got_all_ids[1] and got_all_ids[2] and got_all_ids[3]);
+        TEST_ASSERT(got_all_ids[0]);
+        TEST_ASSERT(got_all_ids[1]);
+        TEST_ASSERT(got_all_ids[2]);
+        TEST_ASSERT(got_all_ids[3]);
     }
 }
 

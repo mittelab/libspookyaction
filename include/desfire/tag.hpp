@@ -13,6 +13,11 @@
 #include "data.hpp"
 #include "msg.hpp"
 
+
+namespace ut {
+    struct assert_comm_controller;
+}
+
 namespace desfire {
 
     class tag {
@@ -164,6 +169,11 @@ namespace desfire {
 
 
     private:
+        /**
+         * The power of friendship, cit. Wifasoi, 2020
+         */
+        friend struct ut::assert_comm_controller;
+
         inline controller &ctrl();
         inline cipher &active_cipher();
         r<> change_key_internal(any_key const *current_key, std::uint8_t key_no_to_change, any_key const &new_key);

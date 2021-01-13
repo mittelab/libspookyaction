@@ -282,6 +282,13 @@ void test_change_key_des() {
     tag.change_key(desfire::key<desfire::cipher_type::des3_2k>(0, {0x00, 0x10, 0x20, 0x31, 0x40, 0x50, 0x60, 0x70, 0x80, 0x90, 0xA0, 0xB0, 0xB0, 0xA0, 0x90, 0x80}));
 }
 
+void test_crc32() {
+    const mlab::bin_data payload = {0xC4, 0x00, 0x00, 0x10, 0x20, 0x31, 0x40, 0x50, 0x60, 0x70, 0x80, 0x90, 0xA0, 0xB0, 0xB0, 0xA0, 0x90, 0x80};
+    const std::array<std::uint8_t, 4> expected_crc = {0xC5, 0xFF, 0x01, 0x50};
+    const auto computed_crc = desfire::compute_crc32(payload.view());
+    TEST_ASSERT_EQUAL_HEX8_ARRAY(expected_crc.data(), computed_crc.data(), 4);
+}
+
 void issue_header(std::string const &title) {
     ESP_LOGI(TEST_TAG, "--------------------------------------------------------------------------------");
     const std::size_t tail_length = std::max(68u, title.length()) - title.length();
@@ -432,6 +439,7 @@ void test_mifare_change_app_key() {
 extern "C" void app_main() {
     UNITY_BEGIN();
     issue_header("MIFARE CIPHER TEST (no card)");
+    RUN_TEST(test_crc32);
     RUN_TEST(test_cipher_des);
     RUN_TEST(test_cipher_2k3des);
     RUN_TEST(test_cipher_3k3des);

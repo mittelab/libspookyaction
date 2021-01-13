@@ -50,12 +50,20 @@ namespace ut {
             txrx_fifo.push_back(std::make_pair(mlab::bin_data::chain(tx), mlab::bin_data::chain(rx)));
         }
 
+    };
+
+    struct session {
+        desfire::tag &tag;
+
         template <desfire::cipher_type Cipher>
-        static void init_session(desfire::tag &tag, desfire::key<Cipher> session_key, desfire::app_id app, std::uint8_t key_no) {
-            tag._active_cipher = session_key.make_cipher();
-            tag._active_app = app;
-            tag._active_cipher_type = Cipher;
-            tag._active_key_number = key_no;
+        session(desfire::tag &tag_, desfire::key<Cipher> const &session_key, desfire::app_id app, std::uint8_t key_no) :
+            tag{tag_}
+        {
+            tag.template ut_init_session(session_key, app, key_no);
+        }
+
+        ~session() {
+            tag.logout();
         }
     };
 }
@@ -272,14 +280,28 @@ void test_change_key_des() {
     ut::assert_comm_controller ctrl;
     desfire::tag tag{ctrl};
 
-    ut::assert_comm_controller::init_session(tag, desfire::key<desfire::cipher_type::des>{
+    ut::session session{tag, desfire::key<desfire::cipher_type::des>{
         0, {0xC8, 0x6C, 0xE2, 0x5E, 0x4C, 0x64, 0x7E, 0x56}
-    }, {0x00, 0xde, 0x16}, 0);
+    }, {0x00, 0xde, 0x16}, 0};
 
     ctrl.append({0xC4, 0x00, 0xBE, 0xDE, 0x0F, 0xC6, 0xED, 0x34, 0x7D, 0xCF, 0x0D, 0x51, 0xC7, 0x17, 0xDF, 0x75, 0xD9, 0x7D, 0x2C, 0x5A, 0x2B, 0xA6, 0xCA, 0xC7, 0x47, 0x9D},
                 {0x00, 0x00});
 
     tag.change_key(desfire::key<desfire::cipher_type::des3_2k>(0, {0x00, 0x10, 0x20, 0x31, 0x40, 0x50, 0x60, 0x70, 0x80, 0x90, 0xA0, 0xB0, 0xB0, 0xA0, 0x90, 0x80}));
+}
+
+void test_change_key_aes() {
+    ut::assert_comm_controller ctrl;
+    desfire::tag tag{ctrl};
+
+    ut::session session{tag, desfire::key<desfire::cipher_type::aes128>{
+            0, {0xF4, 0x4B, 0x26, 0xF5, 0xC0, 0x5D, 0xDD, 0x71, 0x10, 0x77, 0x22, 0x81, 0xC4, 0xD0, 0x66, 0xE8}
+    }, {0x00, 0xAE, 0x16}, 0};
+
+    ctrl.append({0xC4, 0x00, 0xE9, 0xF8, 0x5E, 0x21, 0x94, 0x96, 0xC2, 0xB5, 0x8C, 0x10, 0x90, 0xDC, 0x39, 0x35, 0xFA, 0xE9, 0xE8, 0x40, 0xCF, 0x61, 0xB3, 0x83, 0xD9, 0x53, 0x19, 0x46, 0x25, 0x6B, 0x1F, 0x11, 0x0C, 0x10},
+                {0x00, 0x00});
+
+    tag.change_key(desfire::key<desfire::cipher_type::aes128>(0, {0x00, 0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70, 0x80, 0x90, 0xA0, 0xB0, 0xB0, 0xA0, 0x90, 0x80}));
 }
 
 void test_crc32() {
@@ -453,7 +475,7 @@ extern "C" void app_main() {
     RUN_TEST(test_cipher_2k3des);
     RUN_TEST(test_cipher_3k3des);
     RUN_TEST(test_cipher_aes);
-    RUN_TEST(test_change_key_des);
+    RUN_TEST(test_change_key_aes);
     issue_header("HARDWARE SETUP (no card)");
     RUN_TEST(setup_uart_pn532);
     issue_header("PN532 TEST AND DIAGNOSTICS (no card)");
@@ -467,6 +489,6 @@ extern "C" void app_main() {
     issue_header("MIFARE TEST (requires card, lift previous card)");
     RUN_TEST(setup_mifare);
     RUN_TEST(test_mifare_base);
-//    RUN_TEST(test_mifare_create_apps);
+    RUN_TEST(test_mifare_create_apps);
     UNITY_END();
 }

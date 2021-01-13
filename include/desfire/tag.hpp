@@ -15,7 +15,7 @@
 
 
 namespace ut {
-    struct assert_comm_controller;
+    struct session;
 }
 
 namespace desfire {
@@ -172,7 +172,13 @@ namespace desfire {
         /**
          * The power of friendship, cit. Wifasoi, 2020
          */
-        friend struct ut::assert_comm_controller;
+        friend struct ut::session;
+
+        /**
+         * Simulate a new session without the @ref authenticate random component
+         */
+        template <cipher_type Cipher>
+        void ut_init_session(desfire::key<Cipher> const &session_key, desfire::app_id app, std::uint8_t key_no);
 
         inline controller &ctrl();
         inline cipher &active_cipher();
@@ -320,6 +326,16 @@ namespace desfire {
         }
         return data;
     }
+
+
+    template <cipher_type Cipher>
+    void tag::ut_init_session(desfire::key<Cipher> const &session_key, desfire::app_id app, std::uint8_t key_no) {
+        _active_cipher = session_key.make_cipher();
+        _active_app = app;
+        _active_cipher_type = Cipher;
+        _active_key_number = key_no;
+    }
+
 }
 
 #endif //DESFIRE_TAG_HPP

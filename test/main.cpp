@@ -468,6 +468,7 @@ void test_mifare_change_app_key() {
 
 extern "C" void app_main() {
     UNITY_BEGIN();
+    esp_log_level_set("*", ESP_LOG_INFO);
     issue_header("MIFARE CIPHER TEST (no card)");
     RUN_TEST(test_crc16);
     RUN_TEST(test_crc32);

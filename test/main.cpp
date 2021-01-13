@@ -289,6 +289,14 @@ void test_crc32() {
     TEST_ASSERT_EQUAL_HEX8_ARRAY(expected_crc.data(), computed_crc.data(), 4);
 }
 
+void test_crc16() {
+    const mlab::bin_data payload = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77};
+    const std::array<std::uint8_t, 2> expected_crc = {0x30, 0x55};
+    const auto computed_crc = desfire::compute_crc16(payload.view());
+    TEST_ASSERT_EQUAL_HEX8_ARRAY(expected_crc.data(), computed_crc.data(), 2);
+}
+
+
 void issue_header(std::string const &title) {
     ESP_LOGI(TEST_TAG, "--------------------------------------------------------------------------------");
     const std::size_t tail_length = std::max(68u, title.length()) - title.length();
@@ -439,6 +447,7 @@ void test_mifare_change_app_key() {
 extern "C" void app_main() {
     UNITY_BEGIN();
     issue_header("MIFARE CIPHER TEST (no card)");
+    RUN_TEST(test_crc16);
     RUN_TEST(test_crc32);
     RUN_TEST(test_cipher_des);
     RUN_TEST(test_cipher_2k3des);

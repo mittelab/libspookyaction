@@ -456,6 +456,8 @@ void test_mifare_change_app_key() {
         TEST_ASSERT(mifare->select_application(app_id));
         TEST_ASSERT(mifare->authenticate(old_k));
         TEST_ASSERT(mifare->change_key(new_k));
+        TEST_ASSERT(mifare->authenticate(new_k));
+        TEST_ASSERT(mifare->change_key(new_k));
     }
 
 }

@@ -168,7 +168,7 @@ namespace desfire {
 
         // Can postprocess using crypto
         if (not c.confirm_rx(received, cfg.rx)) {
-            DESFIRE_LOGW("Invalid data received (see debug log for furhter information):");
+            DESFIRE_LOGW("Invalid data received (see debug log for further information):");
             ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG, received.data(), received.size(), ESP_LOG_WARN);
             return error::crypto_error;
         }
@@ -325,6 +325,12 @@ namespace desfire {
 
     tag::r<> tag::change_key_internal(any_key const *current_key, std::uint8_t key_no_to_change, any_key const &new_key)
     {
+        static const comm_cfg change_key_cfg{
+            cipher::config{.mode = comm_mode::cipher, .do_mac = false, .do_cipher = true, .do_crc = false},
+            cipher::config{.mode = comm_mode::plain, .do_mac = false, .do_cipher = false, .do_crc = false},
+            2,  // command code and key number are not encrypted
+        };
+
         // Tweak the key number to allow change type of key on the root app (since cipher type must be set at creation).
         const std::uint8_t key_no_flag = (active_app() == root_app
                 ? key_no_to_change | static_cast<std::uint8_t>(app_crypto_from_cipher(new_key.type()))
@@ -342,16 +348,21 @@ namespace desfire {
         // Now we need to compute CRCs, here we need to make distinction depending on legacy/non-legacy protocol.
         // There is no way to fit this business into the cipher model.
         if (cipher::is_legacy(active_cipher_type())) {
-            // CRC on (maybe xored data)
-            payload << compute_crc16(payload.view(2));
+            // CRC on (maybe xored data). However, skip the key number
+            payload << compute_crc16(payload.view(1));
             if (current_key != nullptr) {
                 // Extra CRC on new key
                 const bin_data key_data = new_key.copy_key_data();
                 payload << compute_crc16(key_data.view());
             }
         } else {
-            // CRC on whole stuff
-            payload << compute_crc32(payload.view());
+            // Precomputed CRC32 on the single command code byte
+            static constexpr std::uint32_t crc32_init_with_chgkey = 0xb1f416db;
+            static_assert(crc32_init == 0xffffffff and static_cast<std::uint8_t>(command_code::change_key) == 0xc4,
+                          "If these conditions are not respected, the precomputed value above is wrong.");
+            // CRC on command code, key number, (maybe xored data). Note that the command code is added by the
+            // command_response method, so we precomputed a different init value that accounts for it.
+            payload << compute_crc32(payload.view(), crc32_init_with_chgkey);
             if (current_key != nullptr) {
                 // Extra CRC on new key
                 const bin_data key_data = new_key.copy_key_data();
@@ -359,7 +370,7 @@ namespace desfire {
             }
         }
 
-        return command_response(command_code::change_key, payload, cipher_cfg_crypto_nocrc, 2);
+        return command_response(command_code::change_key, payload, change_key_cfg);
     }
 
 }

@@ -34,6 +34,7 @@ namespace desfire {
     tag::r<> tag::select_application(app_id const &app) {
         const auto res_cmd =  command_response(command_code::select_application, bin_data::chain(app), comm_mode::plain);
         if (res_cmd) {
+            DESFIRE_LOGI("Selected application %02x %02x %02x.", app[0], app[1], app[2]);
             _active_app = app;
         }
         return res_cmd;

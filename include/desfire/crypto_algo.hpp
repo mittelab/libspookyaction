@@ -25,6 +25,12 @@ namespace desfire {
     template <std::size_t BlockSize>
     std::size_t padded_length(std::size_t size);
 
+    template <std::size_t Length>
+    void set_key_version(std::array<std::uint8_t, Length> &k, std::uint8_t v);
+
+    template <std::size_t Length>
+    std::uint8_t get_key_version(std::array<std::uint8_t, Length> const &k);
+
     /**
      *
      * @tparam BlockSize
@@ -128,6 +134,25 @@ namespace desfire {
         }
         return {0, n};
     }
+
+
+    template <std::size_t Length>
+    void set_key_version(std::array<std::uint8_t, Length> &k, std::uint8_t v) {
+        for (auto &b : k) {
+            b = (b & 0b11111110) | (v >> 7);
+            v <<= 1;
+        }
+    }
+
+    template <std::size_t Length>
+    std::uint8_t get_key_version(std::array<std::uint8_t, Length> const &k) {
+        std::uint8_t v = 0x0;
+        for (std::size_t i = 0; i < std::min(Length, 8u); ++i) {
+            v = (v << 1) | (k[i] & 0b00000001);
+        }
+        return v;
+    }
+
 
 
 }

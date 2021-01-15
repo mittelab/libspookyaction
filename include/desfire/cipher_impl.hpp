@@ -15,7 +15,7 @@ namespace desfire {
         mbedtls_des_context _enc_context;
         mbedtls_des_context _dec_context;
     public:
-        explicit cipher_des(std::array<std::uint8_t, 8> const &key);
+        explicit cipher_des(std::array<std::uint8_t, 8> key);
         void reinit_with_session_key(bin_data const &rndab) override;
         ~cipher_des() override;
 
@@ -27,7 +27,7 @@ namespace desfire {
         mbedtls_des3_context _dec_context;
 
     public:
-        explicit cipher_2k3des(std::array<std::uint8_t, 16> const &key);
+        explicit cipher_2k3des(std::array<std::uint8_t, 16> key);
         void reinit_with_session_key(bin_data const &rndab) override;
         ~cipher_2k3des() override;
 
@@ -39,7 +39,7 @@ namespace desfire {
         mbedtls_des3_context _dec_context;
 
     public:
-        explicit cipher_3k3des(std::array<std::uint8_t, 24> const &key);
+        explicit cipher_3k3des(std::array<std::uint8_t, 24> key);
         void reinit_with_session_key(bin_data const &rndab) override;
         ~cipher_3k3des() override;
 

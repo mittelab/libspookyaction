@@ -353,7 +353,7 @@ namespace desfire {
             payload << compute_crc16(payload.view(1));
             if (current_key != nullptr) {
                 // Extra CRC on new key
-                const bin_data key_data = new_key.copy_key_data();
+                const bin_data key_data = new_key.get_packed_key_data();
                 payload << compute_crc16(key_data.view());
             }
         } else {
@@ -366,7 +366,7 @@ namespace desfire {
             payload << compute_crc32(payload.view(), crc32_init_with_chgkey);
             if (current_key != nullptr) {
                 // Extra CRC on new key
-                const bin_data key_data = new_key.copy_key_data();
+                const bin_data key_data = new_key.get_packed_key_data();
                 payload << compute_crc32(key_data.view());
             }
         }

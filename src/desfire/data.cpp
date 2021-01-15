@@ -26,6 +26,24 @@ namespace desfire {
         }
     }
 
+    std::uint8_t any_key::key_version() const {
+        switch (type()) {
+            case cipher_type::none:
+                return std::numeric_limits<std::uint8_t>::max();
+            case cipher_type::des:
+                return get_key<cipher_type::des>().version;
+            case cipher_type::des3_2k:
+                return get_key<cipher_type::des3_2k>().version;
+            case cipher_type::des3_3k:
+                return get_key<cipher_type::des3_3k>().version;
+            case cipher_type::aes128:
+                return get_key<cipher_type::aes128>().version;
+            default:
+                DESFIRE_LOGE("Unhandled cipher type.");
+                return std::numeric_limits<std::uint8_t>::max();
+        }
+    }
+
     std::unique_ptr<cipher> any_key::make_cipher() const {
         switch (type()) {
             case cipher_type::none:
@@ -118,24 +136,24 @@ namespace desfire {
         }
     }
 
-    bin_data any_key::copy_key_data() const {
-        bin_data retval;
+    bin_data any_key::get_packed_key_data() const {
+        bin_data retval{};
+        // Extract packed key data from the other key
         switch (type()) {
             case cipher_type::none:
                 DESFIRE_LOGE("Cannot extract data payload with a key of type cipher_type::none.");
                 break;
             case cipher_type::des:
-                // Special treatment for DES: copy twice into 16 bytes
-                retval << prealloc(16) << get_key<cipher_type::des>().k << get_key<cipher_type::des>().k;
+                retval << get_key<cipher_type::des>().get_packed_key_data();
                 break;
             case cipher_type::des3_2k:
-                retval << get_key<cipher_type::des3_2k>().k;
+                retval << get_key<cipher_type::des3_2k>().get_packed_key_data();
                 break;
             case cipher_type::des3_3k:
-                retval << get_key<cipher_type::des3_3k>().k;
+                retval << get_key<cipher_type::des3_3k>().get_packed_key_data();
                 break;
             case cipher_type::aes128:
-                retval << get_key<cipher_type::aes128>().k;
+                retval << get_key<cipher_type::aes128>().get_packed_key_data();
                 break;
             default:
                 DESFIRE_LOGE("Unhandled cipher type: %s", to_string(type()));
@@ -145,30 +163,54 @@ namespace desfire {
     }
 
     any_key any_key::copy_xored(any_key const &key_to_xor_with) const {
-        const std::vector<std::uint8_t> bytes_to_xor_with = copy_key_data();
+        bin_data bytes_to_xor_with = get_packed_key_data();
+        if (bytes_to_xor_with.empty()) {
+            return any_key{key<cipher_type::none>()};
+        }
+        // Copy the current data and xor it with the given bytes
         switch (type()) {
             case cipher_type::none:
                 DESFIRE_LOGE("Cannot XOR a key of type cipher_type::none.");
                 return any_key{key<cipher_type::none>()};
             case cipher_type::des: {
-                key<cipher_type::des> copy = get_key<cipher_type::des>();
-                xor_with(copy.k, bytes_to_xor_with);
-                return any_key{copy};
+                auto const &k = get_key<cipher_type::des>();
+                auto xored_key_data = k.get_packed_key_data();
+                xor_with(xored_key_data, bytes_to_xor_with);
+                /**
+                 * @note Special treatment for DES. We store the key as 16 bytes, but by definition it is a DES cipher
+                 * if the two halves coincide. After Xoring we have no reason to believe the two halves will be the same
+                 * so this becomes a 2K3DES key. This does not matter in the rest of the flow because they are handled
+                 * in the same way.
+                 * @note Version is pulled from the packed data, so that it can be trasmitted in the correct way.
+                 */
+                return any_key{key<cipher_type::des3_2k>{k.key_number, xored_key_data}};
             }
             case cipher_type::des3_2k: {
-                key<cipher_type::des3_2k> copy = get_key<cipher_type::des3_2k>();
-                xor_with(copy.k, bytes_to_xor_with);
-                return any_key{copy};
+                auto const &k = get_key<cipher_type::des3_2k>();
+                auto xored_key_data = k.get_packed_key_data();
+                xor_with(xored_key_data, bytes_to_xor_with);
+                /**
+                 * @note Version is pulled from the packed data, so that it can be trasmitted in the correct way.
+                 */
+                return any_key{key<cipher_type::des3_2k>{k.key_number, xored_key_data}};
             }
             case cipher_type::des3_3k: {
-                key<cipher_type::des3_3k> copy = get_key<cipher_type::des3_3k>();
-                xor_with(copy.k, bytes_to_xor_with);
-                return any_key{copy};
+                auto const &k = get_key<cipher_type::des3_3k>();
+                auto xored_key_data = k.get_packed_key_data();
+                xor_with(xored_key_data, bytes_to_xor_with);
+                /**
+                 * @note Version is pulled from the packed data, so that it can be trasmitted in the correct way.
+                 */
+                return any_key{key<cipher_type::des3_3k>{k.key_number, xored_key_data}};
             }
             case cipher_type::aes128: {
-                key<cipher_type::aes128> copy = get_key<cipher_type::aes128>();
-                xor_with(copy.k, bytes_to_xor_with);
-                return any_key{copy};
+                auto const &k = get_key<cipher_type::aes128>();
+                auto xored_key_data = k.get_packed_key_data();
+                xor_with(xored_key_data, bytes_to_xor_with);
+                /**
+                 * @note Version is copied.
+                 */
+                return any_key{key<cipher_type::aes128>{k.key_number, xored_key_data, k.version}};
             }
             default:
                 DESFIRE_LOGE("Unhandled cipher type: %s", to_string(type()));

@@ -180,6 +180,7 @@ namespace desfire {
 
         inline cipher_type type() const;
         std::uint8_t key_number() const;
+        std::uint8_t key_version() const;
         std::unique_ptr<cipher> make_cipher() const;
 
         template <cipher_type Type>
@@ -190,80 +191,90 @@ namespace desfire {
         template <cipher_type Type>
         any_key &operator=(key<Type> entry);
 
+        bin_data get_packed_key_data() const;
+
         /**
-         * @return AES128 version byte excluded, DES key is doubled to reach 16 bytes.
+         * @note DES keys will become 2K3DES keys because they must be Xored with, in principle, arbitrary 16 bytes of
+         * payload. This is perfectly fine. Also, for all keys that use parity bits for versioning, the version will be
+         * of course Xored too; for keys that do not use parity bits for versioning, the version is preserved. That is
+         * in such a way that the 16 or 24 bits that make up the key can be consistently transmitted.
          */
-        bin_data copy_key_data() const;
         any_key copy_xored(any_key const &key_to_xor_with) const;
     };
 
 
-    template <std::size_t KeyLength, class Cipher>
+    template <std::size_t KeyLength, class Cipher, bool ParityBitsAreVersion>
     struct key_base {
         static constexpr std::size_t key_length = KeyLength;
 
         using key_t = std::array<std::uint8_t, key_length>;
         std::uint8_t key_number;
+        std::uint8_t version;
         key_t k;
 
         key_base();
         key_base(std::uint8_t key_no, key_t k_);
+        key_base(std::uint8_t key_no, key_t k_, std::uint8_t version_);
+
         std::unique_ptr<cipher> make_cipher() const;
-        void store_version(std::uint8_t v);
-        std::uint8_t get_version() const;
     };
 
     template <>
-    struct key<cipher_type::des> : public key_base<8, cipher_des> {
-        key() = default;
-        key(std::uint8_t key_no, key_t k, std::uint8_t version = 0x0) : key_base<8, cipher_des>{key_no, k} {
-            store_version(version);
-        }
-        bin_data &operator<<(bin_data &bd) const {
+    struct key<cipher_type::des> : public key_base<8, cipher_des, true> {
+        using key_base<8, cipher_des, true>::key_base;
+
+        std::array<std::uint8_t, 16> get_packed_key_data() const {
             // Key must be copied twice in two identical parts because it's DES.
-            return bd << k << k;
+            std::array<std::uint8_t, 2 * key_length> payload{};
+            std::copy_n(std::begin(k), key_length, std::begin(payload));
+            std::copy_n(std::begin(k), key_length, std::begin(payload) + key_length);
+            set_key_version(payload, version);
+            return payload;
         }
+
+        bin_data &operator<<(bin_data &bd) const { return bd << get_packed_key_data(); }
     };
 
     template <>
-    struct key<cipher_type::des3_2k> : public key_base<16, cipher_2k3des> {
-        key() = default;
-        key(std::uint8_t key_no, key_t k, std::uint8_t version = 0x0) : key_base<16, cipher_2k3des>{key_no, k} {
-            store_version(version);
+    struct key<cipher_type::des3_2k> : public key_base<16, cipher_2k3des, true> {
+        using key_base<16, cipher_2k3des, true>::key_base;
+
+        std::array<std::uint8_t, 16> get_packed_key_data() const {
+            std::array<std::uint8_t, key_length> payload{};
+            std::copy_n(std::begin(k), key_length, std::begin(payload));
+            set_key_version(payload, version);
+            return payload;
         }
-        bin_data &operator<<(bin_data &bd) const { return bd << k; }
+
+        bin_data &operator<<(bin_data &bd) const { return bd << get_packed_key_data(); }
     };
 
     template <>
-    struct key<cipher_type::des3_3k> : public key_base<24, cipher_3k3des> {
-        key() = default;
-        key(std::uint8_t key_no, key_t k, std::uint8_t version = 0x0) : key_base<24, cipher_3k3des>{key_no, k} {
-            store_version(version);
+    struct key<cipher_type::des3_3k> : public key_base<24, cipher_3k3des, true> {
+        using key_base<24, cipher_3k3des, true>::key_base;
+
+        std::array<std::uint8_t, 24> get_packed_key_data() const {
+            std::array<std::uint8_t, key_length> payload{};
+            std::copy_n(std::begin(k), key_length, std::begin(payload));
+            set_key_version(payload, version);
+            return payload;
         }
-        bin_data &operator<<(bin_data &bd) const { return bd << k; }
+
+        bin_data &operator<<(bin_data &bd) const { return bd << get_packed_key_data(); }
     };
 
     template <>
-    struct key<cipher_type::aes128> : private key_base<16, cipher_aes> {
-        using base = key_base<16, cipher_aes>;
-        // Omit store and get version, because versioning is not implemented as such in AES
-        using base::k;
-        using base::key_length;
-        using base::key_number;
-        using base::key_t;
-        using base::make_cipher;
+    struct key<cipher_type::aes128> : public key_base<16, cipher_aes, false> {
+        using key_base<16, cipher_aes, false>::key_base;
 
-        std::uint8_t version = 0x0;
-
-        inline void store_version(std::uint8_t v_) { version = v_; }
-        inline std::uint8_t get_version() const { return version; }
-
-        key() = default;
-        key(std::uint8_t key_no, key_t k, std::uint8_t version = 0x0) : key_base<16, cipher_aes>{key_no, k} {
-            store_version(version);
+        std::array<std::uint8_t, 16> const &get_packed_key_data() const {
+            return k;
         }
 
-        bin_data &operator<<(bin_data &bd) const { return bd << k << version; }
+        bin_data &operator<<(bin_data &bd) const {
+            // The only sensible choice out of three ciphers.
+            return bd << get_packed_key_data() << version;
+        }
     };
 
 }
@@ -293,36 +304,33 @@ namespace mlab {
 namespace desfire {
 
 
-    template <std::size_t KeyLength, class Cipher>
-    key_base<KeyLength, Cipher>::key_base() : key_number{0}, k{} {
+    template <std::size_t KeyLength, class Cipher, bool ParityBitsAreVersion>
+    key_base<KeyLength, Cipher, ParityBitsAreVersion>::key_base() : key_number{0}, version{0x00}, k{} {
         std::fill_n(std::begin(k), key_length, 0x00);
     }
 
-    template <std::size_t KeyLength, class Cipher>
-    key_base<KeyLength, Cipher>::key_base(std::uint8_t key_no, key_t k_) : key_number{key_no}, k{k_} {}
+    template <std::size_t KeyLength, class Cipher, bool ParityBitsAreVersion>
+    key_base<KeyLength, Cipher, ParityBitsAreVersion>::key_base(std::uint8_t key_no, key_t k_) :
+            key_number{key_no}, version{ParityBitsAreVersion ? get_key_version(k_) : std::uint8_t(0)}, k{k_}
+    {
+        if (ParityBitsAreVersion) {
+            set_key_version(k, 0x00);
+        }
+    }
 
-    template <std::size_t KeyLength, class Cipher>
-    std::unique_ptr<cipher> key_base<KeyLength, Cipher>::make_cipher() const {
+    template <std::size_t KeyLength, class Cipher, bool ParityBitsAreVersion>
+    key_base<KeyLength, Cipher, ParityBitsAreVersion>::key_base(std::uint8_t key_no, key_t k_, std::uint8_t version_) :
+        key_number{key_no}, version{version_}, k{k_}
+    {
+        if (ParityBitsAreVersion) {
+            set_key_version(k, 0x00);
+        }
+    }
+
+    template <std::size_t KeyLength, class Cipher, bool ParityBitsAreVersion>
+    std::unique_ptr<cipher> key_base<KeyLength, Cipher, ParityBitsAreVersion>::make_cipher() const {
         return std::unique_ptr<Cipher>(new Cipher(k));
     }
-
-    template <std::size_t KeyLength, class Cipher>
-    void key_base<KeyLength, Cipher>::store_version(std::uint8_t v) {
-        for (auto &b : k) {
-            b = (b & 0b11111110) | (v >> 7);
-            v <<= 1;
-        }
-    }
-
-    template <std::size_t KeyLength, class Cipher>
-    std::uint8_t key_base<KeyLength, Cipher>::get_version() const {
-        std::uint8_t v = 0x0;
-        for (std::size_t i = 0; i < std::min(key_length, 8u); ++i) {
-            v = (v << 1) | (k[i] & 0b00000001);
-        }
-        return v;
-    }
-
 
     any_key::any_key() : _type{cipher_type::none}, _key{key<cipher_type::none>{}} {}
 

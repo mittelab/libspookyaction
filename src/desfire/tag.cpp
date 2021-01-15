@@ -51,7 +51,7 @@ namespace desfire {
         const comm_cfg cfg_txrx_cipher_nocrc{cipher_cfg_crypto_nocrc, 1, false, pcipher.get()};
 
         /// Send the right authentication command for the key type and the key number, get RndB
-        DESFIRE_LOGD("Authentication with key %u: sending auth command.", k.key_number());
+        DESFIRE_LOGD("Authentication with key %u (%s): sending auth command.", k.key_number(), to_string(k.type()));
 
         // The authentication is all plain, but we receive it as encrypted data without CRC. Just set everything to
         // crypto without CRC and the offset beyond the payload.
@@ -67,15 +67,15 @@ namespace desfire {
 
         if (not res_rndb) {
             // This is a controller error because we did not look at the status byte
-            DESFIRE_LOGW("Authentication with key %u: failed, %s.", k.key_number(), to_string(res_rndb.error()));
+            DESFIRE_LOGW("Authentication with key %u (%s): failed, %s.", k.key_number(), to_string(k.type()), to_string(res_rndb.error()));
             return res_rndb.error();
         } else if (res_rndb->first != status::additional_frame) {
             // Our own checking that the frame is as expected
-            DESFIRE_LOGW("Authentication with key %u: failed, %s.", k.key_number(), to_string(res_rndb->first));
+            DESFIRE_LOGW("Authentication with key %u (%s): failed, %s.", k.key_number(), to_string(k.type()), to_string(res_rndb->first));
             return error_from_status(res_rndb->first);
         }
         bin_data const &rndb = res_rndb->second;
-        DESFIRE_LOGD("Authentication with key %u: received RndB (%u bytes).", k.key_number(), rndb.size());
+        DESFIRE_LOGD("Authentication: received RndB (%u bytes).", rndb.size());
 
         /// Prepare and send a response: AdditionalFrames || Crypt(RndA || RndB'), RndB' = RndB << 8, obtain RndA >> 8
         const bin_data rnda = bin_data::chain(randbytes(rndb.size()));
@@ -89,29 +89,29 @@ namespace desfire {
         );
 
         if (not res_rndap) {
-            DESFIRE_LOGW("Authentication with key %u: failed (%s).", k.key_number(), to_string(res_rndap.error()));
+            DESFIRE_LOGW("Authentication with key %u (%s): failed (%s).", k.key_number(), to_string(k.type()), to_string(res_rndap.error()));
             return res_rndap.error();
         }
-        DESFIRE_LOGD("Authentication with key %u: received RndA >> 8 (%u bytes).", k.key_number(), res_rndap->size());
+        DESFIRE_LOGD("Authentication: received RndA >> 8 (%u bytes).", res_rndap->size());
 
         /// Verify that the received RndA is correct.
         if (rnda.size() != res_rndap->size()) {
-            DESFIRE_LOGW("Authentication with key %u: RndA mismatch size.", k.key_number());
+            DESFIRE_LOGW("Authentication with key %u (%s): RndA mismatch size.", k.key_number(), to_string(k.type()));
             return error::crypto_error;
         }
         // This is just a test for equality when shifted
         if (not std::equal(std::begin(rnda) + 1, std::end(rnda), std::begin(*res_rndap))
             or rnda.front() != res_rndap->back())
         {
-            DESFIRE_LOGW("Authentication with key %u: RndA mismatch.", k.key_number());
+            DESFIRE_LOGW("Authentication with key %u (%s): RndA mismatch.", k.key_number(), to_string(k.type()));
             ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " RndA orig", rnda.data(), rnda.size(), ESP_LOG_WARN);
             ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " RndA >> 8", res_rndap->data(), res_rndap->size(), ESP_LOG_WARN);
             return error::crypto_error;
         }
 
-        DESFIRE_LOGD("Authentication with key %u: deriving session key...", k.key_number());
+        DESFIRE_LOGD("Authentication: deriving session key...");
         pcipher->reinit_with_session_key(bin_data::chain(prealloc(2 * rndb.size()), rnda, rndb));
-        DESFIRE_LOGI("Authentication with key %u: successful.", k.key_number());
+        DESFIRE_LOGI("Authenticated with key %u (%s).", k.key_number(), to_string(k.type()));
 
         _active_cipher = std::move(pcipher);
         _active_cipher_type = k.type();
@@ -370,7 +370,13 @@ namespace desfire {
             }
         }
 
-        return command_response(command_code::change_key, payload, change_key_cfg);
+        const auto res_cmd =  command_response(command_code::change_key, payload, change_key_cfg);
+        if (res_cmd) {
+            DESFIRE_LOGI("Key %d (%s) was changed.", new_key.key_number(), to_string(new_key.type()));
+        } else {
+            DESFIRE_LOGW("Could not change key %d (%s): %s.", new_key.key_number(), to_string(new_key.type()), to_string(res_cmd.error()));
+        }
+        return res_cmd;
     }
 
 }

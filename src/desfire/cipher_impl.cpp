@@ -17,7 +17,7 @@ namespace desfire {
 
     void cipher_des::reinit_with_session_key(bin_data const &rndab) {
         if (rndab.size() != 16) {
-            DESFIRE_LOGE("Unsupported RndA || RndB length: %u != 16.", rndab.size());
+            DESFIRE_LOGE("Incorrect session data length %u != 16. Are you attempt to authenticate with the wrong key type?", rndab.size());
             return;
         }
         std::array<std::uint8_t, 8> new_key{};
@@ -62,7 +62,7 @@ namespace desfire {
 
     void cipher_2k3des::reinit_with_session_key(bin_data const &rndab) {
         if (rndab.size() != 16) {
-            DESFIRE_LOGE("Unsupported RndA || RndB length: %u != 16.", rndab.size());
+            DESFIRE_LOGE("Incorrect session data length %u != 16. Are you attempt to authenticate with the wrong key type?", rndab.size());
             return;
         }
         std::array<std::uint8_t, 16> new_key{};
@@ -109,7 +109,7 @@ namespace desfire {
 
     void cipher_3k3des::reinit_with_session_key(bin_data const &rndab) {
         if (rndab.size() != 32) {
-            DESFIRE_LOGE("Unsupported RndA || RndB length: %u != 32.", rndab.size());
+            DESFIRE_LOGE("Incorrect session data length %u != 32. Are you attempt to authenticate with the wrong key type?", rndab.size());
             return;
         }
         std::array<std::uint8_t, 24> new_key{};
@@ -158,7 +158,7 @@ namespace desfire {
 
     void cipher_aes::reinit_with_session_key(bin_data const &rndab) {
         if (rndab.size() != 32) {
-            DESFIRE_LOGE("Unsupported RndA || RndB length: %u != 32.", rndab.size());
+            DESFIRE_LOGE("Incorrect session data length %u != 32. Are you attempt to authenticate with the wrong key type?", rndab.size());
             return;
         }
         std::array<std::uint8_t, 16> new_key{};

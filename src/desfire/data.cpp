@@ -162,60 +162,46 @@ namespace desfire {
         return retval;
     }
 
-    any_key any_key::copy_xored(any_key const &key_to_xor_with) const {
-        bin_data bytes_to_xor_with = get_packed_key_data();
-        if (bytes_to_xor_with.empty()) {
-            return any_key{key<cipher_type::none>()};
-        }
-        // Copy the current data and xor it with the given bytes
+    bool any_key::parity_bits_are_version() const {
+        // Extract packed key data from the other key
         switch (type()) {
             case cipher_type::none:
-                DESFIRE_LOGE("Cannot XOR a key of type cipher_type::none.");
-                return any_key{key<cipher_type::none>()};
-            case cipher_type::des: {
-                auto const &k = get_key<cipher_type::des>();
-                auto xored_key_data = k.get_packed_key_data();
-                xor_with(xored_key_data, bytes_to_xor_with);
-                /**
-                 * @note Special treatment for DES. We store the key as 16 bytes, but by definition it is a DES cipher
-                 * if the two halves coincide. After Xoring we have no reason to believe the two halves will be the same
-                 * so this becomes a 2K3DES key. This does not matter in the rest of the flow because they are handled
-                 * in the same way.
-                 * @note Version is pulled from the packed data, so that it can be trasmitted in the correct way.
-                 */
-                return any_key{key<cipher_type::des3_2k>{k.key_number, xored_key_data}};
-            }
-            case cipher_type::des3_2k: {
-                auto const &k = get_key<cipher_type::des3_2k>();
-                auto xored_key_data = k.get_packed_key_data();
-                xor_with(xored_key_data, bytes_to_xor_with);
-                /**
-                 * @note Version is pulled from the packed data, so that it can be trasmitted in the correct way.
-                 */
-                return any_key{key<cipher_type::des3_2k>{k.key_number, xored_key_data}};
-            }
-            case cipher_type::des3_3k: {
-                auto const &k = get_key<cipher_type::des3_3k>();
-                auto xored_key_data = k.get_packed_key_data();
-                xor_with(xored_key_data, bytes_to_xor_with);
-                /**
-                 * @note Version is pulled from the packed data, so that it can be trasmitted in the correct way.
-                 */
-                return any_key{key<cipher_type::des3_3k>{k.key_number, xored_key_data}};
-            }
-            case cipher_type::aes128: {
-                auto const &k = get_key<cipher_type::aes128>();
-                auto xored_key_data = k.get_packed_key_data();
-                xor_with(xored_key_data, bytes_to_xor_with);
-                /**
-                 * @note Version is copied.
-                 */
-                return any_key{key<cipher_type::aes128>{k.key_number, xored_key_data, k.version}};
-            }
+                DESFIRE_LOGE("Cannot decide if parity bits are version on cipher_type::none.");
+                return false;
+            case cipher_type::des:
+                return key<cipher_type::des>::parity_bits_are_version;
+            case cipher_type::des3_2k:
+                return key<cipher_type::des3_2k>::parity_bits_are_version;
+            case cipher_type::des3_3k:
+                return key<cipher_type::des3_3k>::parity_bits_are_version;
+            case cipher_type::aes128:
+                return key<cipher_type::aes128>::parity_bits_are_version;
             default:
                 DESFIRE_LOGE("Unhandled cipher type: %s", to_string(type()));
-                return any_key{key<cipher_type::none>()};
+                return false;
         }
+    }
+
+    bin_data any_key::xored_with(any_key const &key_to_xor_with) const {
+        bin_data our_data = get_packed_key_data();
+        if (our_data.empty()) {
+            return {};
+        }
+        const bin_data their_data = key_to_xor_with.get_packed_key_data();
+        if (their_data.empty()) {
+            return {};
+        }
+        for (std::size_t i = 0; i < std::min(our_data.size(), their_data.size()); ++i) {
+            our_data[i] |= their_data[i];
+        }
+        /**
+         * @note Special treatment for keys that do not have parity bits: we must append the version. Any modification
+         * here should be kept in sync with e.g. @ref key_base::operator<<.
+         */
+        if (parity_bits_are_version()) {
+            our_data << key_version();
+        }
+        return our_data;
     }
 
 }

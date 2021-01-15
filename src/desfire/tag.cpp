@@ -340,7 +340,7 @@ namespace desfire {
         payload << prealloc(33) << key_no_flag;
         // Changing from a different key requires to xor it with that other key
         if (current_key != nullptr) {
-            payload << new_key.copy_xored(*current_key);
+            payload << new_key.xored_with(*current_key);
         } else {
             payload << new_key;
         }

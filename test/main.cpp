@@ -447,7 +447,6 @@ void test_mifare_change_app_key() {
         TEST_ASSERT(mifare->select_application(app.aid));
         TEST_ASSERT(mifare->authenticate(app.default_key));
         TEST_ASSERT(mifare->change_key(app.secondary_key));
-        TEST_ASSERT(mifare->select_application(app.aid));
         TEST_ASSERT(mifare->authenticate(app.secondary_key));
         TEST_ASSERT(mifare->change_key(app.default_key));
     }
@@ -478,5 +477,13 @@ extern "C" void app_main() {
     RUN_TEST(setup_mifare);
     RUN_TEST(test_mifare_base);
     RUN_TEST(test_mifare_create_apps);
+    RUN_TEST(test_mifare_change_app_key);
+    // Teardown
+    if (tag_reader != nullptr) {
+        if (pcd != nullptr) {
+            tag_reader->initiator_deselect(pcd->target_logical_index());
+        }
+        tag_reader->rf_configuration_field(true, false);
+    }
     UNITY_END();
 }

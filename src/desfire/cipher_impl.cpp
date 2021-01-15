@@ -65,7 +65,7 @@ namespace desfire {
             set_key_version(key, 0x00);
         }
         mbedtls_des3_set2key_enc(&_enc_context, key.data());
-        mbedtls_des3_set2key_enc(&_dec_context, key.data());
+        mbedtls_des3_set2key_dec(&_dec_context, key.data());
         initialize();
     }
 
@@ -117,7 +117,7 @@ namespace desfire {
             set_key_version(key, 0x00);
         }
         mbedtls_des3_set3key_enc(&_enc_context, key.data());
-        mbedtls_des3_set3key_enc(&_dec_context, key.data());
+        mbedtls_des3_set3key_dec(&_dec_context, key.data());
         initialize();
     }
 
@@ -167,7 +167,7 @@ namespace desfire {
         mbedtls_aes_init(&_enc_context);
         mbedtls_aes_init(&_dec_context);
         mbedtls_aes_setkey_enc(&_enc_context, key.data(), 8 * key.size());
-        mbedtls_aes_setkey_enc(&_dec_context, key.data(), 8 * key.size());
+        mbedtls_aes_setkey_dec(&_dec_context, key.data(), 8 * key.size());
         initialize();
     }
 

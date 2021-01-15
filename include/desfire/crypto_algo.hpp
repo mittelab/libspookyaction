@@ -58,6 +58,11 @@ namespace desfire {
     std::array<std::uint8_t, 4> compute_crc32(mlab::range<mlab::bin_data::const_iterator> data, std::uint32_t init = crc32_init);
     std::uint16_t compute_crc16n(mlab::range<mlab::bin_data::const_iterator> data, std::uint16_t init = crc16_init);
     std::uint32_t compute_crc32n(mlab::range<mlab::bin_data::const_iterator> data, std::uint32_t init = crc32_init);
+
+    inline std::array<std::uint8_t, 2> compute_crc16(mlab::bin_data const &data, std::uint16_t init = crc16_init);
+    inline std::array<std::uint8_t, 4> compute_crc32(mlab::bin_data const &data, std::uint32_t init = crc32_init);
+    inline std::uint16_t compute_crc16n(mlab::bin_data const &data, std::uint16_t init = crc16_init);
+    inline std::uint32_t compute_crc32n(mlab::bin_data const &data, std::uint32_t init = crc32_init);
 }
 
 namespace mlab {
@@ -153,6 +158,18 @@ namespace desfire {
         return v;
     }
 
+    std::array<std::uint8_t, 2> compute_crc16(mlab::bin_data const &data, std::uint16_t init) {
+        return compute_crc16(data.view(), init);
+    }
+    std::array<std::uint8_t, 4> compute_crc32(mlab::bin_data const &data, std::uint32_t init) {
+        return compute_crc32(data.view(), init);
+    }
+    std::uint16_t compute_crc16n(mlab::bin_data const &data, std::uint16_t init) {
+        return compute_crc16n(data.view(), init);
+    }
+    std::uint32_t compute_crc32n(mlab::bin_data const &data, std::uint32_t init) {
+        return compute_crc32n(data.view(), init);
+    }
 
 
 }

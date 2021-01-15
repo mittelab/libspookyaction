@@ -32,8 +32,6 @@ namespace desfire {
          */
         mac_t compute_mac(range<bin_data::const_iterator> data);
 
-        static crc_t compute_crc(range<bin_data::const_iterator> data, std::uint16_t init = crc16_init);
-
         static bool drop_padding_verify_crc(bin_data &d);
 
         void prepare_tx(bin_data &data, std::size_t offset, config const &cfg) final;
@@ -71,11 +69,6 @@ namespace desfire {
         virtual void do_crypto(range<bin_data::iterator> data, bool encrypt, block_t &iv) = 0;
 
         mac_t compute_mac(range<bin_data::const_iterator> data);
-
-        /**
-         * Computes the CRC32 of @p data, returns LSB first.
-         */
-        static crc_t compute_crc(range<bin_data::const_iterator> data, std::uint32_t init = crc32_init);
 
         /**
          * @param status The CRC is always computed on ''data || status'', so we always need to update it for that

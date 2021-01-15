@@ -7,13 +7,9 @@
 
 namespace desfire {
 
-    cipher_des::cipher_des(std::array<std::uint8_t, 8> key) : _enc_context{}, _dec_context{} {
+    cipher_des::cipher_des(std::array<std::uint8_t, 8> const &key) : _enc_context{}, _dec_context{} {
         mbedtls_des_init(&_enc_context);
         mbedtls_des_init(&_dec_context);
-        if (get_key_version(key) != 0x00) {
-            DESFIRE_LOGW("Attempted to create a DES cipher with a key which has nonzero parity bits.");
-            set_key_version(key, 0x00);
-        }
         mbedtls_des_setkey_enc(&_enc_context, key.data());
         mbedtls_des_setkey_dec(&_dec_context, key.data());
         initialize();
@@ -57,13 +53,9 @@ namespace desfire {
         ESP_LOG_BUFFER_HEX_LEVEL((encrypt ? DESFIRE_TAG " BLOB" : DESFIRE_TAG " DATA"), data.data(), data.size(), ESP_LOG_VERBOSE);
     }
 
-    cipher_2k3des::cipher_2k3des(std::array<std::uint8_t, 16> key) : _enc_context{}, _dec_context{} {
+    cipher_2k3des::cipher_2k3des(std::array<std::uint8_t, 16> const &key) : _enc_context{}, _dec_context{} {
         mbedtls_des3_init(&_enc_context);
         mbedtls_des3_init(&_dec_context);
-        if (get_key_version(key) != 0x00) {
-            DESFIRE_LOGW("Attempted to create a 2K3DES cipher with a key which has nonzero parity bits.");
-            set_key_version(key, 0x00);
-        }
         mbedtls_des3_set2key_enc(&_enc_context, key.data());
         mbedtls_des3_set2key_dec(&_dec_context, key.data());
         initialize();
@@ -109,13 +101,9 @@ namespace desfire {
         ESP_LOG_BUFFER_HEX_LEVEL((encrypt ? DESFIRE_TAG " BLOB" : DESFIRE_TAG " DATA"), data.data(), data.size(), ESP_LOG_VERBOSE);
     }
 
-    cipher_3k3des::cipher_3k3des(std::array<std::uint8_t, 24> key) : _enc_context{}, _dec_context{} {
+    cipher_3k3des::cipher_3k3des(std::array<std::uint8_t, 24> const &key) : _enc_context{}, _dec_context{} {
         mbedtls_des3_init(&_enc_context);
         mbedtls_des3_init(&_dec_context);
-        if (get_key_version(key) != 0x00) {
-            DESFIRE_LOGW("Attempted to create a 3K3DES cipher with a key which has nonzero parity bits.");
-            set_key_version(key, 0x00);
-        }
         mbedtls_des3_set3key_enc(&_enc_context, key.data());
         mbedtls_des3_set3key_dec(&_dec_context, key.data());
         initialize();

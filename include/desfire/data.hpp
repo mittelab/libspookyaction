@@ -180,7 +180,14 @@ namespace desfire {
 
         inline cipher_type type() const;
         std::uint8_t key_number() const;
-        std::uint8_t key_version() const;
+        std::uint8_t version() const;
+
+        /**
+         * Size in bytes of the key. Does not account for the fact that DES key in Desfire cards are stored as 16 bytes,
+         * that is, will return 8 for a DES key.
+         */
+        std::size_t size() const;
+
         std::unique_ptr<cipher> make_cipher() const;
 
         template <cipher_type Type>
@@ -194,93 +201,87 @@ namespace desfire {
         bool parity_bits_are_version() const;
 
         /**
-         * @note The returned payload will include the parity bits with the version encoded for all ciphers for which
-         * @ref parity_bits_are_version is true (at the moment, all but AES), but will __not__ include the version byte
-         * for all other ciphers. This method is used for CRCs and xoring, where the implementation requires the version
-         * only for the first type of ciphers.
+         * Does not include version for keys that do not use @ref parity_bits_are_version.
          */
-        bin_data get_packed_key_data() const;
+        bin_data get_packed_key_body() const;
 
         /**
-         * XOR the key with the other given key and return the payload as it would be transmitted.
-         * @note This behaves in the same way as operator<< in terms of how the payload is formed, however, we have a
-         * different behavior for ciphers where the parity bit is the version (@ref parity_bits_are_version):
-         *   - Since version (parity) bits are part of the key payload, those get xored as well. This means that the
-         *     final result is somewhat of a malformed key, because the version is mangled; also, a DES key, which has
-         *     a 8 bytes key length, is represented as two identical consecutive copies, which means that xoring it with
-         *     anything that has a nonzero version (or a 2K3DES key), yields a 2K3DES key. This is the reason why this
-         *     method returns a blob and not a key.
-         *   - In ciphers where the version is stored separately, the version itself is preserved and appended at the
-         *     end of the blob.
+         * @note Assume that keys which do not use parity bits as version will dump the version byte last in a
+         * @ref bin_data.
          */
         bin_data xored_with(any_key const &key_to_xor_with) const;
-    };
-
-
-    template <std::size_t KeyLength, class Cipher, bool ParityBitsAreVersion, class Subclass>
-    struct key_base {
-        static constexpr std::size_t key_length = KeyLength;
-        static constexpr bool parity_bits_are_version = ParityBitsAreVersion;
-
-        using key_t = std::array<std::uint8_t, key_length>;
-        std::uint8_t key_number;
-        std::uint8_t version;
-        key_t k;
-
-        key_base();
-        key_base(std::uint8_t key_no, key_t k_);
-        key_base(std::uint8_t key_no, key_t k_, std::uint8_t version_);
-
-        std::unique_ptr<cipher> make_cipher() const;
 
         bin_data &operator<<(bin_data &bd) const;
     };
 
-    template <>
-    struct key<cipher_type::des> : public key_base<8, cipher_des, true, key<cipher_type::des>> {
-        using key_base<8, cipher_des, true, key<cipher_type::des>>::key_base;
 
-        std::array<std::uint8_t, 16> get_packed_key_data() const {
-            // Key must be copied twice in two identical parts because it's DES.
-            std::array<std::uint8_t, 2 * key_length> payload{};
-            std::copy_n(std::begin(k), key_length, std::begin(payload));
-            std::copy_n(std::begin(k), key_length, std::begin(payload) + key_length);
-            set_key_version(payload, version);
-            return payload;
+    template <std::size_t KeyLength, bool /* ParityBitsAreVersion */>
+    struct key_storage {
+        static constexpr std::size_t key_length = KeyLength;
+        using key_t = std::array<std::uint8_t, key_length>;
+        key_t k;
+        std::uint8_t v;
+
+        key_storage() : k{}, v{0} {
+            std::fill_n(std::begin(k), key_length, 0);
         }
+        explicit key_storage(key_t k_) : k{k_}, v{0} {}
+        explicit key_storage(key_t k_, std::uint8_t v_) : k{k_}, v{v_} {}
+        inline std::uint8_t version() const { return v; }
+        inline void set_version(std::uint8_t v_) { v = v_; }
+    };
+
+    template <std::size_t KeyLength>
+    struct key_storage<KeyLength, true  /* ParityBitsAreVersion */> {
+        static constexpr std::size_t key_length = KeyLength;
+        using key_t = std::array<std::uint8_t, key_length>;
+        key_t k;
+
+        key_storage() : k{} {
+            std::fill_n(std::begin(k), key_length, 0);
+        }
+        explicit key_storage(key_t k_) : k{k_} {}
+        explicit key_storage(key_t k_, std::uint8_t v_) : k{k_} {
+            set_version(v_);
+        }
+
+        inline std::uint8_t version() const { return get_key_version(k); }
+
+        inline void set_version(std::uint8_t v) { set_key_version(k, v); }
+    };
+
+
+    template <std::size_t KeyLength, class Cipher, bool ParityBitsAreVersion>
+    struct key_base : public key_storage<KeyLength, ParityBitsAreVersion> {
+        using storage = key_storage<KeyLength, ParityBitsAreVersion>;
+        static constexpr bool parity_bits_are_version = ParityBitsAreVersion;
+        std::uint8_t key_number = 0;
+        using typename storage::key_t;
+
+        key_base();
+        key_base(std::uint8_t key_no, key_t k_);
+        key_base(std::uint8_t key_no, key_t k_, std::uint8_t v_);
+        std::unique_ptr<cipher> make_cipher() const;
     };
 
     template <>
-    struct key<cipher_type::des3_2k> : public key_base<16, cipher_2k3des, true, key<cipher_type::des3_2k>> {
-        using key_base<16, cipher_2k3des, true, key<cipher_type::des3_2k>>::key_base;
-
-        std::array<std::uint8_t, 16> get_packed_key_data() const {
-            std::array<std::uint8_t, key_length> payload{};
-            std::copy_n(std::begin(k), key_length, std::begin(payload));
-            set_key_version(payload, version);
-            return payload;
-        }
+    struct key<cipher_type::des> : public key_base<8, cipher_des, true> {
+        using key_base<8, cipher_des, true>::key_base;
     };
 
     template <>
-    struct key<cipher_type::des3_3k> : public key_base<24, cipher_3k3des, true, key<cipher_type::des3_3k>> {
-        using key_base<24, cipher_3k3des, true, key<cipher_type::des3_3k>>::key_base;
-
-        std::array<std::uint8_t, 24> get_packed_key_data() const {
-            std::array<std::uint8_t, key_length> payload{};
-            std::copy_n(std::begin(k), key_length, std::begin(payload));
-            set_key_version(payload, version);
-            return payload;
-        }
+    struct key<cipher_type::des3_2k> : public key_base<16, cipher_2k3des, true> {
+        using key_base<16, cipher_2k3des, true>::key_base;
     };
 
     template <>
-    struct key<cipher_type::aes128> : public key_base<16, cipher_aes, false, key<cipher_type::aes128>> {
-        using key_base<16, cipher_aes, false, key<cipher_type::aes128>>::key_base;
+    struct key<cipher_type::des3_3k> : public key_base<24, cipher_3k3des, true> {
+        using key_base<24, cipher_3k3des, true>::key_base;
+    };
 
-        std::array<std::uint8_t, 16> const &get_packed_key_data() const {
-            return k;
-        }
+    template <>
+    struct key<cipher_type::aes128> : public key_base<16, cipher_aes, false> {
+        using key_base<16, cipher_aes, false>::key_base;
     };
 
 }
@@ -303,68 +304,28 @@ namespace mlab {
     bin_stream &operator>>(bin_stream &s, desfire::manufacturing_info &mi);
 
     bin_data &operator<<(bin_data &bd, desfire::any_key const &k);
-    template <cipher_type Type>
-    bin_data &operator<<(bin_data &bd, desfire::key<Type> const &k);
 }
 
 namespace desfire {
 
+    template <std::size_t KeyLength, class Cipher, bool ParityBitsAreVersion>
+    key_base<KeyLength, Cipher, ParityBitsAreVersion>::key_base() :
+            storage{}, key_number{0}
+    {}
 
-    template <std::size_t KeyLength, class Cipher, bool ParityBitsAreVersion, class Subclass>
-    key_base<KeyLength, Cipher, ParityBitsAreVersion, Subclass>::key_base() : key_number{0}, version{0x00}, k{} {
-        std::fill_n(std::begin(k), key_length, 0x00);
-    }
+    template <std::size_t KeyLength, class Cipher, bool ParityBitsAreVersion>
+    key_base<KeyLength, Cipher, ParityBitsAreVersion>::key_base(std::uint8_t key_no, key_t k_) :
+            storage{k_}, key_number{key_no}
+    {}
 
-    template <std::size_t KeyLength, class Cipher, bool ParityBitsAreVersion, class Subclass>
-    key_base<KeyLength, Cipher, ParityBitsAreVersion, Subclass>::key_base(std::uint8_t key_no, key_t k_) :
-            key_number{key_no}, version{ParityBitsAreVersion ? get_key_version(k_) : std::uint8_t(0)}, k{k_}
-    {
-        if (ParityBitsAreVersion) {
-            set_key_version(k, 0x00);
-        }
-    }
+    template <std::size_t KeyLength, class Cipher, bool ParityBitsAreVersion>
+    key_base<KeyLength, Cipher, ParityBitsAreVersion>::key_base(std::uint8_t key_no, key_t k_, std::uint8_t v_) :
+            storage{k_, v_}, key_number{key_no}
+    {}
 
-    template <std::size_t KeyLength, class Cipher, bool ParityBitsAreVersion, class Subclass>
-    key_base<KeyLength, Cipher, ParityBitsAreVersion, Subclass>::key_base(std::uint8_t key_no, key_t k_, std::uint8_t version_) :
-        key_number{key_no}, version{version_}, k{k_}
-    {
-        if (ParityBitsAreVersion) {
-            set_key_version(k, 0x00);
-        }
-    }
-
-    template <std::size_t KeyLength, class Cipher, bool ParityBitsAreVersion, class Subclass>
-    std::unique_ptr<cipher> key_base<KeyLength, Cipher, ParityBitsAreVersion, Subclass>::make_cipher() const {
-        return std::unique_ptr<Cipher>(new Cipher(k));
-    }
-
-    namespace impl {
-        template <class>
-        struct extract_size {};
-
-        template <std::size_t Length>
-        struct extract_size<std::array<std::uint8_t, Length>> {
-            static constexpr std::size_t size = Length;
-        };
-    }
-
-    template <std::size_t KeyLength, class Cipher, bool ParityBitsAreVersion, class Subclass>
-    bin_data &key_base<KeyLength, Cipher, ParityBitsAreVersion, Subclass>::operator<<(bin_data &bd) const {
-        using packed_data_t = typename std::remove_const<typename std::remove_reference<
-                decltype(std::declval<Subclass const &>().get_packed_key_data())
-        >::type>::type;
-        static constexpr std::size_t packed_key_data_length = impl::extract_size<packed_data_t>::size;
-        static constexpr std::size_t prealloc_size = packed_key_data_length + (ParityBitsAreVersion ? 0 : 1);
-        bd << prealloc(prealloc_size);
-        // Here we would like to dynamic cast, but on embedded that is disabled, so we do some juggling
-        static_assert(std::is_base_of<key_base, Subclass>::value,
-                "We use the curiously recurring template pattern here to do something that otherwise would require a "
-                "virtual function. You must specify the subclass's own type as the Subclass template parameter.");
-        bd << reinterpret_cast<Subclass const *>(this)->get_packed_key_data();
-        if (not ParityBitsAreVersion) {
-            bd << version;
-        }
-        return bd;
+    template <std::size_t KeyLength, class Cipher, bool ParityBitsAreVersion>
+    std::unique_ptr<cipher> key_base<KeyLength, Cipher, ParityBitsAreVersion>::make_cipher() const {
+        return std::unique_ptr<Cipher>(new Cipher(storage::k));
     }
 
     any_key::any_key() : _type{cipher_type::none}, _key{key<cipher_type::none>{}} {}
@@ -451,14 +412,6 @@ namespace desfire {
     }
     std::size_t storage_size::bytes_upper_bound() const {
         return 1 << (approx() ? exponent() + 1 : exponent());
-    }
-}
-
-namespace mlab {
-
-    template <cipher_type Type>
-    bin_data &operator<<(bin_data &bd, desfire::key<Type> const &k) {
-        return k.operator<<(bd);
     }
 }
 

@@ -20,6 +20,8 @@ namespace desfire {
         zero
     };
 
+    inline const char *to_string(cipher_iv civ);
+
     class cipher {
         cipher_iv _iv_mode = cipher_iv::global;
     public:
@@ -49,9 +51,11 @@ namespace desfire {
         cipher_iv _old_iv_mode;
     public:
         explicit iv_session(cipher &c, cipher_iv iv_mode) : _c{c}, _old_iv_mode{c.iv_mode()} {
+            DESFIRE_LOGD("Switching crypto IV mode to %s (was %s).", to_string(iv_mode), to_string(_c.iv_mode()));
             _c.set_iv_mode(iv_mode);
         }
         ~iv_session() {
+            DESFIRE_LOGD("Restoring crypto IV mode to %s.", to_string(_old_iv_mode));
             _c.set_iv_mode(_old_iv_mode);
         }
     };
@@ -119,6 +123,14 @@ namespace desfire {
             default:
                 DESFIRE_LOGE("Requesting whether a cipher is legacy with no cipher!");
                 return true;
+        }
+    }
+
+    const char *to_string(cipher_iv civ) {
+        switch (civ) {
+            case cipher_iv::global: return "global";
+            case cipher_iv::zero:   return "zero (local)";
+            default: return "UNKNOWN";
         }
     }
 }

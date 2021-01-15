@@ -26,6 +26,7 @@ namespace desfire {
         std::fill_n(std::begin(_global_iv), block_size, 0);
 
         /// Perform key derivation
+        DESFIRE_LOGD("Deriving CMAC subkeys...");
 
         static const auto prepare_subkey = [](cmac_subkey_t &subkey) {
             // Some app-specific magic: lshift by one

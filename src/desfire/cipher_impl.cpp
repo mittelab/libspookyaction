@@ -72,6 +72,10 @@ namespace desfire {
         std::copy_n(bsrc, 4, btrg);
         std::copy_n(bsrc + 8,  4, btrg + 4);
         std::copy_n(bsrc + 4,  4, btrg + 8);
+        /**
+         * @bug When the key is actually a DES key, i.e. the two halves are the same, here we should be deriving a DES
+         * session key, i.e. we should preserve the property.
+         */
         std::copy_n(bsrc + 12, 4, btrg + 12);
         mbedtls_des3_free(&_enc_context);
         mbedtls_des3_free(&_dec_context);

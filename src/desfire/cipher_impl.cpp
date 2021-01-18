@@ -61,7 +61,20 @@ namespace desfire {
         ESP_LOG_BUFFER_HEX_LEVEL((encrypt ? DESFIRE_TAG " BLOB" : DESFIRE_TAG " DATA"), data.data(), data.size(), ESP_LOG_VERBOSE);
     }
 
-    cipher_2k3des::cipher_2k3des(std::array<std::uint8_t, 16> const &key) : _enc_context{}, _dec_context{} {
+    cipher_2k3des::cipher_2k3des(std::array<std::uint8_t, 16> const &key) : _enc_context{}, _dec_context{}, _degenerate{false}
+    {
+        /**
+         * @note Indentify whether the two halves of the key are the same, up to parity bit. This means that we are
+         * actually doing a DES en/decipherement operation. When we reinit with a new session key, we need to be aware
+         * that this property has to be preserved.
+         */
+        const auto eq_except_parity = [](std::uint8_t l, std::uint8_t r) -> bool {
+            static constexpr std::uint8_t mask = 0b11111110;
+            return (l & mask) == (r & mask);
+        };
+        const auto it_begin_2nd_half = std::begin(key) + block_size / 2;
+        _degenerate = std::equal(std::begin(key), it_begin_2nd_half, it_begin_2nd_half, eq_except_parity);
+
         mbedtls_des3_init(&_enc_context);
         mbedtls_des3_init(&_dec_context);
         /**
@@ -83,12 +96,17 @@ namespace desfire {
         const auto btrg = std::begin(new_key);
         std::copy_n(bsrc, 4, btrg);
         std::copy_n(bsrc + 8,  4, btrg + 4);
-        std::copy_n(bsrc + 4,  4, btrg + 8);
+
         /**
-         * @bug When the key is actually a DES key, i.e. the two halves are the same, here we should be deriving a DES
+         * @note When the key is actually a DES key, i.e. the two halves are the same, here we should be deriving a DES
          * session key, i.e. we should preserve the property.
          */
-        std::copy_n(bsrc + 12, 4, btrg + 12);
+        if (_degenerate) {
+            std::copy_n(btrg, 8, btrg + 8);
+        } else {
+            std::copy_n(bsrc + 4,  4, btrg + 8);
+            std::copy_n(bsrc + 12, 4, btrg + 12);
+        }
         mbedtls_des3_free(&_enc_context);
         mbedtls_des3_free(&_dec_context);
         mbedtls_des3_init(&_enc_context);

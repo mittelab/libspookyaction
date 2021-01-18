@@ -25,6 +25,7 @@ namespace desfire {
     class cipher_2k3des final : public cipher_legacy_scheme {
         mbedtls_des3_context _enc_context;
         mbedtls_des3_context _dec_context;
+        bool _degenerate;
 
     public:
         explicit cipher_2k3des(std::array<std::uint8_t, 16> const &key);

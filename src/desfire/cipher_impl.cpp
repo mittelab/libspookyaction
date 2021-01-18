@@ -10,7 +10,11 @@ namespace desfire {
     cipher_des::cipher_des(std::array<std::uint8_t, 8> const &key) : _enc_context{}, _dec_context{} {
         mbedtls_des_init(&_enc_context);
         mbedtls_des_init(&_dec_context);
-        mbedtls_des_setkey_enc(&_enc_context, key.data());
+        /**
+         * @note Using @ref mbedtls_des_setkey_dec on @ref _enc_context is **deliberate**, see note on
+         * @ref cipher_legacy_scheme.
+         */
+        mbedtls_des_setkey_dec(&_enc_context, key.data());
         mbedtls_des_setkey_dec(&_dec_context, key.data());
         initialize();
     }
@@ -30,7 +34,11 @@ namespace desfire {
         mbedtls_des_init(&_enc_context);
         mbedtls_des_init(&_dec_context);
         set_key_version(new_key, 0x00);
-        mbedtls_des_setkey_enc(&_enc_context, new_key.data());
+        /**
+         * @note Using @ref mbedtls_des_setkey_dec on @ref _enc_context is **deliberate**, see note on
+         * @ref cipher_legacy_scheme.
+         */
+        mbedtls_des_setkey_dec(&_enc_context, new_key.data());
         mbedtls_des_setkey_dec(&_dec_context, new_key.data());
         initialize();
     }
@@ -56,7 +64,11 @@ namespace desfire {
     cipher_2k3des::cipher_2k3des(std::array<std::uint8_t, 16> const &key) : _enc_context{}, _dec_context{} {
         mbedtls_des3_init(&_enc_context);
         mbedtls_des3_init(&_dec_context);
-        mbedtls_des3_set2key_enc(&_enc_context, key.data());
+        /**
+         * @note Using @ref mbedtls_des3_set2key_dec on @ref _enc_context is **deliberate**, see note on
+         * @ref cipher_legacy_scheme.
+         */
+        mbedtls_des3_set2key_dec(&_enc_context, key.data());
         mbedtls_des3_set2key_dec(&_dec_context, key.data());
         initialize();
     }
@@ -82,7 +94,11 @@ namespace desfire {
         mbedtls_des3_init(&_enc_context);
         mbedtls_des3_init(&_dec_context);
         set_key_version(new_key, 0x00);
-        mbedtls_des3_set2key_enc(&_enc_context, new_key.data());
+        /**
+         * @note Using @ref mbedtls_des3_set2key_dec on @ref _enc_context is **deliberate**, see note on
+         * @ref cipher_legacy_scheme.
+         */
+        mbedtls_des3_set2key_dec(&_enc_context, new_key.data());
         mbedtls_des3_set2key_dec(&_dec_context, new_key.data());
         initialize();
     }

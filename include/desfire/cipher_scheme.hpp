@@ -10,6 +10,9 @@
 
 namespace desfire {
 
+    /**
+     * @todo Add a note explaining why we set a decipherement key on the encryption context and why we decrypt.
+     */
     class cipher_legacy_scheme : public virtual cipher, public cipher_traits<8, 4, 2> {
         block_t _global_iv;
 

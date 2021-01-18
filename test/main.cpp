@@ -181,33 +181,45 @@ void test_data_exchange() {
 }
 
 void test_cipher_des() {
-    // Test using examples from https://hack.cert.pl/files/desfire-9f122c71e0057d4f747d2ee295b0f5f6eef8ac32.html
-    const auto k = desfire::key<desfire::cipher_type::des>{};
-    desfire::cipher_des c{k.k};
-    // The examples from the website use ISO auth also for legacy auth, which means we need to use global IV
     {
-        desfire::iv_session session{c, desfire::cipher_iv::global};
+        // Test using examples from https://hack.cert.pl/files/desfire-9f122c71e0057d4f747d2ee295b0f5f6eef8ac32.html
+        const auto k = desfire::key<desfire::cipher_type::des>{};
+        desfire::cipher_des c{k.k};
+        // The examples from the website use ISO auth also for legacy auth, which means we need to use global IV
         {
-            desfire::bin_data enc_data = {0x5D, 0x99, 0x4C, 0xE0, 0x85, 0xF2, 0x40, 0x89, /* status */ 0xAF};
-            const desfire::bin_data dec_data = {0x4F, 0xD1, 0xB7, 0x59, 0x42, 0xA8, 0xB8, 0xE1, /* status */ 0xAF};
-            c.confirm_rx(enc_data, desfire::cipher_cfg_crypto_nocrc);
-            TEST_ASSERT_EQUAL_HEX8_ARRAY(dec_data.data(), enc_data.data(), std::min(enc_data.size(), dec_data.size()));
-            TEST_ASSERT_EQUAL(enc_data.size(), dec_data.size());
+            desfire::iv_session session{c, desfire::cipher_iv::global};
+            {
+                desfire::bin_data enc_data = {0x5D, 0x99, 0x4C, 0xE0, 0x85, 0xF2, 0x40, 0x89, /* status */ 0xAF};
+                const desfire::bin_data dec_data = {0x4F, 0xD1, 0xB7, 0x59, 0x42, 0xA8, 0xB8, 0xE1, /* status */ 0xAF};
+                c.confirm_rx(enc_data, desfire::cipher_cfg_crypto_nocrc);
+                TEST_ASSERT_EQUAL_HEX8_ARRAY(dec_data.data(), enc_data.data(), std::min(enc_data.size(), dec_data.size()));
+                TEST_ASSERT_EQUAL(enc_data.size(), dec_data.size());
+            }
+            {
+                desfire::bin_data dec_data = {0x84, 0x9B, 0x36, 0xC5, 0xF8, 0xBF, 0x4A, 0x09, 0xD1, 0xB7, 0x59, 0x42, 0xA8, 0xB8, 0xE1, 0x4F};
+                const desfire::bin_data enc_data = {0x21, 0xD0, 0xAD, 0x5F, 0x2F, 0xD9, 0x74, 0x54, 0xA7, 0x46, 0xCC, 0x80, 0x56, 0x7F, 0x1B, 0x1C};
+                c.prepare_tx(dec_data, 0, desfire::cipher_cfg_crypto_nocrc);
+                TEST_ASSERT_EQUAL_HEX8_ARRAY(enc_data.data(), dec_data.data(), std::min(enc_data.size(), dec_data.size()));
+                TEST_ASSERT_EQUAL(enc_data.size(), dec_data.size());
+            }
+            {
+                desfire::bin_data enc_data = {0x91, 0x3C, 0x6D, 0xED, 0x84, 0x22, 0x1C, 0x41, /* status */ 0x00};
+                const desfire::bin_data dec_data = {0x9B, 0x36, 0xC5, 0xF8, 0xBF, 0x4A, 0x09, 0x84, /* status */ 0x00};
+                c.confirm_rx(enc_data, desfire::cipher_cfg_crypto_nocrc);
+                TEST_ASSERT_EQUAL_HEX8_ARRAY(dec_data.data(), enc_data.data(), std::min(enc_data.size(), dec_data.size()));
+                TEST_ASSERT_EQUAL(enc_data.size(), dec_data.size());
+            }
         }
-        {
-            desfire::bin_data dec_data = {0x84, 0x9B, 0x36, 0xC5, 0xF8, 0xBF, 0x4A, 0x09, 0xD1, 0xB7, 0x59, 0x42, 0xA8, 0xB8, 0xE1, 0x4F};
-            const desfire::bin_data enc_data = {0x21, 0xD0, 0xAD, 0x5F, 0x2F, 0xD9, 0x74, 0x54, 0xA7, 0x46, 0xCC, 0x80, 0x56, 0x7F, 0x1B, 0x1C};
-            c.prepare_tx(dec_data, 0, desfire::cipher_cfg_crypto_nocrc);
-            TEST_ASSERT_EQUAL_HEX8_ARRAY(enc_data.data(), dec_data.data(), std::min(enc_data.size(), dec_data.size()));
-            TEST_ASSERT_EQUAL(enc_data.size(), dec_data.size());
-        }
-        {
-            desfire::bin_data enc_data = {0x91, 0x3C, 0x6D, 0xED, 0x84, 0x22, 0x1C, 0x41, /* status */ 0x00};
-            const desfire::bin_data dec_data = {0x9B, 0x36, 0xC5, 0xF8, 0xBF, 0x4A, 0x09, 0x84, /* status */ 0x00};
-            c.confirm_rx(enc_data, desfire::cipher_cfg_crypto_nocrc);
-            TEST_ASSERT_EQUAL_HEX8_ARRAY(dec_data.data(), enc_data.data(), std::min(enc_data.size(), dec_data.size()));
-            TEST_ASSERT_EQUAL(enc_data.size(), dec_data.size());
-        }
+    }
+    {
+        // Test using our own generated data
+        const auto k = desfire::key<desfire::cipher_type::des>{0, {0xc8, 0x6d, 0xb4, 0x4f, 0x05, 0x52, 0xb6, 0x9b}};
+        desfire::cipher_des c{k.k};
+        desfire::bin_data enc_data = {0x00, 0x02, 0x04, 0x07, 0x08, 0x0a, 0x0c, 0x0e, 0x00, 0x02, 0x04, 0x07, 0x08, 0x0a, 0x0c, 0x0e, 0x2a, 0xec, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+        const desfire::bin_data dec_data = {0xae, 0x99, 0x2b, 0xd7, 0x2b, 0x90, 0x32, 0x4f, 0x3e, 0x2c, 0xf2, 0xf3, 0x5e, 0x4f, 0xd7, 0x9a, 0x99, 0xbe, 0xa5, 0x61, 0xad, 0x04, 0x24, 0xbc};
+        std::array<std::uint8_t, 8> iv{0, 0, 0, 0, 0, 0, 0, 0};
+        c.do_crypto(enc_data.view(), false, iv);
+        TEST_ASSERT_EQUAL_HEX8_ARRAY(dec_data.data(), enc_data.data(), std::min(enc_data.size(), dec_data.size()));
     }
 }
 

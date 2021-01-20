@@ -350,10 +350,10 @@ namespace desfire {
         // There is no way to fit this business into the cipher model.
         if (cipher::is_legacy(active_cipher_type())) {
             // CRC on (maybe xored data). However, skip the key number
-            payload << compute_crc16(payload.view(1));
+            payload << lsb16 << compute_crc16(payload.view(1));
             if (current_key != nullptr) {
                 // Extra CRC on new key
-                payload << compute_crc16(new_key.get_packed_key_body());
+                payload << lsb16 << compute_crc16(new_key.get_packed_key_body());
             }
         } else {
             // Precomputed CRC32 on the single command code byte
@@ -362,10 +362,10 @@ namespace desfire {
                           "If these conditions are not respected, the precomputed value above is wrong.");
             // CRC on command code, key number, (maybe xored data). Note that the command code is added by the
             // command_response method, so we precomputed a different init value that accounts for it.
-            payload << compute_crc32(payload, crc32_init_with_chgkey);
+            payload << lsb32 << compute_crc32(payload, crc32_init_with_chgkey);
             if (current_key != nullptr) {
                 // Extra CRC on new key
-                payload << compute_crc32(new_key.get_packed_key_body());
+                payload << lsb32 << compute_crc32(new_key.get_packed_key_body());
             }
         }
 

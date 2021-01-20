@@ -385,23 +385,23 @@ void test_change_key_des() {
 void test_crc32() {
     {
         const mlab::bin_data payload = {0xC4, 0x00, 0x00, 0x10, 0x20, 0x31, 0x40, 0x50, 0x60, 0x70, 0x80, 0x90, 0xA0, 0xB0, 0xB0, 0xA0, 0x90, 0x80};
-        const std::array<std::uint8_t, 4> expected_crc = {0xC5, 0xFF, 0x01, 0x50};
-        const auto computed_crc = desfire::compute_crc32(payload);
-        TEST_ASSERT_EQUAL_HEX8_ARRAY(expected_crc.data(), computed_crc.data(), 4);
+        const std::uint32_t expected_crc = 0x5001ffc5;
+        const std::uint32_t computed_crc = desfire::compute_crc32(payload);
+        TEST_ASSERT_EQUAL(expected_crc, computed_crc);
     }
     {
         const mlab::bin_data payload = {0xC4, 0x00, 0x00, 0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70, 0x80, 0x90, 0xA0, 0xB0, 0xB0, 0xA0, 0x90, 0x80, 0x10};
-        const std::array<std::uint8_t, 4> expected_crc = {0xD2, 0xC6, 0xE6, 0x6B};
-        const auto computed_crc = desfire::compute_crc32(payload);
-        TEST_ASSERT_EQUAL_HEX8_ARRAY(expected_crc.data(), computed_crc.data(), 4);
+        const std::uint32_t expected_crc = 0x68e6c6d2;
+        const std::uint32_t computed_crc = desfire::compute_crc32(payload);
+        TEST_ASSERT_EQUAL(expected_crc, computed_crc);
     }
 }
 
 void test_crc16() {
     const mlab::bin_data payload = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77};
-    const std::array<std::uint8_t, 2> expected_crc = {0x30, 0x55};
-    const auto computed_crc = desfire::compute_crc16(payload);
-    TEST_ASSERT_EQUAL_HEX8_ARRAY(expected_crc.data(), computed_crc.data(), 2);
+    const std::uint16_t expected_crc = 0x5530;
+    const std::uint16_t computed_crc = desfire::compute_crc16(payload);
+    TEST_ASSERT_EQUAL(expected_crc, computed_crc);
 }
 
 

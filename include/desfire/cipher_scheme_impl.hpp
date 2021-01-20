@@ -90,8 +90,8 @@ namespace desfire {
         {
             const bin_data status_byte = bin_data::chain(status);
             // Simulate the presence of an extra status byte by doing an extra crc call
-            const std::uint32_t crc_of_data = compute_crc32n(range<bin_data::const_iterator>{b, e}, init);
-            const std::uint32_t crc_of_data_and_status = compute_crc32n(status_byte, crc_of_data);
+            const std::uint32_t crc_of_data = compute_crc32(range<bin_data::const_iterator>{b, e}, init);
+            const std::uint32_t crc_of_data_and_status = compute_crc32(status_byte, crc_of_data);
             return crc_of_data_and_status;
         };
         const auto end_payload_did_verify = find_crc_tail<block_size>(std::begin(d), std::end(d), crc_fn, crc32_init);
@@ -128,7 +128,7 @@ namespace desfire {
             if (cfg.do_crc) {
                 data.reserve(offset + padded_length<block_size>(data.size() + crc_size - offset));
                 // CRC has to be computed on the whole data
-                data << compute_crc32(data);
+                data << lsb32 << compute_crc32(data);
             } else {
                 data.reserve(offset + padded_length<block_size>(data.size() - offset));
             }

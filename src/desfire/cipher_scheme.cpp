@@ -43,7 +43,7 @@ namespace desfire {
     bool cipher_legacy_scheme::drop_padding_verify_crc(bin_data &d) {
         static const auto crc_fn = [](
                 bin_data::const_iterator b, bin_data::const_iterator e, std::uint16_t init) -> std::uint16_t {
-            return compute_crc16n(range<bin_data::const_iterator>{b, e}, init);
+            return compute_crc16(range<bin_data::const_iterator>{b, e}, init);
         };
         const auto end_payload_did_verify = find_crc_tail<block_size>(std::begin(d), std::end(d), crc_fn, crc16_init);
         if (end_payload_did_verify.second) {
@@ -82,7 +82,7 @@ namespace desfire {
                     }
                     if (cfg.do_crc) {
                         data.reserve(offset + padded_length<block_size>(data.size() + crc_size - offset));
-                        data << compute_crc16(data.view(offset));
+                        data << lsb16 << compute_crc16(data.view(offset));
                     } else {
                         data.reserve(offset + padded_length<block_size>(data.size() - offset));
                     }

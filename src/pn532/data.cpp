@@ -456,12 +456,8 @@ namespace mlab {
     }
 
     bin_data &operator<<(bin_data &s, mifare_params const &p) {
-        /**
-         * @note Manual says, page 151 that SENS_RES goes LSB first; seems the way the ISO/IEC14443-3 spec sends stuff.
-         */
         return s << prealloc(6)
-                 << std::uint8_t(p.sens_res & 0xff)
-                 << std::uint8_t(p.sens_res >> 8)
+                 << p.sens_res
                  << p.nfcid_1t
                  << p.sel_res;
     }

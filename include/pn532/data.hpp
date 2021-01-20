@@ -218,7 +218,7 @@ namespace pn532 {
     };
 
     struct mifare_params {
-        std::uint16_t sens_res;
+        std::array<std::uint8_t, 2> sens_res;
         std::array<std::uint8_t, 3> nfcid_1t;
         std::uint8_t sel_res;
     };

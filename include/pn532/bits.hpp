@@ -368,7 +368,7 @@ namespace pn532 {
 
         template <>
         struct target_info<baudrate_modulation::kbps106_iso_iec_14443_typea> {
-            std::uint16_t sens_res;
+            std::array<std::uint8_t, 2> sens_res;
             std::uint8_t sel_res;
             std::vector<std::uint8_t> nfcid;
             std::vector<std::uint8_t> ats;
@@ -398,7 +398,7 @@ namespace pn532 {
 
         template <>
         struct target_info<baudrate_modulation::kbps106_innovision_jewel_tag> {
-            std::uint16_t sens_res;
+            std::array<std::uint8_t, 2> sens_res;
             std::array<std::uint8_t, 4> jewel_id;
         };
 

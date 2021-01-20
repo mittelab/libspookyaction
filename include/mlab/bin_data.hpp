@@ -138,6 +138,42 @@ namespace mlab {
         inline void clear_bad();
     };
 
+    enum struct byte_order {
+        msb_first,
+        lsb_first
+    };
+
+    /**
+     * @note There is apparently no better way to obtain this in C++14
+     */
+#if   defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+    static constexpr byte_order local_byte_order = byte_order::msb_first;
+#elif defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+    static constexpr byte_order local_byte_order = byte_order::lsb_first;
+#endif
+
+    template <unsigned> struct lsb_t {};
+    template <unsigned> struct msb_t {};
+
+    static constexpr lsb_t<16> lsb16{};
+    static constexpr lsb_t<24> lsb24{};
+    static constexpr lsb_t<32> lsb32{};
+    static constexpr msb_t<16> msb16{};
+    static constexpr msb_t<24> msb24{};
+    static constexpr msb_t<32> msb32{};
+
+    template <unsigned BitSize, byte_order Order>
+    struct ordered_injector { bin_data &bd; };
+
+    template <unsigned BitSize, byte_order Order>
+    struct ordered_extractor { bin_stream &s; };
+
+    template<unsigned BitSize>
+    inline ordered_extractor<BitSize, byte_order::lsb_first> operator>>(bin_stream &s, lsb_t<BitSize>);
+
+    template<unsigned BitSize>
+    inline ordered_extractor<BitSize, byte_order::msb_first> operator>>(bin_stream &s, msb_t<BitSize>);
+
     inline bin_data &operator<<(bin_data &bd, std::uint8_t byte);
 
     inline bin_data &operator<<(bin_data &bd, bool b);
@@ -145,8 +181,6 @@ namespace mlab {
     inline bin_stream &operator>>(bin_stream &s, bool &b);
 
     inline bin_stream &operator>>(bin_stream &s, std::uint8_t &byte);
-
-    inline bin_stream &operator>>(bin_stream &s, std::uint16_t &word);
 
     template <std::size_t Length>
     bin_stream &operator>>(bin_stream &s, std::array<std::uint8_t, Length> &out);
@@ -404,13 +438,6 @@ namespace mlab {
         return s;
     }
 
-    bin_stream &operator>>(bin_stream &s, std::uint16_t &word) {
-        word = s.pop();
-        word <<= 8;
-        word |= s.pop();
-        return s;
-    }
-
     template <std::size_t Length>
     bin_stream &operator>>(bin_stream &s, std::array<std::uint8_t, Length> &out) {
         s.template read(std::begin(out), Length);
@@ -461,12 +488,120 @@ namespace mlab {
                 return bd;
             }
         };
+
+        template <byte_order> struct pack {};
+        template <byte_order, std::size_t> struct unpack {};
+
+        template <>
+        struct pack<byte_order::msb_first> {
+            inline std::uint16_t operator()(std::array<std::uint8_t, 2> b) {
+                return (std::uint16_t(b[0]) << 8) | std::uint16_t(b[1]);
+            }
+            inline std::uint32_t operator()(std::array<std::uint8_t, 3> b) {
+                return (std::uint32_t(b[0]) << 16) | (std::uint32_t(b[1]) << 8) | std::uint32_t(b[2]);
+            }
+            inline std::uint32_t operator()(std::array<std::uint8_t, 4> b) {
+                return (std::uint32_t(b[0]) << 24) | (std::uint32_t(b[1]) << 16) | (std::uint32_t(b[2]) << 8) | std::uint32_t(b[3]);
+            }
+        };
+
+        template <>
+        struct pack<byte_order::lsb_first> {
+            inline std::uint16_t operator()(std::array<std::uint8_t, 2> b) {
+                return (std::uint16_t(b[1]) << 8) | std::uint16_t(b[0]);
+            }
+            inline std::uint32_t operator()(std::array<std::uint8_t, 3> b) {
+                return (std::uint32_t(b[2]) << 16) | (std::uint32_t(b[1]) << 8) | std::uint32_t(b[0]);
+            }
+            inline std::uint32_t operator()(std::array<std::uint8_t, 4> b) {
+                return (std::uint32_t(b[3]) << 24) | (std::uint32_t(b[2]) << 16) | (std::uint32_t(b[1]) << 8) | std::uint32_t(b[0]);
+            }
+        };
+
+        template <>
+        struct unpack<byte_order::msb_first, 2> {
+            inline std::array<std::uint8_t, 2> operator()(std::uint_fast16_t n) {
+                return {std::uint8_t((n >> 8) & 0xff), std::uint8_t(n & 0xff)};
+            }
+        };
+
+        template <>
+        struct unpack<byte_order::msb_first, 3> {
+            inline std::array<std::uint8_t, 3> operator()(std::uint_fast32_t n) {
+                return {std::uint8_t((n >> 16) & 0xff), std::uint8_t((n >> 8) & 0xff), std::uint8_t(n & 0xff)};
+            }
+        };
+
+        template <>
+        struct unpack<byte_order::msb_first, 4> {
+            inline std::array<std::uint8_t, 4> operator()(std::uint_fast32_t n) {
+                return {std::uint8_t((n >> 24) & 0xff), std::uint8_t((n >> 16) & 0xff), std::uint8_t((n >> 8) & 0xff), std::uint8_t(n & 0xff)};
+            }
+        };
+
+        template <>
+        struct unpack<byte_order::lsb_first, 2> {
+            inline std::array<std::uint8_t, 2> operator()(std::uint_fast16_t n) {
+                return {std::uint8_t(n & 0xff), std::uint8_t((n >> 8) & 0xff)};
+            }
+        };
+
+        template <>
+        struct unpack<byte_order::lsb_first, 3> {
+            inline std::array<std::uint8_t, 3> operator()(std::uint_fast32_t n) {
+                return {std::uint8_t(n & 0xff), std::uint8_t((n >> 8) & 0xff), std::uint8_t((n >> 16) & 0xff)};
+            }
+        };
+
+        template <>
+        struct unpack<byte_order::lsb_first, 4> {
+            inline std::array<std::uint8_t, 4> operator()(std::uint_fast32_t n) {
+                return {std::uint8_t(n & 0xff), std::uint8_t((n >> 8) & 0xff), std::uint8_t((n >> 16) & 0xff), std::uint8_t((n >> 24) & 0xff)};
+            }
+        };
     }
 
     template <class T, class>
     bin_data &operator<<(bin_data &bd, T const &t) {
         return impl::inject<T, impl::is_byte_enum<T>::value, impl::is_byte_enumerable<T>::value,
                             impl::is_byte_enum_enumerable<T>::value>{}(bd, t);
+    }
+
+
+    template<unsigned BitSize>
+    ordered_extractor<BitSize, byte_order::lsb_first> operator>>(bin_stream &s, lsb_t<BitSize>) {
+        return {s};
+    }
+
+    template<unsigned BitSize>
+    ordered_extractor<BitSize, byte_order::msb_first> operator>>(bin_stream &s, msb_t<BitSize>) {
+        return {s};
+    }
+
+    template<unsigned BitSize>
+    ordered_injector<BitSize, byte_order::lsb_first> operator<<(bin_data &bd, lsb_t<BitSize>) {
+        return {bd};
+    }
+
+    template<unsigned BitSize>
+    ordered_injector<BitSize, byte_order::msb_first> operator<<(bin_data &bd, msb_t<BitSize>) {
+        return {bd};
+    }
+
+    template <class UInt, unsigned BitSize, byte_order Order,
+            class = typename std::enable_if<std::is_unsigned<UInt>::value and sizeof(UInt) * 8 >= BitSize>::type>
+    bin_stream &operator>>(ordered_extractor<BitSize, Order> e, UInt &n) {
+        std::array<std::uint8_t, BitSize / 8> b{};
+        e.s >> b;
+        n = impl::pack<Order>{}(b);
+        return e.s;
+    }
+
+    template <class UInt, unsigned BitSize, byte_order Order,
+            class = typename std::enable_if<std::is_unsigned<UInt>::value and sizeof(UInt) * 8 >= BitSize>::type>
+    bin_data &operator<<(ordered_injector<BitSize, Order> i, UInt n) {
+        i.bd << impl::unpack<Order, BitSize / 8>{}(n);
+        return i.bd;
     }
 
 

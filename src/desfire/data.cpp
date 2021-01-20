@@ -384,6 +384,10 @@ namespace mlab {
         return s >> lsb16 >> ar.value;
     }
 
+    bin_data &operator<<(bin_data &bd, desfire::access_rights const &ar) {
+        return bd << lsb16 << ar.value;
+    }
+
     bin_stream &operator>>(bin_stream &s, desfire::generic_file_settings &fs) {
         if (s.remaining() < 3) {
             DESFIRE_LOGE("Cannot parse generic_file_settings: not enough data.");
@@ -391,6 +395,10 @@ namespace mlab {
             return s;
         }
         return s >> fs.mode >> fs.rights;
+    }
+
+    bin_data &operator<<(bin_data &bd, desfire::generic_file_settings const &fs) {
+        return bd << fs.mode << fs.rights;
     }
 
     bin_stream &operator>>(bin_stream &s, desfire::data_file_settings &fs) {
@@ -402,6 +410,10 @@ namespace mlab {
         return s >> lsb24 >> fs.size;
     }
 
+    bin_data &operator<<(bin_data &bd, desfire::data_file_settings const &fs) {
+        return bd << lsb24 << fs.size;
+    }
+
     bin_stream &operator>>(bin_stream &s, desfire::value_file_settings &fs) {
         if (s.remaining() < 13) {
             DESFIRE_LOGE("Cannot parse value_file_settings: not enough data.");
@@ -410,9 +422,17 @@ namespace mlab {
         }
         s >> lsb32 >> fs.lower_limit;
         s >> lsb32 >> fs.upper_limit;
-        s >> lsb32 >> fs.credited_value;
+        s >> lsb32 >> fs.value;
         fs.limited_credit_enabled = (s.pop() != 0);
         return s;
+    }
+
+    bin_data &operator<<(bin_data &bd, desfire::value_file_settings const &fs) {
+        bd << lsb32 << fs.lower_limit;
+        bd << lsb32 << fs.upper_limit;
+        bd << lsb32 << fs.value;
+        bd << std::uint8_t(fs.limited_credit_enabled ? 0x1 : 0x00);
+        return bd;
     }
 
     bin_stream &operator>>(bin_stream &s, desfire::record_file_settings &fs) {
@@ -425,6 +445,12 @@ namespace mlab {
         s >> lsb24 >> fs.max_record_count;
         s >> lsb24 >> fs.record_count;
         return s;
+    }
+
+    bin_data &operator<<(bin_data &bd, desfire::create_record_file_settings const &fs) {
+        bd << lsb32 << fs.record_size;
+        bd << lsb32 << fs.max_record_count;
+        return bd;
     }
 
     bin_stream &operator>>(bin_stream &s, desfire::any_file_settings &fs) {
@@ -474,6 +500,31 @@ namespace mlab {
             }
         }
         return s;
+    }
+
+    bin_data &operator<<(bin_data &bd, desfire::any_file_settings const &fs) {
+        bd << fs.type();
+        switch (fs.type()) {
+            case desfire::file_type::standard:
+                bd << fs.get_settings<desfire::file_type::standard>();
+                break;
+            case desfire::file_type::backup:
+                bd << fs.get_settings<desfire::file_type::backup>();
+                break;
+            case desfire::file_type::value:
+                bd << fs.get_settings<desfire::file_type::value>();
+                break;
+            case desfire::file_type::linear_record:
+                bd << fs.get_settings<desfire::file_type::linear_record>();
+                break;
+            case desfire::file_type::cyclic_record:
+                bd << fs.get_settings<desfire::file_type::cyclic_record>();
+                break;
+            default:
+                DESFIRE_LOGE("Unhandled file type: %s", desfire::to_string(fs.type()));
+                break;
+        }
+        return bd;
     }
 
 

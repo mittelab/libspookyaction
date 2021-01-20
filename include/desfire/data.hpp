@@ -137,13 +137,21 @@ namespace desfire {
     struct value_file_settings {
         std::uint32_t lower_limit = 0;
         std::uint32_t upper_limit = 0;
-        std::uint32_t credited_value = 0;
+        /**
+         * @note For @ref tag::get_file_settings, this includes the limited credit, if enabled.
+         * For the method @ref tag::create_value_file, this is the initial value.
+         */
+        std::uint32_t value = 0;
         bool limited_credit_enabled = false;
     };
 
-    struct record_file_settings {
+    struct create_record_file_settings {
         std::uint32_t record_size = 0;
         std::uint32_t max_record_count = 0;
+
+    };
+
+    struct record_file_settings : public create_record_file_settings {
         std::uint32_t record_count = 0;
     };
 
@@ -405,6 +413,7 @@ namespace mlab {
     bin_stream &operator>>(bin_stream &s, std::vector<desfire::app_id> &ids);
     bin_stream &operator>>(bin_stream &s, desfire::ware_info &wi);
     bin_stream &operator>>(bin_stream &s, desfire::manufacturing_info &mi);
+
     bin_stream &operator>>(bin_stream &s, desfire::access_rights &ar);
     bin_stream &operator>>(bin_stream &s, desfire::generic_file_settings &fs);
     bin_stream &operator>>(bin_stream &s, desfire::data_file_settings &fs);
@@ -418,6 +427,16 @@ namespace mlab {
     bin_data &operator<<(bin_data &bd, desfire::key_rights const &kr);
     bin_data &operator<<(bin_data &bd, desfire::key_settings const &ks);
     bin_data &operator<<(bin_data &bd, desfire::any_key const &k);
+
+    bin_data &operator<<(bin_data &bd, desfire::access_rights const &ar);
+    bin_data &operator<<(bin_data &bd, desfire::generic_file_settings const &fs);
+    bin_data &operator<<(bin_data &bd, desfire::data_file_settings const &fs);
+    bin_data &operator<<(bin_data &bd, desfire::value_file_settings const &fs);
+    bin_data &operator<<(bin_data &bd, desfire::create_record_file_settings const &fs);
+    bin_data &operator<<(bin_data &bd, desfire::any_file_settings const &fs);
+
+    template <desfire::file_type Type>
+    bin_data &operator<<(bin_data &bd, desfire::file_settings<Type> const &fs);
 }
 
 namespace desfire {
@@ -548,6 +567,13 @@ namespace mlab {
             s >> static_cast<typename desfire::file_settings<Type>::specific_file_settings &>(fs);
         }
         return s;
+    }
+
+    template <desfire::file_type Type>
+    bin_data &operator<<(bin_data &bd, desfire::file_settings<Type> &fs) {
+        return bd
+            << static_cast<desfire::generic_file_settings const &>(fs)
+            << static_cast<typename desfire::file_settings<Type>::specific_file_settings &>(fs);
     }
 }
 

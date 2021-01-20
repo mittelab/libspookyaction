@@ -375,5 +375,106 @@ namespace mlab {
         return k.operator<<(bd);
     }
 
+    bin_stream &operator>>(bin_stream &s, desfire::access_rights &ar) {
+        if (s.remaining() < 2) {
+            DESFIRE_LOGE("Cannot parse access_rights: not enough data.");
+            s.set_bad();
+            return s;
+        }
+        return s >> lsb16 >> ar.value;
+    }
+
+    bin_stream &operator>>(bin_stream &s, desfire::generic_file_settings &fs) {
+        if (s.remaining() < 3) {
+            DESFIRE_LOGE("Cannot parse generic_file_settings: not enough data.");
+            s.set_bad();
+            return s;
+        }
+        return s >> fs.mode >> fs.rights;
+    }
+
+    bin_stream &operator>>(bin_stream &s, desfire::data_file_settings &fs) {
+        if (s.remaining() < 3) {
+            DESFIRE_LOGE("Cannot parse data_file_settings: not enough data.");
+            s.set_bad();
+            return s;
+        }
+        return s >> lsb24 >> fs.size;
+    }
+
+    bin_stream &operator>>(bin_stream &s, desfire::value_file_settings &fs) {
+        if (s.remaining() < 13) {
+            DESFIRE_LOGE("Cannot parse value_file_settings: not enough data.");
+            s.set_bad();
+            return s;
+        }
+        s >> lsb32 >> fs.lower_limit;
+        s >> lsb32 >> fs.upper_limit;
+        s >> lsb32 >> fs.credited_value;
+        fs.limited_credit_enabled = (s.pop() != 0);
+        return s;
+    }
+
+    bin_stream &operator>>(bin_stream &s, desfire::record_file_settings &fs) {
+        if (s.remaining() < 9) {
+            DESFIRE_LOGE("Cannot parse record_file_settings: not enough data.");
+            s.set_bad();
+            return s;
+        }
+        s >> lsb24 >> fs.record_size;
+        s >> lsb24 >> fs.max_record_count;
+        s >> lsb24 >> fs.record_count;
+        return s;
+    }
+
+    bin_stream &operator>>(bin_stream &s, desfire::any_file_settings &fs) {
+        if (s.remaining() < 1) {
+            DESFIRE_LOGE("Cannot parse file_type: not enough data.");
+            s.set_bad();
+            return s;
+        }
+        desfire::file_type ft{};
+        s >> ft;
+        if (not s.bad()) {
+            switch (ft) {
+                case desfire::file_type::standard: {
+                    desfire::file_settings<desfire::file_type::standard> typed_fs{};
+                    s >> fs;
+                    fs = typed_fs;
+                }
+                break;
+                case desfire::file_type::backup: {
+                    desfire::file_settings<desfire::file_type::backup> typed_fs{};
+                    s >> fs;
+                    fs = typed_fs;
+                }
+                break;
+                case desfire::file_type::value: {
+                    desfire::file_settings<desfire::file_type::value> typed_fs{};
+                    s >> fs;
+                    fs = typed_fs;
+                }
+                break;
+                case desfire::file_type::linear_record: {
+                    desfire::file_settings<desfire::file_type::linear_record> typed_fs{};
+                    s >> fs;
+                    fs = typed_fs;
+                }
+                break;
+                case desfire::file_type::cyclic_record: {
+                    desfire::file_settings<desfire::file_type::cyclic_record> typed_fs{};
+                    s >> fs;
+                    fs = typed_fs;
+                }
+                break;
+                default:
+                    DESFIRE_LOGE("Unhandled file type: %s", desfire::to_string(ft));
+                    s.set_bad();
+                    break;
+            }
+        }
+        return s;
+    }
+
 
 }

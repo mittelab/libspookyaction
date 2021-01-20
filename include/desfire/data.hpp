@@ -400,14 +400,23 @@ namespace mlab {
         };
     }
 
-    bin_data &operator<<(bin_data &bd, desfire::key_rights const &kr);
-    bin_data &operator<<(bin_data &bd, desfire::key_settings const &ks);
     bin_stream &operator>>(bin_stream &s, desfire::key_rights &kr);
     bin_stream &operator>>(bin_stream &s, desfire::key_settings &ks);
     bin_stream &operator>>(bin_stream &s, std::vector<desfire::app_id> &ids);
     bin_stream &operator>>(bin_stream &s, desfire::ware_info &wi);
     bin_stream &operator>>(bin_stream &s, desfire::manufacturing_info &mi);
+    bin_stream &operator>>(bin_stream &s, desfire::access_rights &ar);
+    bin_stream &operator>>(bin_stream &s, desfire::generic_file_settings &fs);
+    bin_stream &operator>>(bin_stream &s, desfire::data_file_settings &fs);
+    bin_stream &operator>>(bin_stream &s, desfire::value_file_settings &fs);
+    bin_stream &operator>>(bin_stream &s, desfire::record_file_settings &fs);
+    bin_stream &operator>>(bin_stream &s, desfire::any_file_settings &fs);
 
+    template <desfire::file_type Type>
+    bin_stream &operator>>(bin_stream &s, desfire::file_settings<Type> &fs);
+
+    bin_data &operator<<(bin_data &bd, desfire::key_rights const &kr);
+    bin_data &operator<<(bin_data &bd, desfire::key_settings const &ks);
     bin_data &operator<<(bin_data &bd, desfire::any_key const &k);
 }
 
@@ -525,6 +534,20 @@ namespace desfire {
         change = chg;
         read = r;
         write = w;
+    }
+}
+
+namespace mlab {
+
+    template <desfire::file_type Type>
+    bin_stream &operator>>(bin_stream &s, desfire::file_settings<Type> &fs) {
+        if (not s.bad()) {
+            s >> static_cast<desfire::generic_file_settings &>(fs);
+        }
+        if (not s.bad()) {
+            s >> static_cast<typename desfire::file_settings<Type>::specific_file_settings &>(fs);
+        }
+        return s;
     }
 }
 

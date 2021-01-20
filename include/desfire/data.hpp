@@ -130,18 +130,18 @@ namespace desfire {
         access_rights rights;
     };
 
-    struct standard_file_settings : public generic_file_settings {
+    struct data_file_settings {
         std::uint32_t size = 0;
     };
 
-    struct value_file_settings : public generic_file_settings {
+    struct value_file_settings {
         std::uint32_t lower_limit = 0;
         std::uint32_t upper_limit = 0;
         std::uint32_t credited_value = 0;
         bool limited_credit_enabled = false;
     };
 
-    struct record_file_settings : public generic_file_settings {
+    struct record_file_settings {
         std::uint32_t record_size = 0;
         std::uint32_t max_record_count = 0;
         std::uint32_t record_count = 0;
@@ -151,19 +151,44 @@ namespace desfire {
     struct file_settings {};
 
     template <>
-    struct file_settings<file_type::standard> : public standard_file_settings {};
+    struct file_settings<file_type::standard> : public generic_file_settings, public data_file_settings {
+        using specific_file_settings = data_file_settings;
+        file_settings() = default;
+        file_settings(generic_file_settings generic, data_file_settings specific) :
+            generic_file_settings{generic}, data_file_settings{specific} {}
+    };
 
     template <>
-    struct file_settings<file_type::backup> : public standard_file_settings {};
+    struct file_settings<file_type::backup> : public generic_file_settings, public data_file_settings {
+        using specific_file_settings = data_file_settings;
+        file_settings() = default;
+        file_settings(generic_file_settings generic, data_file_settings specific) :
+            generic_file_settings{generic}, data_file_settings{specific} {}
+    };
 
     template <>
-    struct file_settings<file_type::value> : public value_file_settings {};
+    struct file_settings<file_type::value> : public generic_file_settings, public value_file_settings {
+        using specific_file_settings = value_file_settings;
+        file_settings() = default;
+        file_settings(generic_file_settings generic, value_file_settings specific) :
+            generic_file_settings{generic}, value_file_settings{specific} {}
+    };
 
     template <>
-    struct file_settings<file_type::linear_record> : public record_file_settings {};
+    struct file_settings<file_type::linear_record> : public generic_file_settings, public record_file_settings {
+        using specific_file_settings = record_file_settings;
+        file_settings() = default;
+        file_settings(generic_file_settings generic, record_file_settings specific) :
+            generic_file_settings{generic}, record_file_settings{specific} {}
+    };
 
     template <>
-    struct file_settings<file_type::cyclic_record> : public record_file_settings {};
+    struct file_settings<file_type::cyclic_record> : public generic_file_settings, public record_file_settings {
+        using specific_file_settings = record_file_settings;
+        file_settings() = default;
+        file_settings(generic_file_settings generic, record_file_settings specific) :
+            generic_file_settings{generic}, record_file_settings{specific} {}
+    };
 
 
     class any_file_settings {

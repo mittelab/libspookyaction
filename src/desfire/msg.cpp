@@ -66,6 +66,18 @@ namespace desfire {
         }
     }
 
+    const char *to_string(file_type t) {
+        switch (t) {
+            case file_type::standard:      return "standard data file";
+            case file_type::backup:        return "backup data file";
+            case file_type::value:         return "value file";
+            case file_type::linear_record: return "linear record file";
+            case file_type::cyclic_record: return "cyclic record file";
+            default:
+                return "UNKNOWN";
+        }
+    }
+
     const char *to_string(command_code c) {
         switch (c) {
             case command_code::authenticate_legacy:       return "authenticate_legacy";

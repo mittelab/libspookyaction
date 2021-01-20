@@ -14,6 +14,7 @@ namespace desfire {
     const char *to_string(error e);
     const char *to_string(cipher_type c);
     const char *to_string(command_code c);
+    const char *to_string(file_type t);
 }
 
 #endif //DESFIRE_MSG_HPP

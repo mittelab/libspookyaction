@@ -9,6 +9,7 @@
 #include "mlab/any.hpp"
 #include "bits.hpp"
 #include "cipher_impl.hpp"
+#include "key_actor.hpp"
 
 namespace desfire {
     using mlab::any;
@@ -16,6 +17,8 @@ namespace desfire {
     using bits::cipher_type;
     using bits::command_code;
     using bits::app_crypto;
+    using bits::comm_mode;
+    using bits::file_type;
 
     using app_id = std::array<std::uint8_t, bits::app_id_length>;
 
@@ -59,30 +62,18 @@ namespace desfire {
     command_code auth_command(cipher_type t);
 
     struct same_key_t {};
-    struct no_key_t{};
-
     static constexpr same_key_t same_key{};
-    static constexpr no_key_t no_key{};
 
-    class key_actor {
-        std::uint8_t _repr;
-    public:
-        inline key_actor(std::uint8_t key_index = 0);
-        inline key_actor(same_key_t);
-        inline key_actor(no_key_t);
-
-        inline key_actor &operator=(std::uint8_t key_index);
-        inline key_actor &operator=(same_key_t);
-        inline key_actor &operator=(no_key_t);
-
-        inline bool operator==(key_actor const &other) const;
-        inline bool operator!=(key_actor const &other) const;
-
-        inline std::uint8_t bitflag() const;
+    struct change_key_actor :
+            public key_actor_base<std::uint8_t, bits::app_change_keys_right_shift, same_key_t, change_key_actor>
+    {
+        using base = key_actor_base<std::uint8_t, bits::app_change_keys_right_shift, same_key_t, change_key_actor>;
+        using base::base;
+        using base::get;
     };
 
     struct key_rights {
-        key_actor allowed_to_change_keys;
+        change_key_actor allowed_to_change_keys;
 
         /**
          * Settings this to false freezes the master key.
@@ -108,6 +99,94 @@ namespace desfire {
         bool config_changeable = true;
     };
 
+    struct all_keys_t {};
+    static constexpr all_keys_t all_keys{};
+
+    union access_rights {
+        using change_actor = key_actor_mask<std::uint16_t, bits::file_access_rights_change_shift, all_keys_t>;
+        using rw_actor = key_actor_mask<std::uint16_t, bits::file_access_rights_read_write_shift, all_keys_t>;
+        using w_actor = key_actor_mask<std::uint16_t, bits::file_access_rights_write_shift, all_keys_t>;
+        using r_actor = key_actor_mask<std::uint16_t, bits::file_access_rights_read_shift, all_keys_t>;
+
+        std::uint16_t value;
+
+        change_actor change;
+        rw_actor read_write;
+        w_actor write;
+        r_actor read;
+
+        inline constexpr access_rights();
+        inline constexpr explicit access_rights(std::uint16_t masked_value);
+        inline constexpr access_rights(no_key_t);
+        inline constexpr access_rights(all_keys_t);
+        inline access_rights(rw_actor rw, change_actor chg);
+        inline access_rights(rw_actor rw, change_actor chg, r_actor r, w_actor w);
+    };
+
+    static_assert(sizeof(access_rights) == sizeof(std::uint16_t), "Must be able to pack 2 bytes structures.");
+
+    struct generic_file_settings {
+        comm_mode mode = comm_mode::plain;
+        access_rights rights;
+    };
+
+    struct standard_file_settings : public generic_file_settings {
+        std::uint32_t size = 0;
+    };
+
+    struct value_file_settings : public generic_file_settings {
+        std::uint32_t lower_limit = 0;
+        std::uint32_t upper_limit = 0;
+        std::uint32_t credited_value = 0;
+        bool limited_credit_enabled = false;
+    };
+
+    struct record_file_settings : public generic_file_settings {
+        std::uint32_t record_size = 0;
+        std::uint32_t max_record_count = 0;
+        std::uint32_t record_count = 0;
+    };
+
+    template <file_type Type>
+    struct file_settings {};
+
+    template <>
+    struct file_settings<file_type::standard> : public standard_file_settings {};
+
+    template <>
+    struct file_settings<file_type::backup> : public standard_file_settings {};
+
+    template <>
+    struct file_settings<file_type::value> : public value_file_settings {};
+
+    template <>
+    struct file_settings<file_type::linear_record> : public record_file_settings {};
+
+    template <>
+    struct file_settings<file_type::cyclic_record> : public record_file_settings {};
+
+
+    class any_file_settings {
+        file_type _type;
+        any _settings;
+    public:
+        inline any_file_settings();
+
+        template <file_type Type>
+        inline explicit any_file_settings(file_settings<Type> settings);
+
+        inline file_type type() const;
+        generic_file_settings const &generic_settings() const;
+        generic_file_settings &generic_settings();
+
+        template <file_type Type>
+        file_settings<Type> const &get_settings() const;
+        template <file_type Type>
+        file_settings<Type> &get_settings();
+
+        template <file_type Type>
+        any_file_settings &operator=(file_settings<Type> settings);
+    };
 
     struct key_settings {
         key_rights rights;
@@ -287,11 +366,12 @@ namespace desfire {
 }
 
 namespace mlab {
-    using desfire::cipher_type;
-
     namespace ctti {
-        template <cipher_type Type>
+        template <desfire::cipher_type Type>
         struct type_info<desfire::key<Type>> : public std::integral_constant<id_type, static_cast<id_type>(Type)> {
+        };
+        template <desfire::file_type Type>
+        struct type_info<desfire::file_settings<Type>> : public std::integral_constant<id_type, static_cast<id_type>(Type)> {
         };
     }
 
@@ -357,42 +437,35 @@ namespace desfire {
     }
 
 
+    any_file_settings::any_file_settings() : _type{file_type::value}, _settings{} {}
 
-    key_actor::key_actor(std::uint8_t key_index) : _repr{} {
-        *this = key_index;
-    }
-    key_actor::key_actor(same_key_t) : _repr{} {
-        *this = same_key;
-    }
-    key_actor::key_actor(no_key_t) : _repr{} {
-        *this = no_key;
+    template <file_type Type>
+    any_file_settings::any_file_settings(file_settings<Type> settings) :
+            _type{Type}, _settings{std::move(settings)} {}
+
+    template <file_type Type>
+    any_file_settings &any_file_settings::operator=(file_settings<Type> settings) {
+        _type = Type;
+        _settings = std::move(settings);
+        return *this;
     }
 
-    key_actor &key_actor::operator=(std::uint8_t key_index) {
-        if (key_index >= bits::max_keys_per_app) {
-            DESFIRE_LOGE("Specified key index %u is not valid, master key (0) assumed.", key_index);
-            key_index = 0;
+    file_type any_file_settings::type() const {
+        if (_settings.empty()) {
+            DESFIRE_LOGE("Cannot retrieve file settings from an empty file settings container.");
         }
-        _repr = key_index << bits::app_change_keys_right_shift;
-        return *this;
-    }
-    key_actor &key_actor::operator=(same_key_t) {
-        _repr = bits::app_change_keys_right_same_flag;
-        return *this;
-    }
-    key_actor &key_actor::operator=(no_key_t) {
-        _repr = bits::app_change_keys_right_freeze_flag;
-        return *this;
+        return _type;
     }
 
-    bool key_actor::operator==(key_actor const &other) const {
-        return bitflag() == other.bitflag();
+
+    template <file_type Type>
+    file_settings<Type> const &any_file_settings::get_settings() const {
+        return _settings.template get<file_settings<Type>>();
     }
-    bool key_actor::operator!=(key_actor const &other) const {
-        return bitflag() != other.bitflag();
-    }
-    std::uint8_t key_actor::bitflag() const {
-        return _repr;
+
+    template <file_type Type>
+    file_settings<Type> &any_file_settings::get_settings() {
+        return _settings.template get<file_settings<Type>>();
     }
 
     key_settings::key_settings(app_crypto crypto_, key_rights rights_, std::uint8_t max_num_keys_) :
@@ -412,6 +485,21 @@ namespace desfire {
     }
     std::size_t storage_size::bytes_upper_bound() const {
         return 1 << (approx() ? exponent() + 1 : exponent());
+    }
+
+    constexpr access_rights::access_rights() : value{0} {}
+    constexpr access_rights::access_rights(std::uint16_t masked_value) : value{masked_value} {}
+    constexpr access_rights::access_rights(no_key_t) : value{0xffff} {}
+    constexpr access_rights::access_rights(all_keys_t) : value{0xeeee} {}
+    access_rights::access_rights(rw_actor rw, change_actor chg) : access_rights{no_key} {
+        read_write = rw;
+        change = chg;
+    }
+    access_rights::access_rights(rw_actor rw, change_actor chg, r_actor r, w_actor w) : access_rights{no_key} {
+        read_write = rw;
+        change = chg;
+        read = r;
+        write = w;
     }
 }
 

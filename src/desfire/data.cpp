@@ -224,6 +224,35 @@ namespace desfire {
         return our_data;
     }
 
+    generic_file_settings const &any_file_settings::generic_settings() const {
+        if (not _settings.empty()) {
+            switch (type()) {
+                case file_type::standard:
+                    return get_settings<file_type::standard>();
+                case file_type::backup:
+                    return get_settings<file_type::backup>();
+                case file_type::value:
+                    return get_settings<file_type::value>();
+                case file_type::linear_record:
+                    return get_settings<file_type::linear_record>();
+                case file_type::cyclic_record:
+                    return get_settings<file_type::cyclic_record>();
+                default:
+                    DESFIRE_LOGE("Unhandled file type: %s", to_string(type()));
+                    break;
+            }
+        }
+        static generic_file_settings _dummy{};
+        DESFIRE_LOGE("Cannot retrieve file settings from an empty file settings container.");
+        _dummy = {};
+        return _dummy;
+    }
+
+    generic_file_settings &any_file_settings::generic_settings() {
+        return const_cast<generic_file_settings &>(static_cast<any_file_settings const *>(this)->generic_settings());
+    }
+
+
     bin_data &any_key::operator<<(bin_data &bd) const {
         bd << get_packed_key_body();
         if (not parity_bits_are_version()) {
@@ -240,7 +269,7 @@ namespace mlab {
     }
 
     bin_data &operator<<(bin_data &bd, desfire::key_rights const &kr) {
-        const std::uint8_t flag = kr.allowed_to_change_keys.bitflag()
+        const std::uint8_t flag = kr.allowed_to_change_keys.get()
                 | (kr.config_changeable ? bits::app_change_config_allowed_flag : 0x0)
                 | (kr.master_key_changeable ? bits::app_changeable_master_key_flag : 0x0)
                 | (kr.create_delete_without_auth ? bits::app_create_delete_without_master_key_flag : 0x0)

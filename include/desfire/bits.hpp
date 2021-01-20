@@ -11,10 +11,10 @@
 namespace desfire {
     namespace bits {
 
-        enum struct comm_mode {
-            plain,
-            mac,
-            cipher
+        enum struct comm_mode : std::uint8_t {
+            plain = 0b00,
+            mac = 0b01,
+            cipher = 0b11
         };
 
         enum struct command_code : std::uint8_t {
@@ -119,6 +119,19 @@ namespace desfire {
 
         static constexpr std::uint8_t storage_size_approx_bit = 0b1;
         static constexpr unsigned storage_size_exponent_shift = 1;
+
+        enum struct file_type : std::uint8_t {
+            standard = 0x00,
+            backup = 0x01,
+            value = 0x02,
+            linear_record = 0x03,
+            cyclic_record = 0x04
+        };
+
+        static constexpr unsigned file_access_rights_change_shift = 0;
+        static constexpr unsigned file_access_rights_read_write_shift = 4;
+        static constexpr unsigned file_access_rights_write_shift = 8;
+        static constexpr unsigned file_access_rights_read_shift = 12;
     }
 }
 

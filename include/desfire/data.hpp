@@ -21,6 +21,7 @@ namespace desfire {
     using bits::file_type;
 
     using app_id = std::array<std::uint8_t, bits::app_id_length>;
+    using file_id = std::uint8_t;
 
     static constexpr app_id root_app{0x0, 0x0, 0x0};
 

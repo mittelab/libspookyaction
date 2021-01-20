@@ -167,6 +167,7 @@ namespace desfire {
         r<> change_key(key<Type1> const &current_key, std::uint8_t key_no_to_change, key<Type2> const &new_key);
         r<> change_key(any_key const &current_key, std::uint8_t key_no_to_change, any_key const &new_key);
 
+        r<std::vector<file_id>> get_file_ids();
 
     private:
         /**

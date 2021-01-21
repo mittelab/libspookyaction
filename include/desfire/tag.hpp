@@ -200,18 +200,28 @@ namespace desfire {
         r<> create_file(file_id fid, file_settings<file_type::value> const &settings);
 
         /**
-         * @param fid Max @ref bits::max_linear_record_file_id.
+         * @param fid Max @ref bits::max_record_file_id.
          * @param settings Must have @ref record_file_settings::record_size > 0 and
          *  @ref record_file_settings::max_record_count > 0.
          */
         r<> create_file(file_id fid, file_settings<file_type::linear_record> const &settings);
 
         /**
-         * @param fid Max @ref bits::max_cyclic_record_file_id.
+         * @param fid Max @ref bits::max_record_file_id.
          * @param settings Must have @ref record_file_settings::record_size > 0 and
          *  @ref record_file_settings::max_record_count > 1 (at least 2).
          */
         r<> create_file(file_id fid, file_settings<file_type::cyclic_record> const &settings);
+
+        r<> delete_file(file_id fid);
+
+        /**
+         * @param fid Max @ref bits::max_record_file_id.
+         */
+        r<> clear_record_file(file_id fid);
+
+        r<> commit_transaction();
+        r<> abort_transaction();
 
     private:
         /**

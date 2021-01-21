@@ -438,7 +438,7 @@ namespace desfire {
     }
 
     tag::r<> tag::create_file(file_id fid, file_settings<file_type::linear_record> const &settings) {
-        if (fid > bits::max_linear_record_file_id) {
+        if (fid > bits::max_record_file_id) {
             return error::parameter_error;
         }
         if (settings.record_size < 1) {
@@ -448,7 +448,7 @@ namespace desfire {
     }
 
     tag::r<> tag::create_file(file_id fid, file_settings<file_type::cyclic_record> const &settings) {
-        if (fid > bits::max_cyclic_record_file_id) {
+        if (fid > bits::max_record_file_id) {
             return error::parameter_error;
         }
         if (settings.record_size < 1) {
@@ -458,6 +458,26 @@ namespace desfire {
             return error::parameter_error;
         }
         return command_response(command_code::create_cyclic_record_file, bin_data::chain(fid, settings), comm_mode::plain);
+    }
+
+    tag::r<> tag::delete_file(file_id fid) {
+        return command_response(command_code::delete_file, bin_data::chain(fid), comm_mode::plain);
+    }
+
+    tag::r<> tag::clear_record_file(file_id fid) {
+        if (fid > bits::max_record_file_id) {
+            return error::parameter_error;
+        }
+        return command_response(command_code::clear_record_file, bin_data::chain(fid), comm_mode::plain);
+    }
+
+
+    tag::r<> tag::commit_transaction() {
+        return command_response(command_code::commit_transaction, bin_data{}, comm_mode::plain);
+    }
+
+    tag::r<> tag::abort_transaction() {
+        return command_response(command_code::abort_transaction, bin_data{}, comm_mode::plain);
     }
 
 }

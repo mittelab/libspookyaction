@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <type_traits>
 #include <array>
+#include <esp_log.h>
 
 namespace mlab {
 
@@ -489,11 +490,11 @@ namespace mlab {
             }
         };
 
-        template <byte_order> struct pack {};
-        template <byte_order, std::size_t> struct unpack {};
+        template <byte_order, bool> struct pack {};
+        template <byte_order, std::size_t, bool> struct unpack {};
 
         template <>
-        struct pack<byte_order::msb_first> {
+        struct pack<byte_order::msb_first, false> {
             inline std::uint16_t operator()(std::array<std::uint8_t, 2> b) {
                 return (std::uint16_t(b[0]) << 8) | std::uint16_t(b[1]);
             }
@@ -506,7 +507,7 @@ namespace mlab {
         };
 
         template <>
-        struct pack<byte_order::lsb_first> {
+        struct pack<byte_order::lsb_first, false> {
             inline std::uint16_t operator()(std::array<std::uint8_t, 2> b) {
                 return (std::uint16_t(b[1]) << 8) | std::uint16_t(b[0]);
             }
@@ -519,46 +520,84 @@ namespace mlab {
         };
 
         template <>
-        struct unpack<byte_order::msb_first, 2> {
+        struct unpack<byte_order::msb_first, 2, false> {
             inline std::array<std::uint8_t, 2> operator()(std::uint_fast16_t n) {
                 return {std::uint8_t((n >> 8) & 0xff), std::uint8_t(n & 0xff)};
             }
         };
 
         template <>
-        struct unpack<byte_order::msb_first, 3> {
+        struct unpack<byte_order::msb_first, 3, false> {
             inline std::array<std::uint8_t, 3> operator()(std::uint_fast32_t n) {
+                if ((n & 0xff000000) != 0) {
+                    ESP_LOGE("mlab::unpack<3>", "Number not representable with 24 bits: %d", n);
+                    n = std::min(n, std::uint_fast32_t(0xffffff));
+                }
                 return {std::uint8_t((n >> 16) & 0xff), std::uint8_t((n >> 8) & 0xff), std::uint8_t(n & 0xff)};
             }
         };
 
         template <>
-        struct unpack<byte_order::msb_first, 4> {
+        struct unpack<byte_order::msb_first, 4, false> {
             inline std::array<std::uint8_t, 4> operator()(std::uint_fast32_t n) {
                 return {std::uint8_t((n >> 24) & 0xff), std::uint8_t((n >> 16) & 0xff), std::uint8_t((n >> 8) & 0xff), std::uint8_t(n & 0xff)};
             }
         };
 
         template <>
-        struct unpack<byte_order::lsb_first, 2> {
+        struct unpack<byte_order::lsb_first, 2, false> {
             inline std::array<std::uint8_t, 2> operator()(std::uint_fast16_t n) {
                 return {std::uint8_t(n & 0xff), std::uint8_t((n >> 8) & 0xff)};
             }
         };
 
         template <>
-        struct unpack<byte_order::lsb_first, 3> {
+        struct unpack<byte_order::lsb_first, 3, false> {
             inline std::array<std::uint8_t, 3> operator()(std::uint_fast32_t n) {
+                if ((n & 0xff000000) != 0) {
+                    ESP_LOGE("mlab::unpack<3>", "Number not representable with 24 bits: %d", n);
+                    n = std::min(n, std::uint_fast32_t(0xffffff));
+                }
                 return {std::uint8_t(n & 0xff), std::uint8_t((n >> 8) & 0xff), std::uint8_t((n >> 16) & 0xff)};
             }
         };
 
         template <>
-        struct unpack<byte_order::lsb_first, 4> {
+        struct unpack<byte_order::lsb_first, 4, false> {
             inline std::array<std::uint8_t, 4> operator()(std::uint_fast32_t n) {
                 return {std::uint8_t(n & 0xff), std::uint8_t((n >> 8) & 0xff), std::uint8_t((n >> 16) & 0xff), std::uint8_t((n >> 24) & 0xff)};
             }
         };
+
+        template <byte_order Order>
+        struct pack<Order, true> {
+            inline std::int16_t operator()(std::array<std::uint8_t, 2> b) {
+                const std::uint16_t packed_unsigned = pack<Order, false>{}(b);
+                return *reinterpret_cast<std::int16_t const *>(&packed_unsigned);
+            }
+
+            inline std::int32_t operator()(std::array<std::uint8_t, 4> b) {
+                const std::uint32_t packed_unsigned = pack<Order, false>{}(b);
+                return *reinterpret_cast<std::int32_t const *>(&packed_unsigned);
+            }
+        };
+
+
+        template <byte_order Order>
+        struct unpack<Order, 2, true> {
+            inline std::array<std::uint8_t, 2> operator()(std::int_fast16_t n) {
+                return unpack<Order, 2, false>{}(*reinterpret_cast<std::uint_fast16_t const *>(&n));
+            }
+        };
+
+        template <byte_order Order>
+        struct unpack<Order, 4, true> {
+            inline std::array<std::uint8_t, 4> operator()(std::int_fast32_t n) {
+                return unpack<Order, 4, false>{}(*reinterpret_cast<std::uint_fast32_t const *>(&n));
+            }
+        };
+
+
     }
 
     template <class T, class>
@@ -588,19 +627,19 @@ namespace mlab {
         return {bd};
     }
 
-    template <class UInt, unsigned BitSize, byte_order Order,
-            class = typename std::enable_if<std::is_unsigned<UInt>::value and sizeof(UInt) * 8 >= BitSize>::type>
-    bin_stream &operator>>(ordered_extractor<BitSize, Order> e, UInt &n) {
+    template <class Num, unsigned BitSize, byte_order Order,
+            class = typename std::enable_if<(std::is_unsigned<Num>::value or std::is_signed<Num>::value) and sizeof(Num) * 8 >= BitSize>::type>
+    bin_stream &operator>>(ordered_extractor<BitSize, Order> e, Num &n) {
         std::array<std::uint8_t, BitSize / 8> b{};
         e.s >> b;
-        n = impl::pack<Order>{}(b);
+        n = impl::pack<Order, std::is_signed<Num>::value>{}(b);
         return e.s;
     }
 
-    template <class UInt, unsigned BitSize, byte_order Order,
-            class = typename std::enable_if<std::is_unsigned<UInt>::value and sizeof(UInt) * 8 >= BitSize>::type>
-    bin_data &operator<<(ordered_injector<BitSize, Order> i, UInt n) {
-        i.bd << impl::unpack<Order, BitSize / 8>{}(n);
+    template <class Num, unsigned BitSize, byte_order Order,
+            class = typename std::enable_if<(std::is_unsigned<Num>::value or std::is_signed<Num>::value) and sizeof(Num) * 8 >= BitSize>::type>
+    bin_data &operator<<(ordered_injector<BitSize, Order> i, Num n) {
+        i.bd << impl::unpack<Order, BitSize / 8, std::is_signed<Num>::value>{}(n);
         return i.bd;
     }
 

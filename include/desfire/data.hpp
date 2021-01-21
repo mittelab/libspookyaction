@@ -52,7 +52,7 @@ namespace desfire {
         file_not_found       = static_cast<std::uint8_t>(status::file_not_found),
         file_integrity_error = static_cast<std::uint8_t>(status::file_integrity_error),
         controller_error,    ///< Specific for PCD error
-        malformed,           ///< No data received when some was expected
+        malformed,           ///< No data or incorrect data received when some specific format was expected
         crypto_error         /**< @brief Something went wrong with crypto (@ref cipher::config)
                               * This could mean invalid MAC, CMAC, or CRC, or data length is not a multiple of block
                               * size when encrypted; this depends on the specified communication config.
@@ -132,27 +132,40 @@ namespace desfire {
     };
 
     struct data_file_settings {
+        /**
+         * @note This is actually a 24bit value, so the maximum value is 0xffffff. It will be clamped upon trasmission.
+         */
         std::uint32_t size = 0;
     };
 
     struct value_file_settings {
-        std::uint32_t lower_limit = 0;
-        std::uint32_t upper_limit = 0;
+        std::int32_t lower_limit = 0;
+        std::int32_t upper_limit = 0;
         /**
          * @note For @ref tag::get_file_settings, this includes the limited credit, if enabled.
          * For the method @ref tag::create_value_file, this is the initial value.
          */
-        std::uint32_t value = 0;
+        std::int32_t value = 0;
         bool limited_credit_enabled = false;
     };
 
     struct create_record_file_settings {
+        /**
+         * @note This is actually a 24bit value, so the maximum value is 0xffffff. It will be clamped upon trasmission.
+         */
         std::uint32_t record_size = 0;
+
+        /**
+         * @note This is actually a 24bit value, so the maximum value is 0xffffff. It will be clamped upon trasmission.
+         */
         std::uint32_t max_record_count = 0;
 
     };
 
     struct record_file_settings : public create_record_file_settings {
+        /**
+         * @note This is actually a 24bit value, so the maximum value is 0xffffff. It will be clamped upon trasmission.
+         */
         std::uint32_t record_count = 0;
     };
 

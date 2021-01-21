@@ -386,4 +386,78 @@ namespace desfire {
         return res_cmd.error();
     }
 
+    tag::r<any_file_settings> tag::get_file_settings(file_id fid) {
+        return command_parse_response<any_file_settings>(
+                command_code::get_file_settings, bin_data::chain(fid), comm_mode::plain);
+    }
+
+    tag::r<> tag::change_file_settings(file_id fid, generic_file_settings const &settings, command_options options) {
+        if (options == command_options::determine) {
+            // Retrieve the settings and decide whether crypto is required
+            auto res_get_settings = get_file_settings(fid);
+            if (not res_get_settings) {
+                return res_get_settings.error();
+            }
+            // When everyone is allowed a settings change, there is no need for protection
+            if (res_get_settings->generic_settings().rights.change == all_keys) {
+                options = command_options::no_crypto_required;
+            } else {
+                options = command_options::crypto_required;
+            }
+        }
+        return command_response(
+                command_code::change_file_settings,
+                bin_data::chain(fid, settings),
+                options == command_options::crypto_required ? comm_mode::cipher : comm_mode::plain,
+                2  // After command code and file id
+        );
+    }
+
+    tag::r<> tag::create_file(file_id fid, file_settings<file_type::standard> const &settings) {
+        if (fid > bits::max_standard_data_file_id) {
+            return error::parameter_error;
+        }
+        return command_response(command_code::create_std_data_file, bin_data::chain(fid, settings), comm_mode::plain);
+    }
+
+    tag::r<> tag::create_file(file_id fid, file_settings<file_type::backup> const &settings) {
+        if (fid > bits::max_backup_data_file_id) {
+            return error::parameter_error;
+        }
+        return command_response(command_code::create_backup_data_file, bin_data::chain(fid, settings), comm_mode::plain);
+    }
+
+    tag::r<> tag::create_file(file_id fid, file_settings<file_type::value> const &settings) {
+        if (fid > bits::max_value_file_id) {
+            return error::parameter_error;
+        }
+        if (settings.upper_limit < settings.lower_limit) {
+            return error::parameter_error;
+        }
+        return command_response(command_code::create_value_file, bin_data::chain(fid, settings), comm_mode::plain);
+    }
+
+    tag::r<> tag::create_file(file_id fid, file_settings<file_type::linear_record> const &settings) {
+        if (fid > bits::max_linear_record_file_id) {
+            return error::parameter_error;
+        }
+        if (settings.record_size < 1) {
+            return error::parameter_error;
+        }
+        return command_response(command_code::create_linear_record_file, bin_data::chain(fid, settings), comm_mode::plain);
+    }
+
+    tag::r<> tag::create_file(file_id fid, file_settings<file_type::cyclic_record> const &settings) {
+        if (fid > bits::max_cyclic_record_file_id) {
+            return error::parameter_error;
+        }
+        if (settings.record_size < 1) {
+            return error::parameter_error;
+        }
+        if (settings.max_record_count < 2) {
+            return error::parameter_error;
+        }
+        return command_response(command_code::create_cyclic_record_file, bin_data::chain(fid, settings), comm_mode::plain);
+    }
+
 }

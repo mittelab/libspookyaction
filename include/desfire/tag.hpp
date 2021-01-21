@@ -20,6 +20,12 @@ namespace ut {
 
 namespace desfire {
 
+    enum struct command_options {
+        determine,
+        crypto_required,
+        no_crypto_required
+    };
+
     class tag {
     public:
 
@@ -168,6 +174,44 @@ namespace desfire {
         r<> change_key(any_key const &current_key, std::uint8_t key_no_to_change, any_key const &new_key);
 
         r<std::vector<file_id>> get_file_ids();
+
+        r<any_file_settings> get_file_settings(file_id fid);
+
+        template <file_type Type>
+        r<file_settings<Type>> get_specific_file_settings(file_id fid);
+
+        r<> change_file_settings(file_id fid, generic_file_settings const &settings, command_options options = command_options::determine);
+
+        /**
+         * @param fid Max @ref bits::max_standard_data_file_id.
+         */
+        r<> create_file(file_id fid, file_settings<file_type::standard> const &settings);
+
+        /**
+         * @param fid Max @ref bits::max_backup_data_file_id.
+         */
+        r<> create_file(file_id fid, file_settings<file_type::backup> const &settings);
+
+        /**
+         * @param fid Max @ref bits::max_value_file_id.
+         * @param settings Must have @ref value_file_settings::upper_limit greater than or equal to
+         *  @ref value_file_settings::lower_limit.
+         */
+        r<> create_file(file_id fid, file_settings<file_type::value> const &settings);
+
+        /**
+         * @param fid Max @ref bits::max_linear_record_file_id.
+         * @param settings Must have @ref record_file_settings::record_size > 0 and
+         *  @ref record_file_settings::max_record_count > 0.
+         */
+        r<> create_file(file_id fid, file_settings<file_type::linear_record> const &settings);
+
+        /**
+         * @param fid Max @ref bits::max_cyclic_record_file_id.
+         * @param settings Must have @ref record_file_settings::record_size > 0 and
+         *  @ref record_file_settings::max_record_count > 1 (at least 2).
+         */
+        r<> create_file(file_id fid, file_settings<file_type::cyclic_record> const &settings);
 
     private:
         /**
@@ -335,6 +379,19 @@ namespace desfire {
         _active_app = app;
         _active_cipher_type = Cipher;
         _active_key_number = key_no;
+    }
+
+    template <file_type Type>
+    tag::r<file_settings<Type>> tag::get_specific_file_settings(file_id fid) {
+        auto res_cmd = get_file_settings(fid);
+        if (res_cmd) {
+            // Assert the file type is correct
+            if (res_cmd->type() != Type) {
+                return error::malformed;
+            }
+            return std::move(res_cmd->template get_settings<Type>());
+        }
+        return res_cmd.error();
     }
 
 }

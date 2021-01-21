@@ -132,6 +132,12 @@ namespace desfire {
         static constexpr unsigned file_access_rights_read_write_shift = 4;
         static constexpr unsigned file_access_rights_write_shift = 8;
         static constexpr unsigned file_access_rights_read_shift = 12;
+
+        static constexpr std::uint8_t max_standard_data_file_id = 0xf;
+        static constexpr std::uint8_t max_backup_data_file_id = 0x7;
+        static constexpr std::uint8_t max_value_file_id = 0x7;
+        static constexpr std::uint8_t max_linear_record_file_id = 0x7;
+        static constexpr std::uint8_t max_cyclic_record_file_id = 0x7;
     }
 }
 

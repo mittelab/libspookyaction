@@ -391,8 +391,8 @@ namespace desfire {
                 command_code::get_file_settings, bin_data::chain(fid), comm_mode::plain);
     }
 
-    tag::r<> tag::change_file_settings(file_id fid, generic_file_settings const &settings, command_options options) {
-        if (options == command_options::determine) {
+    tag::r<> tag::change_file_settings(file_id fid, generic_file_settings const &settings, file_security security) {
+        if (security == file_security::automatic) {
             // Retrieve the settings and decide whether crypto is required
             auto res_get_settings = get_file_settings(fid);
             if (not res_get_settings) {
@@ -400,15 +400,19 @@ namespace desfire {
             }
             // When everyone is allowed a settings change, there is no need for protection
             if (res_get_settings->generic_settings().rights.change == all_keys) {
-                options = command_options::no_crypto_required;
+                security = file_security::plain;
             } else {
-                options = command_options::crypto_required;
+                security = file_security::cipher;
             }
+        } else if (security == file_security::mac) {
+            DESFIRE_LOGW("%s: unsupported security mode MAC, will be upgraded to cipher.",
+                         to_string(command_code::change_file_settings));
+            security = file_security::cipher;
         }
         return command_response(
                 command_code::change_file_settings,
                 bin_data::chain(fid, settings),
-                options == command_options::crypto_required ? comm_mode::cipher : comm_mode::plain,
+                comm_mode_from_security(security),
                 2  // After command code and file id
         );
     }

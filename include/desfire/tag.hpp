@@ -20,11 +20,15 @@ namespace ut {
 
 namespace desfire {
 
-    enum struct command_options {
-        determine,
-        crypto_required,
-        no_crypto_required
+    enum struct file_security : std::uint8_t {
+        none = static_cast<std::uint8_t>(comm_mode::plain),
+        cipher = static_cast<std::uint8_t>(comm_mode::cipher),
+        mac = static_cast<std::uint8_t>(comm_mode::mac),
+        automatic,     ///< Will determine the appropriate mode based on access rights
+        plain = none   ///< Alias for @ref file_security::none
     };
+
+    inline comm_mode comm_mode_from_security(file_security security);
 
     class tag {
     public:
@@ -180,7 +184,7 @@ namespace desfire {
         template <file_type Type>
         r<file_settings<Type>> get_specific_file_settings(file_id fid);
 
-        r<> change_file_settings(file_id fid, generic_file_settings const &settings, command_options options = command_options::determine);
+        r<> change_file_settings(file_id fid, generic_file_settings const &settings, file_security security = file_security::automatic);
 
         /**
          * @param fid Max @ref bits::max_standard_data_file_id.
@@ -264,6 +268,14 @@ namespace desfire {
 }
 
 namespace desfire {
+
+    comm_mode comm_mode_from_security(file_security security) {
+        if (security == file_security::automatic) {
+            DESFIRE_LOGE("Cannot convert file_security::automatic to comm_mode. Data will be transmitted plain!");
+            return comm_mode::plain;
+        }
+        return static_cast<comm_mode>(security);
+    }
 
     controller & tag::ctrl() {
         return *_controller;

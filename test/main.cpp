@@ -524,6 +524,44 @@ void test_mifare_change_app_key() {
     }
 }
 
+void test_mifare_create_delete_files() {
+    TEST_ASSERT(pcd != nullptr and mifare != nullptr);
+
+    using desfire::any_file_settings;
+    using desfire::file_type;
+    using desfire::file_settings;
+
+    const desfire::generic_file_settings gfs_plain{desfire::comm_mode::plain, desfire::access_rights{0}};
+    const desfire::data_file_settings dfs{.size = 1 /* byte */};
+    const desfire::record_file_settings rfs{.record_size = 1, .max_record_count = 2, .record_count = 0};
+    const desfire::value_file_settings vfs{.lower_limit = 0, .upper_limit = 10, .value = 0, .limited_credit_enabled = true};
+    const std::array<any_file_settings, 5> files = {
+        any_file_settings{file_settings<file_type::standard>{gfs_plain, dfs}},
+        any_file_settings{file_settings<file_type::backup>{gfs_plain, dfs}},
+        any_file_settings{file_settings<file_type::value>{gfs_plain, vfs}},
+        any_file_settings{file_settings<file_type::linear_record>{gfs_plain, rfs}},
+        any_file_settings{file_settings<file_type::cyclic_record>{gfs_plain, rfs}}
+    };
+
+    static constexpr desfire::file_id fid = 0;
+
+    for (ut::app_with_keys const &app : ut::test_apps) {
+        TEST_ASSERT(mifare->select_application(app.aid));
+        TEST_ASSERT(mifare->authenticate(app.default_key));
+        // Delete preexisting files
+        const auto res_fids = mifare->get_file_ids();
+        if (res_fids and std::find(std::begin(*res_fids), std::end(*res_fids), fid) != std::end(*res_fids)) {
+            TEST_ASSERT(mifare->delete_file(fid));
+        }
+        for (any_file_settings const &fs : files) {
+            ESP_LOGI(TEST_TAG, "Creating file of type %s in a %s app.", desfire::to_string(fs.type()),
+                     desfire::to_string(app.default_key.type()));
+            TEST_ASSERT(mifare->create_file(fid, fs));
+            TEST_ASSERT(mifare->delete_file(fid));
+        }
+    }
+}
+
 extern "C" void app_main() {
     UNITY_BEGIN();
     esp_log_level_set("*", ESP_LOG_INFO);
@@ -552,6 +590,7 @@ extern "C" void app_main() {
     RUN_TEST(test_mifare_base);
     RUN_TEST(test_mifare_create_apps);
     RUN_TEST(test_mifare_change_app_key);
+    RUN_TEST(test_mifare_create_delete_files);
     // Teardown
     if (tag_reader != nullptr) {
         if (pcd != nullptr) {

@@ -464,9 +464,12 @@ namespace mlab {
         return s;
     }
 
-    bin_data &operator<<(bin_data &bd, desfire::create_record_file_settings const &fs) {
-        bd << lsb32 << fs.record_size;
-        bd << lsb32 << fs.max_record_count;
+    bin_data &operator<<(bin_data &bd, desfire::record_file_settings const &fs) {
+        bd << lsb24 << fs.record_size;
+        bd << lsb24 << fs.max_record_count;
+        if (fs.record_count != 0) {
+            DESFIRE_LOGW("Record counts are not trasmitted to the PICC.");
+        }
         return bd;
     }
 

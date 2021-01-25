@@ -123,9 +123,9 @@ namespace desfire {
         r_actor read;
 
         inline constexpr access_rights();
-        inline constexpr explicit access_rights(std::uint16_t masked_value);
         inline constexpr access_rights(no_key_t);
         inline constexpr access_rights(all_keys_t);
+        inline explicit access_rights(std::uint8_t single_key);
         inline access_rights(rw_actor rw, change_actor chg);
         inline access_rights(rw_actor rw, change_actor chg, r_actor r, w_actor w);
 
@@ -137,44 +137,44 @@ namespace desfire {
     struct generic_file_settings {
         comm_mode mode = comm_mode::plain;
         access_rights rights;
+
+        generic_file_settings() = default;
+        inline generic_file_settings(comm_mode mode_, access_rights rights_);
     };
 
     struct data_file_settings {
         /**
          * @note This is actually a 24bit value, so the maximum value is 0xffffff. It will be clamped upon trasmission.
          */
-        std::uint32_t size = 0;
+        std::uint32_t size;
     };
 
     struct value_file_settings {
-        std::int32_t lower_limit = 0;
-        std::int32_t upper_limit = 0;
+        std::int32_t lower_limit;
+        std::int32_t upper_limit;
         /**
          * @note For @ref tag::get_file_settings, this includes the limited credit, if enabled.
          * For the method @ref tag::create_value_file, this is the initial value.
          */
-        std::int32_t value = 0;
-        bool limited_credit_enabled = false;
+        std::int32_t value;
+        bool limited_credit_enabled;
     };
 
-    struct create_record_file_settings {
+    struct record_file_settings {
         /**
          * @note This is actually a 24bit value, so the maximum value is 0xffffff. It will be clamped upon trasmission.
          */
-        std::uint32_t record_size = 0;
+        std::uint32_t record_size;
 
         /**
          * @note This is actually a 24bit value, so the maximum value is 0xffffff. It will be clamped upon trasmission.
          */
-        std::uint32_t max_record_count = 0;
+        std::uint32_t max_record_count;
 
-    };
-
-    struct record_file_settings : public create_record_file_settings {
         /**
          * @note This is actually a 24bit value, so the maximum value is 0xffffff. It will be clamped upon trasmission.
          */
-        std::uint32_t record_count = 0;
+        std::uint32_t record_count;
     };
 
     template <file_type Type>
@@ -183,7 +183,7 @@ namespace desfire {
     template <>
     struct file_settings<file_type::standard> : public generic_file_settings, public data_file_settings {
         using specific_file_settings = data_file_settings;
-        file_settings() = default;
+        inline file_settings() : generic_file_settings{}, data_file_settings{.size = 0} {}
         file_settings(generic_file_settings generic, data_file_settings specific) :
             generic_file_settings{generic}, data_file_settings{specific} {}
     };
@@ -191,7 +191,7 @@ namespace desfire {
     template <>
     struct file_settings<file_type::backup> : public generic_file_settings, public data_file_settings {
         using specific_file_settings = data_file_settings;
-        file_settings() = default;
+        inline file_settings() : generic_file_settings{}, data_file_settings{.size = 0} {}
         file_settings(generic_file_settings generic, data_file_settings specific) :
             generic_file_settings{generic}, data_file_settings{specific} {}
     };
@@ -199,7 +199,9 @@ namespace desfire {
     template <>
     struct file_settings<file_type::value> : public generic_file_settings, public value_file_settings {
         using specific_file_settings = value_file_settings;
-        file_settings() = default;
+        inline file_settings() : generic_file_settings{},
+            value_file_settings{.lower_limit = 0, .upper_limit = 0, .value = 0, .limited_credit_enabled = false} {}
+
         file_settings(generic_file_settings generic, value_file_settings specific) :
             generic_file_settings{generic}, value_file_settings{specific} {}
     };
@@ -207,7 +209,9 @@ namespace desfire {
     template <>
     struct file_settings<file_type::linear_record> : public generic_file_settings, public record_file_settings {
         using specific_file_settings = record_file_settings;
-        file_settings() = default;
+        inline file_settings() : generic_file_settings{},
+            record_file_settings{.record_size = 0, .max_record_count = 0, .record_count = 0} {}
+
         file_settings(generic_file_settings generic, record_file_settings specific) :
             generic_file_settings{generic}, record_file_settings{specific} {}
     };
@@ -215,7 +219,9 @@ namespace desfire {
     template <>
     struct file_settings<file_type::cyclic_record> : public generic_file_settings, public record_file_settings {
         using specific_file_settings = record_file_settings;
-        file_settings() = default;
+        inline file_settings() : generic_file_settings{},
+            record_file_settings{.record_size = 0, .max_record_count = 0, .record_count = 0} {}
+
         file_settings(generic_file_settings generic, record_file_settings specific) :
             generic_file_settings{generic}, record_file_settings{specific} {}
     };
@@ -454,7 +460,7 @@ namespace mlab {
     bin_data &operator<<(bin_data &bd, desfire::generic_file_settings const &fs);
     bin_data &operator<<(bin_data &bd, desfire::data_file_settings const &fs);
     bin_data &operator<<(bin_data &bd, desfire::value_file_settings const &fs);
-    bin_data &operator<<(bin_data &bd, desfire::create_record_file_settings const &fs);
+    bin_data &operator<<(bin_data &bd, desfire::record_file_settings const &fs);
     bin_data &operator<<(bin_data &bd, desfire::any_file_settings const &fs);
 
     template <desfire::file_type Type>
@@ -563,7 +569,18 @@ namespace desfire {
     }
 
     constexpr access_rights::access_rights() : value{0} {}
-    constexpr access_rights::access_rights(std::uint16_t masked_value) : value{masked_value} {}
+
+    access_rights::access_rights(std::uint8_t single_key) : access_rights{}
+    {
+        if (single_key > bits::max_keys_per_app) {
+            DESFIRE_LOGE("Invalid key number (%d) for access rights, should be <= %d.", single_key, bits::max_keys_per_app);
+        } else {
+            read = single_key;
+            write = single_key;
+            read_write = single_key;
+            change = single_key;
+        }
+    }
     constexpr access_rights::access_rights(no_key_t) : value{0xffff} {}
     constexpr access_rights::access_rights(all_keys_t) : value{0xeeee} {}
     access_rights::access_rights(rw_actor rw, change_actor chg) : access_rights{no_key} {
@@ -576,6 +593,9 @@ namespace desfire {
         read = r;
         write = w;
     }
+
+    generic_file_settings::generic_file_settings(comm_mode mode_, access_rights rights_) : mode{mode_}, rights{rights_}
+    {}
 }
 
 namespace mlab {
@@ -592,10 +612,10 @@ namespace mlab {
     }
 
     template <desfire::file_type Type>
-    bin_data &operator<<(bin_data &bd, desfire::file_settings<Type> &fs) {
+    bin_data &operator<<(bin_data &bd, desfire::file_settings<Type> const &fs) {
         return bd
             << static_cast<desfire::generic_file_settings const &>(fs)
-            << static_cast<typename desfire::file_settings<Type>::specific_file_settings &>(fs);
+            << static_cast<typename desfire::file_settings<Type>::specific_file_settings const &>(fs);
     }
 }
 

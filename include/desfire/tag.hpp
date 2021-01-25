@@ -232,7 +232,14 @@ namespace desfire {
          * @param offset Limited to 24 bits, i.e. must be below 0xFFFFFF.
          * @param length Limited to 24 bits, i.e. must be below 0xFFFFFF.
          */
-        r<bin_data> read_file(file_id fid, std::uint32_t offset, std::uint32_t length, file_security security = file_security::automatic);
+        r<bin_data> read_data(file_id fid, std::uint32_t offset, std::uint32_t length, file_security security = file_security::automatic);
+
+        /**
+         *
+         * @param offset Limited to 24 bits, i.e. must be below 0xFFFFFF.
+         * @param data Limited to 24 bits, i.e. must be below 0xFFFFFF.
+         */
+        r<> write_data(file_id fid, std::uint32_t offset, bin_data const &data, file_security = file_security::automatic);
 
     private:
         /**

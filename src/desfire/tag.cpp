@@ -20,6 +20,11 @@ namespace desfire {
     }
 
     tag::r<bin_data> tag::raw_command_response(bin_data const &payload) {
+        if (payload.size() > bits::max_packet_length) {
+            DESFIRE_LOGE("Attempt to send a packet of size %d, which exceeds the maximum limit %d.",
+                         payload.size(), bits::max_packet_length);
+            return error::length_error;
+        }
         ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " >>", payload.data(), payload.size(), ESP_LOG_VERBOSE);
         auto res_cmd = ctrl().communicate(payload);
         if (res_cmd.second) {
@@ -430,7 +435,7 @@ namespace desfire {
     }
 
 
-    tag::r<bin_data> tag::read_file(file_id fid, std::uint32_t offset, std::uint32_t length, file_security security) {
+    tag::r<bin_data> tag::read_data(file_id fid, std::uint32_t offset, std::uint32_t length, file_security security) {
         if ((offset & 0xffffff) != offset) {
             DESFIRE_LOGW("%s: offset can be at most 24 bits, %d is an invalid value.",
                          to_string(command_code::read_data), offset);
@@ -450,6 +455,66 @@ namespace desfire {
         bin_data payload;
         payload << prealloc(7) << fid << lsb24 << offset << lsb24 << length;
         return command_response(command_code::read_data, payload, cfg);
+    }
+
+    tag::r<> tag::write_data(file_id fid, std::uint32_t offset, bin_data const &data, file_security security) {
+        if ((offset & 0xffffff) != offset) {
+            DESFIRE_LOGW("%s: offset can be at most 24 bits, %d is an invalid value.",
+                         to_string(command_code::read_data), offset);
+            return error::parameter_error;
+        }
+        if ((data.size() & 0xffffff) != data.size()) {
+            DESFIRE_LOGW("%s: data size can be at most 24 bits, %d is an invalid value.",
+                         to_string(command_code::read_data), data.size());
+            return error::parameter_error;
+        }
+        const auto get_chunk_count = [](std::size_t data_length) -> unsigned {
+            // Add headers to data, and remove the command byte from the packet length
+            const int divisor = bits::max_packet_length - 1;
+            const auto div_res = std::div(int(data_length + 7), divisor);
+            return unsigned(div_res.quot * divisor + (div_res.rem == 0 ? 0 : divisor));
+        };
+
+        const auto res_mode = determine_file_comm_mode(fid, file_access::read, security);
+        if (not res_mode) {
+            return res_mode.error();
+        }
+        const cipher::config tx_cfg{*res_mode, true, true, true};
+        const comm_cfg cfg{tx_cfg, cipher_cfg_plain};
+
+        bin_data payload;
+        payload.reserve(bits::max_packet_length);  // That is one too many but ok
+        // Initial payload:
+        payload << fid << lsb24 << offset << lsb24 << data.size();
+
+        /**
+         * @note This is the only method that uses additional frames when sending, so we do not implement it in
+         * command_response, because it would require to add an extra parm to the comm_cfg.
+         */
+        const unsigned num_chunks = get_chunk_count(data.size());
+        for (std::size_t i = 0, ofs_in_data = 0; ofs_in_data < data.size(); ++i) {
+            const std::size_t max_packet_data_size = bits::max_packet_length - payload.size() - 1 /* command code */;
+            payload << data.view(ofs_in_data, max_packet_data_size);
+            ofs_in_data += max_packet_data_size;
+
+            const auto cmd = ofs_in_data == 0 ? command_code::write_data : command_code::additional_frame;
+            DESFIRE_LOGI("%s: sending chunk %d/%d...", to_string(command_code::write_data), i + 1, num_chunks);
+
+            const auto res_packet = command_status_response(cmd, payload, cfg);
+            if (not res_packet) {
+                return res_packet.error();
+            }
+            if (ofs_in_data < data.size() and res_packet->first != status::additional_frame) {
+                DESFIRE_LOGE("%s: unexpected status response %s.", to_string(command_code::write_data),
+                             to_string(res_packet->first));
+                return error_from_status(res_packet->first);
+            }
+            if (not res_packet->second.empty()) {
+                DESFIRE_LOGW("%s: stray data in response (%d bytes).", to_string(command_code::write_data),
+                             res_packet->second.size());
+            }
+        }
+        return result_success;
     }
 
     tag::r<> tag::create_file(file_id fid, file_settings<file_type::standard> const &settings) {

@@ -84,6 +84,8 @@ namespace desfire {
             file_integrity_error = 0xf1
         };
 
+        static constexpr std::size_t max_packet_length = 60;
+
         static constexpr std::uint8_t max_keys_per_app = 14;
         static constexpr unsigned app_change_keys_right_shift = 4;
         static constexpr std::uint8_t app_change_keys_right_same_flag = 0x0e << app_change_keys_right_shift;

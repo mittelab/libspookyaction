@@ -21,7 +21,7 @@ namespace desfire {
             case cipher_type::aes128:
                 return get_key<cipher_type::aes128>().key_number;
             default:
-                DESFIRE_LOGE("Unhandled cipher type.");
+                DESFIRE_LOGE("any_key::key_number: unhandled cipher type.");
                 return std::numeric_limits<std::uint8_t>::max();
         }
     }
@@ -39,7 +39,7 @@ namespace desfire {
             case cipher_type::aes128:
                 return get_key<cipher_type::aes128>().version();
             default:
-                DESFIRE_LOGE("Unhandled cipher type.");
+                DESFIRE_LOGE("any_key::version: unhandled cipher type.");
                 return std::numeric_limits<std::uint8_t>::max();
         }
     }
@@ -57,7 +57,7 @@ namespace desfire {
             case cipher_type::aes128:
                 return key<cipher_type::aes128>::key_length;
             default:
-                DESFIRE_LOGE("Unhandled cipher type.");
+                DESFIRE_LOGE("any_key::size: unhandled cipher type.");
                 return std::numeric_limits<std::uint8_t>::max();
         }
     }
@@ -75,7 +75,7 @@ namespace desfire {
             case cipher_type::aes128:
                 return get_key<cipher_type::aes128>().make_cipher();
             default:
-                DESFIRE_LOGE("Unhandled cipher type: %s", to_string(type()));
+                DESFIRE_LOGE("any_key::make_cipher:: unhandled cipher type: %s", to_string(type()));
                 return nullptr;
         }
     }
@@ -117,7 +117,7 @@ namespace desfire {
             case cipher_type::aes128:
                 return app_crypto::aes_128;
             default:
-                DESFIRE_LOGE("Unhandled cipher type: %s", to_string(c));
+                DESFIRE_LOGE("desfire::app_crypto_from_cipher: unhandled cipher type: %s", to_string(c));
                 return app_crypto::legacy_des_2k3des;
         }
     }
@@ -169,7 +169,7 @@ namespace desfire {
             case cipher_type::aes128:
                 return key<cipher_type::aes128>::parity_bits_are_version;
             default:
-                DESFIRE_LOGE("Unhandled cipher type: %s", to_string(type()));
+                DESFIRE_LOGE("any_key::parity_bits_are_version: unhandled cipher type: %s", to_string(type()));
                 return false;
         }
     }
@@ -200,7 +200,7 @@ namespace desfire {
                 body << get_key<cipher_type::aes128>().k;
                 break;
             default:
-                DESFIRE_LOGE("Unhandled cipher type: %s", to_string(type()));
+                DESFIRE_LOGE("any_key::get_packed_key_body: unhandled cipher type: %s", to_string(type()));
                 break;
         }
         return body;
@@ -238,7 +238,7 @@ namespace desfire {
                 case file_type::cyclic_record:
                     return get_settings<file_type::cyclic_record>();
                 default:
-                    DESFIRE_LOGE("Unhandled file type: %s", to_string(type()));
+                    DESFIRE_LOGE("any_file_settings::generic_settings: unhandled file type: %s", to_string(type()));
                     break;
             }
         }
@@ -260,7 +260,7 @@ namespace desfire {
             case file_access::change:
                 return change == all_keys;
             default:
-                DESFIRE_LOGE("Unhandled access type.");
+                DESFIRE_LOGE("access_rights::is_free: unhandled access type.");
                 return false;
         }
     }
@@ -514,7 +514,7 @@ namespace mlab {
                 }
                 break;
                 default:
-                    DESFIRE_LOGE("Unhandled file type: %s", desfire::to_string(ft));
+                    DESFIRE_LOGE("operator>>(any_file_settings &): unhandled file type: %s", desfire::to_string(ft));
                     s.set_bad();
                     break;
             }
@@ -541,7 +541,7 @@ namespace mlab {
                 bd << fs.get_settings<desfire::file_type::cyclic_record>();
                 break;
             default:
-                DESFIRE_LOGE("Unhandled file type: %s", desfire::to_string(fs.type()));
+                DESFIRE_LOGE("operator<<(any_file_settings const &): unhandled file type: %s", desfire::to_string(fs.type()));
                 break;
         }
         return bd;

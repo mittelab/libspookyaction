@@ -526,7 +526,7 @@ namespace desfire {
             case file_type::linear_record: return create_file(fid, settings.get_settings<file_type::linear_record>());
             case file_type::cyclic_record: return create_file(fid, settings.get_settings<file_type::cyclic_record>());
             default:
-                DESFIRE_LOGE("create_file: unhandled file type.");
+                DESFIRE_LOGE("create_file: unhandled file type %s.", to_string(settings.type()));
                 return error::parameter_error;
         }
     }

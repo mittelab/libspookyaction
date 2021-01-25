@@ -517,6 +517,20 @@ namespace desfire {
         return result_success;
     }
 
+
+    tag::r<> tag::create_file(file_id fid, any_file_settings const &settings) {
+        switch (settings.type()) {
+            case file_type::standard:      return create_file(fid, settings.get_settings<file_type::standard>());
+            case file_type::backup:        return create_file(fid, settings.get_settings<file_type::backup>());
+            case file_type::value:         return create_file(fid, settings.get_settings<file_type::value>());
+            case file_type::linear_record: return create_file(fid, settings.get_settings<file_type::linear_record>());
+            case file_type::cyclic_record: return create_file(fid, settings.get_settings<file_type::cyclic_record>());
+            default:
+                DESFIRE_LOGE("create_file: unhandled file type.");
+                return error::parameter_error;
+        }
+    }
+
     tag::r<> tag::create_file(file_id fid, file_settings<file_type::standard> const &settings) {
         if (fid > bits::max_standard_data_file_id) {
             return error::parameter_error;

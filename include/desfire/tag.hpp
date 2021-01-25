@@ -191,6 +191,8 @@ namespace desfire {
          */
         r<> create_file(file_id fid, file_settings<file_type::standard> const &settings);
 
+        r<> create_file(file_id fid, any_file_settings const &settings);
+
         /**
          * @param fid Max @ref bits::max_backup_data_file_id.
          */

@@ -248,6 +248,23 @@ namespace desfire {
         return _dummy;
     }
 
+
+    bool access_rights::is_free(file_access access, std::uint8_t active_key_num) const {
+        switch (access) {
+            case file_access::read:
+                return read != active_key_num and read_write != active_key_num and
+                        (read == all_keys or read_write == all_keys);
+            case file_access::write:
+                return write != active_key_num and read_write != active_key_num and
+                        (write == all_keys or read_write == all_keys);
+            case file_access::change:
+                return change == all_keys;
+            default:
+                DESFIRE_LOGE("Unhandled access type.");
+                return false;
+        }
+    }
+
     generic_file_settings &any_file_settings::generic_settings() {
         return const_cast<generic_file_settings &>(static_cast<any_file_settings const *>(this)->generic_settings());
     }

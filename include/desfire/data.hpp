@@ -103,6 +103,12 @@ namespace desfire {
     struct all_keys_t {};
     static constexpr all_keys_t all_keys{};
 
+    enum struct file_access {
+        change,
+        read,
+        write
+    };
+
     union access_rights {
         using change_actor = key_actor_mask<std::uint16_t, bits::file_access_rights_change_shift, all_keys_t>;
         using rw_actor = key_actor_mask<std::uint16_t, bits::file_access_rights_read_write_shift, all_keys_t>;
@@ -122,6 +128,8 @@ namespace desfire {
         inline constexpr access_rights(all_keys_t);
         inline access_rights(rw_actor rw, change_actor chg);
         inline access_rights(rw_actor rw, change_actor chg, r_actor r, w_actor w);
+
+        bool is_free(file_access access, std::uint8_t active_key_num) const;
     };
 
     static_assert(sizeof(access_rights) == sizeof(std::uint16_t), "Must be able to pack 2 bytes structures.");

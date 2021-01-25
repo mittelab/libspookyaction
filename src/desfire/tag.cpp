@@ -392,29 +392,64 @@ namespace desfire {
     }
 
     tag::r<> tag::change_file_settings(file_id fid, generic_file_settings const &settings, file_security security) {
-        if (security == file_security::automatic) {
-            // Retrieve the settings and decide whether crypto is required
-            auto res_get_settings = get_file_settings(fid);
-            if (not res_get_settings) {
-                return res_get_settings.error();
+        r<comm_mode> res_mode = determine_file_comm_mode(fid, file_access::change, security);
+        if (not res_mode) {
+            return res_mode.error();
+        }
+        if (*res_mode == comm_mode::mac) {
+            // We do not use MAC res_mode for this command, upgrade it
+            *res_mode = comm_mode::cipher;
+            if (security == file_security::mac) {
+                // The user specified it? The user should know bettter.
+                DESFIRE_LOGW("%s: unsupported security res_mode MAC, will be upgraded to cipher.",
+                             to_string(command_code::change_file_settings));
             }
-            // When everyone is allowed a settings change, there is no need for protection
-            if (res_get_settings->generic_settings().rights.change == all_keys) {
-                security = file_security::plain;
-            } else {
-                security = file_security::cipher;
-            }
-        } else if (security == file_security::mac) {
-            DESFIRE_LOGW("%s: unsupported security mode MAC, will be upgraded to cipher.",
-                         to_string(command_code::change_file_settings));
-            security = file_security::cipher;
         }
         return command_response(
                 command_code::change_file_settings,
                 bin_data::chain(fid, settings),
-                comm_mode_from_security(security),
+                *res_mode,
                 2  // After command code and file id
         );
+    }
+
+
+    tag::r<comm_mode> tag::determine_file_comm_mode(file_id fid, file_access access, file_security requested_security) {
+        if (requested_security == file_security::automatic) {
+            return comm_mode_from_security(requested_security);
+        }
+        const auto res_get_settings = get_file_settings(fid);
+        if (not res_get_settings) {
+            return res_get_settings.error();
+        }
+        // Send in plain mode if the specific operation is "free".
+        if (res_get_settings->generic_settings().rights.is_free(access, active_key_no())) {
+            return comm_mode::plain;
+        }
+        return res_get_settings->generic_settings().mode;
+    }
+
+
+    tag::r<bin_data> tag::read_file(file_id fid, std::uint32_t offset, std::uint32_t length, file_security security) {
+        if ((offset & 0xffffff) != offset) {
+            DESFIRE_LOGW("%s: offset can be at most 24 bits, %d is an invalid value.",
+                         to_string(command_code::read_data), offset);
+            return error::parameter_error;
+        }
+        if ((length & 0xffffff) != length) {
+            DESFIRE_LOGW("%s: length can be at most 24 bits, %d is an invalid value.",
+                         to_string(command_code::read_data), length);
+            return error::parameter_error;
+        }
+        const auto res_mode = determine_file_comm_mode(fid, file_access::read, security);
+        if (not res_mode) {
+            return res_mode.error();
+        }
+        const cipher::config rx_cfg{*res_mode, true, true, true};
+        const comm_cfg cfg{cipher_cfg_plain, rx_cfg};
+        bin_data payload;
+        payload << prealloc(7) << fid << lsb24 << offset << lsb24 << length;
+        return command_response(command_code::read_data, payload, cfg);
     }
 
     tag::r<> tag::create_file(file_id fid, file_settings<file_type::standard> const &settings) {

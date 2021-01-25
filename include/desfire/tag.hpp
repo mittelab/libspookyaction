@@ -227,6 +227,13 @@ namespace desfire {
         r<> commit_transaction();
         r<> abort_transaction();
 
+        /**
+         *
+         * @param offset Limited to 24 bits, i.e. must be below 0xFFFFFF.
+         * @param length Limited to 24 bits, i.e. must be below 0xFFFFFF.
+         */
+        r<bin_data> read_file(file_id fid, std::uint32_t offset, std::uint32_t length, file_security security = file_security::automatic);
+
     private:
         /**
          * The power of friendship, cit. Wifasoi, 2020
@@ -238,6 +245,8 @@ namespace desfire {
          */
         template <cipher_type Cipher>
         void ut_init_session(desfire::key<Cipher> const &session_key, desfire::app_id app, std::uint8_t key_no);
+
+        r<comm_mode> determine_file_comm_mode(file_id fid, file_access access, file_security requested_security);
 
         inline controller &ctrl();
         inline cipher &active_cipher();

@@ -129,6 +129,8 @@ namespace desfire {
         inline access_rights(rw_actor rw, change_actor chg);
         inline access_rights(rw_actor rw, change_actor chg, r_actor r, w_actor w);
 
+        inline static access_rights from_mask(std::uint16_t mask);
+
         bool is_free(file_access access, std::uint8_t active_key_num) const;
     };
 
@@ -592,6 +594,12 @@ namespace desfire {
         change = chg;
         read = r;
         write = w;
+    }
+
+    access_rights access_rights::from_mask(std::uint16_t mask) {
+        access_rights retval;
+        retval.value = mask;
+        return retval;
     }
 
     generic_file_settings::generic_file_settings(comm_mode mode_, access_rights rights_) : mode{mode_}, rights{rights_}

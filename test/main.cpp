@@ -382,6 +382,22 @@ void test_change_key_des() {
     tag.change_key(desfire::key<desfire::cipher_type::des>{0, {0x0, 0x2, 0x4, 0x6, 0x8, 0xa, 0xc, 0xe}, 0x10});
 }
 
+void test_cmac() {
+    ut::assert_comm_controller ctrl;
+    desfire::tag tag{ctrl};
+
+    ut::session session{tag, desfire::key<desfire::cipher_type::aes128>{
+        0, {0x40, 0xE7, 0xD2, 0x71, 0x62, 0x6F, 0xFB, 0xD4, 0x9C, 0x53, 0x0E, 0x3D, 0x30, 0x4F, 0x5B, 0x17}
+    }, {0x00, 0xae, 0x16}, 0};
+
+    ctrl.append({0xCD, 0x05, 0x00, 0x11, 0x00, 0x50, 0x00, 0x00}, {0x00, 0xA7, 0x53, 0x16, 0xAD, 0x15, 0x96, 0xB9, 0x53});
+
+    TEST_ASSERT(tag.create_file(5, desfire::file_settings<desfire::file_type::standard>{
+        desfire::generic_file_settings{desfire::comm_mode::plain, desfire::access_rights::from_mask(0x0011)},
+        desfire::data_file_settings{.size = 80}
+    }));
+}
+
 void test_crc32() {
     {
         const mlab::bin_data payload = {0xC4, 0x00, 0x00, 0x10, 0x20, 0x31, 0x40, 0x50, 0x60, 0x70, 0x80, 0x90, 0xA0, 0xB0, 0xB0, 0xA0, 0x90, 0x80};
@@ -591,6 +607,7 @@ extern "C" void app_main() {
     RUN_TEST(test_change_key_aes);
     RUN_TEST(test_change_key_des);
     RUN_TEST(test_change_key_2k3des);
+    RUN_TEST(test_cmac);
     issue_header("HARDWARE SETUP (no card)");
     RUN_TEST(setup_uart_pn532);
     issue_header("PN532 TEST AND DIAGNOSTICS (no card)");

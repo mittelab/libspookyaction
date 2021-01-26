@@ -78,7 +78,7 @@ namespace desfire {
             command_aborted = 0xca,
             picc_disabled_error = 0xcd,
             count_error = 0xce,
-            diplicate_error = 0xde,
+            duplicate_error = 0xde,
             eeprom_error = 0xee,
             file_not_found = 0xf0,
             file_integrity_error = 0xf1

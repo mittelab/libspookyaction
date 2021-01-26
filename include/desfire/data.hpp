@@ -47,7 +47,7 @@ namespace desfire {
         command_aborted      = static_cast<std::uint8_t>(status::command_aborted),
         picc_disabled_error  = static_cast<std::uint8_t>(status::picc_disabled_error),
         count_error          = static_cast<std::uint8_t>(status::count_error),
-        diplicate_error      = static_cast<std::uint8_t>(status::diplicate_error),
+        duplicate_error      = static_cast<std::uint8_t>(status::duplicate_error),
         eeprom_error         = static_cast<std::uint8_t>(status::eeprom_error),
         file_not_found       = static_cast<std::uint8_t>(status::file_not_found),
         file_integrity_error = static_cast<std::uint8_t>(status::file_integrity_error),

@@ -35,7 +35,7 @@ namespace desfire {
             case status::command_aborted:      return "previous command was not fully completed";
             case status::picc_disabled_error:  return "PICC was disabled by unrecoverable error";
             case status::count_error:          return "cannot create more than 28 apps";
-            case status::diplicate_error:      return "cannot create duplicate files or apps";
+            case status::duplicate_error:      return "cannot create duplicate files or apps";
             case status::eeprom_error:         return "could not complete NV-write operation";
             case status::file_not_found:       return "specified file number does not exist";
             case status::file_integrity_error: return "unrecoverable error within file";

@@ -497,14 +497,15 @@ namespace desfire {
             payload << data.view(ofs_in_data, max_packet_data_size);
             ofs_in_data += max_packet_data_size;
 
-            const auto cmd = ofs_in_data == 0 ? command_code::write_data : command_code::additional_frame;
             DESFIRE_LOGI("%s: sending chunk %d/%d...", to_string(command_code::write_data), i + 1, num_chunks);
-
+            const auto cmd = i == 0 ? command_code::write_data : command_code::additional_frame;
             const auto res_packet = command_status_response(cmd, payload, cfg);
             if (not res_packet) {
                 return res_packet.error();
             }
-            if (ofs_in_data < data.size() and res_packet->first != status::additional_frame) {
+            if ((ofs_in_data < data.size() and res_packet->first != status::additional_frame) or
+                (ofs_in_data >= data.size() and res_packet->first != status::ok and res_packet->first != status::no_changes))
+            {
                 DESFIRE_LOGE("%s: unexpected status response %s.", to_string(command_code::write_data),
                              to_string(res_packet->first));
                 return error_from_status(res_packet->first);
@@ -512,6 +513,7 @@ namespace desfire {
             if (not res_packet->second.empty()) {
                 DESFIRE_LOGW("%s: stray data in response (%d bytes).", to_string(command_code::write_data),
                              res_packet->second.size());
+                ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG, res_packet->second.data(), res_packet->second.size(), ESP_LOG_WARN);
             }
         }
         return result_success;

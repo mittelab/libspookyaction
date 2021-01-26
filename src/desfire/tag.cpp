@@ -420,7 +420,7 @@ namespace desfire {
 
 
     tag::r<comm_mode> tag::determine_file_comm_mode(file_id fid, file_access access, file_security requested_security) {
-        if (requested_security == file_security::automatic) {
+        if (requested_security != file_security::automatic) {
             return comm_mode_from_security(requested_security);
         }
         const auto res_get_settings = get_file_settings(fid);

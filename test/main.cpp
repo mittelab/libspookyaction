@@ -557,6 +557,22 @@ void test_mifare_create_delete_files() {
             ESP_LOGI(TEST_TAG, "Creating file of type %s in a %s app.", desfire::to_string(fs.type()),
                      desfire::to_string(app.default_key.type()));
             TEST_ASSERT(mifare->create_file(fid, fs));
+            switch (fs.type()) {
+                case file_type::standard: {
+                    // Attempt read/write
+                    TEST_ASSERT(mifare->write_data(fid, 0, file_data));
+                    const auto res_read = mifare->read_data(fid, 0, file_data.size());
+                    TEST_ASSERT(res_read);
+                    TEST_ASSERT_EQUAL(file_data.size(), res_read->size());
+                    TEST_ASSERT_EQUAL_HEX8_ARRAY(file_data.data(), res_read->data(), file_data.size());
+                }
+                    break;
+                case file_type::backup:        // [[fallthrough]];
+                case file_type::value:         // [[fallthrough]];
+                case file_type::linear_record: // [[fallthrough]];
+                case file_type::cyclic_record: // [[fallthrough]];
+                default: break;
+            }
             TEST_ASSERT(mifare->delete_file(fid));
         }
     }

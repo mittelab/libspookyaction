@@ -152,21 +152,21 @@ namespace desfire {
                 DESFIRE_LOGE("Received empty payload from card.");
                 return error::malformed;
             }
-            // Append data, move status byte at the end
-            received.reserve(received.size() + res->size());
-            received << res->view(1) << res->front();
-            // Check status byte if necessary
+            // Prepare the next payload if necessary
+            if (additional_frames and received.empty()) {
+                payload.clear();
+                payload << command_code::additional_frame;
+            }
+            // Append data, but put status byte at the end
+            received << prealloc(res->size()) << res->view(1) << res->front();
+            // Check status byte if we are to fetch additional frames
             if (additional_frames) {
                 const auto sb = static_cast<status>(received.back());
                 if (sb == status::additional_frame) {
                     // The "more frames" status is not part of the payload
                     received.pop_back();
-                    if (received.size() + 1 == res->size()) {
-                        // Only one payload was received, clear and insert a single byte asking for more frames
-                        payload.clear();
-                        payload << command_code::additional_frame;
-                    }
-                } else {  // Signal stop
+                } else {
+                    // Signal stop
                     additional_frames = false;
                 }
             }

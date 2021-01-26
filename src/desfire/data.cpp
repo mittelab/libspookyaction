@@ -485,31 +485,31 @@ namespace mlab {
             switch (ft) {
                 case desfire::file_type::standard: {
                     desfire::file_settings<desfire::file_type::standard> typed_fs{};
-                    s >> fs;
+                    s >> typed_fs;
                     fs = typed_fs;
                 }
                 break;
                 case desfire::file_type::backup: {
                     desfire::file_settings<desfire::file_type::backup> typed_fs{};
-                    s >> fs;
+                    s >> typed_fs;
                     fs = typed_fs;
                 }
                 break;
                 case desfire::file_type::value: {
                     desfire::file_settings<desfire::file_type::value> typed_fs{};
-                    s >> fs;
+                    s >> typed_fs;
                     fs = typed_fs;
                 }
                 break;
                 case desfire::file_type::linear_record: {
                     desfire::file_settings<desfire::file_type::linear_record> typed_fs{};
-                    s >> fs;
+                    s >> typed_fs;
                     fs = typed_fs;
                 }
                 break;
                 case desfire::file_type::cyclic_record: {
                     desfire::file_settings<desfire::file_type::cyclic_record> typed_fs{};
-                    s >> fs;
+                    s >> typed_fs;
                     fs = typed_fs;
                 }
                 break;

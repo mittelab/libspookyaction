@@ -472,7 +472,7 @@ namespace desfire {
             // Add headers to data, and remove the command byte from the packet length
             const int divisor = bits::max_packet_length - 1;
             const auto div_res = std::div(int(data_length + 7), divisor);
-            return unsigned(div_res.quot * divisor + (div_res.rem == 0 ? 0 : divisor));
+            return unsigned(div_res.quot + (div_res.rem == 0 ? 0 : 1));
         };
 
         const auto res_mode = determine_file_comm_mode(fid, file_access::read, security);

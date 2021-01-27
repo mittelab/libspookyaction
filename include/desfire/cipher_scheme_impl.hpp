@@ -156,7 +156,7 @@ namespace desfire {
             case comm_mode::mac:
                 if (cfg.do_mac) {
                     // [ data || mac || status ] -> [ data || status || mac ]; rotate mac_size + 1 bytes
-                    std::rotate(data.rend(), data.rend() + 1, data.rend() + traits_base::mac_size + 1);
+                    std::rotate(data.rbegin(), data.rbegin() + 1, data.rbegin() + traits_base::mac_size + 1);
                     // This will keep the IV in sync
                     const mac_t computed_mac = compute_mac(data.view(0, data.size() - traits_base::mac_size));
                     // Extract the transmitted mac

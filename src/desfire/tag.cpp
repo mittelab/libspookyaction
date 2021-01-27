@@ -83,8 +83,8 @@ namespace desfire {
         const auto res_rndb = command_status_response(
                 auth_command(k.type()),
                 bin_data::chain(k.key_number()),
-                cfg_txrx_cipher_nocrc,
-                2  // After auth command and payload, i.e. no encryption is performed in TX
+                // After auth command and payload, i.e. no encryption is performed in TX
+                cfg_txrx_cipher_nocrc.with(2, false)
         );
 
         if (not res_rndb) {
@@ -205,9 +205,7 @@ namespace desfire {
     }
 
     tag::r<status, bin_data> tag::command_status_response(
-            command_code cmd, bin_data const &payload, tag::comm_cfg const &base_cfg,
-            std::size_t secure_offset,
-            bool fetch_additional_frames)
+            command_code cmd, bin_data const &payload, tag::comm_cfg const &cfg)
     {
         static bin_data buffer{};
         buffer.clear();
@@ -216,15 +214,13 @@ namespace desfire {
         buffer << cmd << payload;
 
         // Override the config
-        const comm_cfg cmd_comm_cfg = base_cfg.with(secure_offset, fetch_additional_frames);
         DESFIRE_LOGD("%s: sending command.", to_string(cmd));
-        return command_status_response(buffer, cmd_comm_cfg);
+        return command_status_response(buffer, cfg);
     }
 
-    tag::r<bin_data> tag::command_response(
-            command_code cmd, const bin_data &payload, const tag::comm_cfg &base_cfg, std::size_t secure_offset)
+    tag::r<bin_data> tag::command_response(command_code cmd, const bin_data &payload, const tag::comm_cfg &cfg)
     {
-        auto res_cmd = command_status_response(cmd, payload, base_cfg, secure_offset, true);
+        auto res_cmd = command_status_response(cmd, payload, cfg);
         if (not res_cmd) {
             return res_cmd.error();
         }
@@ -428,11 +424,11 @@ namespace desfire {
                              to_string(command_code::change_file_settings));
             }
         }
+        const comm_cfg cfg{*res_mode, 2 /* After command code and file id */};
         return safe_drop_payload(command_code::change_file_settings, command_response(
                 command_code::change_file_settings,
                 bin_data::chain(fid, settings),
-                *res_mode,
-                2  // After command code and file id
+                cfg
         ));
     }
 

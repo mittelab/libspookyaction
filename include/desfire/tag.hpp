@@ -52,48 +52,17 @@ namespace desfire {
 
         r<status, bin_data> command_status_response(bin_data &payload, comm_cfg const &cfg);
 
-        inline r<status, bin_data> command_status_response(
-                command_code cmd, bin_data const &payload, comm_cfg const &base_cfg);
+        r<status, bin_data> command_status_response(command_code cmd, bin_data const &payload, comm_cfg const &cfg);
 
         /**
-         * @param secure_offset Override the secure data offset in TX of @p base_cfg
-         *  (@ref comm_cfg::tx_secure_data_offset)
-         */
-        inline r<status, bin_data> command_status_response(
-                command_code cmd, bin_data const &payload, comm_cfg const &base_cfg,
-                std::size_t secure_offset);
-
-        /**
-         * @param secure_offset Override the secure data offset in TX of @p base_cfg
-         *  (@ref comm_cfg::tx_secure_data_offset)
-         * @param fetch_additional_frames Override whether new frames will be fetched automatically or not
-         *  (@ref comm_cfg::rx_auto_fetch_additional_frames)
-         */
-        r<status, bin_data> command_status_response(
-                command_code cmd, bin_data const &payload, comm_cfg const &base_cfg,
-                std::size_t secure_offset, bool fetch_additional_frames);
-
-        /**
-         * @addtogroup ReadTillEndCheckStatus
          * Will automatically fetch all additional frames, and at the end will parse the status byte to decide whether
          * the command was successful (@ref status::ok or @ref status::no_changes). These overloads will call the
          * method @ref command_status_response.
          */
-        inline r<bin_data> command_response(command_code cmd, bin_data const &payload, comm_cfg const &base_cfg);
-
-        r<bin_data> command_response(
-                command_code cmd, bin_data const &payload, comm_cfg const &base_cfg,
-                std::size_t secure_offset);
-        /**
-         * @}
-         */
+        r<bin_data> command_response(command_code cmd, bin_data const &payload, comm_cfg const &cfg);
 
         template <class Data, class = typename std::enable_if<bin_stream::is_extractable<Data>::value>::type>
-        r<Data> command_parse_response(command_code cmd, bin_data const &payload, comm_cfg const &base_cfg);
-
-        template <class Data, class = typename std::enable_if<bin_stream::is_extractable<Data>::value>::type>
-        r<Data> command_parse_response(command_code cmd, bin_data const &payload, comm_cfg const &base_cfg,
-                                       std::size_t secure_offset);
+        r<Data> command_parse_response(command_code cmd, bin_data const &payload, comm_cfg const &cfg);
 
         /**
          * @return Always returns something but it may be @ref cipher_dummy if no authentication has took place.
@@ -382,32 +351,10 @@ namespace desfire {
         return copy;
     }
 
-    tag::r<status, bin_data> tag::command_status_response(command_code cmd, bin_data const &payload, tag::comm_cfg const &base_cfg)
-    {
-        return command_status_response(cmd, payload, base_cfg, base_cfg.tx_secure_data_offset, base_cfg.rx_auto_fetch_additional_frames);
-    }
-    tag::r<status, bin_data> tag::command_status_response(command_code cmd, bin_data const &payload, tag::comm_cfg const &base_cfg,
-                                                std::size_t secure_offset)
-    {
-        return command_status_response(cmd, payload, base_cfg, secure_offset, base_cfg.rx_auto_fetch_additional_frames);
-    }
-
-    tag::r<bin_data> tag::command_response(command_code cmd, bin_data const &payload, tag::comm_cfg const &base_cfg)
-    {
-        return command_response(cmd, payload, base_cfg, base_cfg.tx_secure_data_offset);
-    }
-
     template <class Data, class>
-    tag::r<Data> tag::command_parse_response(command_code cmd, bin_data const &payload, comm_cfg const &base_cfg)
+    tag::r<Data> tag::command_parse_response(command_code cmd, bin_data const &payload, comm_cfg const &cfg)
     {
-        return command_parse_response<Data>(cmd, payload, base_cfg, base_cfg.tx_secure_data_offset);
-    }
-
-    template <class Data, class>
-    tag::r<Data> tag::command_parse_response(command_code cmd, bin_data const &payload, comm_cfg const &base_cfg,
-                                   std::size_t secure_offset)
-    {
-        const auto res_cmd = command_response(cmd, payload, base_cfg, secure_offset);
+        const auto res_cmd = command_response(cmd, payload, cfg);
         if (not res_cmd) {
             return res_cmd.error();
         }

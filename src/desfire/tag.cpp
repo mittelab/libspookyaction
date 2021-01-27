@@ -12,6 +12,22 @@
 
 namespace desfire {
 
+    namespace {
+        void log_not_empty(command_code cmd, bin_data const &bd) {
+            if (not bd.empty()) {
+                DESFIRE_LOGW("%s: stray data (%d bytes) in response.", to_string(cmd), bd.size());
+                ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG, bd.data(), bd.size(), ESP_LOG_DEBUG);
+            }
+        }
+        tag::r<> safe_drop_payload(command_code cmd, tag::r<bin_data> const &result) {
+            if (result) {
+                log_not_empty(cmd, *result);
+                return result_success;
+            }
+            return result.error();
+        }
+    }
+
     void tag::logout() {
         /// @todo Actually deauth
         _active_cipher = std::unique_ptr<cipher>(new cipher_dummy{});
@@ -42,7 +58,7 @@ namespace desfire {
             DESFIRE_LOGI("Selected application %02x %02x %02x.", app[0], app[1], app[2]);
             _active_app = app;
         }
-        return res_cmd;
+        return safe_drop_payload(command_code::select_application, res_cmd);
     }
 
     tag::r<> tag::authenticate(const any_key &k) {
@@ -247,9 +263,10 @@ namespace desfire {
             DESFIRE_LOGW("%s: attempt to create an app where keys and settings cannot be changed; this is probably a "
                          "mistake.", to_string(command_code::create_application));
         }
-        return command_response(command_code::create_application,
-                                bin_data::chain(prealloc(5), new_app_id, settings),
-                                comm_mode::plain);
+        return safe_drop_payload(command_code::create_application, command_response(
+                command_code::create_application,
+                bin_data::chain(prealloc(5), new_app_id, settings),
+                comm_mode::plain));
     }
 
     tag::r<> tag::change_key_settings(key_rights new_rights) {
@@ -263,9 +280,10 @@ namespace desfire {
         if (active_key_no() >= bits::max_keys_per_app) {
             DESFIRE_LOGW("%s: not authenticated, likely to fail.", to_string(command_code::change_key_settings));
         }
-        return command_response(command_code::change_key_settings,
-                                bin_data::chain(new_rights),
-                                {cipher_cfg_crypto, cipher_cfg_plain});
+        return safe_drop_payload(command_code::change_key_settings, command_response(
+                command_code::change_key_settings,
+                bin_data::chain(new_rights),
+                {cipher_cfg_crypto, cipher_cfg_plain}));
     }
 
     tag::r<> tag::delete_application(app_id const &app) {
@@ -288,7 +306,7 @@ namespace desfire {
             logout();
             _active_app = root_app;
         }
-        return res_cmd;
+        return safe_drop_payload(command_code::format_picc, res_cmd);
     }
 
     tag::r<> tag::change_key(any_key const &new_key)
@@ -380,7 +398,7 @@ namespace desfire {
         } else {
             DESFIRE_LOGW("Could not change key %d (%s): %s.", new_key.key_number(), to_string(new_key.type()), to_string(res_cmd.error()));
         }
-        return res_cmd;
+        return safe_drop_payload(command_code::change_key, res_cmd);
     }
 
     tag::r<std::vector<file_id>> tag::get_file_ids() {
@@ -410,12 +428,12 @@ namespace desfire {
                              to_string(command_code::change_file_settings));
             }
         }
-        return command_response(
+        return safe_drop_payload(command_code::change_file_settings, command_response(
                 command_code::change_file_settings,
                 bin_data::chain(fid, settings),
                 *res_mode,
                 2  // After command code and file id
-        );
+        ));
     }
 
 
@@ -510,11 +528,7 @@ namespace desfire {
                              to_string(res_packet->first));
                 return error_from_status(res_packet->first);
             }
-            if (not res_packet->second.empty()) {
-                DESFIRE_LOGW("%s: stray data in response (%d bytes).", to_string(command_code::write_data),
-                             res_packet->second.size());
-                ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG, res_packet->second.data(), res_packet->second.size(), ESP_LOG_WARN);
-            }
+            log_not_empty(command_code::write_data, res_packet->second);
         }
         return result_success;
     }
@@ -537,14 +551,16 @@ namespace desfire {
         if (fid > bits::max_standard_data_file_id) {
             return error::parameter_error;
         }
-        return command_response(command_code::create_std_data_file, bin_data::chain(fid, settings), comm_mode::plain);
+        return safe_drop_payload(command_code::create_std_data_file, command_response(
+                command_code::create_std_data_file, bin_data::chain(fid, settings), comm_mode::plain));
     }
 
     tag::r<> tag::create_file(file_id fid, file_settings<file_type::backup> const &settings) {
         if (fid > bits::max_backup_data_file_id) {
             return error::parameter_error;
         }
-        return command_response(command_code::create_backup_data_file, bin_data::chain(fid, settings), comm_mode::plain);
+        return safe_drop_payload(command_code::create_backup_data_file, command_response(
+                command_code::create_backup_data_file, bin_data::chain(fid, settings), comm_mode::plain));
     }
 
     tag::r<> tag::create_file(file_id fid, file_settings<file_type::value> const &settings) {
@@ -554,7 +570,8 @@ namespace desfire {
         if (settings.upper_limit < settings.lower_limit) {
             return error::parameter_error;
         }
-        return command_response(command_code::create_value_file, bin_data::chain(fid, settings), comm_mode::plain);
+        return safe_drop_payload(command_code::create_value_file, command_response(
+                command_code::create_value_file, bin_data::chain(fid, settings), comm_mode::plain));
     }
 
     tag::r<> tag::create_file(file_id fid, file_settings<file_type::linear_record> const &settings) {
@@ -564,7 +581,8 @@ namespace desfire {
         if (settings.record_size < 1) {
             return error::parameter_error;
         }
-        return command_response(command_code::create_linear_record_file, bin_data::chain(fid, settings), comm_mode::plain);
+        return safe_drop_payload(command_code::create_linear_record_file, command_response(
+                command_code::create_linear_record_file, bin_data::chain(fid, settings), comm_mode::plain));
     }
 
     tag::r<> tag::create_file(file_id fid, file_settings<file_type::cyclic_record> const &settings) {
@@ -577,27 +595,32 @@ namespace desfire {
         if (settings.max_record_count < 2) {
             return error::parameter_error;
         }
-        return command_response(command_code::create_cyclic_record_file, bin_data::chain(fid, settings), comm_mode::plain);
+        return safe_drop_payload(command_code::create_cyclic_record_file, command_response(
+                command_code::create_cyclic_record_file, bin_data::chain(fid, settings), comm_mode::plain));
     }
 
     tag::r<> tag::delete_file(file_id fid) {
-        return command_response(command_code::delete_file, bin_data::chain(fid), comm_mode::plain);
+        return safe_drop_payload(command_code::delete_file, command_response(
+                command_code::delete_file, bin_data::chain(fid), comm_mode::plain));
     }
 
     tag::r<> tag::clear_record_file(file_id fid) {
         if (fid > bits::max_record_file_id) {
             return error::parameter_error;
         }
-        return command_response(command_code::clear_record_file, bin_data::chain(fid), comm_mode::plain);
+        return safe_drop_payload(command_code::clear_record_file, command_response(
+                command_code::clear_record_file, bin_data::chain(fid), comm_mode::plain));
     }
 
 
     tag::r<> tag::commit_transaction() {
-        return command_response(command_code::commit_transaction, bin_data{}, comm_mode::plain);
+        return safe_drop_payload(command_code::commit_transaction, command_response(
+                command_code::commit_transaction, bin_data{}, comm_mode::plain));
     }
 
     tag::r<> tag::abort_transaction() {
-        return command_response(command_code::abort_transaction, bin_data{}, comm_mode::plain);
+        return safe_drop_payload(command_code::abort_transaction, command_response(
+                command_code::abort_transaction, bin_data{}, comm_mode::plain));
     }
 
 }

@@ -33,6 +33,8 @@ namespace desfire {
 
         virtual void prepare_tx(bin_data &data, std::size_t offset, config const &cfg) = 0;
 
+        virtual std::size_t maximal_data_length(std::size_t payload_limit, config const &cfg) = 0;
+
         /**
          * Assume that status byte comes last.
          */
@@ -65,6 +67,18 @@ namespace desfire {
         bool do_mac;        // If required by protocol and comm_mode
         bool do_cipher;     // If required by protocol and comm_mode
         bool do_crc;        // If required by protocol and comm_mode
+
+        /**
+         * Helper function that computes the maximum data length that can be processed by this config and still fit into
+         * a packet of size @p payload_limit. This function assumes that:
+         *  - if @ref mode is @ref comm_mode::mac and @ref do_mac, a MAC of length ''MACSize'' is appended
+         *  - if @ref mode is @ref comm_mode::cipher and @ref do_crc, a CRC of length ''CRCSize'' is appended before
+         *    encryption.
+         *  - if @ref mode is @ref comm_mode::cipher and @ref do_cipher, the payload (which may have had a CRC appended)
+         *    is padded to the next multiple of ''BlockSize''.
+         */
+        template <std::size_t BlockSize, std::size_t MACSize, std::size_t CRCSize>
+        std::size_t get_max_data_length(std::size_t payload_limit) const;
     };
 
     static constexpr cipher::config cipher_cfg_plain{
@@ -139,6 +153,23 @@ namespace desfire {
             case cipher_iv::zero:   return "zero (local)";
             default: return "UNKNOWN";
         }
+    }
+
+    template <std::size_t BlockSize, std::size_t MACSize, std::size_t CRCSize>
+    std::size_t cipher::config::get_max_data_length(std::size_t payload_limit) const {
+        if (mode == comm_mode::mac and do_mac) {
+            return std::max(payload_limit, MACSize) - MACSize;
+        }
+        if (mode == comm_mode::cipher and do_cipher) {
+            // Get the largest multipe of block size fitting in payload_limit
+            const auto max_blocks = payload_limit / BlockSize;
+            if (do_crc) {
+                return std::max(CRCSize, max_blocks * BlockSize) - CRCSize;
+            } else {
+                return max_blocks * BlockSize;
+            }
+        }
+        return payload_limit;
     }
 }
 

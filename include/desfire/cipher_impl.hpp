@@ -66,6 +66,14 @@ namespace desfire {
                 DESFIRE_LOGE("Dummy cipher supports only plain comm mode.");
             }
         }
+
+        std::size_t maximal_data_length(std::size_t payload_limit, const config &cfg) override {
+            if (cfg.mode != comm_mode::plain) {
+                DESFIRE_LOGE("Dummy cipher supports only plain comm mode.");
+            }
+            return payload_limit;
+        }
+
         bool confirm_rx(bin_data &, config const &cfg) override {
             if (cfg.mode != comm_mode::plain) {
                 DESFIRE_LOGE("Dummy cipher supports only plain comm mode.");

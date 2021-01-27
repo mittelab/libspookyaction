@@ -40,6 +40,8 @@ namespace desfire {
         void prepare_tx(bin_data &data, std::size_t offset, config const &cfg) final;
 
         bool confirm_rx(bin_data &data, config const &cfg) final;
+
+        std::size_t maximal_data_length(std::size_t payload_limit, const config &cfg) final;
     };
 
     template <std::size_t BlockSize, std::uint8_t CMACSubkeyR>
@@ -77,6 +79,8 @@ namespace desfire {
          * @param status The CRC is always computed on ''data || status'', so we always need to update it for that
          */
         bool drop_padding_verify_crc(bin_data &d, std::uint8_t status);
+
+        std::size_t maximal_data_length(std::size_t payload_limit, const config &cfg) final;
 
         void prepare_tx(bin_data &data, std::size_t offset, config const &cfg) final;
 

@@ -106,6 +106,12 @@ namespace desfire {
     }
 
     template <std::size_t BlockSize, std::uint8_t CMACSubkeyR>
+    std::size_t cipher_scheme<BlockSize, CMACSubkeyR>::maximal_data_length(std::size_t payload_limit, const config &cfg)
+    {
+        return cfg.template get_max_data_length<BlockSize, traits_base::mac_size, traits_base::crc_size>(payload_limit);
+    }
+
+    template <std::size_t BlockSize, std::uint8_t CMACSubkeyR>
     void cipher_scheme<BlockSize, CMACSubkeyR>::prepare_tx(
             bin_data &data, std::size_t offset, cipher::config const &cfg) {
         DESFIRE_LOGD("Modern protocol, preparing outgoing data with comm mode %s, (C)MAC: %d, CRC: %d, cipher: %d, global IV: %d.",

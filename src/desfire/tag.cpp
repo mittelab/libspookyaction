@@ -142,14 +142,22 @@ namespace desfire {
         return result_success;
     }
 
-    tag::r<status, bin_data> tag::command_status_response(bin_data &payload, tag::comm_cfg const &cfg) {
+    tag::r<status, bin_data> tag::command_status_response(command_code cmd, bin_data const &payload, tag::comm_cfg const &cfg)
+    {
+        static bin_data buffer{};
+        // Prepend the command to the shared buffer
+        buffer.clear();
+        buffer.reserve(payload.size() + 1);
+        buffer << cmd << payload;
+
+        DESFIRE_LOGD("%s: sending command.", to_string(cmd));
         if (_active_cipher == nullptr and cfg.override_cipher == nullptr) {
             DESFIRE_LOGE("No active cipher and no override cipher: 'tag' was put in an invalid state. This is a coding "
                          "mistake.");
             return error::crypto_error;
         }
         DESFIRE_LOGD("TX mode: %s, (C)MAC: %d, CRC: %d, cipher: %d, ofs: %u/%u", to_string(cfg.tx.mode), cfg.tx.do_mac,
-                     cfg.tx.do_crc, cfg.tx.do_cipher, cfg.tx_secure_data_offset, payload.size());
+                     cfg.tx.do_crc, cfg.tx.do_cipher, cfg.tx_secure_data_offset, buffer.size());
         DESFIRE_LOGD("RX mode: %s, (C)MAC: %d, CRC: %d, cipher: %d, additional frames: %u", to_string(cfg.rx.mode),
                      cfg.rx.do_mac, cfg.rx.do_crc, cfg.rx.do_cipher, cfg.rx_auto_fetch_additional_frames);
         // Select the cipher
@@ -157,21 +165,21 @@ namespace desfire {
         bin_data received{};
         bool additional_frames = cfg.rx_auto_fetch_additional_frames;
 
-        c.prepare_tx(payload, cfg.tx_secure_data_offset, cfg.tx);
+        c.prepare_tx(buffer, cfg.tx_secure_data_offset, cfg.tx);
 
         do {
-            const auto res = raw_command_response(payload);
+            const auto res = raw_command_response(buffer);
             if (not res) {
                 return res.error();
             }
             if (res->empty()) {
-                DESFIRE_LOGE("Received empty payload from card.");
+                DESFIRE_LOGE("Received empty buffer from card.");
                 return error::malformed;
             }
-            // Prepare the next payload if necessary
+            // Prepare the next buffer if necessary
             if (additional_frames and received.empty()) {
-                payload.clear();
-                payload << command_code::additional_frame;
+                buffer.clear();
+                buffer << command_code::additional_frame;
             }
             // Append data, but put status byte at the end
             received << prealloc(res->size()) << res->view(1) << res->front();
@@ -179,7 +187,7 @@ namespace desfire {
             if (additional_frames) {
                 const auto sb = static_cast<status>(received.back());
                 if (sb == status::additional_frame) {
-                    // The "more frames" status is not part of the payload
+                    // The "more frames" status is not part of the buffer
                     received.pop_back();
                 } else {
                     // Signal stop
@@ -202,20 +210,6 @@ namespace desfire {
         ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG, received.data(), received.size(), ESP_LOG_DEBUG);
 
         return {sb, std::move(received)};
-    }
-
-    tag::r<status, bin_data> tag::command_status_response(
-            command_code cmd, bin_data const &payload, tag::comm_cfg const &cfg)
-    {
-        static bin_data buffer{};
-        buffer.clear();
-        buffer.reserve(payload.size() + 1);
-        // Add the command
-        buffer << cmd << payload;
-
-        // Override the config
-        DESFIRE_LOGD("%s: sending command.", to_string(cmd));
-        return command_status_response(buffer, cfg);
     }
 
     tag::r<bin_data> tag::command_response(command_code cmd, const bin_data &payload, const tag::comm_cfg &cfg)

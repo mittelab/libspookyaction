@@ -50,8 +50,6 @@ namespace desfire {
 
         r<bin_data> raw_command_response(bin_data const &payload);
 
-        r<status, bin_data> command_status_response(bin_data &payload, comm_cfg const &cfg);
-
         r<status, bin_data> command_status_response(command_code cmd, bin_data const &payload, comm_cfg const &cfg);
 
         /**

@@ -349,8 +349,8 @@ namespace desfire {
         const std::uint8_t key_no_flag = (active_app() == root_app
                 ? key_no_to_change | static_cast<std::uint8_t>(app_crypto_from_cipher(new_key.type()))
                 : key_no_to_change);
-        bin_data payload{};
-        payload << prealloc(33) << key_no_flag;
+        bin_data payload{prealloc(33)};
+        payload << key_no_flag;
         // Changing from a different key requires to xor it with that other key
         if (current_key != nullptr) {
             payload << new_key.xored_with(*current_key);
@@ -460,8 +460,8 @@ namespace desfire {
         }
         const cipher::config rx_cfg{*res_mode, true, true, true};
         const comm_cfg cfg{cipher_cfg_plain, rx_cfg};
-        bin_data payload;
-        payload << prealloc(7) << fid << lsb24 << offset << lsb24 << length;
+        bin_data payload{prealloc(7)};
+        payload << fid << lsb24 << offset << lsb24 << length;
         return command_response(command_code::read_data, payload, cfg);
     }
 

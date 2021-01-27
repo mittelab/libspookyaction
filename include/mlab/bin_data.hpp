@@ -58,6 +58,12 @@ namespace mlab {
         inline operator bool() const;
     };
 
+    struct prealloc {
+        inline explicit prealloc(std::size_t size) : requested_size{size} {}
+
+        std::size_t requested_size = 0;
+    };
+
     class bin_data : public std::vector<std::uint8_t> {
     public:
         bin_data() = default;
@@ -67,6 +73,8 @@ namespace mlab {
         inline explicit bin_data(range<const_iterator> const &view);
 
         inline explicit bin_data(std::vector<std::uint8_t> &&data);
+
+        inline explicit bin_data(prealloc const &pa);
 
         template <class ByteIterator>
         inline bin_data(ByteIterator begin, ByteIterator end);
@@ -83,12 +91,6 @@ namespace mlab {
 
         template <class ...ByteOrByteContainers>
         static bin_data chain(ByteOrByteContainers &&...others);
-    };
-
-    struct prealloc {
-        inline explicit prealloc(std::size_t size) : requested_size{size} {}
-
-        std::size_t requested_size = 0;
     };
 
     inline bin_data &operator<<(bin_data &bd, prealloc const &pa);
@@ -273,6 +275,10 @@ namespace mlab {
     bin_data::bin_data(std::initializer_list<std::uint8_t> data) : std::vector<uint8_t>{data} {}
 
     bin_data::bin_data(std::vector<std::uint8_t> &&data) : std::vector<uint8_t>{std::move(data)} {}
+
+    bin_data::bin_data(prealloc const &pa) : bin_data{} {
+        reserve(pa.requested_size);
+    }
 
     bin_data::bin_data(range<const_iterator> const &view) : bin_data{std::begin(view), std::end(view)} {}
 

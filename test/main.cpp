@@ -556,8 +556,10 @@ void test_mifare_create_delete_files() {
     using desfire::file_type;
     using desfire::file_settings;
 
+    const desfire::bin_data file_data = {0x25, 0xC4, 0xAA, 0xBA, 0x19, 0x65, 0xD9, 0x69, 0x04, 0x34, 0x77, 0x02, 0x70, 0x26, 0x35, 0xA2};
+
     const desfire::generic_file_settings gfs_plain{desfire::comm_mode::plain, desfire::access_rights{0}};
-    const desfire::data_file_settings dfs{.size = 1 /* byte */};
+    const desfire::data_file_settings dfs{.size = file_data.size()};
     const desfire::record_file_settings rfs{.record_size = 1, .max_record_count = 2, .record_count = 0};
     const desfire::value_file_settings vfs{.lower_limit = 0, .upper_limit = 10, .value = 0, .limited_credit_enabled = true};
     const std::array<any_file_settings, 5> files = {

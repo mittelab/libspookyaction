@@ -74,6 +74,13 @@ namespace desfire {
             .do_crc = true
     };
 
+    static constexpr cipher::config cipher_cfg_mac{
+            .mode = comm_mode::mac,
+            .do_mac = true,
+            .do_cipher = true,
+            .do_crc = true
+    };
+
     static constexpr cipher::config cipher_cfg_crypto{
             .mode = comm_mode::cipher,
             .do_mac = true,

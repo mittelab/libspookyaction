@@ -130,6 +130,8 @@ namespace mlab {
 
         inline std::uint8_t pop();
 
+        inline range<bin_data::const_iterator> peek();
+
         inline bool good() const;
 
         inline bool eof() const;
@@ -379,6 +381,13 @@ namespace mlab {
             }
         }
         return std::numeric_limits<std::size_t>::max();
+    }
+
+    range<bin_data::const_iterator> bin_stream::peek() {
+        if (good()) {
+            return _data->view(_pos);
+        }
+        return {};
     }
 
     range<bin_data::const_iterator> bin_stream::read(std::size_t n) {

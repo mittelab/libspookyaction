@@ -55,10 +55,6 @@ namespace desfire {
         return false;
     }
 
-    std::size_t cipher_legacy_scheme::maximal_data_length(std::size_t payload_limit, const config &cfg) {
-        return cfg.get_max_data_length<block_size, mac_size, crc_size>(payload_limit);
-    }
-
     void cipher_legacy_scheme::prepare_tx(bin_data &data, std::size_t offset, cipher::config const &cfg) {
         if (offset >= data.size()) {
             return;  // Nothing to do

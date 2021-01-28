@@ -175,67 +175,57 @@ namespace desfire {
         return result_success;
     }
 
-    tag::r<status, bin_data> tag::command_status_response(command_code cmd, bin_data const &data, comm_cfg const &cfg) {
-        bin_stream s{data};
-        return command_status_response(cmd, s, cfg);
-    }
 
-    tag::r<status, bin_data> tag::command_status_response(command_code cmd, bin_stream &data, comm_cfg const &cfg)
+    tag::r<status, bin_data> tag::command_status_response(command_code cmd, bin_data const &data, comm_cfg const &cfg)
     {
         if (_active_cipher == nullptr and cfg.override_cipher == nullptr) {
             DESFIRE_LOGE("No active cipher and no override cipher: 'tag' is in an invalid state (coding mistake).");
             return error::crypto_error;
         }
 
+        static constexpr std::size_t chunk_size = bits::max_packet_length;
+        static bin_data tx_buffer;
+        static bin_data chunk_buffer{prealloc(chunk_size)};
+
         // If we exit prematurely, and we are using the cipher of this tag, trigger a logout by error.
         auto_logout logout_on_error{*this, cfg.override_cipher != nullptr};
 
-        ESP_LOGD(DESFIRE_TAG " >>", "%s: sending %d bytes + command code.", to_string(cmd), data.remaining());
-        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " >>", data.peek().data(), data.remaining(), ESP_LOG_DEBUG);
+        // Select the right cipher and prepare the buffers
+        cipher &c = cfg.override_cipher == nullptr ? *_active_cipher : *cfg.override_cipher;
+        bin_data rx_buffer;
+        chunk_buffer.clear();
+        tx_buffer.clear();
+
+        ESP_LOGD(DESFIRE_TAG " >>", "%s: sending %d bytes + command code.", to_string(cmd), data.size());
+        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " >>", data.data(), data.size(), ESP_LOG_DEBUG);
         ESP_LOGD(DESFIRE_TAG " >>", "%s: TX mode: %s, (C)MAC: %d, CRC: %d, cipher: %d, ofs: %u", to_string(cmd),
                  to_string(cfg.tx.mode), cfg.tx.do_mac, cfg.tx.do_crc, cfg.tx.do_cipher, cfg.tx_secure_data_offset);
 
-        static constexpr std::size_t chunk_size = bits::max_packet_length;
-        static bin_data tx_buffer{prealloc(chunk_size)};
-        tx_buffer.clear();
-        cipher &c = cfg.override_cipher == nullptr ? *_active_cipher : *cfg.override_cipher;
+        // Assemble data to transmit and preprocess
+        tx_buffer << prealloc(data.size() + 1) << cmd << data;
+        c.prepare_tx(tx_buffer, cfg.tx_secure_data_offset, cfg.tx);
 
-        /** Maximal @ref data length we can append after the command code.
-         * @note Compute the maximal amount of data we can transmit in the first packet. When reducing the chunk size to
-         * the amount subject to enciphering or MACing, we need to add 1 to account for the command code.
-         */
-        const auto max_data_chunk0 = saturate_sub(cfg.tx_secure_data_offset, 1u) +
-                c.maximal_data_length(saturate_sub(chunk_size, cfg.tx_secure_data_offset + 1), cfg.tx);
-
-        /** Maximal @ref data length we can append after additional_frame in a chunk other than the first.
-         */
-        const auto max_data_chunkn = c.maximal_data_length(chunk_size - 1, cfg.tx);
-
-        /** Total number of chunks that we will send.
-         */
-        const auto num_tx_chunks = 1 + div_round_up(saturate_sub(data.remaining(), max_data_chunk0), max_data_chunkn);
+        // How many chunks does this require?
+        const auto num_tx_chunks = 1 + div_round_up(saturate_sub(tx_buffer.size(), chunk_size), chunk_size - 1);
 
         // Sequentially send and read. The loop will go on as long as we have data to receive.
         status last_status = status::additional_frame;
-        bin_data rx_buffer;
+        bin_stream tx_stream{tx_buffer};
 
-        for (std::size_t chunk_idx = 0; last_status == status::additional_frame; ++chunk_idx, tx_buffer.clear()) {
-            assert(tx_buffer.empty());
+        for (std::size_t chunk_idx = 0; last_status == status::additional_frame; ++chunk_idx, chunk_buffer.clear()) {
+            assert(chunk_buffer.empty());
             // Prepare packet to send: CMD + DATA for the first, AF + DATA afterwards.
             if (chunk_idx == 0) {
-                tx_buffer << cmd << data.read(std::min(data.remaining(), max_data_chunk0));
-                c.prepare_tx(tx_buffer, cfg.tx_secure_data_offset, cfg.tx);
+                chunk_buffer << tx_stream.read(std::min(tx_stream.remaining(), chunk_size));
             } else {
-                tx_buffer << command_code::additional_frame << data.read(std::min(data.remaining(), max_data_chunkn));
-                c.prepare_tx(tx_buffer, 1, cfg.tx);
+                chunk_buffer << command_code::additional_frame << tx_stream.read(std::min(tx_stream.remaining(), chunk_size - 1));
             }
-            assert(tx_buffer.size() <= bits::max_packet_length);
             if (chunk_idx < num_tx_chunks) {
                 DESFIRE_LOGD("%s: exchanging chunk %d (command data %d/%d).", to_string(cmd), chunk_idx + 1,
                              chunk_idx + 1, num_tx_chunks);
             } else {
                 DESFIRE_LOGD("%s: exchanging chunk %d (additional response frame).", to_string(cmd), chunk_idx + 1);
-                assert(data.eof());
+                assert(tx_stream.eof());
             }
 
             // Actual transmission
@@ -256,13 +246,13 @@ namespace desfire {
 
             // If we are done with the data and we do not fetch additional frames, we abort the loop no matter what the
             // state is.
-            if (data.eof() and not cfg.rx_auto_fetch_additional_frames) {
+            if (tx_stream.eof() and not cfg.rx_auto_fetch_additional_frames) {
                 break;
             }
         }
 
-        if (not data.eof()) {
-            DESFIRE_LOGE("%s: still %d bytes left, but the card returned %s.", to_string(cmd), data.remaining(),
+        if (not tx_stream.eof()) {
+            DESFIRE_LOGE("%s: still %d bytes left, but the card returned %s.", to_string(cmd), tx_stream.remaining(),
                          to_string(last_status));
             DESFIRE_LOGE("%s: received %d bytes + status.", to_string(cmd), rx_buffer.size());
             return error::malformed;

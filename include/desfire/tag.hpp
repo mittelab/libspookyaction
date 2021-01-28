@@ -64,7 +64,6 @@ namespace desfire {
          * @see command_response
          * @see command_parse_response
          */
-        r<status, bin_data> command_status_response(command_code cmd, bin_stream &data, comm_cfg const &cfg);
         r<status, bin_data> command_status_response(command_code cmd, bin_data const &data, comm_cfg const &cfg);
 
         /**

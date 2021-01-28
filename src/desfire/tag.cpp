@@ -268,24 +268,21 @@ namespace desfire {
 
         ESP_LOGD(DESFIRE_TAG " <<", "%s: RX mode: %s, (C)MAC: %d, CRC: %d, cipher: %d", to_string(cmd),
                  to_string(cfg.tx.mode), cfg.tx.do_mac, cfg.tx.do_crc, cfg.tx.do_cipher);
-        if (rx_buffer.empty()) {
-            ESP_LOGD(DESFIRE_TAG " <<", "Skipping preprocessing, received only status %s.", to_string(last_status));
-        } else {
-            // Postprocessing requires to know the status byte
-            rx_buffer << last_status;
-            if (not c.confirm_rx(rx_buffer, cfg.rx)) {
-                DESFIRE_LOGE("%s: received data did not pass validation.", to_string(cmd));
-                DESFIRE_LOGD("%s: status would have been %02x: %s.", to_string(cmd),
-                             static_cast<std::uint8_t>(last_status), to_string(last_status));
-                ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG, rx_buffer.data(), rx_buffer.size(), ESP_LOG_DEBUG);
-                return error::crypto_error;
-            }
-            assert(not rx_buffer.empty() and rx_buffer.back() == static_cast<std::uint8_t>(last_status));
-            rx_buffer.pop_back();
-            ESP_LOGD(DESFIRE_TAG " <<", "%s: received %d bytes + status: %s.", to_string(cmd), rx_buffer.size(),
-                     to_string(last_status));
-            ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " <<", rx_buffer.data(), rx_buffer.size(), ESP_LOG_DEBUG);
+
+        // Postprocessing requires to know the status byte
+        rx_buffer << last_status;
+        if (not c.confirm_rx(rx_buffer, cfg.rx)) {
+            DESFIRE_LOGE("%s: received data did not pass validation.", to_string(cmd));
+            DESFIRE_LOGD("%s: status would have been %02x: %s.", to_string(cmd),
+                         static_cast<std::uint8_t>(last_status), to_string(last_status));
+            ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG, rx_buffer.data(), rx_buffer.size(), ESP_LOG_DEBUG);
+            return error::crypto_error;
         }
+        assert(not rx_buffer.empty() and rx_buffer.back() == static_cast<std::uint8_t>(last_status));
+        rx_buffer.pop_back();
+        ESP_LOGD(DESFIRE_TAG " <<", "%s: received %d bytes + status: %s.", to_string(cmd), rx_buffer.size(),
+                 to_string(last_status));
+        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " <<", rx_buffer.data(), rx_buffer.size(), ESP_LOG_DEBUG);
 
         // Passthrough the status byte, the caller decides if that is an error.
         logout_on_error.assume_success = true;

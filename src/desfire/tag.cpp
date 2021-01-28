@@ -231,9 +231,10 @@ namespace desfire {
             }
             assert(tx_buffer.size() <= bits::max_packet_length);
             if (chunk_idx < num_tx_chunks) {
-                DESFIRE_LOGD("%s: sending command chunk %d/%d.", to_string(cmd), chunk_idx + 1, num_tx_chunks);
+                DESFIRE_LOGD("%s: exchanging chunk %d (command data %d/%d).", to_string(cmd), chunk_idx + 1,
+                             chunk_idx + 1, num_tx_chunks);
             } else {
-                DESFIRE_LOGD("%s: requesting response chunk %d.", to_string(cmd), chunk_idx + 1 - num_tx_chunks);
+                DESFIRE_LOGD("%s: exchanging chunk %d (additional response frame).", to_string(cmd), chunk_idx + 1);
                 assert(data.eof());
             }
 

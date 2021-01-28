@@ -197,6 +197,7 @@ namespace desfire {
 
         static constexpr std::size_t chunk_size = bits::max_packet_length;
         static bin_data tx_buffer{prealloc(chunk_size)};
+        tx_buffer.clear();
         cipher &c = cfg.override_cipher == nullptr ? *_active_cipher : *cfg.override_cipher;
 
         /** Maximal @ref data length we can append after the command code.

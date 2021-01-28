@@ -63,7 +63,7 @@ namespace ut {
         }
 
         ~session() {
-            tag.logout();
+            tag.logout(false);
         }
     };
 

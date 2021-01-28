@@ -26,10 +26,42 @@ namespace desfire {
             }
             return result.error();
         }
+
+        template <class T, class = typename std::enable_if<std::is_unsigned<T>::value>::type>
+        T saturate_sub(T a, T b) {
+            return std::max(a, b) - b;
+        }
+
+        namespace impl {
+            template<class> struct larger_signed {};
+            template <> struct larger_signed<unsigned int> {
+                using type = long;
+            };
+        }
+
+        template <class T>
+        T div_round_up(T n, T divisor) {
+            using larger_signed = typename impl::larger_signed<T>::type;
+            const auto div_result = std::div(larger_signed(n), larger_signed(divisor));
+            return T(div_result.quot) + (div_result.rem == 0 ? 0 : 1);
+        }
     }
 
-    void tag::logout() {
-        /// @todo Actually deauth
+    struct tag::auto_logout {
+        tag &owner;
+        bool assume_success;
+
+        ~auto_logout() {
+            if (not assume_success) {
+                owner.logout(true);
+            }
+        }
+    };
+
+    void tag::logout(bool due_to_error) {
+        if (due_to_error and active_cipher_type() != cipher_type::none) {
+            DESFIRE_LOGE("Authentication will have to be performed again.");
+        }
         _active_cipher = std::unique_ptr<cipher>(new cipher_dummy{});
         _active_cipher_type = cipher_type::none;
         _active_key_number = std::numeric_limits<std::uint8_t>::max();
@@ -56,6 +88,7 @@ namespace desfire {
         const auto res_cmd =  command_response(command_code::select_application, bin_data::chain(app), comm_mode::plain);
         if (res_cmd) {
             DESFIRE_LOGI("Selected application %02x %02x %02x.", app[0], app[1], app[2]);
+            logout(false);
             _active_app = app;
         }
         return safe_drop_payload(command_code::select_application, res_cmd);
@@ -63,7 +96,7 @@ namespace desfire {
 
     tag::r<> tag::authenticate(const any_key &k) {
         /// Clear preexisting authentication, check parms
-        logout();
+        logout(false);
         if (k.type() == cipher_type::none) {
             return error::parameter_error;
         }
@@ -142,91 +175,139 @@ namespace desfire {
         return result_success;
     }
 
-    tag::r<status, bin_data> tag::command_status_response(command_code cmd, bin_data const &payload, tag::comm_cfg const &cfg)
-    {
-        static bin_data buffer{};
-        // Prepend the command to the shared buffer
-        buffer.clear();
-        buffer.reserve(payload.size() + 1);
-        buffer << cmd << payload;
+    tag::r<status, bin_data> tag::command_status_response(command_code cmd, bin_data const &data, comm_cfg const &cfg) {
+        bin_stream s{data};
+        return command_status_response(cmd, s, cfg);
+    }
 
-        DESFIRE_LOGD("%s: sending command.", to_string(cmd));
+    tag::r<status, bin_data> tag::command_status_response(command_code cmd, bin_stream &data, comm_cfg const &cfg)
+    {
         if (_active_cipher == nullptr and cfg.override_cipher == nullptr) {
-            DESFIRE_LOGE("No active cipher and no override cipher: 'tag' was put in an invalid state. This is a coding "
-                         "mistake.");
+            DESFIRE_LOGE("No active cipher and no override cipher: 'tag' is in an invalid state (coding mistake).");
             return error::crypto_error;
         }
-        DESFIRE_LOGD("TX mode: %s, (C)MAC: %d, CRC: %d, cipher: %d, ofs: %u/%u", to_string(cfg.tx.mode), cfg.tx.do_mac,
-                     cfg.tx.do_crc, cfg.tx.do_cipher, cfg.tx_secure_data_offset, buffer.size());
-        DESFIRE_LOGD("RX mode: %s, (C)MAC: %d, CRC: %d, cipher: %d, additional frames: %u", to_string(cfg.rx.mode),
-                     cfg.rx.do_mac, cfg.rx.do_crc, cfg.rx.do_cipher, cfg.rx_auto_fetch_additional_frames);
-        // Select the cipher
+
+        // If we exit prematurely, and we are using the cipher of this tag, trigger a logout by error.
+        auto_logout logout_on_error{*this, cfg.override_cipher != nullptr};
+
+        ESP_LOGD(DESFIRE_TAG " >>", "%s: sending %d bytes + command code.", to_string(cmd), data.remaining());
+        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " >>", data.peek().data(), data.remaining(), ESP_LOG_DEBUG);
+        ESP_LOGD(DESFIRE_TAG " >>", "%s: TX mode: %s, (C)MAC: %d, CRC: %d, cipher: %d, ofs: %u", to_string(cmd),
+                 to_string(cfg.tx.mode), cfg.tx.do_mac, cfg.tx.do_crc, cfg.tx.do_cipher, cfg.tx_secure_data_offset);
+
+        static constexpr std::size_t chunk_size = bits::max_packet_length;
+        static bin_data tx_buffer{prealloc(chunk_size)};
         cipher &c = cfg.override_cipher == nullptr ? *_active_cipher : *cfg.override_cipher;
-        bin_data received{};
-        bool additional_frames = cfg.rx_auto_fetch_additional_frames;
 
-        c.prepare_tx(buffer, cfg.tx_secure_data_offset, cfg.tx);
+        /** Maximal @ref data length we can append after the command code.
+         * @note Compute the maximal amount of data we can transmit in the first packet. When reducing the chunk size to
+         * the amount subject to enciphering or MACing, we need to add 1 to account for the command code.
+         */
+        const auto max_data_chunk0 = saturate_sub(cfg.tx_secure_data_offset, 1u) +
+                c.maximal_data_length(saturate_sub(chunk_size, cfg.tx_secure_data_offset + 1), cfg.tx);
 
-        do {
-            const auto res = raw_command_response(buffer);
-            if (not res) {
-                return res.error();
+        /** Maximal @ref data length we can append after additional_frame in a chunk other than the first.
+         */
+        const auto max_data_chunkn = c.maximal_data_length(chunk_size - 1, cfg.tx);
+
+        /** Total number of chunks that we will send.
+         */
+        const auto num_tx_chunks = 1 + div_round_up(saturate_sub(data.remaining(), max_data_chunk0), max_data_chunkn);
+
+        // Sequentially send and read. The loop will go on as long as we have data to receive.
+        status last_status = status::additional_frame;
+        bin_data rx_buffer;
+
+        for (std::size_t chunk_idx = 0; last_status == status::additional_frame; ++chunk_idx, tx_buffer.clear()) {
+            assert(tx_buffer.empty());
+            // Prepare packet to send: CMD + DATA for the first, AF + DATA afterwards.
+            if (chunk_idx == 0) {
+                tx_buffer << cmd << data.read(std::min(data.remaining(), max_data_chunk0));
+                c.prepare_tx(tx_buffer, cfg.tx_secure_data_offset, cfg.tx);
+            } else {
+                tx_buffer << command_code::additional_frame << data.read(std::min(data.remaining(), max_data_chunkn));
+                c.prepare_tx(tx_buffer, 1, cfg.tx);
             }
-            if (res->empty()) {
-                DESFIRE_LOGE("Received empty buffer from card.");
+            assert(tx_buffer.size() <= bits::max_packet_length);
+            if (chunk_idx < num_tx_chunks) {
+                DESFIRE_LOGD("%s: sending command chunk %d/%d.", to_string(cmd), chunk_idx + 1, num_tx_chunks);
+            } else {
+                DESFIRE_LOGD("%s: requesting response chunk %d.", to_string(cmd), chunk_idx + 1 - num_tx_chunks);
+                assert(data.eof());
+            }
+
+            // Actual transmission
+            const auto response = raw_command_response(tx_buffer);
+
+            // Make sure there was an actual response
+            if (not response) {
+                DESFIRE_LOGE("%s: error %s.", to_string(cmd), to_string(response.error()));
+                return response.error();
+            } else if (response->empty()) {
+                DESFIRE_LOGE("%s: received empty response.", to_string(cmd));
                 return error::malformed;
             }
-            // Prepare the next buffer if necessary
-            if (additional_frames and received.empty()) {
-                buffer.clear();
-                buffer << command_code::additional_frame;
-            }
-            // Append data, but put status byte at the end
-            received << prealloc(res->size()) << res->view(1) << res->front();
-            // Check status byte if we are to fetch additional frames
-            if (additional_frames) {
-                const auto sb = static_cast<status>(received.back());
-                if (sb == status::additional_frame) {
-                    // The "more frames" status is not part of the buffer
-                    received.pop_back();
-                } else {
-                    // Signal stop
-                    additional_frames = false;
-                }
-            }
-        } while (additional_frames);
 
-        // Can postprocess using crypto
-        if (not c.confirm_rx(received, cfg.rx)) {
-            DESFIRE_LOGW("Invalid data received (see debug log for further information):");
-            ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG, received.data(), received.size(), ESP_LOG_WARN);
-            return error::crypto_error;
+            // Collect data. The status byte will only be appended later, for now we store it
+            rx_buffer << prealloc(response->size()) << response->view(1);
+            last_status = static_cast<status>(response->front());
+
+            // If we are done with the data and we do not fetch additional frames, we abort the loop no matter what the
+            // state is.
+            if (data.eof() and not cfg.rx_auto_fetch_additional_frames) {
+                break;
+            }
         }
 
-        // Now status byte is at the end. Check for possible errors
-        const auto sb = static_cast<status>(received.back());
-        received.pop_back();
-        DESFIRE_LOGD("Response received, %u bytes excluded status (%s).", received.size(), to_string(sb));
-        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG, received.data(), received.size(), ESP_LOG_DEBUG);
+        if (not data.eof()) {
+            DESFIRE_LOGE("%s: still %d bytes left, but the card returned %s.", to_string(cmd), data.remaining(),
+                         to_string(last_status));
+            DESFIRE_LOGE("%s: received %d bytes + status.", to_string(cmd), rx_buffer.size());
+            return error::malformed;
+        }
 
-        return {sb, std::move(received)};
+        ESP_LOGD(DESFIRE_TAG " <<", "%s: RX mode: %s, (C)MAC: %d, CRC: %d, cipher: %d", to_string(cmd),
+                 to_string(cfg.tx.mode), cfg.tx.do_mac, cfg.tx.do_crc, cfg.tx.do_cipher);
+        if (rx_buffer.empty()) {
+            ESP_LOGD(DESFIRE_TAG " <<", "Skipping preprocessing, received only status %s.", to_string(last_status));
+        } else {
+            // Postprocessing requires to know the status byte
+            rx_buffer << last_status;
+            if (not c.confirm_rx(rx_buffer, cfg.rx)) {
+                DESFIRE_LOGE("%s: received data did not pass validation.", to_string(cmd));
+                DESFIRE_LOGD("%s: status would have been %02x: %s.", to_string(cmd),
+                             static_cast<std::uint8_t>(last_status), to_string(last_status));
+                ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG, rx_buffer.data(), rx_buffer.size(), ESP_LOG_DEBUG);
+                return error::crypto_error;
+            }
+            assert(not rx_buffer.empty() and rx_buffer.back() == static_cast<std::uint8_t>(last_status));
+            rx_buffer.pop_back();
+            ESP_LOGD(DESFIRE_TAG " <<", "%s: received %d bytes + status: %s.", to_string(cmd), rx_buffer.size(),
+                     to_string(last_status));
+            ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " <<", rx_buffer.data(), rx_buffer.size(), ESP_LOG_DEBUG);
+        }
+
+        // Passthrough the status byte, the caller decides if that is an error.
+        logout_on_error.assume_success = true;
+        return {last_status, std::move(rx_buffer)};
     }
 
     tag::r<bin_data> tag::command_response(command_code cmd, const bin_data &payload, const tag::comm_cfg &cfg)
     {
-        auto res_cmd = command_status_response(cmd, payload, cfg);
-        if (not res_cmd) {
-            return res_cmd.error();
+        auto_logout logout_on_error{*this, cfg.override_cipher != nullptr};
+
+        auto res_status_cmd = command_status_response(cmd, payload, cfg);
+        if (not res_status_cmd) {
+            return res_status_cmd.error();
         }
-        // Actually parse the status byte into an error code
-        if (res_cmd->first == status::ok or res_cmd->first == status::no_changes) {
-            return std::move(res_cmd->second);
+        // Check the returned status. This is the only error condition handled by this method
+        const auto cmd_status = res_status_cmd->first;
+        if (cmd_status != status::ok and cmd_status != status::no_changes) {
+            DESFIRE_LOGE("%s: failed with status %s.", to_string(cmd), to_string(cmd_status));
+            return error_from_status(cmd_status);
         }
-        DESFIRE_LOGW("%s: unsuccessful (%s); the response contains %u bytes.", to_string(cmd),
-                     to_string(res_cmd->first), res_cmd->second.size());
-        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG, res_cmd->second.data(), res_cmd->second.size(), ESP_LOG_WARN);
-        // Status are also error codes
-        return error_from_status(res_cmd->first);
+        logout_on_error.assume_success = true;
+        return std::move(res_status_cmd->second);
     }
 
     tag::r<key_settings> tag::get_key_settings() {
@@ -293,7 +374,7 @@ namespace desfire {
     tag::r<> tag::format_picc() {
         const auto res_cmd = command_response(command_code::format_picc, bin_data{}, comm_mode::plain);
         if (res_cmd) {
-            logout();
+            logout(false);
             _active_app = root_app;
         }
         return safe_drop_payload(command_code::format_picc, res_cmd);

@@ -50,12 +50,26 @@ namespace desfire {
 
         r<bin_data> raw_command_response(bin_data const &payload);
 
-        r<status, bin_data> command_status_response(command_code cmd, bin_data const &payload, comm_cfg const &cfg);
+        /**
+         * This method automatically divides @p data into appropriate chunks and sends them to the PICC, pre-processing
+         * the data to send according to @p cfg by means of @ref cipher::prepare_tx (which is called on every chunk).
+         * It will then collect the response data, and if @p cfg allows, it will also automatically concatenate all
+         * response chunks, should the PICC request to send additional frames. The response data is the post-processed
+         * by means of @ref cipher::confirm_rx, as set by @p cfg. The status byte is passed through and returned.
+         *
+         * @note Only returns an error in case of malformed packet sequence, communication error, malformed data in the
+         * sense of not passing @ref cipher::confirm_rx. All other status codes are passed through as the first result
+         * arguments. To automatically convert the status into an error, see @ref command_response or
+         * @ref command_parse_response. This is a lower level command.
+         * @see command_response
+         * @see command_parse_response
+         */
+        r<status, bin_data> command_status_response(command_code cmd, bin_stream &data, comm_cfg const &cfg);
+        r<status, bin_data> command_status_response(command_code cmd, bin_data const &data, comm_cfg const &cfg);
 
         /**
-         * Will automatically fetch all additional frames, and at the end will parse the status byte to decide whether
-         * the command was successful (@ref status::ok or @ref status::no_changes). These overloads will call the
-         * method @ref command_status_response.
+         * Will automatically fetch all additional frames if requested to do so by @p cfg, and at the end will parse the
+         * status byte to decide whether the command was successful (@ref status::ok or @ref status::no_changes).
          */
         r<bin_data> command_response(command_code cmd, bin_data const &payload, comm_cfg const &cfg);
 
@@ -86,11 +100,6 @@ namespace desfire {
         template <cipher_type Type>
         r<> authenticate(key<Type> const &k);
         r<> authenticate(any_key const &k);
-
-        /**
-         * Clears data __locally__ (i.e. it may be out of sync with the card if not called at the right time).
-         */
-        void logout();
 
         /**
          * @note After selecting a new application, the controller is logged out and a new authentication is necessary.
@@ -227,6 +236,14 @@ namespace desfire {
         inline controller &ctrl();
         inline cipher &active_cipher();
         r<> change_key_internal(any_key const *current_key, std::uint8_t key_no_to_change, any_key const &new_key);
+
+        /**
+         * Clears data __locally__ (i.e. it may be out of sync with the card if not called at the right time).
+         */
+        void logout(bool due_to_error);
+
+        struct auto_logout;
+
 
         controller *_controller;
 

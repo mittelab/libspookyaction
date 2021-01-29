@@ -86,6 +86,15 @@ namespace ut {
             app_with_keys::make<desfire::cipher_type::des3_3k>({0x0, 0x0, 0x3}, {0, {0x0, 0x2, 0x4, 0x6, 0x8, 0xa, 0xc, 0xe, 0x10, 0x12, 0x14, 0x16, 0x18, 0x1a, 0x1c, 0x1e, 0x20, 0x22, 0x24, 0x26, 0x28, 0x2a, 0x2c, 0x2e}, 0x10}),
             app_with_keys::make<desfire::cipher_type::aes128>({0x0, 0x0, 0x4}, {0, {0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf}, 0x10})
     }};
+
+    void enable_detailed_log() {
+        esp_log_level_set(DESFIRE_TAG, ESP_LOG_DEBUG);
+        esp_log_level_set(DESFIRE_TAG " >>", ESP_LOG_DEBUG);
+        esp_log_level_set(DESFIRE_TAG " <<", ESP_LOG_DEBUG);
+        esp_log_level_set(DESFIRE_TAG " TX MAC", ESP_LOG_DEBUG);
+        esp_log_level_set(DESFIRE_TAG " RX MAC", ESP_LOG_DEBUG);
+        esp_log_level_set(DESFIRE_TAG " != MAC", ESP_LOG_DEBUG);
+    }
 }
 
 void setup_uart_pn532() {
@@ -545,6 +554,10 @@ void test_mifare_change_app_key() {
         TEST_ASSERT(mifare->authenticate(app.default_key));
         TEST_ASSERT(mifare->change_key(app.secondary_key));
         TEST_ASSERT(mifare->authenticate(app.secondary_key));
+        const auto res_key_version = mifare->get_key_version(app.secondary_key.key_number());
+        TEST_ASSERT(res_key_version);
+        TEST_ASSERT_EQUAL(*res_key_version, app.secondary_key.version());
+        TEST_ASSERT(mifare->get_key_settings());
         TEST_ASSERT(mifare->change_key(app.default_key));
     }
 }

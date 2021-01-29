@@ -95,6 +95,9 @@ namespace desfire {
     }
 
     tag::r<> tag::select_application(app_id const &app) {
+        /*
+         * @bug Test if it has to be CMAC RX for modern ciphers
+         */
         const auto res_cmd =  command_response(command_code::select_application, bin_data::chain(app), comm_mode::plain);
         if (res_cmd) {
             DESFIRE_LOGI("Selected application %02x %02x %02x.", app[0], app[1], app[2]);
@@ -310,6 +313,9 @@ namespace desfire {
     }
 
     tag::r<key_settings> tag::get_key_settings() {
+        /*
+         * @bug Test if it has to be CMAC RX for modern ciphers
+         */
         return command_parse_response<key_settings>(command_code::get_key_settings, bin_data{}, comm_mode::plain);
     }
 
@@ -318,6 +324,9 @@ namespace desfire {
             DESFIRE_LOGE("%s: invalid key num %u (max %u).", to_string(command_code::get_key_version), key_num, bits::max_keys_per_app);
             return error::parameter_error;
         }
+        /*
+         * @bug Test if it has to be CMAC RX for modern ciphers
+         */
         return command_parse_response<std::uint8_t>(command_code::get_key_version, bin_data::chain(key_num),
                                                     comm_mode::plain);
     }
@@ -333,6 +342,9 @@ namespace desfire {
             DESFIRE_LOGW("%s: attempt to create an app where keys and settings cannot be changed; this is probably a "
                          "mistake.", to_string(command_code::create_application));
         }
+        /*
+         * @bug Test if it has to be CMAC RX for modern ciphers
+         */
         return safe_drop_payload(command_code::create_application, command_response(
                 command_code::create_application,
                 bin_data::chain(prealloc(5), new_app_id, settings),
@@ -357,20 +369,32 @@ namespace desfire {
     }
 
     tag::r<> tag::delete_application(app_id const &app) {
+        /*
+         * @bug Test if it has to be CMAC RX for modern ciphers
+         */
         return command_response(command_code::delete_application,
                                 bin_data::chain(app),
                                 comm_mode::plain);
     }
 
     tag::r<std::vector<app_id>> tag::get_application_ids() {
+        /*
+         * @bug Test if it has to be CMAC RX for modern ciphers
+         */
         return command_parse_response<std::vector<app_id>>(command_code::get_application_ids, {}, comm_mode::plain);
     }
 
     tag::r<manufacturing_info> tag::get_info() {
+        /*
+         * @bug Test if it has to be CMAC RX for modern ciphers
+         */
         return command_parse_response<manufacturing_info>(command_code::get_version, bin_data{}, comm_mode::plain);
     }
 
     tag::r<> tag::format_picc() {
+        /*
+         * @bug Test if it has to be CMAC RX for modern ciphers
+         */
         const auto res_cmd = command_response(command_code::format_picc, bin_data{}, comm_mode::plain);
         if (res_cmd) {
             logout(false);
@@ -419,6 +443,9 @@ namespace desfire {
 
     tag::r<> tag::change_key_internal(any_key const *current_key, std::uint8_t key_no_to_change, any_key const &new_key)
     {
+        /*
+         * @bug Test if it has to be CMAC RX for modern ciphers
+         */
         static const comm_cfg change_key_cfg{
             cipher::config{.mode = comm_mode::cipher, .do_mac = false, .do_cipher = true, .do_crc = false},
             cipher::config{.mode = comm_mode::plain, .do_mac = false, .do_cipher = false, .do_crc = false},
@@ -481,7 +508,7 @@ namespace desfire {
 
     tag::r<any_file_settings> tag::get_file_settings(file_id fid) {
         return command_parse_response<any_file_settings>(
-                command_code::get_file_settings, bin_data::chain(fid), comm_mode::plain);
+                command_code::get_file_settings, bin_data::chain(fid), cipher_default());
     }
 
     tag::r<> tag::change_file_settings(file_id fid, generic_file_settings const &settings, file_security security) {
@@ -538,8 +565,7 @@ namespace desfire {
         if (not res_mode) {
             return res_mode.error();
         }
-        const cipher::config rx_cfg{*res_mode, true, true, true};
-        const comm_cfg cfg{cipher_cfg_plain, rx_cfg};
+        const comm_cfg cfg{cipher::config{*res_mode, true, true, true}, cipher_default().rx};
         bin_data payload{prealloc(7)};
         payload << fid << lsb24 << offset << lsb24 << length;
         return command_response(command_code::read_data, payload, cfg);
@@ -548,12 +574,12 @@ namespace desfire {
     tag::r<> tag::write_data(file_id fid, std::uint32_t offset, bin_data const &data, file_security security) {
         if ((offset & 0xffffff) != offset) {
             DESFIRE_LOGW("%s: offset can be at most 24 bits, %d is an invalid value.",
-                         to_string(command_code::read_data), offset);
+                         to_string(command_code::write_data), offset);
             return error::parameter_error;
         }
         if ((data.size() & 0xffffff) != data.size()) {
             DESFIRE_LOGW("%s: data size can be at most 24 bits, %d is an invalid value.",
-                         to_string(command_code::read_data), data.size());
+                         to_string(command_code::write_data), data.size());
             return error::parameter_error;
         }
 
@@ -596,7 +622,7 @@ namespace desfire {
             return error::parameter_error;
         }
         return safe_drop_payload(command_code::create_backup_data_file, command_response(
-                command_code::create_backup_data_file, bin_data::chain(fid, settings), comm_mode::plain));
+                command_code::create_backup_data_file, bin_data::chain(fid, settings), cipher_default()));
     }
 
     tag::r<> tag::create_file(file_id fid, file_settings<file_type::value> const &settings) {
@@ -607,7 +633,7 @@ namespace desfire {
             return error::parameter_error;
         }
         return safe_drop_payload(command_code::create_value_file, command_response(
-                command_code::create_value_file, bin_data::chain(fid, settings), comm_mode::plain));
+                command_code::create_value_file, bin_data::chain(fid, settings), cipher_default()));
     }
 
     tag::r<> tag::create_file(file_id fid, file_settings<file_type::linear_record> const &settings) {
@@ -618,7 +644,7 @@ namespace desfire {
             return error::parameter_error;
         }
         return safe_drop_payload(command_code::create_linear_record_file, command_response(
-                command_code::create_linear_record_file, bin_data::chain(fid, settings), comm_mode::plain));
+                command_code::create_linear_record_file, bin_data::chain(fid, settings), cipher_default()));
     }
 
     tag::r<> tag::create_file(file_id fid, file_settings<file_type::cyclic_record> const &settings) {
@@ -632,12 +658,12 @@ namespace desfire {
             return error::parameter_error;
         }
         return safe_drop_payload(command_code::create_cyclic_record_file, command_response(
-                command_code::create_cyclic_record_file, bin_data::chain(fid, settings), comm_mode::plain));
+                command_code::create_cyclic_record_file, bin_data::chain(fid, settings), cipher_default()));
     }
 
     tag::r<> tag::delete_file(file_id fid) {
         return safe_drop_payload(command_code::delete_file, command_response(
-                command_code::delete_file, bin_data::chain(fid), comm_mode::plain));
+                command_code::delete_file, bin_data::chain(fid), cipher_default()));
     }
 
     tag::r<> tag::clear_record_file(file_id fid) {
@@ -645,18 +671,18 @@ namespace desfire {
             return error::parameter_error;
         }
         return safe_drop_payload(command_code::clear_record_file, command_response(
-                command_code::clear_record_file, bin_data::chain(fid), comm_mode::plain));
+                command_code::clear_record_file, bin_data::chain(fid), cipher_default()));
     }
 
 
     tag::r<> tag::commit_transaction() {
         return safe_drop_payload(command_code::commit_transaction, command_response(
-                command_code::commit_transaction, bin_data{}, comm_mode::plain));
+                command_code::commit_transaction, bin_data{}, cipher_default()));
     }
 
     tag::r<> tag::abort_transaction() {
         return safe_drop_payload(command_code::abort_transaction, command_response(
-                command_code::abort_transaction, bin_data{}, comm_mode::plain));
+                command_code::abort_transaction, bin_data{}, cipher_default()));
     }
 
 }

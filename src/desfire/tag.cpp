@@ -311,10 +311,7 @@ namespace desfire {
     }
 
     tag::r<key_settings> tag::get_key_settings() {
-        /*
-         * @bug Test if it has to be CMAC RX for modern ciphers
-         */
-        return command_parse_response<key_settings>(command_code::get_key_settings, bin_data{}, comm_mode::plain);
+        return command_parse_response<key_settings>(command_code::get_key_settings, bin_data{}, cipher_default());
     }
 
     tag::r<std::uint8_t> tag::get_key_version(std::uint8_t key_num) {
@@ -322,11 +319,8 @@ namespace desfire {
             DESFIRE_LOGE("%s: invalid key num %u (max %u).", to_string(command_code::get_key_version), key_num, bits::max_keys_per_app);
             return error::parameter_error;
         }
-        /*
-         * @bug Test if it has to be CMAC RX for modern ciphers
-         */
         return command_parse_response<std::uint8_t>(command_code::get_key_version, bin_data::chain(key_num),
-                                                    comm_mode::plain);
+                                                    cipher_default());
     }
 
     tag::r<> tag::create_application(app_id const &new_app_id, key_settings settings) {

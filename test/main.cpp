@@ -91,6 +91,8 @@ namespace ut {
         esp_log_level_set(DESFIRE_TAG, ESP_LOG_DEBUG);
         esp_log_level_set(DESFIRE_TAG " >>", ESP_LOG_DEBUG);
         esp_log_level_set(DESFIRE_TAG " <<", ESP_LOG_DEBUG);
+        esp_log_level_set(DESFIRE_TAG " RAW >>", ESP_LOG_DEBUG);
+        esp_log_level_set(DESFIRE_TAG " RAW <<", ESP_LOG_DEBUG);
         esp_log_level_set(DESFIRE_TAG " TX MAC", ESP_LOG_DEBUG);
         esp_log_level_set(DESFIRE_TAG " RX MAC", ESP_LOG_DEBUG);
         esp_log_level_set(DESFIRE_TAG " != MAC", ESP_LOG_DEBUG);
@@ -416,6 +418,19 @@ void test_cmac() {
     TEST_ASSERT(tag.write_data(5, 0, data_to_write));
 }
 
+void test_get_key_version() {
+    ut::assert_comm_controller ctrl;
+    desfire::tag tag{ctrl};
+
+    ut::session session{tag, desfire::key<desfire::cipher_type::des3_3k>{
+            0, {0xD0, 0x54, 0x2A, 0x86, 0x58, 0x14, 0xD2, 0x50, 0x4E, 0x9A, 0x18, 0x7C, 0xC0, 0x66, 0x68, 0xC0, 0x9C, 0x70, 0x56, 0x82, 0x58, 0x22, 0x7A, 0xFC}
+    }, {0x00, 0xde, 0x24}, 0};
+
+    ctrl.append({0x64, 0x00}, {0x00, 0x10, 0xAD, 0x4A, 0x52, 0xB1, 0xE3, 0x1C, 0xC7, 0x41});
+
+    TEST_ASSERT(tag.get_key_version(0));
+}
+
 void test_crc32() {
     {
         const mlab::bin_data payload = {0xC4, 0x00, 0x00, 0x10, 0x20, 0x31, 0x40, 0x50, 0x60, 0x70, 0x80, 0x90, 0xA0, 0xB0, 0xB0, 0xA0, 0x90, 0x80};
@@ -552,12 +567,12 @@ void test_mifare_change_app_key() {
         ESP_LOGI(TEST_TAG, "Changing same key of app with cipher %s.", desfire::to_string(app.default_key.type()));
         TEST_ASSERT(mifare->select_application(app.aid));
         TEST_ASSERT(mifare->authenticate(app.default_key));
-        TEST_ASSERT(mifare->change_key(app.secondary_key));
-        TEST_ASSERT(mifare->authenticate(app.secondary_key));
         const auto res_key_version = mifare->get_key_version(app.secondary_key.key_number());
         TEST_ASSERT(res_key_version);
         TEST_ASSERT_EQUAL(*res_key_version, app.secondary_key.version());
         TEST_ASSERT(mifare->get_key_settings());
+        TEST_ASSERT(mifare->change_key(app.secondary_key));
+        TEST_ASSERT(mifare->authenticate(app.secondary_key));
         TEST_ASSERT(mifare->change_key(app.default_key));
     }
 }
@@ -632,6 +647,7 @@ extern "C" void app_main() {
     RUN_TEST(test_change_key_des);
     RUN_TEST(test_change_key_2k3des);
     RUN_TEST(test_cmac);
+    RUN_TEST(test_get_key_version);
     issue_header("HARDWARE SETUP (no card)");
     RUN_TEST(setup_uart_pn532);
     issue_header("PN532 TEST AND DIAGNOSTICS (no card)");

@@ -105,13 +105,13 @@ namespace desfire {
             }
 
             // Actual transmission
-            ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " RAW >>", tx_chunk.data(), tx_chunk.size(), ESP_LOG_VERBOSE);
+            ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " RAW >>", tx_chunk.data(), tx_chunk.size(), ESP_LOG_DEBUG);
             const auto rx_data_success = ctrl().communicate(tx_chunk);
             if (not rx_data_success.second) {
                 return error::controller_error;
             }
             bin_data const &rx_chunk = rx_data_success.first;
-            ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " RAW <<", rx_chunk.data(), rx_chunk.size(), ESP_LOG_VERBOSE);
+            ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " RAW <<", rx_chunk.data(), rx_chunk.size(), ESP_LOG_DEBUG);
 
             // Make sure there was an actual response
             if (rx_chunk.empty()) {

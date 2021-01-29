@@ -108,9 +108,6 @@ namespace desfire {
     template <std::size_t BlockSize, std::uint8_t CMACSubkeyR>
     void cipher_scheme<BlockSize, CMACSubkeyR>::prepare_tx(
             bin_data &data, std::size_t offset, cipher::config const &cfg) {
-        if (offset >= data.size()) {
-            return;  // Nothing to do
-        }
         if (cfg.mode != comm_mode::cipher) {
             // Plain and MAC may still require to pass data through CMAC, unless specified otherwise
             if (not cfg.do_mac) {
@@ -123,6 +120,9 @@ namespace desfire {
                 data << cmac;
             }
         } else if (cfg.do_cipher) {
+            if (offset >= data.size()) {
+                return;  // Nothing to do
+            }
             if (cfg.do_crc) {
                 data.reserve(offset + padded_length<block_size>(data.size() + crc_size - offset));
                 // CRC has to be computed on the whole data

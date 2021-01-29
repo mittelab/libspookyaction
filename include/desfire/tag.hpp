@@ -241,6 +241,8 @@ namespace desfire {
          */
         void logout(bool due_to_error);
 
+        comm_cfg const &cipher_default() const;
+
         struct auto_logout;
 
 

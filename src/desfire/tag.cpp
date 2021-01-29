@@ -58,6 +58,16 @@ namespace desfire {
         }
     };
 
+    tag::comm_cfg const &tag::cipher_default() const {
+        if (cipher::is_legacy(active_cipher_type())) {
+            static const comm_cfg _legacy_plain{comm_mode::plain};
+            return _legacy_plain;
+        } else {
+            static const comm_cfg _plain_tx_mac_rx{comm_mode::plain, comm_mode::mac};
+            return _plain_tx_mac_rx;
+        }
+    }
+
     void tag::logout(bool due_to_error) {
         if (due_to_error and active_cipher_type() != cipher_type::none) {
             DESFIRE_LOGE("Authentication will have to be performed again.");
@@ -546,51 +556,17 @@ namespace desfire {
                          to_string(command_code::read_data), data.size());
             return error::parameter_error;
         }
-        const auto get_chunk_count = [](std::size_t data_length) -> unsigned {
-            // Add headers to data, and remove the command byte from the packet length
-            const int divisor = bits::max_packet_length - 1;
-            const auto div_res = std::div(int(data_length + 7), divisor);
-            return unsigned(div_res.quot + (div_res.rem == 0 ? 0 : 1));
-        };
 
         const auto res_mode = determine_file_comm_mode(fid, file_access::read, security);
         if (not res_mode) {
             return res_mode.error();
         }
-        const cipher::config tx_cfg{*res_mode, true, true, true};
-        const comm_cfg cfg{tx_cfg, cipher_cfg_plain};
+        const comm_cfg cfg{cipher::config{*res_mode, true, true, true}, cipher_default().rx};
 
-        bin_data payload;
-        payload.reserve(bits::max_packet_length);  // That is one too many but ok
-        // Initial payload:
-        payload << fid << lsb24 << offset << lsb24 << data.size();
+        bin_data payload{prealloc(data.size() + 7)};
+        payload << fid << lsb24 << offset << lsb24 << data.size() << data;
 
-        /**
-         * @note This is the only method that uses additional frames when sending, so we do not implement it in
-         * command_response, because it would require to add an extra parm to the comm_cfg.
-         */
-        const unsigned num_chunks = get_chunk_count(data.size());
-        for (std::size_t i = 0, ofs_in_data = 0; ofs_in_data < data.size(); ++i) {
-            const std::size_t max_packet_data_size = bits::max_packet_length - payload.size() - 1 /* command code */;
-            payload << data.view(ofs_in_data, max_packet_data_size);
-            ofs_in_data += max_packet_data_size;
-
-            DESFIRE_LOGI("%s: sending chunk %d/%d...", to_string(command_code::write_data), i + 1, num_chunks);
-            const auto cmd = i == 0 ? command_code::write_data : command_code::additional_frame;
-            const auto res_packet = command_status_response(cmd, payload, cfg);
-            if (not res_packet) {
-                return res_packet.error();
-            }
-            if ((ofs_in_data < data.size() and res_packet->first != status::additional_frame) or
-                (ofs_in_data >= data.size() and res_packet->first != status::ok and res_packet->first != status::no_changes))
-            {
-                DESFIRE_LOGE("%s: unexpected status response %s.", to_string(command_code::write_data),
-                             to_string(res_packet->first));
-                return error_from_status(res_packet->first);
-            }
-            log_not_empty(command_code::write_data, res_packet->second);
-        }
-        return result_success;
+        return safe_drop_payload(command_code::write_data, command_response(command_code::write_data, payload, cfg));
     }
 
 
@@ -612,7 +588,7 @@ namespace desfire {
             return error::parameter_error;
         }
         return safe_drop_payload(command_code::create_std_data_file, command_response(
-                command_code::create_std_data_file, bin_data::chain(fid, settings), comm_mode::plain));
+                command_code::create_std_data_file, bin_data::chain(fid, settings), cipher_default()));
     }
 
     tag::r<> tag::create_file(file_id fid, file_settings<file_type::backup> const &settings) {

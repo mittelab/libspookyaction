@@ -13,19 +13,6 @@
 namespace desfire {
 
     namespace {
-        void log_not_empty(command_code cmd, bin_data const &bd) {
-            if (not bd.empty()) {
-                DESFIRE_LOGW("%s: stray data (%d bytes) in response.", to_string(cmd), bd.size());
-                ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG, bd.data(), bd.size(), ESP_LOG_DEBUG);
-            }
-        }
-        tag::r<> safe_drop_payload(command_code cmd, tag::r<bin_data> const &result) {
-            if (result) {
-                log_not_empty(cmd, *result);
-                return result_success;
-            }
-            return result.error();
-        }
 
         template <class T, class = typename std::enable_if<std::is_unsigned<T>::value>::type>
         T saturate_sub(T a, T b) {
@@ -46,6 +33,22 @@ namespace desfire {
             return T(div_result.quot) + (div_result.rem == 0 ? 0 : 1);
         }
     }
+
+    tag::r<> tag::safe_drop_payload(command_code cmd, tag::r<bin_data> const &result) {
+        if (result) {
+            if (not result->empty()) {
+                tag::log_not_empty(cmd, result->view());
+            }
+            return result_success;
+        }
+        return result.error();
+    }
+
+    void tag::log_not_empty(command_code cmd, range<bin_data::const_iterator> const &data) {
+        DESFIRE_LOGW("%s: stray data (%d bytes) in response.", to_string(cmd), data.size());
+        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG, data.data(), data.size(), ESP_LOG_DEBUG);
+    }
+
 
     struct tag::auto_logout {
         tag &owner;

@@ -232,6 +232,9 @@ namespace desfire {
 
         r<comm_mode> determine_file_comm_mode(file_id fid, file_access access, file_security requested_security);
 
+        static r<> safe_drop_payload(command_code cmd, tag::r<bin_data> const &result);
+        static void log_not_empty(command_code cmd, range<bin_data::const_iterator> const &data);
+
         inline controller &ctrl();
         inline cipher &active_cipher();
         r<> change_key_internal(any_key const *current_key, std::uint8_t key_no_to_change, any_key const &new_key);
@@ -380,6 +383,8 @@ namespace desfire {
         if (s.bad()) {
             DESFIRE_LOGE("%s: could not parse result from response data.", to_string(cmd));
             return error::malformed;
+        } else if (not s.eof()) {
+            log_not_empty(cmd, s.peek());
         }
         return data;
     }

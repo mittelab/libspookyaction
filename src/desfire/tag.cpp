@@ -242,7 +242,7 @@ namespace desfire {
             }
 
             // Actual transmission
-            const auto response = raw_command_response(tx_buffer);
+            const auto response = raw_command_response(chunk_buffer);
 
             // Make sure there was an actual response
             if (not response) {

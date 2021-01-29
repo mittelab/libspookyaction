@@ -48,7 +48,7 @@ namespace desfire {
 
         tag &operator=(tag &&) = default;
 
-        r<bin_data> raw_command_response(bin_data const &payload);
+        r<bin_data> raw_command_response(bin_stream &tx_data, bool rx_fetch_additional_frames);
 
         /**
          * This method automatically divides @p data into appropriate chunks and sends them to the PICC, pre-processing

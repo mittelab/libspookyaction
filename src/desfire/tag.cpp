@@ -77,21 +77,140 @@ namespace desfire {
         _active_key_number = std::numeric_limits<std::uint8_t>::max();
     }
 
-    tag::r<bin_data> tag::raw_command_response(bin_data const &payload) {
-        if (payload.size() > bits::max_packet_length) {
-            DESFIRE_LOGE("Attempt to send a packet of size %d, which exceeds the maximum limit %d.",
-                         payload.size(), bits::max_packet_length);
-            return error::length_error;
+    tag::r<bin_data> tag::raw_command_response(bin_stream &tx_data, bool rx_fetch_additional_frames) {
+        static constexpr auto chunk_size = bits::max_packet_length;
+        static bin_data tx_chunk{prealloc(chunk_size)};
+        const auto num_tx_chunks = 1 + div_round_up(saturate_sub(tx_data.remaining(), chunk_size), chunk_size - 1);
+
+        tx_chunk.clear();
+        status last_status = status::additional_frame;
+        bin_data rx_data;
+
+        for (std::size_t chunk_idx = 0; last_status == status::additional_frame; ++chunk_idx, tx_chunk.clear()) {
+            assert(tx_chunk.empty());
+            // Prepare packet to send: DATA for the first, AF + DATA afterwards.
+            if (chunk_idx == 0) {
+                tx_chunk << tx_data.read(std::min(tx_data.remaining(), chunk_size));
+            } else {
+                tx_chunk << command_code::additional_frame << tx_data.read(std::min(tx_data.remaining(), chunk_size - 1));
+            }
+            if (chunk_idx < num_tx_chunks) {
+                DESFIRE_LOGD("Exchanging chunk %d (command data %d/%d).", chunk_idx + 1, chunk_idx + 1, num_tx_chunks);
+            } else {
+                DESFIRE_LOGD("Exchanging chunk %d (additional response frame).", chunk_idx + 1);
+                assert(tx_data.eof());
+            }
+
+            // Actual transmission
+            ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " RAW >>", tx_chunk.data(), tx_chunk.size(), ESP_LOG_VERBOSE);
+            const auto rx_data_success = ctrl().communicate(tx_chunk);
+            if (not rx_data_success.second) {
+                return error::controller_error;
+            }
+            bin_data const &rx_chunk = rx_data_success.first;
+            ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " RAW <<", rx_chunk.data(), rx_chunk.size(), ESP_LOG_VERBOSE);
+
+            // Make sure there was an actual response
+            if (rx_chunk.empty()) {
+                DESFIRE_LOGE("PICC sent an empty answer.");
+                return error::malformed;
+            }
+
+            // Collect data. The status byte will only be appended later, for now we store it
+            rx_data << prealloc(rx_chunk.size()) << rx_chunk.view(1);
+            last_status = static_cast<status>(rx_chunk.front());
+
+            // If tx_data is done and we do not fetch additional frames, we abort the loop no matter what the status is
+            if (tx_data.eof() and not rx_fetch_additional_frames) {
+                break;
+            }
         }
-        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " >>", payload.data(), payload.size(), ESP_LOG_VERBOSE);
-        auto res_cmd = ctrl().communicate(payload);
-        if (res_cmd.second) {
-            ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " <<", res_cmd.first.data(), res_cmd.first.size(),
-                                     ESP_LOG_VERBOSE);
-            return std::move(res_cmd.first);
+
+        // The card may have aborted early
+        if (not tx_data.eof()) {
+            DESFIRE_LOGE("The card interrupted the transmission with status %s", to_string(last_status));
+            return error::malformed;
         }
-        DESFIRE_LOGW("Could not send/receive data to/from the PICC (controller transmission failed).");
-        return error::controller_error;
+
+        // Reappend status byte
+        rx_data << last_status;
+
+        return std::move(rx_data);
+    }
+
+    tag::r<status, bin_data> tag::command_status_response(command_code cmd, bin_data const &data, comm_cfg const &cfg)
+    {
+        if (_active_cipher == nullptr and cfg.override_cipher == nullptr) {
+            DESFIRE_LOGE("No active cipher and no override cipher: 'tag' is in an invalid state (coding mistake).");
+            return error::crypto_error;
+        }
+        DESFIRE_LOGD("%s: TX mode: %s, (C)MAC: %d, CRC: %d, cipher: %d, ofs: %u", to_string(cmd),
+                     to_string(cfg.tx.mode), cfg.tx.do_mac, cfg.tx.do_crc, cfg.tx.do_cipher, cfg.tx_secure_data_offset);
+        DESFIRE_LOGD("%s: RX mode: %s, (C)MAC: %d, CRC: %d, cipher: %d, fetch AF: %u", to_string(cmd),
+                     to_string(cfg.rx.mode), cfg.rx.do_mac, cfg.rx.do_crc, cfg.rx.do_cipher, cfg.rx_auto_fetch_additional_frames);
+
+        // If we exit prematurely, and we are using the cipher of this tag, trigger a logout by error.
+        auto_logout logout_on_error{*this, cfg.override_cipher != nullptr};
+
+        // Select the right cipher and prepare the buffers
+        cipher &c = cfg.override_cipher == nullptr ? *_active_cipher : *cfg.override_cipher;
+
+        // Assemble data to transmit and preprocess
+        static bin_data tx_data;
+        tx_data.clear();
+        tx_data << prealloc(data.size() + 1) << cmd << data;
+
+        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " >>", tx_data.data(), tx_data.size(), ESP_LOG_DEBUG);
+
+        c.prepare_tx(tx_data, cfg.tx_secure_data_offset, cfg.tx);
+
+        bin_stream tx_stream{tx_data};
+        auto res_cmd = raw_command_response(tx_stream, cfg.rx_auto_fetch_additional_frames);
+        if (not res_cmd) {
+            DESFIRE_LOGE("%s: failed, %s", to_string(cmd), to_string(res_cmd.error()));
+            return res_cmd.error();
+        }
+
+        bin_data &rx_data = *res_cmd;
+
+        // Postprocessing requires to know the status byte
+        if (not c.confirm_rx(rx_data, cfg.rx)) {
+            DESFIRE_LOGE("%s: failed, received data did not pass validation.", to_string(cmd));
+            return error::crypto_error;
+        }
+        assert(not rx_data.empty());
+
+        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " <<", rx_data.data(), rx_data.size(), ESP_LOG_DEBUG);
+
+        // Extract status byte
+        const auto cmd_status = static_cast<status>(rx_data.back());
+        rx_data.pop_back();
+
+        DESFIRE_LOGD("%s: completed with status %s", to_string(cmd), to_string(cmd_status));
+
+        // Passthrough the status byte, the caller decides if that is an error.
+        logout_on_error.assume_success = true;
+        return {cmd_status, std::move(rx_data)};
+    }
+
+    tag::r<bin_data> tag::command_response(command_code cmd, const bin_data &payload, const tag::comm_cfg &cfg)
+    {
+        auto_logout logout_on_error{*this, cfg.override_cipher != nullptr};
+
+        auto res_status_cmd = command_status_response(cmd, payload, cfg);
+        if (not res_status_cmd) {
+            return res_status_cmd.error();
+        }
+
+        // Check the returned status. This is the only error condition handled by this method
+        const auto cmd_status = res_status_cmd->first;
+        if (cmd_status != status::ok and cmd_status != status::no_changes) {
+            DESFIRE_LOGE("%s: failed with status %s.", to_string(cmd), to_string(cmd_status));
+            return error_from_status(cmd_status);
+        }
+
+        logout_on_error.assume_success = true;
+        return std::move(res_status_cmd->second);
     }
 
     tag::r<> tag::select_application(app_id const &app) {
@@ -186,130 +305,6 @@ namespace desfire {
         _active_key_number = k.key_number();
 
         return result_success;
-    }
-
-
-    tag::r<status, bin_data> tag::command_status_response(command_code cmd, bin_data const &data, comm_cfg const &cfg)
-    {
-        if (_active_cipher == nullptr and cfg.override_cipher == nullptr) {
-            DESFIRE_LOGE("No active cipher and no override cipher: 'tag' is in an invalid state (coding mistake).");
-            return error::crypto_error;
-        }
-
-        static constexpr std::size_t chunk_size = bits::max_packet_length;
-        static bin_data tx_buffer;
-        static bin_data chunk_buffer{prealloc(chunk_size)};
-
-        // If we exit prematurely, and we are using the cipher of this tag, trigger a logout by error.
-        auto_logout logout_on_error{*this, cfg.override_cipher != nullptr};
-
-        // Select the right cipher and prepare the buffers
-        cipher &c = cfg.override_cipher == nullptr ? *_active_cipher : *cfg.override_cipher;
-        bin_data rx_buffer;
-        chunk_buffer.clear();
-        tx_buffer.clear();
-
-        ESP_LOGD(DESFIRE_TAG " >>", "%s: sending %d bytes + command code.", to_string(cmd), data.size());
-        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " >>", data.data(), data.size(), ESP_LOG_DEBUG);
-        ESP_LOGD(DESFIRE_TAG " >>", "%s: TX mode: %s, (C)MAC: %d, CRC: %d, cipher: %d, ofs: %u", to_string(cmd),
-                 to_string(cfg.tx.mode), cfg.tx.do_mac, cfg.tx.do_crc, cfg.tx.do_cipher, cfg.tx_secure_data_offset);
-
-        // Assemble data to transmit and preprocess
-        tx_buffer << prealloc(data.size() + 1) << cmd << data;
-        c.prepare_tx(tx_buffer, cfg.tx_secure_data_offset, cfg.tx);
-
-        // How many chunks does this require?
-        const auto num_tx_chunks = 1 + div_round_up(saturate_sub(tx_buffer.size(), chunk_size), chunk_size - 1);
-
-        // Sequentially send and read. The loop will go on as long as we have data to receive.
-        status last_status = status::additional_frame;
-        bin_stream tx_stream{tx_buffer};
-
-        for (std::size_t chunk_idx = 0; last_status == status::additional_frame; ++chunk_idx, chunk_buffer.clear()) {
-            assert(chunk_buffer.empty());
-            // Prepare packet to send: CMD + DATA for the first, AF + DATA afterwards.
-            if (chunk_idx == 0) {
-                chunk_buffer << tx_stream.read(std::min(tx_stream.remaining(), chunk_size));
-            } else {
-                chunk_buffer << command_code::additional_frame << tx_stream.read(std::min(tx_stream.remaining(), chunk_size - 1));
-            }
-            if (chunk_idx < num_tx_chunks) {
-                DESFIRE_LOGD("%s: exchanging chunk %d (command data %d/%d).", to_string(cmd), chunk_idx + 1,
-                             chunk_idx + 1, num_tx_chunks);
-            } else {
-                DESFIRE_LOGD("%s: exchanging chunk %d (additional response frame).", to_string(cmd), chunk_idx + 1);
-                assert(tx_stream.eof());
-            }
-
-            // Actual transmission
-            const auto response = raw_command_response(chunk_buffer);
-
-            // Make sure there was an actual response
-            if (not response) {
-                DESFIRE_LOGE("%s: error %s.", to_string(cmd), to_string(response.error()));
-                return response.error();
-            } else if (response->empty()) {
-                DESFIRE_LOGE("%s: received empty response.", to_string(cmd));
-                return error::malformed;
-            }
-
-            // Collect data. The status byte will only be appended later, for now we store it
-            rx_buffer << prealloc(response->size()) << response->view(1);
-            last_status = static_cast<status>(response->front());
-
-            // If we are done with the data and we do not fetch additional frames, we abort the loop no matter what the
-            // state is.
-            if (tx_stream.eof() and not cfg.rx_auto_fetch_additional_frames) {
-                break;
-            }
-        }
-
-        if (not tx_stream.eof()) {
-            DESFIRE_LOGE("%s: still %d bytes left, but the card returned %s.", to_string(cmd), tx_stream.remaining(),
-                         to_string(last_status));
-            DESFIRE_LOGE("%s: received %d bytes + status.", to_string(cmd), rx_buffer.size());
-            return error::malformed;
-        }
-
-        ESP_LOGD(DESFIRE_TAG " <<", "%s: RX mode: %s, (C)MAC: %d, CRC: %d, cipher: %d", to_string(cmd),
-                 to_string(cfg.tx.mode), cfg.tx.do_mac, cfg.tx.do_crc, cfg.tx.do_cipher);
-
-        // Postprocessing requires to know the status byte
-        rx_buffer << last_status;
-        if (not c.confirm_rx(rx_buffer, cfg.rx)) {
-            DESFIRE_LOGE("%s: received data did not pass validation.", to_string(cmd));
-            DESFIRE_LOGD("%s: status would have been %02x: %s.", to_string(cmd),
-                         static_cast<std::uint8_t>(last_status), to_string(last_status));
-            ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG, rx_buffer.data(), rx_buffer.size(), ESP_LOG_DEBUG);
-            return error::crypto_error;
-        }
-        assert(not rx_buffer.empty() and rx_buffer.back() == static_cast<std::uint8_t>(last_status));
-        rx_buffer.pop_back();
-        ESP_LOGD(DESFIRE_TAG " <<", "%s: received %d bytes + status: %s.", to_string(cmd), rx_buffer.size(),
-                 to_string(last_status));
-        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " <<", rx_buffer.data(), rx_buffer.size(), ESP_LOG_DEBUG);
-
-        // Passthrough the status byte, the caller decides if that is an error.
-        logout_on_error.assume_success = true;
-        return {last_status, std::move(rx_buffer)};
-    }
-
-    tag::r<bin_data> tag::command_response(command_code cmd, const bin_data &payload, const tag::comm_cfg &cfg)
-    {
-        auto_logout logout_on_error{*this, cfg.override_cipher != nullptr};
-
-        auto res_status_cmd = command_status_response(cmd, payload, cfg);
-        if (not res_status_cmd) {
-            return res_status_cmd.error();
-        }
-        // Check the returned status. This is the only error condition handled by this method
-        const auto cmd_status = res_status_cmd->first;
-        if (cmd_status != status::ok and cmd_status != status::no_changes) {
-            DESFIRE_LOGE("%s: failed with status %s.", to_string(cmd), to_string(cmd_status));
-            return error_from_status(cmd_status);
-        }
-        logout_on_error.assume_success = true;
-        return std::move(res_status_cmd->second);
     }
 
     tag::r<key_settings> tag::get_key_settings() {

@@ -49,7 +49,7 @@ namespace desfire {
     }
 
     void cipher_des::do_crypto(range<bin_data::iterator> data, bool encrypt, cipher_des::block_t &iv) {
-        DESFIRE_LOGD("DES: %s %u bytes.", (encrypt ? "encrypting" : "decrypting"), std::distance(std::begin(data), std::end(data)));
+        ESP_LOGV(DESFIRE_TAG "CRYPTO", "DES: %s %u bytes.", (encrypt ? "encrypting" : "decrypting"), std::distance(std::begin(data), std::end(data)));
         ESP_LOG_BUFFER_HEX_LEVEL((encrypt ? DESFIRE_TAG " DATA" : DESFIRE_TAG " BLOB"), data.data(), data.size(), ESP_LOG_VERBOSE);
         ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG "   IV", iv.data(), iv.size(), ESP_LOG_VERBOSE);
         assert(data.size() % block_size == 0);
@@ -127,7 +127,7 @@ namespace desfire {
     }
 
     void cipher_2k3des::do_crypto(range <bin_data::iterator> data, bool encrypt, cipher_2k3des::block_t &iv) {
-        DESFIRE_LOGD("2K3DES: %s %u bytes.", (encrypt ? "encrypting" : "decrypting"), std::distance(std::begin(data), std::end(data)));
+        ESP_LOGV(DESFIRE_TAG "CRYPTO", "2K3DES: %s %u bytes.", (encrypt ? "encrypting" : "decrypting"), std::distance(std::begin(data), std::end(data)));
         ESP_LOG_BUFFER_HEX_LEVEL((encrypt ? DESFIRE_TAG " DATA" : DESFIRE_TAG " BLOB"), data.data(), data.size(), ESP_LOG_VERBOSE);
         ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG "   IV", iv.data(), iv.size(), ESP_LOG_VERBOSE);
         assert(data.size() % block_size == 0);
@@ -177,7 +177,7 @@ namespace desfire {
     }
 
     void cipher_3k3des::do_crypto(range <bin_data::iterator> data, bool encrypt, cipher_3k3des::block_t &iv) {
-        DESFIRE_LOGD("3K3DES: %s %u bytes.", (encrypt ? "encrypting" : "decrypting"), std::distance(std::begin(data), std::end(data)));
+        ESP_LOGV(DESFIRE_TAG "CRYPTO", "3K3DES: %s %u bytes.", (encrypt ? "encrypting" : "decrypting"), std::distance(std::begin(data), std::end(data)));
         ESP_LOG_BUFFER_HEX_LEVEL((encrypt ? DESFIRE_TAG " DATA" : DESFIRE_TAG " BLOB"), data.data(), data.size(), ESP_LOG_VERBOSE);
         ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG "   IV", iv.data(), iv.size(), ESP_LOG_VERBOSE);
         assert(data.size() % block_size == 0);
@@ -224,7 +224,7 @@ namespace desfire {
     }
 
     void cipher_aes::do_crypto(range <bin_data::iterator> data, bool encrypt, cipher_aes::block_t &iv) {
-        DESFIRE_LOGD("AES128: %s %u bytes.", (encrypt ? "encrypting" : "decrypting"), std::distance(std::begin(data), std::end(data)));
+        ESP_LOGV(DESFIRE_TAG "CRYPTO", "AES128: %s %u bytes.", (encrypt ? "encrypting" : "decrypting"), std::distance(std::begin(data), std::end(data)));
         ESP_LOG_BUFFER_HEX_LEVEL((encrypt ? DESFIRE_TAG " DATA" : DESFIRE_TAG " BLOB"), data.data(), data.size(), ESP_LOG_VERBOSE);
         ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG "   IV", iv.data(), iv.size(), ESP_LOG_VERBOSE);
         assert(data.size() % block_size == 0);

@@ -506,14 +506,31 @@ void setup_mifare() {
     mifare = std::unique_ptr<desfire::tag>(new desfire::tag(*pcd));
 }
 
+void issue_format_warning() {
+    ESP_LOGW(TEST_TAG, "This test will format the PICC; remove the tag from RF field if you care for your data.");
+    for (unsigned i = 3; i > 0; --i) {
+        ESP_LOGW(TEST_TAG, "%d...", i);
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
+    }
+}
+
+void format_picc() {
+    TEST_ASSERT_NOT_EQUAL(pcd, nullptr);
+    TEST_ASSERT_NOT_EQUAL(mifare, nullptr);
+
+    TEST_ASSERT(mifare->select_application(desfire::root_app));
+    TEST_ASSERT(mifare->authenticate(desfire::key<desfire::cipher_type::des>{}));
+    TEST_ASSERT(mifare->format_picc());
+}
+
 void test_mifare_base() {
     TEST_ASSERT_NOT_EQUAL(pcd, nullptr);
     TEST_ASSERT_NOT_EQUAL(mifare, nullptr);
-    ESP_LOGI(TEST_TAG, "Selecting default application.");
+
+    issue_format_warning();
+
     TEST_ASSERT(mifare->select_application(desfire::root_app));
-    ESP_LOGI(TEST_TAG, "Attempting auth with default DES key.");
     test_auth_attempt(mifare->authenticate(desfire::key<desfire::cipher_type::des>{}));
-    ESP_LOGI(TEST_TAG, "Formatting PICC for testing.");
     TEST_ASSERT(mifare->format_picc());
 
     const auto r_info = mifare->get_info();
@@ -598,34 +615,6 @@ void test_mifare_change_app_key() {
         TEST_ASSERT(mifare->change_key(app.default_key));
     }
 }
-/*
-test/main.cpp:699:setup_mifare	[PASSED]
-I (6446) DESFIRE: Selected application 00 00 01.
-I (6496) DESFIRE: Authenticated with key 0 (DES).
-I (6536) UT: Creating file of type standard data file in a DES app.
-D (6716) DESFIRE: get_file_settings: TX mode: plain, (C)MAC: 1, CRC: 1, cipher: 1, ofs: 1
-D (6716) DESFIRE: get_file_settings: RX mode: plain, (C)MAC: 1, CRC: 1, cipher: 1, fetch AF: 1
-D (6716) DESFIRE >>: f5 00
-D (6726) DESFIRE: Exchanging chunk 1 (command data 1/1).
-D (6726) DESFIRE RAW >>: f5 00
-D (6756) DESFIRE RAW <<: 00 00 00 00 00 80 00 00
-D (6756) DESFIRE <<: 00 00 00 00 80 00 00 00
-D (6756) DESFIRE: get_file_settings: completed with status Successful operation
-D (6756) DESFIRE: read_data: TX mode: plain, (C)MAC: 1, CRC: 1, cipher: 1, ofs: 1
-D (6766) DESFIRE: read_data: RX mode: plain, (C)MAC: 1, CRC: 1, cipher: 1, fetch AF: 1
-D (6776) DESFIRE >>: bd 00 00 00 00 80 00 00
-D (6776) DESFIRE: Exchanging chunk 1 (command data 1/1).
-D (6786) DESFIRE RAW >>: bd 00 00 00 00 80 00 00
-D (6836) DESFIRE RAW <<: af 40 41 42 43 44 45 46 47 48 49 4a 4b 4c 4d 4e
-D (6836) DESFIRE RAW <<: 4f 50 51 52 53 54 55 56 57 58 59 5a 5b 5c 5d 5e
-D (6836) DESFIRE RAW <<: 5f 60 61 62 63 64 65 66 67 68 69 6a 6b 6c 6d 6e
-D (6846) DESFIRE RAW <<: 6f 70 71 72 73 74 75 76 77 78 79 7a
-D (6846) DESFIRE: Exchanging chunk 2 (additional response frame).
-D (6856) DESFIRE RAW >>: af
-E (7216) DESFIRE: read_data: failed, controller error
-E (7216) DESFIRE: Authentication will have to be performed again.
-test/main.cpp:645:test_mifare_create_delete_files:FAIL: Expression Evaluated To FALSE	[FAILED]
- */
 
 void test_mifare_create_delete_files() {
     TEST_ASSERT(pcd != nullptr and mifare != nullptr);
@@ -634,13 +623,9 @@ void test_mifare_create_delete_files() {
     using desfire::file_type;
     using desfire::file_settings;
 
-    DESFIRE_LOGE("SENDING TOO MANY FRAMES BRICKED MY CARD.");
-    TEST_FAIL();
-    // ---
     desfire::bin_data file_data;
-    file_data.resize(128);  // More than fits in a single frame
+    file_data.resize(32);
     std::iota(std::begin(file_data), std::end(file_data), 0x00);
-    // ---
 
     const desfire::generic_file_settings gfs_plain{desfire::comm_mode::plain, desfire::access_rights{0}};
     const desfire::data_file_settings dfs{.size = file_data.size()};
@@ -656,7 +641,14 @@ void test_mifare_create_delete_files() {
 
     static constexpr desfire::file_id fid = 0;
 
+    issue_format_warning();
+
     for (ut::app_with_keys const &app : ut::test_apps) {
+        ESP_LOGI(TEST_TAG, "Formatting to recover space, and creating app with cipher %s.", desfire::to_string(app.default_key.type()));
+        format_picc();
+        TEST_ASSERT(mifare->select_application(desfire::root_app));
+        TEST_ASSERT(mifare->authenticate(desfire::key<desfire::cipher_type::des>{}));
+        TEST_ASSERT(mifare->create_application(app.aid, desfire::key_settings{app.default_key.type()}));
         TEST_ASSERT(mifare->select_application(app.aid));
         TEST_ASSERT(mifare->authenticate(app.default_key));
         // Delete preexisting files

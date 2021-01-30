@@ -598,6 +598,34 @@ void test_mifare_change_app_key() {
         TEST_ASSERT(mifare->change_key(app.default_key));
     }
 }
+/*
+test/main.cpp:699:setup_mifare	[PASSED]
+I (6446) DESFIRE: Selected application 00 00 01.
+I (6496) DESFIRE: Authenticated with key 0 (DES).
+I (6536) UT: Creating file of type standard data file in a DES app.
+D (6716) DESFIRE: get_file_settings: TX mode: plain, (C)MAC: 1, CRC: 1, cipher: 1, ofs: 1
+D (6716) DESFIRE: get_file_settings: RX mode: plain, (C)MAC: 1, CRC: 1, cipher: 1, fetch AF: 1
+D (6716) DESFIRE >>: f5 00
+D (6726) DESFIRE: Exchanging chunk 1 (command data 1/1).
+D (6726) DESFIRE RAW >>: f5 00
+D (6756) DESFIRE RAW <<: 00 00 00 00 00 80 00 00
+D (6756) DESFIRE <<: 00 00 00 00 80 00 00 00
+D (6756) DESFIRE: get_file_settings: completed with status Successful operation
+D (6756) DESFIRE: read_data: TX mode: plain, (C)MAC: 1, CRC: 1, cipher: 1, ofs: 1
+D (6766) DESFIRE: read_data: RX mode: plain, (C)MAC: 1, CRC: 1, cipher: 1, fetch AF: 1
+D (6776) DESFIRE >>: bd 00 00 00 00 80 00 00
+D (6776) DESFIRE: Exchanging chunk 1 (command data 1/1).
+D (6786) DESFIRE RAW >>: bd 00 00 00 00 80 00 00
+D (6836) DESFIRE RAW <<: af 40 41 42 43 44 45 46 47 48 49 4a 4b 4c 4d 4e
+D (6836) DESFIRE RAW <<: 4f 50 51 52 53 54 55 56 57 58 59 5a 5b 5c 5d 5e
+D (6836) DESFIRE RAW <<: 5f 60 61 62 63 64 65 66 67 68 69 6a 6b 6c 6d 6e
+D (6846) DESFIRE RAW <<: 6f 70 71 72 73 74 75 76 77 78 79 7a
+D (6846) DESFIRE: Exchanging chunk 2 (additional response frame).
+D (6856) DESFIRE RAW >>: af
+E (7216) DESFIRE: read_data: failed, controller error
+E (7216) DESFIRE: Authentication will have to be performed again.
+test/main.cpp:645:test_mifare_create_delete_files:FAIL: Expression Evaluated To FALSE	[FAILED]
+ */
 
 void test_mifare_create_delete_files() {
     TEST_ASSERT(pcd != nullptr and mifare != nullptr);
@@ -606,7 +634,13 @@ void test_mifare_create_delete_files() {
     using desfire::file_type;
     using desfire::file_settings;
 
-    const desfire::bin_data file_data = {0x25, 0xC4, 0xAA, 0xBA, 0x19, 0x65, 0xD9, 0x69, 0x04, 0x34, 0x77, 0x02, 0x70, 0x26, 0x35, 0xA2};
+    DESFIRE_LOGE("SENDING TOO MANY FRAMES BRICKED MY CARD.");
+    TEST_FAIL();
+    // ---
+    desfire::bin_data file_data;
+    file_data.resize(128);  // More than fits in a single frame
+    std::iota(std::begin(file_data), std::end(file_data), 0x00);
+    // ---
 
     const desfire::generic_file_settings gfs_plain{desfire::comm_mode::plain, desfire::access_rights{0}};
     const desfire::data_file_settings dfs{.size = file_data.size()};

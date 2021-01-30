@@ -67,6 +67,25 @@ namespace desfire {
     protected:
         cipher_scheme();
 
+        /**
+         * Another oddity of how the Mifare CMAC stuff is implemented. This method shall perform a **DEcipherment**
+         * operation with the current **ENcipherment** key on block of ''BlockSize'' zeroes, using zeroes as IV. In
+         * pseudocode:
+         * @code
+         * crypto_context ctx;
+         * crypto_context_set_key_encipherement(&ctx, <current key>);  // Or may reuse the crypto context of ::do_crypto
+         * block_t data = {0, ... 0}, iv = {0, ... 0};
+         * crypto_decipher(&ctx, &data, &iv);
+         * return data;
+         * @endcode
+         */
+        virtual block_t derive_cmac_base_data() = 0;
+
+        /**
+         * @note **Subclassing guide:** subclasses shall call this method as last in the constructor, and as last in
+         * @ref reinit_with_session_Key. This method will derive CMAC keys, therefore all crypto primitives shall be
+         * in place before performing this call.
+         */
         void initialize();
 
     public:

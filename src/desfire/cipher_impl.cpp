@@ -176,6 +176,16 @@ namespace desfire {
         mbedtls_des3_free(&_dec_context);
     }
 
+    cipher_3k3des::block_t cipher_3k3des::derive_cmac_base_data() {
+        block_t iv{0, 0, 0, 0, 0, 0, 0, 0};
+        block_t b{0, 0, 0, 0, 0, 0, 0, 0};
+        /**
+       * @note Using  on @ref MBEDTLS_DES_DECRYPT is **deliberate**, see note on @ref derive_cmac_base_data.
+       */
+        mbedtls_des3_crypt_cbc(&_enc_context, MBEDTLS_DES_DECRYPT, block_size, iv.data(), b.data(), b.data());
+        return b;
+    }
+
     void cipher_3k3des::do_crypto(range <bin_data::iterator> data, bool encrypt, cipher_3k3des::block_t &iv) {
         ESP_LOGV(DESFIRE_TAG "CRYPTO", "3K3DES: %s %u bytes.", (encrypt ? "encrypting" : "decrypting"), std::distance(std::begin(data), std::end(data)));
         ESP_LOG_BUFFER_HEX_LEVEL((encrypt ? DESFIRE_TAG " DATA" : DESFIRE_TAG " BLOB"), data.data(), data.size(), ESP_LOG_VERBOSE);
@@ -221,6 +231,16 @@ namespace desfire {
     cipher_aes::~cipher_aes() {
         mbedtls_aes_free(&_enc_context);
         mbedtls_aes_free(&_dec_context);
+    }
+
+    cipher_aes::block_t cipher_aes::derive_cmac_base_data() {
+        block_t iv{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+        block_t b{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+        /**
+         * @note Using  on @ref MBEDTLS_AES_ENCRYPT is **deliberate**, see note on @ref derive_cmac_base_data.
+         */
+        mbedtls_aes_crypt_cbc(&_enc_context, MBEDTLS_AES_ENCRYPT, block_size, iv.data(), b.data(), b.data());
+        return b;
     }
 
     void cipher_aes::do_crypto(range <bin_data::iterator> data, bool encrypt, cipher_aes::block_t &iv) {

@@ -37,16 +37,9 @@ namespace desfire {
             }
         };
 
-        bin_data subkey_data{};
-        subkey_data.resize(block_size, 0x0);
-        {
-            // Switch to IV zero
-            iv_session session{*this, cipher_iv::zero};
-            do_crypto(subkey_data.view(), true, get_iv());
-        }
-
+        const block_t cmac_base_data = derive_cmac_base_data();
         // Copy and prep
-        std::copy(std::begin(subkey_data), std::end(subkey_data), std::begin(_cmac_subkey_nopad));
+        std::copy(std::begin(cmac_base_data), std::end(cmac_base_data), std::begin(_cmac_subkey_nopad));
         prepare_subkey(_cmac_subkey_nopad);
 
         // Do it again

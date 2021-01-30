@@ -62,7 +62,7 @@ namespace desfire {
     };
 
     tag::comm_cfg const &tag::cipher_default() const {
-        if (cipher::is_legacy(active_cipher_type())) {
+        if (active_cipher_type() == cipher_type::none or cipher::is_legacy(active_cipher_type())) {
             static const comm_cfg _legacy_plain{comm_mode::plain};
             return _legacy_plain;
         } else {

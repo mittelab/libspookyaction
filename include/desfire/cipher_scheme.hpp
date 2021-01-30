@@ -68,25 +68,6 @@ namespace desfire {
         cipher_scheme();
 
         /**
-         * Another oddity of how the Mifare CMAC stuff is implemented. This method shall perform a **DEcipherment**
-         * operation with the current **ENcipherment** key on block of ''BlockSize'' zeroes, using zeroes as IV. In
-         * pseudocode:
-         * @code
-         * crypto_context ctx;
-         * crypto_context_set_key_encipherement(&ctx, <current key>);  // Or may reuse the crypto context of ::do_crypto
-         * block_t data = {0, ... 0}, iv = {0, ... 0};
-         * crypto_decipher(&ctx, &data, &iv);
-         * return data;
-         * @endcode
-         * @warning What I wrote above is a lie. Other implementations (Easypay, RFDoorLock) use decipherment operations
-         * with encipherment keys, however by trial and error, I figured that AES128 actually does the opposite, needs
-         * an encryption operation with a decipherment keys. Interestingly enough, the AES128 implementation produces
-         * the same CMAC keys as Easypay, but 3DES produces entirely different keys instead. What is funny enough, is
-         * that those keys actually work. I have no clue why. Most likely some Xoring magic occurring inside 3DES?
-         */
-        virtual block_t derive_cmac_base_data() = 0;
-
-        /**
          * @note **Subclassing guide:** subclasses shall call this method as last in the constructor, and as last in
          * @ref reinit_with_session_Key. This method will derive CMAC keys, therefore all crypto primitives shall be
          * in place before performing this call.

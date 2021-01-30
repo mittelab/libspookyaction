@@ -45,9 +45,6 @@ namespace desfire {
         ~cipher_3k3des() override;
 
         void do_crypto(range<bin_data::iterator> data, bool encrypt, block_t &iv) override;
-
-    protected:
-        block_t derive_cmac_base_data() override;
     };
 
     class cipher_aes final : public cipher_scheme<16, 0x87> {
@@ -60,9 +57,6 @@ namespace desfire {
         ~cipher_aes() override;
 
         void do_crypto(range<bin_data::iterator> data, bool encrypt, block_t &iv) override;
-
-    protected:
-        block_t derive_cmac_base_data() override;
     };
 
     class cipher_dummy final : public cipher {

@@ -176,20 +176,6 @@ namespace desfire {
         mbedtls_des3_free(&_dec_context);
     }
 
-    cipher_3k3des::block_t cipher_3k3des::derive_cmac_base_data() {
-        static block_t iv{};
-        std::fill_n(std::begin(iv), block_size, 0x00);
-        block_t b{0, 0, 0, 0, 0, 0, 0, 0};
-        /**
-         * @note I tried all combinations of _dec/enc_context and MBEDTLS_AES_DE/ENCRYPT; this works. Don't ask me why.
-         * It has to be **enc** context, and it does not matter the direction (encrypt or decrypt). Note that this
-         * for some reason always produces some different base data than e.g. Easypay (another implementation), however
-         * it seems to work fine.
-         */
-        mbedtls_des3_crypt_cbc(&_enc_context, MBEDTLS_DES_ENCRYPT, block_size, iv.data(), b.data(), b.data());
-        return b;
-    }
-
     void cipher_3k3des::do_crypto(range <bin_data::iterator> data, bool encrypt, cipher_3k3des::block_t &iv) {
         ESP_LOGV(DESFIRE_TAG "CRYPTO", "3K3DES: %s %u bytes.", (encrypt ? "encrypting" : "decrypting"), std::distance(std::begin(data), std::end(data)));
         ESP_LOG_BUFFER_HEX_LEVEL((encrypt ? DESFIRE_TAG " DATA" : DESFIRE_TAG " BLOB"), data.data(), data.size(), ESP_LOG_VERBOSE);
@@ -235,17 +221,6 @@ namespace desfire {
     cipher_aes::~cipher_aes() {
         mbedtls_aes_free(&_enc_context);
         mbedtls_aes_free(&_dec_context);
-    }
-
-    cipher_aes::block_t cipher_aes::derive_cmac_base_data() {
-        static block_t iv{};
-        std::fill_n(std::begin(iv), block_size, 0x00);
-        block_t b{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-        /**
-         * @note I tried all combinations of _dec/enc_context and MBEDTLS_AES_DE/ENCRYPT; this works. Don't ask me why.
-         */
-        mbedtls_aes_crypt_cbc(&_enc_context, MBEDTLS_AES_ENCRYPT, block_size, iv.data(), b.data(), b.data());
-        return b;
     }
 
     void cipher_aes::do_crypto(range <bin_data::iterator> data, bool encrypt, cipher_aes::block_t &iv) {

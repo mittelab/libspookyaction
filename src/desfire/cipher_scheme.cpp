@@ -65,7 +65,7 @@ namespace desfire {
             case comm_mode::mac:
                 if (cfg.do_mac) {
                     // Apply mac overrides mode.
-                    if (offset >= data.size() - 1) {
+                    if (offset >= data.size()) {
                         DESFIRE_LOGE("Specified offset leaves no data to mac.");
                         break;
                     }
@@ -74,7 +74,7 @@ namespace desfire {
                 break;
             case comm_mode::cipher:
                 if (cfg.do_cipher) {
-                    if (offset >= data.size() - 1) {
+                    if (offset >= data.size()) {
                         DESFIRE_LOGE("Specified offset leaves no data to encipher.");
                         break;
                     }

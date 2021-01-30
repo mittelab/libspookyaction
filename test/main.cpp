@@ -624,7 +624,7 @@ void test_mifare_create_delete_files() {
     using desfire::file_settings;
 
     desfire::bin_data file_data;
-    file_data.resize(32);
+    file_data.resize(256);
     std::iota(std::begin(file_data), std::end(file_data), 0x00);
 
     const desfire::generic_file_settings gfs_plain{desfire::comm_mode::plain, desfire::access_rights{0}};
@@ -668,6 +668,7 @@ void test_mifare_create_delete_files() {
                     TEST_ASSERT(res_read);
                     TEST_ASSERT_EQUAL(file_data.size(), res_read->size());
                     TEST_ASSERT_EQUAL_HEX8_ARRAY(file_data.data(), res_read->data(), file_data.size());
+                    ESP_LOGI(TEST_TAG, "Completed RW cycle with %d bytes.", file_data.size());
                 }
                     break;
                 case file_type::backup: {
@@ -681,6 +682,7 @@ void test_mifare_create_delete_files() {
                     TEST_ASSERT(res_read);
                     TEST_ASSERT_EQUAL(file_data.size(), res_read->size());
                     TEST_ASSERT_EQUAL_HEX8_ARRAY(file_data.data(), res_read->data(), file_data.size());
+                    ESP_LOGI(TEST_TAG, "Completed RW cycle with %d bytes.", file_data.size());
                 }
                 case file_type::value:         // [[fallthrough]];
                 case file_type::linear_record: // [[fallthrough]];

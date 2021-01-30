@@ -377,10 +377,7 @@ namespace desfire {
     }
 
     tag::r<manufacturing_info> tag::get_info() {
-        /*
-         * @bug Test if it has to be CMAC RX for modern ciphers
-         */
-        return command_parse_response<manufacturing_info>(command_code::get_version, bin_data{}, comm_mode::plain);
+        return command_parse_response<manufacturing_info>(command_code::get_version, bin_data{}, cipher_default());
     }
 
     tag::r<> tag::format_picc() {
@@ -435,9 +432,6 @@ namespace desfire {
 
     tag::r<> tag::change_key_internal(any_key const *current_key, std::uint8_t key_no_to_change, any_key const &new_key)
     {
-        /*
-         * @bug Test if it has to be CMAC RX for modern ciphers
-         */
         static const comm_cfg change_key_cfg{
             cipher::config{.mode = comm_mode::cipher, .do_mac = false, .do_cipher = true, .do_crc = false},
             cipher::config{.mode = comm_mode::plain, .do_mac = false, .do_cipher = false, .do_crc = false},

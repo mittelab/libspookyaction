@@ -484,8 +484,6 @@ void test_auth_attempt(desfire::tag::r<> const &r) {
             ESP_LOGW(TEST_TAG, "Last controller error: %s", pn532::to_string(pcd->last_result()->error));
         }
         TEST_FAIL();
-    } else {
-        ESP_LOGI(TEST_TAG, "Successful.");
     }
 }
 
@@ -559,7 +557,7 @@ void test_mifare_create_apps() {
 
     for (ut::app_with_keys const &app : ut::test_apps) {
         const auto ct = app.default_key.type();
-        ESP_LOGI(TEST_TAG, "Attempting to create apps with cipher %s.", desfire::to_string(ct));
+        ESP_LOGI(TEST_TAG, "Creating app with cipher %s.", desfire::to_string(ct));
         TEST_ASSERT(mifare->select_application(desfire::root_app));
         TEST_ASSERT(mifare->authenticate(desfire::key<desfire::cipher_type::des>{}));
         TEST_ASSERT(mifare->create_application(app.aid, desfire::key_settings{ct}));
@@ -631,7 +629,8 @@ void test_mifare_create_delete_files() {
     const desfire::data_file_settings dfs{.size = file_data.size()};
     const desfire::record_file_settings rfs{.record_size = 1, .max_record_count = 2, .record_count = 0};
     const desfire::value_file_settings vfs{.lower_limit = 0, .upper_limit = 10, .value = 0, .limited_credit_enabled = true};
-    const std::array<any_file_settings, 5> files = {
+    // Not const because we will cycle through comm modes
+    std::array<any_file_settings, 5> files = {
         any_file_settings{file_settings<file_type::standard>{gfs_plain, dfs}},
         any_file_settings{file_settings<file_type::backup>{gfs_plain, dfs}},
         any_file_settings{file_settings<file_type::value>{gfs_plain, vfs}},
@@ -643,53 +642,64 @@ void test_mifare_create_delete_files() {
 
     issue_format_warning();
 
-    for (ut::app_with_keys const &app : ut::test_apps) {
-        ESP_LOGI(TEST_TAG, "Formatting to recover space, and creating app with cipher %s.", desfire::to_string(app.default_key.type()));
-        format_picc();
-        TEST_ASSERT(mifare->select_application(desfire::root_app));
-        TEST_ASSERT(mifare->authenticate(desfire::key<desfire::cipher_type::des>{}));
-        TEST_ASSERT(mifare->create_application(app.aid, desfire::key_settings{app.default_key.type()}));
-        TEST_ASSERT(mifare->select_application(app.aid));
-        TEST_ASSERT(mifare->authenticate(app.default_key));
-        // Delete preexisting files
-        const auto res_fids = mifare->get_file_ids();
-        if (res_fids and std::find(std::begin(*res_fids), std::end(*res_fids), fid) != std::end(*res_fids)) {
-            TEST_ASSERT(mifare->delete_file(fid));
+    for (desfire::comm_mode comm_mode : {desfire::comm_mode::plain, desfire::comm_mode::mac, desfire::comm_mode::cipher})
+    {
+        ESP_LOGI(TEST_TAG, "Beginning file test with comm mode %s", desfire::to_string(comm_mode));
+        // Update the comm mode on all files
+        for (auto &fs : files) {
+            fs.generic_settings().mode = comm_mode;
         }
-        for (any_file_settings const &fs : files) {
-            ESP_LOGI(TEST_TAG, "Creating file of type %s in a %s app.", desfire::to_string(fs.type()),
-                     desfire::to_string(app.default_key.type()));
-            TEST_ASSERT(mifare->create_file(fid, fs));
-            switch (fs.type()) {
-                case file_type::standard: {
-                    // Attempt read/write
-                    TEST_ASSERT(mifare->write_data(fid, 0, file_data));
-                    const auto res_read = mifare->read_data(fid, 0, file_data.size());
-                    TEST_ASSERT(res_read);
-                    TEST_ASSERT_EQUAL(file_data.size(), res_read->size());
-                    TEST_ASSERT_EQUAL_HEX8_ARRAY(file_data.data(), res_read->data(), file_data.size());
-                    ESP_LOGI(TEST_TAG, "Completed RW cycle with %d bytes.", file_data.size());
-                }
-                    break;
-                case file_type::backup: {
-                    // Attempt read/write with commit
-                    TEST_ASSERT(mifare->write_data(fid, 0, file_data));
-                    const auto res_read_before_commit = mifare->read_data(fid, 0, file_data.size());
-                    TEST_ASSERT(res_read_before_commit);
-                    TEST_ASSERT_EACH_EQUAL_HEX8(0x00, res_read_before_commit->data(), res_read_before_commit->size());
-                    TEST_ASSERT(mifare->commit_transaction());
-                    const auto res_read = mifare->read_data(fid, 0, file_data.size());;
-                    TEST_ASSERT(res_read);
-                    TEST_ASSERT_EQUAL(file_data.size(), res_read->size());
-                    TEST_ASSERT_EQUAL_HEX8_ARRAY(file_data.data(), res_read->data(), file_data.size());
-                    ESP_LOGI(TEST_TAG, "Completed RW cycle with %d bytes.", file_data.size());
-                }
-                case file_type::value:         // [[fallthrough]];
-                case file_type::linear_record: // [[fallthrough]];
-                case file_type::cyclic_record: // [[fallthrough]];
-                default: break;
+        // Cycle through all apps
+        for (ut::app_with_keys const &app : ut::test_apps) {
+            ESP_LOGI(TEST_TAG, "Formatting to recover space.");
+            format_picc();
+            ESP_LOGI(TEST_TAG, "Creating app with cipher %s.", desfire::to_string(app.default_key.type()));
+            TEST_ASSERT(mifare->select_application(desfire::root_app));
+            TEST_ASSERT(mifare->authenticate(desfire::key<desfire::cipher_type::des>{}));
+            TEST_ASSERT(mifare->create_application(app.aid, desfire::key_settings{app.default_key.type()}));
+            TEST_ASSERT(mifare->select_application(app.aid));
+            TEST_ASSERT(mifare->authenticate(app.default_key));
+            // Delete preexisting files
+            const auto res_fids = mifare->get_file_ids();
+            if (res_fids and std::find(std::begin(*res_fids), std::end(*res_fids), fid) != std::end(*res_fids)) {
+                TEST_ASSERT(mifare->delete_file(fid));
             }
-            TEST_ASSERT(mifare->delete_file(fid));
+            for (any_file_settings const &fs : files) {
+                ESP_LOGI(TEST_TAG, "Creating file of type %s in a %s app.", desfire::to_string(fs.type()),
+                         desfire::to_string(app.default_key.type()));
+                TEST_ASSERT(mifare->create_file(fid, fs));
+                switch (fs.type()) {
+                    case file_type::standard: {
+                        // Attempt read/write
+                        TEST_ASSERT(mifare->write_data(fid, 0, file_data));
+                        const auto res_read = mifare->read_data(fid, 0, file_data.size());
+                        TEST_ASSERT(res_read);
+                        TEST_ASSERT_EQUAL(file_data.size(), res_read->size());
+                        TEST_ASSERT_EQUAL_HEX8_ARRAY(file_data.data(), res_read->data(), file_data.size());
+                        ESP_LOGI(TEST_TAG, "Completed RW cycle with %d bytes.", file_data.size());
+                    }
+                        break;
+                    case file_type::backup: {
+                        // Attempt read/write with commit
+                        TEST_ASSERT(mifare->write_data(fid, 0, file_data));
+                        const auto res_read_before_commit = mifare->read_data(fid, 0, file_data.size());
+                        TEST_ASSERT(res_read_before_commit);
+                        TEST_ASSERT_EACH_EQUAL_HEX8(0x00, res_read_before_commit->data(), res_read_before_commit->size());
+                        TEST_ASSERT(mifare->commit_transaction());
+                        const auto res_read = mifare->read_data(fid, 0, file_data.size());;
+                        TEST_ASSERT(res_read);
+                        TEST_ASSERT_EQUAL(file_data.size(), res_read->size());
+                        TEST_ASSERT_EQUAL_HEX8_ARRAY(file_data.data(), res_read->data(), file_data.size());
+                        ESP_LOGI(TEST_TAG, "Completed RW cycle with %d bytes.", file_data.size());
+                    }
+                    case file_type::value:         // [[fallthrough]];
+                    case file_type::linear_record: // [[fallthrough]];
+                    case file_type::cyclic_record: // [[fallthrough]];
+                    default: break;
+                }
+                TEST_ASSERT(mifare->delete_file(fid));
+            }
+            ESP_LOGI(TEST_TAG, "Comm mode %s with cipher %s test completed.", desfire::to_string(comm_mode), desfire::to_string(app.default_key.type()));
         }
     }
 }

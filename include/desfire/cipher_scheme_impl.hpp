@@ -28,11 +28,11 @@ namespace desfire {
         /// Perform key derivation
         DESFIRE_LOGD("Deriving CMAC subkeys...");
 
-        static const auto prepare_subkey = [](cmac_subkey_t &subkey) {
+        static const auto prepare_subkey = [](cmac_subkey_t &subkey, bool xor_with_subkey_r) {
             // Some app-specific magic: lshift by one
             lshift_sequence(std::begin(subkey), std::end(subkey), 1);
             // ...and xor with R if the MSB is one
-            if ((subkey[0] & (1 << 7)) != 0) {
+            if (xor_with_subkey_r) {
                 subkey[block_size - 1] ^= cmac_subkey_r;
             }
         };
@@ -40,11 +40,11 @@ namespace desfire {
         const block_t cmac_base_data = derive_cmac_base_data();
         // Copy and prep
         std::copy(std::begin(cmac_base_data), std::end(cmac_base_data), std::begin(_cmac_subkey_nopad));
-        prepare_subkey(_cmac_subkey_nopad);
+        prepare_subkey(_cmac_subkey_nopad, (cmac_base_data.front() & 0x80) != 0);
 
         // Do it again
         _cmac_subkey_pad = _cmac_subkey_nopad;
-        prepare_subkey(_cmac_subkey_pad);
+        prepare_subkey(_cmac_subkey_pad, (_cmac_subkey_nopad.front() & 0x80) != 0);
     }
 
     template <std::size_t BlockSize, std::uint8_t CMACSubkeyR>

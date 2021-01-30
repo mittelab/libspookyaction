@@ -177,12 +177,16 @@ namespace desfire {
     }
 
     cipher_3k3des::block_t cipher_3k3des::derive_cmac_base_data() {
-        block_t iv{0, 0, 0, 0, 0, 0, 0, 0};
+        static block_t iv{};
+        std::fill_n(std::begin(iv), block_size, 0x00);
         block_t b{0, 0, 0, 0, 0, 0, 0, 0};
         /**
-       * @note Using  on @ref MBEDTLS_DES_DECRYPT is **deliberate**, see note on @ref derive_cmac_base_data.
-       */
-        mbedtls_des3_crypt_cbc(&_enc_context, MBEDTLS_DES_DECRYPT, block_size, iv.data(), b.data(), b.data());
+         * @note I tried all combinations of _dec/enc_context and MBEDTLS_AES_DE/ENCRYPT; this works. Don't ask me why.
+         * It has to be **enc** context, and it does not matter the direction (encrypt or decrypt). Note that this
+         * for some reason always produces some different base data than e.g. Easypay (another implementation), however
+         * it seems to work fine.
+         */
+        mbedtls_des3_crypt_cbc(&_enc_context, MBEDTLS_DES_ENCRYPT, block_size, iv.data(), b.data(), b.data());
         return b;
     }
 
@@ -234,10 +238,11 @@ namespace desfire {
     }
 
     cipher_aes::block_t cipher_aes::derive_cmac_base_data() {
-        block_t iv{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+        static block_t iv{};
+        std::fill_n(std::begin(iv), block_size, 0x00);
         block_t b{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
         /**
-         * @note Using  on @ref MBEDTLS_AES_ENCRYPT is **deliberate**, see note on @ref derive_cmac_base_data.
+         * @note I tried all combinations of _dec/enc_context and MBEDTLS_AES_DE/ENCRYPT; this works. Don't ask me why.
          */
         mbedtls_aes_crypt_cbc(&_enc_context, MBEDTLS_AES_ENCRYPT, block_size, iv.data(), b.data(), b.data());
         return b;

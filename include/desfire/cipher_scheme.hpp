@@ -78,6 +78,11 @@ namespace desfire {
          * crypto_decipher(&ctx, &data, &iv);
          * return data;
          * @endcode
+         * @warning What I wrote above is a lie. Other implementations (Easypay, RFDoorLock) use decipherment operations
+         * with encipherment keys, however by trial and error, I figured that AES128 actually does the opposite, needs
+         * an encryption operation with a decipherment keys. Interestingly enough, the AES128 implementation produces
+         * the same CMAC keys as Easypay, but 3DES produces entirely different keys instead. What is funny enough, is
+         * that those keys actually work. I have no clue why. Most likely some Xoring magic occurring inside 3DES?
          */
         virtual block_t derive_cmac_base_data() = 0;
 

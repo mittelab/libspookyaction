@@ -357,7 +357,7 @@ namespace desfire {
         return safe_drop_payload(command_code::change_key_settings, command_response(
                 command_code::change_key_settings,
                 bin_data::chain(new_rights),
-                {cipher_cfg_crypto, cipher_cfg_plain}));
+                {cipher_cfg_crypto, cipher_default().rx}));
     }
 
     tag::r<> tag::delete_application(app_id const &app) {

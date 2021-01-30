@@ -589,7 +589,12 @@ void test_mifare_change_app_key() {
         const auto res_key_version = mifare->get_key_version(app.secondary_key.key_number());
         TEST_ASSERT(res_key_version);
         TEST_ASSERT_EQUAL(app.secondary_key.version(), *res_key_version);
-        TEST_ASSERT(mifare->get_key_settings());
+        auto res_key_settings = mifare->get_key_settings();
+        TEST_ASSERT(res_key_settings);
+        res_key_settings->rights.dir_access_without_auth = true;
+        TEST_ASSERT(mifare->change_key_settings(res_key_settings->rights));
+        res_key_settings->rights.dir_access_without_auth = false;
+        TEST_ASSERT(mifare->change_key_settings(res_key_settings->rights));
         TEST_ASSERT(mifare->change_key(app.default_key));
     }
 }

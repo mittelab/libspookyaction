@@ -69,7 +69,9 @@ namespace desfire {
                         DESFIRE_LOGE("Specified offset leaves no data to mac.");
                         break;
                     }
-                    data << compute_mac(data.view(offset));
+                    const auto mac = compute_mac(data.view(offset));
+                    ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " TX MAC", mac.data(), mac.size(), ESP_LOG_DEBUG);
+                    data << mac;
                 }
                 break;
             case comm_mode::cipher:
@@ -107,6 +109,7 @@ namespace desfire {
                     const auto data_view = s.read(s.remaining() - mac_size - 1);
                     // Compute mac on data
                     const mac_t computed_mac = compute_mac(data_view);
+                    ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " RX MAC", computed_mac.data(), computed_mac.size(), ESP_LOG_DEBUG);
                     // Extract the transmitted mac
                     mac_t rxd_mac{};
                     s >> rxd_mac;
@@ -116,6 +119,7 @@ namespace desfire {
                         data.resize(data.size() - mac_size);
                         return true;
                     }
+                    ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " != MAC", rxd_mac.data(), rxd_mac.size(), ESP_LOG_DEBUG);
                     return false;
                 }
                 break;

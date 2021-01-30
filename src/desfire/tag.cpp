@@ -222,7 +222,7 @@ namespace desfire {
          */
         const auto res_cmd =  command_response(command_code::select_application, bin_data::chain(app), comm_mode::plain);
         if (res_cmd) {
-            DESFIRE_LOGI("Selected application %02x %02x %02x.", app[0], app[1], app[2]);
+            DESFIRE_LOGD("Selected application %02x %02x %02x.", app[0], app[1], app[2]);
             logout(false);
             _active_app = app;
         }
@@ -301,7 +301,7 @@ namespace desfire {
 
         DESFIRE_LOGD("Authentication: deriving session key...");
         pcipher->reinit_with_session_key(bin_data::chain(prealloc(2 * rndb.size()), rnda, rndb));
-        DESFIRE_LOGI("Authenticated with key %u (%s).", k.key_number(), to_string(k.type()));
+        DESFIRE_LOGD("Authenticated with key %u (%s).", k.key_number(), to_string(k.type()));
 
         _active_cipher = std::move(pcipher);
         _active_cipher_type = k.type();
@@ -477,7 +477,7 @@ namespace desfire {
 
         const auto res_cmd =  command_response(command_code::change_key, payload, change_key_cfg);
         if (res_cmd) {
-            DESFIRE_LOGI("Key %d (%s) was changed.", new_key.key_number(), to_string(new_key.type()));
+            DESFIRE_LOGD("Key %d (%s) was changed.", new_key.key_number(), to_string(new_key.type()));
         } else {
             DESFIRE_LOGW("Could not change key %d (%s): %s.", new_key.key_number(), to_string(new_key.type()), to_string(res_cmd.error()));
         }

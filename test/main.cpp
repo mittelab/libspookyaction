@@ -582,6 +582,7 @@ void test_mifare_change_app_key() {
             TEST_ASSERT(mifare->authenticate(app.secondary_key));
             TEST_ASSERT(mifare->change_key(app.default_key));
             ESP_LOGI(TEST_TAG, "Reset app key to default, continuing!");
+            TEST_ASSERT(mifare->authenticate(app.default_key));
         }
         TEST_ASSERT(mifare->change_key(app.secondary_key));
         TEST_ASSERT(mifare->authenticate(app.secondary_key));

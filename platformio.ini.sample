@@ -1,0 +1,17 @@
+[env:m5stack-core-esp32]
+platform = espressif32@1.11.2
+framework = espidf
+test_build_project_src = yes
+build_flags =
+    -D CONFIG_MBEDTLS_AES_C
+    -D CONFIG_MBEDTLS_DES_C
+;    -D LOG_LOCAL_LEVEL=ESP_LOG_DEBUG
+;    -D CORE_DEBUG_LEVEL=5
+;    -fno-inline
+;    -fno-omit-frame-pointer
+
+;upload_port=/dev/ttyUSB0
+;monitor_port=/dev/ttyUSB0
+;test_port=/dev/ttyUSB0
+;monitor_speed = 115200
+;board = m5stack-core-esp32

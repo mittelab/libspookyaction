@@ -638,7 +638,18 @@ void test_mifare_create_delete_files() {
                     TEST_ASSERT_EQUAL_HEX8_ARRAY(file_data.data(), res_read->data(), file_data.size());
                 }
                     break;
-                case file_type::backup:        // [[fallthrough]];
+                case file_type::backup: {
+                    // Attempt read/write with commit
+                    TEST_ASSERT(mifare->write_data(fid, 0, file_data));
+                    const auto res_read_before_commit = mifare->read_data(fid, 0, file_data.size());
+                    TEST_ASSERT(res_read_before_commit);
+                    TEST_ASSERT_EACH_EQUAL_HEX8(0x00, res_read_before_commit->data(), res_read_before_commit->size());
+                    TEST_ASSERT(mifare->commit_transaction());
+                    const auto res_read = mifare->read_data(fid, 0, file_data.size());;
+                    TEST_ASSERT(res_read);
+                    TEST_ASSERT_EQUAL(file_data.size(), res_read->size());
+                    TEST_ASSERT_EQUAL_HEX8_ARRAY(file_data.data(), res_read->data(), file_data.size());
+                }
                 case file_type::value:         // [[fallthrough]];
                 case file_type::linear_record: // [[fallthrough]];
                 case file_type::cyclic_record: // [[fallthrough]];

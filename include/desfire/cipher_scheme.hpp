@@ -33,7 +33,7 @@ namespace desfire {
         /**
          * Returns the first @ref mac_length bytes of the IV after encrypting @p data.
          */
-        mac_t compute_mac(range<bin_data::const_iterator> data);
+        mac_t compute_mac(range<bin_data::const_iterator> const &data);
 
         static bool drop_padding_verify_crc(bin_data &d);
 
@@ -77,7 +77,7 @@ namespace desfire {
     public:
         virtual void do_crypto(range<bin_data::iterator> data, bool encrypt, block_t &iv) = 0;
 
-        mac_t compute_mac(range<bin_data::const_iterator> data);
+        mac_t compute_mac(range<bin_data::const_iterator> const &data);
 
         /**
          * @param status The CRC is always computed on ''data || status'', so we always need to update it for that

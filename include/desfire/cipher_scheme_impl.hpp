@@ -57,7 +57,7 @@ namespace desfire {
 
     template <std::size_t BlockSize, std::uint8_t CMACSubkeyR>
     typename cipher_scheme<BlockSize, CMACSubkeyR>::mac_t cipher_scheme<BlockSize, CMACSubkeyR>::compute_mac(
-            range <bin_data::const_iterator> data) {
+            range <bin_data::const_iterator> const &data) {
         static const auto xor_op = [](std::uint8_t l, std::uint8_t r) -> std::uint8_t { return l ^ r; };
         static bin_data buffer{};
 

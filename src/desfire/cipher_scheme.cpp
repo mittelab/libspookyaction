@@ -27,7 +27,7 @@ namespace desfire {
         return dummy_iv;
     }
 
-    cipher_legacy_scheme::mac_t cipher_legacy_scheme::compute_mac(range <bin_data::const_iterator> data) {
+    cipher_legacy_scheme::mac_t cipher_legacy_scheme::compute_mac(range <bin_data::const_iterator> const &data) {
         static bin_data buffer{};
 
         // Resize the buffer and copy data

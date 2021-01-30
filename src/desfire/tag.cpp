@@ -573,7 +573,8 @@ namespace desfire {
         if (not res_mode) {
             return res_mode.error();
         }
-        const comm_cfg cfg{cipher::config{*res_mode, true, true, true}, cipher_default().rx};
+        const comm_cfg cfg{cipher::config{*res_mode, true, true, true}, cipher_default().rx,
+                           8 /* secure with legacy MAC only data */};
 
         bin_data payload{prealloc(data.size() + 7)};
         payload << fid << lsb24 << offset << lsb24 << data.size() << data;

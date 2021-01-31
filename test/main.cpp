@@ -393,7 +393,7 @@ void test_change_key_des() {
     tag.change_key(desfire::key<desfire::cipher_type::des>{0, {0x0, 0x2, 0x4, 0x6, 0x8, 0xa, 0xc, 0xe}, 0x10});
 }
 
-void test_cmac() {
+void test_create_write_file_rx_cmac() {
     ut::assert_comm_controller ctrl;
     desfire::tag tag{ctrl};
 
@@ -418,7 +418,7 @@ void test_cmac() {
     TEST_ASSERT(tag.write_data(5, 0, data_to_write));
 }
 
-void test_get_key_version() {
+void test_get_key_version_rx_cmac() {
     ut::assert_comm_controller ctrl;
     desfire::tag tag{ctrl};
 
@@ -440,6 +440,24 @@ void test_get_key_version() {
 
         TEST_ASSERT(tag.get_key_version(0));
     }
+}
+
+void test_write_data_cmac_des() {
+    ut::assert_comm_controller ctrl;
+    desfire::tag tag{ctrl};
+
+    ut::session session{tag, desfire::key<desfire::cipher_type::des>{
+            0, {0xc8, 0x6d, 0xb4, 0x4f, 0x23, 0x43, 0xba, 0x56}
+    }, {0x00, 0xde, 0x01}, 0};
+
+    desfire::bin_data file_data;
+    file_data.resize(32);
+    std::iota(std::begin(file_data), std::end(file_data), 0x00);
+
+    ctrl.append({0xf5, 0x00}, {0x00, 0x00, 0x01, 0x00, 0x00, 0x20, 0x00, 0x00});
+    ctrl.append({0x3d, 0x00, 0x00, 0x00, 0x00, 0x20, 0x00, 0x00, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f, 0x9a, 0xa8, 0x3a, 0x44}, {0x00});
+
+    tag.write_data(0x00, 0, file_data);
 }
 
 void test_crc32() {
@@ -717,8 +735,9 @@ extern "C" void app_main() {
     RUN_TEST(test_change_key_aes);
     RUN_TEST(test_change_key_des);
     RUN_TEST(test_change_key_2k3des);
-    RUN_TEST(test_cmac);
-    RUN_TEST(test_get_key_version);
+    RUN_TEST(test_create_write_file_rx_cmac);
+    RUN_TEST(test_get_key_version_rx_cmac);
+    RUN_TEST(test_write_data_cmac_des);
     issue_header("HARDWARE SETUP (no card)");
     RUN_TEST(setup_uart_pn532);
     issue_header("PN532 TEST AND DIAGNOSTICS (no card)");

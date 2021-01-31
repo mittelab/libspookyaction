@@ -96,6 +96,10 @@ namespace ut {
         esp_log_level_set(DESFIRE_TAG " TX MAC", ESP_LOG_DEBUG);
         esp_log_level_set(DESFIRE_TAG " RX MAC", ESP_LOG_DEBUG);
         esp_log_level_set(DESFIRE_TAG " != MAC", ESP_LOG_DEBUG);
+        esp_log_level_set(DESFIRE_TAG " CRYPTO", ESP_LOG_DEBUG);
+        esp_log_level_set(DESFIRE_TAG " DATA", ESP_LOG_DEBUG);
+        esp_log_level_set(DESFIRE_TAG " BLOB", ESP_LOG_DEBUG);
+        esp_log_level_set(DESFIRE_TAG "   IV", ESP_LOG_DEBUG);
     }
 }
 

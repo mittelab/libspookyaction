@@ -49,16 +49,16 @@ namespace desfire {
     }
 
     void cipher_des::do_crypto(range<bin_data::iterator> data, bool encrypt, cipher_des::block_t &iv) {
-        ESP_LOGV(DESFIRE_TAG "CRYPTO", "DES: %s %u bytes.", (encrypt ? "encrypting" : "decrypting"), std::distance(std::begin(data), std::end(data)));
-        ESP_LOG_BUFFER_HEX_LEVEL((encrypt ? DESFIRE_TAG " DATA" : DESFIRE_TAG " BLOB"), data.data(), data.size(), ESP_LOG_VERBOSE);
-        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG "   IV", iv.data(), iv.size(), ESP_LOG_VERBOSE);
+        ESP_LOGV(DESFIRE_TAG " CRYPTO", "DES: %s %u bytes.", (encrypt ? "encrypting" : "decrypting"), std::distance(std::begin(data), std::end(data)));
+        ESP_LOG_BUFFER_HEX_LEVEL((encrypt ? DESFIRE_TAG " DATA" : DESFIRE_TAG " BLOB"), data.data(), data.size(), ESP_LOG_DEBUG);
+        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG "   IV", iv.data(), iv.size(), ESP_LOG_DEBUG);
         assert(data.size() % block_size == 0);
         if (encrypt) {
             mbedtls_des_crypt_cbc(&_enc_context, MBEDTLS_DES_ENCRYPT, data.size(), iv.data(), data.data(), data.data());
         } else {
             mbedtls_des_crypt_cbc(&_dec_context, MBEDTLS_DES_DECRYPT, data.size(), iv.data(), data.data(), data.data());
         }
-        ESP_LOG_BUFFER_HEX_LEVEL((encrypt ? DESFIRE_TAG " BLOB" : DESFIRE_TAG " DATA"), data.data(), data.size(), ESP_LOG_VERBOSE);
+        ESP_LOG_BUFFER_HEX_LEVEL((encrypt ? DESFIRE_TAG " BLOB" : DESFIRE_TAG " DATA"), data.data(), data.size(), ESP_LOG_DEBUG);
     }
 
     cipher_2k3des::cipher_2k3des(std::array<std::uint8_t, 16> const &key) : _enc_context{}, _dec_context{}, _degenerate{false}
@@ -127,16 +127,16 @@ namespace desfire {
     }
 
     void cipher_2k3des::do_crypto(range <bin_data::iterator> data, bool encrypt, cipher_2k3des::block_t &iv) {
-        ESP_LOGV(DESFIRE_TAG "CRYPTO", "2K3DES: %s %u bytes.", (encrypt ? "encrypting" : "decrypting"), std::distance(std::begin(data), std::end(data)));
-        ESP_LOG_BUFFER_HEX_LEVEL((encrypt ? DESFIRE_TAG " DATA" : DESFIRE_TAG " BLOB"), data.data(), data.size(), ESP_LOG_VERBOSE);
-        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG "   IV", iv.data(), iv.size(), ESP_LOG_VERBOSE);
+        ESP_LOGV(DESFIRE_TAG " CRYPTO", "2K3DES: %s %u bytes.", (encrypt ? "encrypting" : "decrypting"), std::distance(std::begin(data), std::end(data)));
+        ESP_LOG_BUFFER_HEX_LEVEL((encrypt ? DESFIRE_TAG " DATA" : DESFIRE_TAG " BLOB"), data.data(), data.size(), ESP_LOG_DEBUG);
+        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG "   IV", iv.data(), iv.size(), ESP_LOG_DEBUG);
         assert(data.size() % block_size == 0);
         if (encrypt) {
             mbedtls_des3_crypt_cbc(&_enc_context, MBEDTLS_DES_ENCRYPT, data.size(), iv.data(), data.data(), data.data());
         } else {
             mbedtls_des3_crypt_cbc(&_dec_context, MBEDTLS_DES_DECRYPT, data.size(), iv.data(), data.data(), data.data());
         }
-        ESP_LOG_BUFFER_HEX_LEVEL((encrypt ? DESFIRE_TAG " BLOB" : DESFIRE_TAG " DATA"), data.data(), data.size(), ESP_LOG_VERBOSE);
+        ESP_LOG_BUFFER_HEX_LEVEL((encrypt ? DESFIRE_TAG " BLOB" : DESFIRE_TAG " DATA"), data.data(), data.size(), ESP_LOG_DEBUG);
     }
 
     cipher_3k3des::cipher_3k3des(std::array<std::uint8_t, 24> const &key) : _enc_context{}, _dec_context{} {
@@ -177,16 +177,16 @@ namespace desfire {
     }
 
     void cipher_3k3des::do_crypto(range <bin_data::iterator> data, bool encrypt, cipher_3k3des::block_t &iv) {
-        ESP_LOGV(DESFIRE_TAG "CRYPTO", "3K3DES: %s %u bytes.", (encrypt ? "encrypting" : "decrypting"), std::distance(std::begin(data), std::end(data)));
-        ESP_LOG_BUFFER_HEX_LEVEL((encrypt ? DESFIRE_TAG " DATA" : DESFIRE_TAG " BLOB"), data.data(), data.size(), ESP_LOG_VERBOSE);
-        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG "   IV", iv.data(), iv.size(), ESP_LOG_VERBOSE);
+        ESP_LOGV(DESFIRE_TAG " CRYPTO", "3K3DES: %s %u bytes.", (encrypt ? "encrypting" : "decrypting"), std::distance(std::begin(data), std::end(data)));
+        ESP_LOG_BUFFER_HEX_LEVEL((encrypt ? DESFIRE_TAG " DATA" : DESFIRE_TAG " BLOB"), data.data(), data.size(), ESP_LOG_DEBUG);
+        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG "   IV", iv.data(), iv.size(), ESP_LOG_DEBUG);
         assert(data.size() % block_size == 0);
         if (encrypt) {
             mbedtls_des3_crypt_cbc(&_enc_context, MBEDTLS_DES_ENCRYPT, data.size(), iv.data(), data.data(), data.data());
         } else {
             mbedtls_des3_crypt_cbc(&_dec_context, MBEDTLS_DES_DECRYPT, data.size(), iv.data(), data.data(), data.data());
         }
-        ESP_LOG_BUFFER_HEX_LEVEL((encrypt ? DESFIRE_TAG " BLOB" : DESFIRE_TAG " DATA"), data.data(), data.size(), ESP_LOG_VERBOSE);
+        ESP_LOG_BUFFER_HEX_LEVEL((encrypt ? DESFIRE_TAG " BLOB" : DESFIRE_TAG " DATA"), data.data(), data.size(), ESP_LOG_DEBUG);
     }
 
     cipher_aes::cipher_aes(std::array<std::uint8_t, 16> const &key) : _enc_context{}, _dec_context{} {
@@ -224,15 +224,15 @@ namespace desfire {
     }
 
     void cipher_aes::do_crypto(range <bin_data::iterator> data, bool encrypt, cipher_aes::block_t &iv) {
-        ESP_LOGV(DESFIRE_TAG "CRYPTO", "AES128: %s %u bytes.", (encrypt ? "encrypting" : "decrypting"), std::distance(std::begin(data), std::end(data)));
-        ESP_LOG_BUFFER_HEX_LEVEL((encrypt ? DESFIRE_TAG " DATA" : DESFIRE_TAG " BLOB"), data.data(), data.size(), ESP_LOG_VERBOSE);
-        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG "   IV", iv.data(), iv.size(), ESP_LOG_VERBOSE);
+        ESP_LOGV(DESFIRE_TAG " CRYPTO", "AES128: %s %u bytes.", (encrypt ? "encrypting" : "decrypting"), std::distance(std::begin(data), std::end(data)));
+        ESP_LOG_BUFFER_HEX_LEVEL((encrypt ? DESFIRE_TAG " DATA" : DESFIRE_TAG " BLOB"), data.data(), data.size(), ESP_LOG_DEBUG);
+        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG "   IV", iv.data(), iv.size(), ESP_LOG_DEBUG);
         assert(data.size() % block_size == 0);
         if (encrypt) {
             mbedtls_aes_crypt_cbc(&_enc_context, MBEDTLS_AES_ENCRYPT, data.size(), iv.data(), data.data(), data.data());
         } else {
             mbedtls_aes_crypt_cbc(&_dec_context, MBEDTLS_AES_DECRYPT, data.size(), iv.data(), data.data(), data.data());
         }
-        ESP_LOG_BUFFER_HEX_LEVEL((encrypt ? DESFIRE_TAG " BLOB" : DESFIRE_TAG " DATA"), data.data(), data.size(), ESP_LOG_VERBOSE);
+        ESP_LOG_BUFFER_HEX_LEVEL((encrypt ? DESFIRE_TAG " BLOB" : DESFIRE_TAG " DATA"), data.data(), data.size(), ESP_LOG_DEBUG);
     }
 }

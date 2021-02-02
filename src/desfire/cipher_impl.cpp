@@ -4,18 +4,43 @@
 
 #include <cassert>
 #include "desfire/cipher_impl.hpp"
+#include "desfire/msg.hpp"
 
 namespace desfire {
 
-    cipher_des::cipher_des(std::array<std::uint8_t, 8> const &key) : _enc_context{}, _dec_context{} {
+    namespace {
+        const char *input_tag(crypto_mode mode) {
+            switch (mode) {
+                case crypto_mode::decrypt: return DESFIRE_TAG " BLOB";
+                case crypto_mode::encrypt: // [[fallthrough]];
+                case crypto_mode::mac: // [[ fallthrough]];
+                default:
+                    return DESFIRE_TAG " DATA";
+            }
+        }
+        const char *output_tag(crypto_mode mode) {
+            switch (mode) {
+                case crypto_mode::decrypt: return DESFIRE_TAG " DATA";
+                case crypto_mode::encrypt: // [[fallthrough]];
+                case crypto_mode::mac: // [[ fallthrough]];
+                default:
+                    return DESFIRE_TAG " BLOB";
+            }
+        }
+    }
+
+    cipher_des::cipher_des(std::array<std::uint8_t, 8> const &key) : _enc_context{}, _dec_context{}, _mac_enc_context{}
+    {
         mbedtls_des_init(&_enc_context);
         mbedtls_des_init(&_dec_context);
+        mbedtls_des_init(&_mac_enc_context);
         /**
          * @note Using @ref mbedtls_des_setkey_dec on @ref _enc_context is **deliberate**, see note on
          * @ref cipher_legacy_scheme.
          */
         mbedtls_des_setkey_dec(&_enc_context, key.data());
         mbedtls_des_setkey_dec(&_dec_context, key.data());
+        mbedtls_des_setkey_enc(&_mac_enc_context, key.data());
         initialize();
     }
 
@@ -31,8 +56,10 @@ namespace desfire {
         std::copy_n(bsrc + 8, 4, btrg + 4);
         mbedtls_des_free(&_enc_context);
         mbedtls_des_free(&_dec_context);
+        mbedtls_des_free(&_mac_enc_context);
         mbedtls_des_init(&_enc_context);
         mbedtls_des_init(&_dec_context);
+        mbedtls_des_init(&_mac_enc_context);
         set_key_version(new_key, 0x00);
         /**
          * @note Using @ref mbedtls_des_setkey_dec on @ref _enc_context is **deliberate**, see note on
@@ -40,28 +67,40 @@ namespace desfire {
          */
         mbedtls_des_setkey_dec(&_enc_context, new_key.data());
         mbedtls_des_setkey_dec(&_dec_context, new_key.data());
+        mbedtls_des_setkey_enc(&_mac_enc_context, new_key.data());
         initialize();
     }
 
     cipher_des::~cipher_des() {
         mbedtls_des_free(&_enc_context);
         mbedtls_des_free(&_dec_context);
+        mbedtls_des_free(&_mac_enc_context);
     }
 
-    void cipher_des::do_crypto(range<bin_data::iterator> data, bool encrypt, cipher_des::block_t &iv) {
-        ESP_LOGV(DESFIRE_TAG " CRYPTO", "DES: %s %u bytes.", (encrypt ? "encrypting" : "decrypting"), std::distance(std::begin(data), std::end(data)));
-        ESP_LOG_BUFFER_HEX_LEVEL((encrypt ? DESFIRE_TAG " DATA" : DESFIRE_TAG " BLOB"), data.data(), data.size(), ESP_LOG_DEBUG);
+    void cipher_des::do_crypto(range<bin_data::iterator> const &data, crypto_mode mode, cipher_des::block_t &iv) {
+        ESP_LOGV(DESFIRE_TAG " CRYPTO", "DES: %s %u bytes.", to_string(mode), std::distance(std::begin(data), std::end(data)));
+        ESP_LOG_BUFFER_HEX_LEVEL(input_tag(mode), data.data(), data.size(), ESP_LOG_DEBUG);
         ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG "   IV", iv.data(), iv.size(), ESP_LOG_DEBUG);
         assert(data.size() % block_size == 0);
-        if (encrypt) {
-            mbedtls_des_crypt_cbc(&_enc_context, MBEDTLS_DES_ENCRYPT, data.size(), iv.data(), data.data(), data.data());
-        } else {
-            mbedtls_des_crypt_cbc(&_dec_context, MBEDTLS_DES_DECRYPT, data.size(), iv.data(), data.data(), data.data());
+        switch (mode) {
+            case crypto_mode::encrypt:
+                mbedtls_des_crypt_cbc(&_enc_context, MBEDTLS_DES_ENCRYPT, data.size(), iv.data(), data.data(), data.data());
+                break;
+            case crypto_mode::decrypt:
+                mbedtls_des_crypt_cbc(&_dec_context, MBEDTLS_DES_DECRYPT, data.size(), iv.data(), data.data(), data.data());
+                break;
+            case crypto_mode::mac:
+                mbedtls_des_crypt_cbc(&_mac_enc_context, MBEDTLS_DES_ENCRYPT, data.size(), iv.data(), data.data(), data.data());
+                break;
+            default:
+                DESFIRE_LOGE("Unknown crypto mode: %s", to_string(mode));
+                break;
         }
-        ESP_LOG_BUFFER_HEX_LEVEL((encrypt ? DESFIRE_TAG " BLOB" : DESFIRE_TAG " DATA"), data.data(), data.size(), ESP_LOG_DEBUG);
+        ESP_LOG_BUFFER_HEX_LEVEL(output_tag(mode), data.data(), data.size(), ESP_LOG_DEBUG);
     }
 
-    cipher_2k3des::cipher_2k3des(std::array<std::uint8_t, 16> const &key) : _enc_context{}, _dec_context{}, _degenerate{false}
+    cipher_2k3des::cipher_2k3des(std::array<std::uint8_t, 16> const &key) : _enc_context{}, _dec_context{},
+        _mac_enc_context{}, _degenerate{false}
     {
         /**
          * @note Indentify whether the two halves of the key are the same, up to parity bit. This means that we are
@@ -77,12 +116,14 @@ namespace desfire {
 
         mbedtls_des3_init(&_enc_context);
         mbedtls_des3_init(&_dec_context);
+        mbedtls_des3_init(&_mac_enc_context);
         /**
          * @note Using @ref mbedtls_des3_set2key_dec on @ref _enc_context is **deliberate**, see note on
          * @ref cipher_legacy_scheme.
          */
         mbedtls_des3_set2key_dec(&_enc_context, key.data());
         mbedtls_des3_set2key_dec(&_dec_context, key.data());
+        mbedtls_des3_set3key_enc(&_mac_enc_context, key.data());
         initialize();
     }
 
@@ -109,8 +150,10 @@ namespace desfire {
         }
         mbedtls_des3_free(&_enc_context);
         mbedtls_des3_free(&_dec_context);
+        mbedtls_des3_free(&_mac_enc_context);
         mbedtls_des3_init(&_enc_context);
         mbedtls_des3_init(&_dec_context);
+        mbedtls_des3_init(&_mac_enc_context);
         set_key_version(new_key, 0x00);
         /**
          * @note Using @ref mbedtls_des3_set2key_dec on @ref _enc_context is **deliberate**, see note on
@@ -118,25 +161,36 @@ namespace desfire {
          */
         mbedtls_des3_set2key_dec(&_enc_context, new_key.data());
         mbedtls_des3_set2key_dec(&_dec_context, new_key.data());
+        mbedtls_des3_set2key_enc(&_mac_enc_context, new_key.data());
         initialize();
     }
 
     cipher_2k3des::~cipher_2k3des() {
         mbedtls_des3_free(&_enc_context);
         mbedtls_des3_free(&_dec_context);
+        mbedtls_des3_free(&_mac_enc_context);
     }
 
-    void cipher_2k3des::do_crypto(range <bin_data::iterator> data, bool encrypt, cipher_2k3des::block_t &iv) {
-        ESP_LOGV(DESFIRE_TAG " CRYPTO", "2K3DES: %s %u bytes.", (encrypt ? "encrypting" : "decrypting"), std::distance(std::begin(data), std::end(data)));
-        ESP_LOG_BUFFER_HEX_LEVEL((encrypt ? DESFIRE_TAG " DATA" : DESFIRE_TAG " BLOB"), data.data(), data.size(), ESP_LOG_DEBUG);
+    void cipher_2k3des::do_crypto(range <bin_data::iterator> const &data, crypto_mode mode, cipher_2k3des::block_t &iv) {
+        ESP_LOGV(DESFIRE_TAG " CRYPTO", "2K3DES: %s %u bytes.", to_string(mode), std::distance(std::begin(data), std::end(data)));
+        ESP_LOG_BUFFER_HEX_LEVEL(input_tag(mode), data.data(), data.size(), ESP_LOG_DEBUG);
         ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG "   IV", iv.data(), iv.size(), ESP_LOG_DEBUG);
         assert(data.size() % block_size == 0);
-        if (encrypt) {
-            mbedtls_des3_crypt_cbc(&_enc_context, MBEDTLS_DES_ENCRYPT, data.size(), iv.data(), data.data(), data.data());
-        } else {
-            mbedtls_des3_crypt_cbc(&_dec_context, MBEDTLS_DES_DECRYPT, data.size(), iv.data(), data.data(), data.data());
+        switch (mode) {
+            case crypto_mode::encrypt:
+                mbedtls_des3_crypt_cbc(&_enc_context, MBEDTLS_DES_ENCRYPT, data.size(), iv.data(), data.data(), data.data());
+                break;
+            case crypto_mode::decrypt:
+                mbedtls_des3_crypt_cbc(&_dec_context, MBEDTLS_DES_DECRYPT, data.size(), iv.data(), data.data(), data.data());
+                break;
+            case crypto_mode::mac:
+                mbedtls_des3_crypt_cbc(&_mac_enc_context, MBEDTLS_DES_ENCRYPT, data.size(), iv.data(), data.data(), data.data());
+                break;
+            default:
+                DESFIRE_LOGE("Unknown crypto mode: %s", to_string(mode));
+                break;
         }
-        ESP_LOG_BUFFER_HEX_LEVEL((encrypt ? DESFIRE_TAG " BLOB" : DESFIRE_TAG " DATA"), data.data(), data.size(), ESP_LOG_DEBUG);
+        ESP_LOG_BUFFER_HEX_LEVEL(output_tag(mode), data.data(), data.size(), ESP_LOG_DEBUG);
     }
 
     cipher_3k3des::cipher_3k3des(std::array<std::uint8_t, 24> const &key) : _enc_context{}, _dec_context{} {
@@ -176,17 +230,24 @@ namespace desfire {
         mbedtls_des3_free(&_dec_context);
     }
 
-    void cipher_3k3des::do_crypto(range <bin_data::iterator> data, bool encrypt, cipher_3k3des::block_t &iv) {
-        ESP_LOGV(DESFIRE_TAG " CRYPTO", "3K3DES: %s %u bytes.", (encrypt ? "encrypting" : "decrypting"), std::distance(std::begin(data), std::end(data)));
-        ESP_LOG_BUFFER_HEX_LEVEL((encrypt ? DESFIRE_TAG " DATA" : DESFIRE_TAG " BLOB"), data.data(), data.size(), ESP_LOG_DEBUG);
+    void cipher_3k3des::do_crypto(range <bin_data::iterator> const &data, crypto_mode mode, cipher_3k3des::block_t &iv) {
+        ESP_LOGV(DESFIRE_TAG " CRYPTO", "3K3DES: %s %u bytes.", to_string(mode), std::distance(std::begin(data), std::end(data)));
+        ESP_LOG_BUFFER_HEX_LEVEL(input_tag(mode), data.data(), data.size(), ESP_LOG_DEBUG);
         ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG "   IV", iv.data(), iv.size(), ESP_LOG_DEBUG);
         assert(data.size() % block_size == 0);
-        if (encrypt) {
-            mbedtls_des3_crypt_cbc(&_enc_context, MBEDTLS_DES_ENCRYPT, data.size(), iv.data(), data.data(), data.data());
-        } else {
-            mbedtls_des3_crypt_cbc(&_dec_context, MBEDTLS_DES_DECRYPT, data.size(), iv.data(), data.data(), data.data());
+        switch (mode) {
+            case crypto_mode::mac:  // [[fallthrough]];
+            case crypto_mode::encrypt:
+                mbedtls_des3_crypt_cbc(&_enc_context, MBEDTLS_DES_ENCRYPT, data.size(), iv.data(), data.data(), data.data());
+                break;
+            case crypto_mode::decrypt:
+                mbedtls_des3_crypt_cbc(&_dec_context, MBEDTLS_DES_DECRYPT, data.size(), iv.data(), data.data(), data.data());
+                break;
+            default:
+                DESFIRE_LOGE("Unknown crypto mode: %s", to_string(mode));
+                break;
         }
-        ESP_LOG_BUFFER_HEX_LEVEL((encrypt ? DESFIRE_TAG " BLOB" : DESFIRE_TAG " DATA"), data.data(), data.size(), ESP_LOG_DEBUG);
+        ESP_LOG_BUFFER_HEX_LEVEL(output_tag(mode), data.data(), data.size(), ESP_LOG_DEBUG);
     }
 
     cipher_aes::cipher_aes(std::array<std::uint8_t, 16> const &key) : _enc_context{}, _dec_context{} {
@@ -223,16 +284,23 @@ namespace desfire {
         mbedtls_aes_free(&_dec_context);
     }
 
-    void cipher_aes::do_crypto(range <bin_data::iterator> data, bool encrypt, cipher_aes::block_t &iv) {
-        ESP_LOGV(DESFIRE_TAG " CRYPTO", "AES128: %s %u bytes.", (encrypt ? "encrypting" : "decrypting"), std::distance(std::begin(data), std::end(data)));
-        ESP_LOG_BUFFER_HEX_LEVEL((encrypt ? DESFIRE_TAG " DATA" : DESFIRE_TAG " BLOB"), data.data(), data.size(), ESP_LOG_DEBUG);
+    void cipher_aes::do_crypto(range <bin_data::iterator> const &data, crypto_mode mode, cipher_aes::block_t &iv) {
+        ESP_LOGV(DESFIRE_TAG " CRYPTO", "AES128: %s %u bytes.", to_string(mode), std::distance(std::begin(data), std::end(data)));
+        ESP_LOG_BUFFER_HEX_LEVEL(input_tag(mode), data.data(), data.size(), ESP_LOG_DEBUG);
         ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG "   IV", iv.data(), iv.size(), ESP_LOG_DEBUG);
         assert(data.size() % block_size == 0);
-        if (encrypt) {
-            mbedtls_aes_crypt_cbc(&_enc_context, MBEDTLS_AES_ENCRYPT, data.size(), iv.data(), data.data(), data.data());
-        } else {
-            mbedtls_aes_crypt_cbc(&_dec_context, MBEDTLS_AES_DECRYPT, data.size(), iv.data(), data.data(), data.data());
+        switch (mode) {
+            case crypto_mode::mac:  // [[fallthrough]];
+            case crypto_mode::encrypt:
+                mbedtls_aes_crypt_cbc(&_enc_context, MBEDTLS_AES_ENCRYPT, data.size(), iv.data(), data.data(), data.data());
+                break;
+            case crypto_mode::decrypt:
+                mbedtls_aes_crypt_cbc(&_dec_context, MBEDTLS_AES_DECRYPT, data.size(), iv.data(), data.data(), data.data());
+                break;
+            default:
+                DESFIRE_LOGE("Unknown crypto mode: %s", to_string(mode));
+                break;
         }
-        ESP_LOG_BUFFER_HEX_LEVEL((encrypt ? DESFIRE_TAG " BLOB" : DESFIRE_TAG " DATA"), data.data(), data.size(), ESP_LOG_DEBUG);
+        ESP_LOG_BUFFER_HEX_LEVEL(output_tag(mode), data.data(), data.size(), ESP_LOG_DEBUG);
     }
 }

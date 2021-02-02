@@ -10,6 +10,12 @@
 
 namespace desfire {
 
+    enum struct crypto_mode {
+        encrypt,
+        decrypt,
+        mac
+    };
+
     /**
      * @todo Add a note explaining why we set a decipherement key on the encryption context and why we decrypt.
      */
@@ -28,7 +34,7 @@ namespace desfire {
          * @param encrypt True to encrypt, false to decrypt
          * @param iv Initialization vector to use; modified in place.
          */
-        virtual void do_crypto(range<bin_data::iterator> data, bool encrypt, block_t &iv) = 0;
+        virtual void do_crypto(range<bin_data::iterator> const &data, crypto_mode mode, block_t &iv) = 0;
 
         /**
          * Returns the first @ref mac_length bytes of the IV after encrypting @p data.
@@ -75,7 +81,7 @@ namespace desfire {
         void initialize();
 
     public:
-        virtual void do_crypto(range<bin_data::iterator> data, bool encrypt, block_t &iv) = 0;
+        virtual void do_crypto(range<bin_data::iterator> const &data, crypto_mode mode, block_t &iv) = 0;
 
         mac_t compute_mac(range<bin_data::const_iterator> const &data);
 

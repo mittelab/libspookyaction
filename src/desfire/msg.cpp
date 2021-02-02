@@ -15,6 +15,17 @@ namespace desfire {
         }
     }
 
+
+    const char *to_string(crypto_mode mode) {
+        switch (mode) {
+            case crypto_mode::encrypt: return "encrypt";
+            case crypto_mode::decrypt: return "decrypt";
+            case crypto_mode::mac:     return "mac";
+            default:
+                return "UNKNOWN";
+        }
+    }
+
     const char *to_string(status s) {
         switch (s) {
             case status::ok:                   return "successful operation";

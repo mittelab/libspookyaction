@@ -14,25 +14,26 @@ namespace desfire {
     class cipher_des final : public cipher_legacy_scheme {
         mbedtls_des_context _enc_context;
         mbedtls_des_context _dec_context;
+        mbedtls_des_context _mac_enc_context;
     public:
         explicit cipher_des(std::array<std::uint8_t, 8> const &key);
         void reinit_with_session_key(bin_data const &rndab) override;
         ~cipher_des() override;
 
-        void do_crypto(range<bin_data::iterator> data, bool encrypt, block_t &iv) override;
+        void do_crypto(range<bin_data::iterator> const &data, crypto_mode mode, block_t &iv) override;
     };
 
     class cipher_2k3des final : public cipher_legacy_scheme {
         mbedtls_des3_context _enc_context;
         mbedtls_des3_context _dec_context;
+        mbedtls_des3_context _mac_enc_context;
         bool _degenerate;
-
     public:
         explicit cipher_2k3des(std::array<std::uint8_t, 16> const &key);
         void reinit_with_session_key(bin_data const &rndab) override;
         ~cipher_2k3des() override;
 
-        void do_crypto(range<bin_data::iterator> data, bool encrypt, block_t &iv) override;
+        void do_crypto(range<bin_data::iterator> const &data, crypto_mode mode, block_t &iv) override;
     };
 
     class cipher_3k3des final : public cipher_scheme<8, 0x1b> {
@@ -44,7 +45,7 @@ namespace desfire {
         void reinit_with_session_key(bin_data const &rndab) override;
         ~cipher_3k3des() override;
 
-        void do_crypto(range<bin_data::iterator> data, bool encrypt, block_t &iv) override;
+        void do_crypto(range<bin_data::iterator> const &data, crypto_mode mode, block_t &iv) override;
     };
 
     class cipher_aes final : public cipher_scheme<16, 0x87> {
@@ -56,7 +57,7 @@ namespace desfire {
         void reinit_with_session_key(bin_data const &rndab) override;
         ~cipher_aes() override;
 
-        void do_crypto(range<bin_data::iterator> data, bool encrypt, block_t &iv) override;
+        void do_crypto(range<bin_data::iterator> const &data, crypto_mode mode, block_t &iv) override;
     };
 
     class cipher_dummy final : public cipher {

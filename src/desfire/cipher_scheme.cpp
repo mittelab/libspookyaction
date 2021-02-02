@@ -36,7 +36,7 @@ namespace desfire {
 
         // Return the first 4 bytes of the last block
         block_t &iv = get_iv();
-        do_crypto(buffer.view(), true, iv);
+        do_crypto(buffer.view(), crypto_mode::mac, iv);
         return {iv[0], iv[1], iv[2], iv[3]};
     }
 
@@ -87,7 +87,7 @@ namespace desfire {
                         data.reserve(offset + padded_length<block_size>(data.size() - offset));
                     }
                     data.resize(offset + padded_length<block_size>(data.size() - offset), 0x00);
-                    do_crypto(data.view(offset), true, get_iv());
+                    do_crypto(data.view(offset), crypto_mode::encrypt, get_iv());
                 }
                 break;
         }
@@ -135,7 +135,7 @@ namespace desfire {
                         ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG, data.data(), data.size(), ESP_LOG_WARN);
                         return false;
                     }
-                    do_crypto(data.view(), false, get_iv());
+                    do_crypto(data.view(), crypto_mode::decrypt, get_iv());
                     if (cfg.do_crc) {
                         // Truncate the padding and the crc
                         const bool did_verify = drop_padding_verify_crc(data);

@@ -551,7 +551,9 @@ namespace desfire {
         if (not res_mode) {
             return res_mode.error();
         }
-        const comm_cfg cfg{cipher::config{*res_mode, true, true, true}, cipher_default().rx};
+        // RX happens with the chosen file protection, except on nonlegacy ciphers where plain becomes maced
+        const auto rx_comm_mode = comm_mode_most_secure(*res_mode, cipher_default().rx.mode);
+        const comm_cfg cfg{cipher_default().tx, cipher::config{rx_comm_mode, true, true, true}};
         bin_data payload{prealloc(7)};
         payload << fid << lsb24 << offset << lsb24 << length;
         return command_response(command_code::read_data, payload, cfg);

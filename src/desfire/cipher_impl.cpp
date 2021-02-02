@@ -78,7 +78,7 @@ namespace desfire {
     }
 
     void cipher_des::do_crypto(range<bin_data::iterator> const &data, crypto_mode mode, cipher_des::block_t &iv) {
-        ESP_LOGV(DESFIRE_TAG " CRYPTO", "DES: %s %u bytes.", to_string(mode), std::distance(std::begin(data), std::end(data)));
+        ESP_LOGD(DESFIRE_TAG " CRYPTO", "DES: %s %u bytes.", to_string(mode), std::distance(std::begin(data), std::end(data)));
         ESP_LOG_BUFFER_HEX_LEVEL(input_tag(mode), data.data(), data.size(), ESP_LOG_DEBUG);
         ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG "   IV", iv.data(), iv.size(), ESP_LOG_DEBUG);
         assert(data.size() % block_size == 0);
@@ -172,7 +172,7 @@ namespace desfire {
     }
 
     void cipher_2k3des::do_crypto(range <bin_data::iterator> const &data, crypto_mode mode, cipher_2k3des::block_t &iv) {
-        ESP_LOGV(DESFIRE_TAG " CRYPTO", "2K3DES: %s %u bytes.", to_string(mode), std::distance(std::begin(data), std::end(data)));
+        ESP_LOGD(DESFIRE_TAG " CRYPTO", "2K3DES: %s %u bytes.", to_string(mode), std::distance(std::begin(data), std::end(data)));
         ESP_LOG_BUFFER_HEX_LEVEL(input_tag(mode), data.data(), data.size(), ESP_LOG_DEBUG);
         ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG "   IV", iv.data(), iv.size(), ESP_LOG_DEBUG);
         assert(data.size() % block_size == 0);
@@ -231,7 +231,7 @@ namespace desfire {
     }
 
     void cipher_3k3des::do_crypto(range <bin_data::iterator> const &data, crypto_mode mode, cipher_3k3des::block_t &iv) {
-        ESP_LOGV(DESFIRE_TAG " CRYPTO", "3K3DES: %s %u bytes.", to_string(mode), std::distance(std::begin(data), std::end(data)));
+        ESP_LOGD(DESFIRE_TAG " CRYPTO", "3K3DES: %s %u bytes.", to_string(mode), std::distance(std::begin(data), std::end(data)));
         ESP_LOG_BUFFER_HEX_LEVEL(input_tag(mode), data.data(), data.size(), ESP_LOG_DEBUG);
         ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG "   IV", iv.data(), iv.size(), ESP_LOG_DEBUG);
         assert(data.size() % block_size == 0);
@@ -285,7 +285,7 @@ namespace desfire {
     }
 
     void cipher_aes::do_crypto(range <bin_data::iterator> const &data, crypto_mode mode, cipher_aes::block_t &iv) {
-        ESP_LOGV(DESFIRE_TAG " CRYPTO", "AES128: %s %u bytes.", to_string(mode), std::distance(std::begin(data), std::end(data)));
+        ESP_LOGD(DESFIRE_TAG " CRYPTO", "AES128: %s %u bytes.", to_string(mode), std::distance(std::begin(data), std::end(data)));
         ESP_LOG_BUFFER_HEX_LEVEL(input_tag(mode), data.data(), data.size(), ESP_LOG_DEBUG);
         ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG "   IV", iv.data(), iv.size(), ESP_LOG_DEBUG);
         assert(data.size() % block_size == 0);

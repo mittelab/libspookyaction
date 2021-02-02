@@ -94,9 +94,6 @@ namespace desfire {
         if (not multiple_of_block_size) {
             DESFIRE_LOGE("Cannot scan for CRC tail if data length is not a multiple of the block size.");
         }
-        // Store the last successful crc and end of the payload
-        ByteIterator last_payload_end = end;
-        bool crc_pass = false;
         if (begin != end and multiple_of_block_size) {
             // Find the last nonzero byte, get and iterator to the element past that.
             // You just have to scan the last block, and in the worst case, the last non-padding byte is the first
@@ -115,12 +112,11 @@ namespace desfire {
                     ) {
                 if (crc == N(0)) {
                     // This is a valid end of the payload with a successful crc check
-                    last_payload_end = end_payload;
-                    crc_pass = true;
+                    return {end_payload, true};
                 }
             }
         }
-        return {last_payload_end, crc_pass};
+        return {end, false};
     }
 
     template <class Integral, class>

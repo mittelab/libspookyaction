@@ -90,11 +90,20 @@ namespace desfire {
         const auto crc_fn = [=](
                 bin_data::const_iterator b, bin_data::const_iterator e, std::uint32_t init) -> std::uint32_t
         {
-            const bin_data status_byte = bin_data::chain(status);
-            // Simulate the presence of an extra status byte by doing an extra crc call
-            const std::uint32_t crc_of_data = compute_crc32(range<bin_data::const_iterator>{b, e}, init);
-            const std::uint32_t crc_of_data_and_status = compute_crc32(status_byte, crc_of_data);
-            return crc_of_data_and_status;
+            // Here we get a sequence [[ DATA || CRC ]]. But we need to compute the CRC on [[ DATA || STATUS || CRC ]].
+            // So we split into two ranges, b..m and m..e, and chain the CRCs
+            assert(std::distance(b, e) >= 0);
+            const auto sequence_length = static_cast<decltype(traits_base::crc_size)>(std::distance(b, e));
+            const auto m = b + (std::max(sequence_length, traits_base::crc_size) - traits_base::crc_size);
+            assert(std::distance(b, m) >= 0);
+            assert(std::distance(m, e) >= 0);
+            // CRC of [[ DATA ]]
+            const std::uint32_t crc_data = compute_crc32(range<bin_data::const_iterator>{b, m}, init);
+            // CRC of [[ DATA || STATUS ]] = crc32({status}, crc32([[ DATA ]], init)
+            const std::uint32_t crc_data_status = compute_crc32(status, crc_data);
+            // CRC of [[ DATA || STATUS || CRC ]] (should be 0)
+            const std::uint32_t crc_full = compute_crc32(range<bin_data::const_iterator>{m, e}, crc_data_status);
+            return crc_full;
         };
         const auto end_payload_did_verify = find_crc_tail<block_size>(std::begin(d), std::end(d), crc_fn, crc32_init, false);
         if (end_payload_did_verify.second) {

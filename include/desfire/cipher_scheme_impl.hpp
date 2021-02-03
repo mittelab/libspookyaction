@@ -96,7 +96,7 @@ namespace desfire {
             const std::uint32_t crc_of_data_and_status = compute_crc32(status_byte, crc_of_data);
             return crc_of_data_and_status;
         };
-        const auto end_payload_did_verify = find_crc_tail<block_size>(std::begin(d), std::end(d), crc_fn, crc32_init);
+        const auto end_payload_did_verify = find_crc_tail<block_size>(std::begin(d), std::end(d), crc_fn, crc32_init, false);
         if (end_payload_did_verify.second) {
             const std::size_t payload_length = std::distance(std::begin(d), end_payload_did_verify.first);
             // In case of error, make sure to not get any weird size/number

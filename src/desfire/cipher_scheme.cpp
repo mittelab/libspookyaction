@@ -45,7 +45,7 @@ namespace desfire {
                 bin_data::const_iterator b, bin_data::const_iterator e, std::uint16_t init) -> std::uint16_t {
             return compute_crc16(range<bin_data::const_iterator>{b, e}, init);
         };
-        const auto end_payload_did_verify = find_crc_tail<block_size>(std::begin(d), std::end(d), crc_fn, crc16_init);
+        const auto end_payload_did_verify = find_crc_tail<block_size>(std::begin(d), std::end(d), crc_fn, crc16_init, true);
         if (end_payload_did_verify.second) {
             const std::size_t payload_length = std::distance(std::begin(d), end_payload_did_verify.first);
             // In case of error, make sure to not get any weird size/number

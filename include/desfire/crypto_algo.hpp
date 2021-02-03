@@ -41,10 +41,23 @@ namespace desfire {
      * @param end
      * @param crc_fn
      * @param init
+     * @param incremental_crc If true, @p crc_fn will be called only on the new bytes being tested, using as ''init''
+     *  value the previously calculated CRC value. If false, @p crc_fn is always called on the full data interval,
+     *  starting at @p begin.
+     * @note In general, for a CRC function, it should hold ''CRC(A || B, init) = CRC(B, CRC(A, init))''. If this is the
+     * case, specify @p incremental_crc true. If this is not the case (e.g. you are simulating the injection of extra
+     * data in between the data payload and the CRC), specify false. The behavior is pseudo code is as follows:
+     * @code
+     *  crc_i := crc_fn(data[0:i], init)
+     *  if incremental_crc:
+     *      crc_{i+1} := crc_fn(data[i+1], crc_i)
+     *  else:
+     *      crc_{i+1} := crc_fn(data[0:i+1], init)
+     * @endcode
      * @return
      */
     template <std::size_t BlockSize, class ByteIterator, class N, class Fn>
-    static std::pair<ByteIterator, bool> find_crc_tail(ByteIterator begin, ByteIterator end, Fn &&crc_fn, N init);
+    static std::pair<ByteIterator, bool> find_crc_tail(ByteIterator begin, ByteIterator end, Fn &&crc_fn, N init, bool incremental_crc);
 
     struct randbytes {
         std::size_t n;
@@ -88,7 +101,7 @@ namespace desfire {
     }
 
     template <std::size_t BlockSize, class ByteIterator, class N, class Fn>
-    static std::pair<ByteIterator, bool> find_crc_tail(ByteIterator begin, ByteIterator end, Fn &&crc_fn, N init) {
+    static std::pair<ByteIterator, bool> find_crc_tail(ByteIterator begin, ByteIterator end, Fn &&crc_fn, N init, bool incremental_crc) {
         static const auto nonzero_byte_pred = [](std::uint8_t b) -> bool { return b != 0; };
         const bool multiple_of_block_size = std::distance(begin, end) % BlockSize == 0;
         if (not multiple_of_block_size) {
@@ -105,11 +118,14 @@ namespace desfire {
             auto end_payload = std::find_if(rev_end, rev_end + BlockSize, nonzero_byte_pred).base();
             for (   // Compute the crc until the supposed end of the payload
                     N crc = crc_fn(begin, end_payload, init);
-                // Keep advancing the supposed end of the payload until end
+                    // Keep advancing the supposed end of the payload until end
                     end_payload != end;
-                // Update the crc with one byte at a time
-                    crc = crc_fn(end_payload, std::next(end_payload), crc), ++end_payload
-                    ) {
+                    // Update the crc with one byte at a time
+                    (crc = (incremental_crc
+                            ? crc_fn(end_payload, std::next(end_payload), crc)
+                            : crc_fn(begin, std::next(end_payload), init))),
+                        ++end_payload
+            ) {
                 if (crc == N(0)) {
                     // This is a valid end of the payload with a successful crc check
                     return {end_payload, true};

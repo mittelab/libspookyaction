@@ -218,6 +218,11 @@ namespace desfire {
          */
         r<> write_data(file_id fid, std::uint32_t offset, bin_data const &data, file_security = file_security::automatic);
 
+        /**
+         * @param fid Max @ref bits::max_value_file_id.
+         */
+        r<std::int32_t> get_value(file_id fid, file_security security = file_security::automatic);
+
     private:
         /**
          * The power of friendship, cit. Wifasoi, 2020

@@ -585,6 +585,21 @@ namespace desfire {
     }
 
 
+    tag::r<std::int32_t> tag::get_value(file_id fid, file_security security) {
+        if (fid > bits::max_value_file_id) {
+            return error::parameter_error;
+        }
+        const auto res_mode = determine_file_comm_mode(fid, file_access::read, security);
+        if (not res_mode) {
+            return res_mode.error();
+        }
+        // RX happens with the chosen file protection, except on nonlegacy ciphers where plain becomes maced
+        const auto rx_comm_mode = comm_mode_most_secure(*res_mode, cipher_default().rx.mode);
+        const comm_cfg cfg{cipher_default().tx, cipher::config{rx_comm_mode, true, true, true}};
+        return command_parse_response<std::int32_t>(command_code::get_value, bin_data::chain(prealloc(1), fid), cfg);
+    }
+
+
     tag::r<> tag::create_file(file_id fid, any_file_settings const &settings) {
         switch (settings.type()) {
             case file_type::standard:      return create_file(fid, settings.get_settings<file_type::standard>());

@@ -72,7 +72,7 @@ namespace desfire {
          */
         r<bin_data> command_response(command_code cmd, bin_data const &payload, comm_cfg const &cfg);
 
-        template <class Data, class = typename std::enable_if<bin_stream::is_extractable<Data>::value>::type>
+        template <class Data, class = typename std::enable_if<bin_stream::is_extractable<Data>::value or std::is_integral<Data>::value>::type>
         r<Data> command_parse_response(command_code cmd, bin_data const &payload, comm_cfg const &cfg);
 
         /**
@@ -370,6 +370,23 @@ namespace desfire {
         return copy;
     }
 
+    namespace impl {
+        template <class T, bool /* IsIntegral */>
+        struct tag_data_extractor {
+            bin_stream &operator()(bin_stream &s, T &output) const {
+                return s >> output;
+            }
+        };
+
+        template <class Integral>
+        struct tag_data_extractor<Integral, true> {
+            bin_stream &operator()(bin_stream &s, Integral &output) const {
+                return s >> lsb_t<sizeof(Integral) * 8>{} >> output;
+            }
+        };
+
+    }
+
     template <class Data, class>
     tag::r<Data> tag::command_parse_response(command_code cmd, bin_data const &payload, comm_cfg const &cfg)
     {
@@ -379,7 +396,8 @@ namespace desfire {
         }
         bin_stream s{*res_cmd};
         Data data{};
-        s >> data;
+        // Automatically add the ability to parse integral types with at least 16 bits as LSB.
+        impl::tag_data_extractor<Data, std::is_integral<Data>::value and 1 < sizeof(Data)>{}(s, data);
         if (s.bad()) {
             DESFIRE_LOGE("%s: could not parse result from response data.", to_string(cmd));
             return error::malformed;

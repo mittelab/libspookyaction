@@ -223,6 +223,24 @@ namespace desfire {
          */
         r<std::int32_t> get_value(file_id fid, file_security security = file_security::automatic);
 
+        /**
+         * @param fid Max @ref bits::max_value_file_id.
+         * @param amount Must be nonnegative.
+         */
+        r<> credit(file_id fid, std::int32_t amount, file_security security = file_security::automatic);
+
+        /**
+         * @param fid Max @ref bits::max_value_file_id.
+         * @param amount Must be nonnegative.
+         */
+        r<> limited_credit(file_id fid, std::int32_t amount, file_security security = file_security::automatic);
+
+        /**
+         * @param fid Max @ref bits::max_value_file_id.
+         * @param amount Must be nonnegative.
+         */
+        r<> debit(file_id fid, std::int32_t amount, file_security security = file_security::automatic);
+
     private:
         /**
          * The power of friendship, cit. Wifasoi, 2020
@@ -243,6 +261,14 @@ namespace desfire {
         inline controller &ctrl();
         inline cipher &active_cipher();
         r<> change_key_internal(any_key const *current_key, std::uint8_t key_no_to_change, any_key const &new_key);
+
+        /**
+         * @param cmd Must be one of @ref command_code::credit, @ref command_code::debit, @ref command_code::limited_credit.
+         * @param fid Max @ref bits::max_value_file_id.
+         * @param amount Must be nonnegative.
+         */
+        r<> write_value(command_code cmd, file_id fid, std::int32_t amount, file_security security);
+
 
         /**
          * Clears data __locally__ (i.e. it may be out of sync with the card if not called at the right time).

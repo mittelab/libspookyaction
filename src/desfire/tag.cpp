@@ -599,6 +599,39 @@ namespace desfire {
         return command_parse_response<std::int32_t>(command_code::get_value, bin_data::chain(prealloc(1), fid), cfg);
     }
 
+    tag::r<> tag::write_value(command_code cmd, file_id fid, std::int32_t amount, file_security security) {
+        if (cmd != command_code::credit and cmd != command_code::debit and cmd != command_code::limited_credit) {
+            DESFIRE_LOGE("write_value command used with invalid command code %s.", to_string(cmd));
+            return error::parameter_error;
+        }
+        if (fid > bits::max_value_file_id) {
+            return error::parameter_error;
+        }
+        if (amount < 0) {
+            return error::parameter_error;
+        }
+        const auto res_mode = determine_file_comm_mode(fid, file_access::read, security);
+        if (not res_mode) {
+            return res_mode.error();
+        }
+        const comm_cfg cfg{cipher::config{*res_mode, true, true, true}, cipher_default().rx};
+        bin_data payload{prealloc(5)};
+        payload << fid << lsb32 << amount;
+        return safe_drop_payload(cmd, command_response(cmd, payload, cfg));
+    }
+
+    tag::r<> tag::credit(file_id fid, std::int32_t amount, file_security security) {
+        return write_value(command_code::credit, fid, amount, security);
+    }
+
+    tag::r<> tag::limited_credit(file_id fid, std::int32_t amount, file_security security) {
+        return write_value(command_code::limited_credit, fid, amount, security);
+    }
+
+    tag::r<> tag::debit(file_id fid, std::int32_t amount, file_security security) {
+        return write_value(command_code::debit,  fid,amount, security);
+    }
+
 
     tag::r<> tag::create_file(file_id fid, any_file_settings const &settings) {
         switch (settings.type()) {

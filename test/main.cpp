@@ -639,6 +639,12 @@ void test_mifare_change_app_key() {
 void test_mifare_create_delete_files() {
     TEST_ASSERT(pcd != nullptr and mifare != nullptr);
 
+    auto test_get_value = [](desfire::file_id fid, std::int32_t expected) {
+        const auto res_read = mifare->get_value(fid);
+        TEST_ASSERT(res_read);
+        TEST_ASSERT_EQUAL(expected, *res_read);
+    };
+
     using desfire::any_file_settings;
     using desfire::file_type;
     using desfire::file_settings;
@@ -650,7 +656,8 @@ void test_mifare_create_delete_files() {
     const desfire::generic_file_settings gfs_plain{desfire::comm_mode::plain, desfire::access_rights{0}};
     const desfire::data_file_settings dfs{.size = file_data.size()};
     const desfire::record_file_settings rfs{.record_size = 1, .max_record_count = 2, .record_count = 0};
-    const desfire::value_file_settings vfs{.lower_limit = 0, .upper_limit = 10, .value = 0, .limited_credit_enabled = true};
+    const desfire::value_file_settings vfs{.lower_limit = -10, .upper_limit = 10, .value = 0, .limited_credit_enabled = true};
+
     // Not const because we will cycle through comm modes
     std::array<any_file_settings, 5> files = {
         any_file_settings{file_settings<file_type::standard>{gfs_plain, dfs}},
@@ -714,7 +721,19 @@ void test_mifare_create_delete_files() {
                         TEST_ASSERT_EQUAL_HEX8_ARRAY(file_data.data(), res_read->data(), file_data.size());
                         ESP_LOGI(TEST_TAG, "Completed RW cycle with %d bytes.", file_data.size());
                     }
-                    case file_type::value:         // [[fallthrough]];
+                        break;
+                    case file_type::value: {
+                        test_get_value(fid, 0);
+                        TEST_ASSERT(mifare->credit(fid, 2));
+                        test_get_value(fid, 0);  // Did not commit yet
+                        TEST_ASSERT(mifare->commit_transaction());
+                        test_get_value(fid, 2);
+                        TEST_ASSERT(mifare->debit(fid, 5));
+                        TEST_ASSERT(mifare->commit_transaction());
+                        test_get_value(fid, -3);
+                        ESP_LOGI(TEST_TAG, "Completed credit/debit cycle.");
+                    }
+                        break;
                     case file_type::linear_record: // [[fallthrough]];
                     case file_type::cyclic_record: // [[fallthrough]];
                     default: break;

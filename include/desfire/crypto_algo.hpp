@@ -119,21 +119,20 @@ namespace desfire {
             // sense), we can just get that.
             const auto rev_end = std::reverse_iterator<ByteIterator>(end);
             auto end_payload = std::find_if(rev_end, rev_end + BlockSize, nonzero_byte_pred).base();
-            for (   // Compute the crc until the supposed end of the payload
-                    N crc = crc_fn(begin, end_payload, init);
-                    // Keep advancing the supposed end of the payload until end
-                    end_payload != end;
+            // Compute the crc until the supposed end of the payload
+            N crc = crc_fn(begin, end_payload, init);
+            while (crc != N(0) and end_payload != end) {
+                if (incremental_crc) {
                     // Update the crc with one byte at a time
-                    (crc = (incremental_crc
-                            ? crc_fn(end_payload, std::next(end_payload), crc)
-                            : crc_fn(begin, std::next(end_payload), init))),
-                        ++end_payload
-            ) {
-                if (crc == N(0)) {
-                    // This is a valid end of the payload with a successful crc check
-                    return {end_payload, true};
+                    crc = crc_fn(end_payload, std::next(end_payload), crc);
+                } else {
+                    // Recalculate the crc on the whole new sequence
+                    crc = crc_fn(begin, std::next(end_payload), init);
                 }
+                // Keep advancing the supposed end of the payload until end
+                ++end_payload;
             }
+            return {end_payload, crc == N(0)};
         }
         return {end, false};
     }

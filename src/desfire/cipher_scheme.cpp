@@ -31,6 +31,7 @@ namespace desfire {
         static bin_data buffer{};
 
         // Resize the buffer and copy data
+        buffer.clear();
         buffer.resize(padded_length<block_size>(data.size()), 0x00);
         std::copy(std::begin(data), std::end(data), std::begin(buffer));
 

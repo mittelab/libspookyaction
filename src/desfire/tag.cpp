@@ -614,7 +614,7 @@ namespace desfire {
         if (not res_mode) {
             return res_mode.error();
         }
-        const comm_cfg cfg{cipher::config{*res_mode, true, true, true}, cipher_default().rx};
+        const comm_cfg cfg{cipher::config{*res_mode, true, true, true}, cipher_default().rx, 2 /* after FID */};
         bin_data payload{prealloc(5)};
         payload << fid << lsb32 << amount;
         return safe_drop_payload(cmd, command_response(cmd, payload, cfg));

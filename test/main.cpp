@@ -754,6 +754,7 @@ void test_mifare_create_delete_files() {
                         const record_t expected = {0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x02, 0x03};
                         TEST_ASSERT_EQUAL_HEX8_ARRAY(expected.data(), res_records->front().data(), 8);
                         TEST_ASSERT(mifare->clear_record_file(fid));
+                        TEST_ASSERT(mifare->commit_transaction());
                         ESP_LOGI(TEST_TAG, "Completed write/read records cycle.");
                     }
                     default: break;

@@ -57,7 +57,7 @@ namespace ut {
 
     void test_file::delete_preexisting(desfire::tag &tag) const {
         const auto r_get_fids = tag.get_file_ids();
-        if (std::find(std::begin(*r_get_fids), std::end(*r_get_fids), fid) == std::end(*r_get_fids)) {
+        if (std::find(std::begin(*r_get_fids), std::end(*r_get_fids), fid) != std::end(*r_get_fids)) {
             TEST_ASSERT(tag.abort_transaction());
             TEST_ASSERT(tag.delete_file(fid));
         }

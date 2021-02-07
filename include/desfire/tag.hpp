@@ -263,6 +263,8 @@ namespace desfire {
 
         r<std::array<std::uint8_t, 7>> get_card_uid();
 
+        r<std::uint32_t> get_free_mem();
+
     private:
         /**
          * The power of friendship, cit. Wifasoi, 2020

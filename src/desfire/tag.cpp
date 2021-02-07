@@ -12,6 +12,19 @@
 
 namespace desfire {
 
+    struct lsb_uint24 {
+        std::uint32_t n;
+    };
+}
+
+namespace mlab {
+    bin_stream &operator>>(bin_stream &s, desfire::lsb_uint24 &n) {
+        return s >> lsb24 >> n.n;
+    }
+}
+
+namespace desfire {
+
     namespace {
 
         template <class T, class = typename std::enable_if<std::is_unsigned<T>::value>::type>
@@ -804,5 +817,13 @@ namespace desfire {
         }
         const comm_cfg cfg{cipher_default().tx, cipher_cfg_crypto};
         return command_parse_response<std::array<std::uint8_t, 7>>(command_code::get_card_uid, bin_data{}, cfg);
+    }
+
+    tag::r<std::uint32_t> tag::get_free_mem() {
+        const auto res_free_mem = command_parse_response<lsb_uint24>(command_code::free_mem, bin_data{}, cipher_default());
+        if (not res_free_mem) {
+            return res_free_mem.error();
+        }
+        return res_free_mem->n;
     }
 }

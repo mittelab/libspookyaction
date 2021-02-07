@@ -265,6 +265,11 @@ namespace desfire {
 
         r<std::uint32_t> get_free_mem();
 
+        /**
+         * @warning Watch out when using this function! It is not clear whether any of this is reversible.
+         */
+        r<> set_configuration(bool allow_format = true, bool enable_random_id = false);
+
     private:
         /**
          * The power of friendship, cit. Wifasoi, 2020

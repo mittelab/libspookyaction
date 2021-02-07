@@ -826,4 +826,25 @@ namespace desfire {
         }
         return res_free_mem->n;
     }
+
+
+    tag::r<> tag::set_configuration(bool allow_format, bool enable_random_id) {
+        if (active_cipher_type() == cipher_type::none) {
+            DESFIRE_LOGW("%s: did not authenticate, likely to fail.", to_string(command_code::set_configuration));
+        }
+        DESFIRE_LOGW("%s: allow format: %d; enable_random_id: %d.", to_string(command_code::set_configuration),
+                     allow_format, enable_random_id);
+        std::uint8_t flag = 0x00;
+        if (not allow_format) {
+            flag |= bits::config_flag_disable_format;
+        }
+        if (enable_random_id) {
+            flag |= bits::config_flag_enable_random_uid;
+        }
+        const comm_cfg cfg{cipher_cfg_crypto, cipher_default().rx, 2};
+        return safe_drop_payload(command_code::set_configuration, command_response(
+                command_code::set_configuration,
+                bin_data::chain(prealloc(2), active_key_no(), flag),
+                cfg));
+    }
 }

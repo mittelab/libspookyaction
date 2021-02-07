@@ -141,6 +141,9 @@ namespace desfire {
         static constexpr std::uint8_t max_record_file_id = 0x7;
 
         static constexpr std::uint32_t all_records = 0;
+
+        static constexpr std::uint8_t config_flag_enable_random_uid = 0x02;
+        static constexpr std::uint8_t config_flag_disable_format = 0x01;
     }
 }
 

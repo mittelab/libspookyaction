@@ -323,8 +323,8 @@ namespace desfire {
         return result_success;
     }
 
-    tag::r<key_settings> tag::get_key_settings() {
-        return command_parse_response<key_settings>(command_code::get_key_settings, bin_data{}, cipher_default());
+    tag::r<app_settings> tag::get_app_settings() {
+        return command_parse_response<app_settings>(command_code::get_key_settings, bin_data{}, cipher_default());
     }
 
     tag::r<std::uint8_t> tag::get_key_version(std::uint8_t key_num) {
@@ -336,7 +336,7 @@ namespace desfire {
                                                     cipher_default());
     }
 
-    tag::r<> tag::create_application(app_id const &new_app_id, key_settings settings) {
+    tag::r<> tag::create_application(app_id const &new_app_id, app_settings settings) {
         if (settings.max_num_keys == 0 or settings.max_num_keys > bits::max_keys_per_app) {
             DESFIRE_LOGW("%s: attempt to create an app with a maximum number of keys of %u, will be clamped in the "
                          "range 1..%u.", to_string(command_code::create_application), settings.max_num_keys,
@@ -356,7 +356,7 @@ namespace desfire {
                 comm_mode::plain));
     }
 
-    tag::r<> tag::change_key_settings(key_rights new_rights) {
+    tag::r<> tag::change_app_settings(key_rights new_rights) {
         if (active_app() == root_app) {
             if (new_rights.allowed_to_change_keys != 0) {
                 DESFIRE_LOGW("%s: only the unique master key can have the right to change keys in the root app.",

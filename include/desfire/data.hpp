@@ -260,16 +260,16 @@ namespace desfire {
         any_file_settings &operator=(file_settings<Type> settings);
     };
 
-    struct key_settings {
+    struct app_settings {
         key_rights rights;
         std::uint8_t max_num_keys;
         app_crypto crypto;
 
-        inline explicit key_settings(app_crypto crypto_ = app_crypto::legacy_des_2k3des,
+        inline explicit app_settings(app_crypto crypto_ = app_crypto::legacy_des_2k3des,
                                      key_rights rights_ = key_rights{},
                                      std::uint8_t max_num_keys_ = bits::max_keys_per_app);
 
-        inline explicit key_settings(cipher_type cipher,
+        inline explicit app_settings(cipher_type cipher,
                                      key_rights rights_ = key_rights{},
                                      std::uint8_t max_num_keys_ = bits::max_keys_per_app);
     };
@@ -448,7 +448,7 @@ namespace mlab {
     }
 
     bin_stream &operator>>(bin_stream &s, desfire::key_rights &kr);
-    bin_stream &operator>>(bin_stream &s, desfire::key_settings &ks);
+    bin_stream &operator>>(bin_stream &s, desfire::app_settings &ks);
     bin_stream &operator>>(bin_stream &s, std::vector<desfire::app_id> &ids);
     bin_stream &operator>>(bin_stream &s, desfire::ware_info &wi);
     bin_stream &operator>>(bin_stream &s, desfire::manufacturing_info &mi);
@@ -464,7 +464,7 @@ namespace mlab {
     bin_stream &operator>>(bin_stream &s, desfire::file_settings<Type> &fs);
 
     bin_data &operator<<(bin_data &bd, desfire::key_rights const &kr);
-    bin_data &operator<<(bin_data &bd, desfire::key_settings const &ks);
+    bin_data &operator<<(bin_data &bd, desfire::app_settings const &ks);
     bin_data &operator<<(bin_data &bd, desfire::any_key const &k);
 
     bin_data &operator<<(bin_data &bd, desfire::access_rights const &ar);
@@ -560,10 +560,10 @@ namespace desfire {
         return _settings.template get<file_settings<Type>>();
     }
 
-    key_settings::key_settings(app_crypto crypto_, key_rights rights_, std::uint8_t max_num_keys_) :
+    app_settings::app_settings(app_crypto crypto_, key_rights rights_, std::uint8_t max_num_keys_) :
             rights{rights_}, max_num_keys{max_num_keys_}, crypto{crypto_} {}
 
-    key_settings::key_settings(cipher_type cipher, key_rights rights_, std::uint8_t max_num_keys_) :
+    app_settings::app_settings(cipher_type cipher, key_rights rights_, std::uint8_t max_num_keys_) :
             rights{rights_}, max_num_keys{max_num_keys_}, crypto{app_crypto_from_cipher(cipher)} {}
 
     unsigned storage_size::exponent() const {

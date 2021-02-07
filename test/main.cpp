@@ -555,7 +555,7 @@ void test_mifare_create_apps() {
         ESP_LOGI(TEST_TAG, "Creating app with cipher %s.", desfire::to_string(ct));
         TEST_ASSERT(mifare->select_application(desfire::root_app));
         TEST_ASSERT(mifare->authenticate(desfire::key<desfire::cipher_type::des>{}));
-        TEST_ASSERT(mifare->create_application(app.aid, desfire::key_settings{ct}));
+        TEST_ASSERT(mifare->create_application(app.aid, desfire::app_settings{ct}));
         TEST_ASSERT(mifare->select_application(app.aid));
         test_auth_attempt(mifare->authenticate(app.default_key));
     }
@@ -599,12 +599,12 @@ void test_mifare_change_app_key() {
         const auto res_key_version = mifare->get_key_version(app.secondary_key.key_number());
         TEST_ASSERT(res_key_version);
         TEST_ASSERT_EQUAL(app.secondary_key.version(), *res_key_version);
-        auto res_key_settings = mifare->get_key_settings();
+        auto res_key_settings = mifare->get_app_settings();
         TEST_ASSERT(res_key_settings);
         res_key_settings->rights.dir_access_without_auth = true;
-        TEST_ASSERT(mifare->change_key_settings(res_key_settings->rights));
+        TEST_ASSERT(mifare->change_app_settings(res_key_settings->rights));
         res_key_settings->rights.dir_access_without_auth = false;
-        TEST_ASSERT(mifare->change_key_settings(res_key_settings->rights));
+        TEST_ASSERT(mifare->change_app_settings(res_key_settings->rights));
         TEST_ASSERT(mifare->change_key(app.default_key));
     }
 }
@@ -665,7 +665,7 @@ void test_mifare_create_delete_files() {
             ESP_LOGI(TEST_TAG, "Creating app with cipher %s.", desfire::to_string(app.default_key.type()));
             TEST_ASSERT(mifare->select_application(desfire::root_app));
             TEST_ASSERT(mifare->authenticate(desfire::key<desfire::cipher_type::des>{}));
-            TEST_ASSERT(mifare->create_application(app.aid, desfire::key_settings{app.default_key.type()}));
+            TEST_ASSERT(mifare->create_application(app.aid, desfire::app_settings{app.default_key.type()}));
             TEST_ASSERT(mifare->select_application(app.aid));
             TEST_ASSERT(mifare->authenticate(app.default_key));
             // Delete preexisting files

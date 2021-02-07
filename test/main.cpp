@@ -31,6 +31,14 @@ namespace {
         return r and *r;
     }
 
+    mlab::bin_data const &heavy_load() {
+        static mlab::bin_data load;
+        if (load.empty()) {
+            load.resize(0x100);
+            std::iota(std::begin(load), std::end(load), 0x00);
+        }
+        return load;
+    }
 
 }
 
@@ -606,6 +614,135 @@ void test_mifare_change_app_key() {
         res_key_settings->rights.dir_access_without_auth = false;
         TEST_ASSERT(mifare->change_app_settings(res_key_settings->rights));
         TEST_ASSERT(mifare->change_key(app.default_key));
+    }
+}
+
+void test_standard_data_file(ut::test_file const &file) {
+    TEST_ASSERT(pcd != nullptr and mifare != nullptr);
+    ESP_LOGI(TEST_TAG, "%s Testing standard data file, mode %s, on app with cipher type %s", ut::nested_log::indent(),
+             desfire::to_string(file.settings.generic_settings().mode),
+             desfire::to_string(mifare->active_cipher_type()));
+
+    ut::nested_log inc_indent;
+
+    TEST_ASSERT(mifare->create_file(file.fid, file.settings));
+    TEST_ASSERT(mifare->write_data(file.fid, 0, heavy_load()));
+    const auto r_read = mifare->read_data(file.fid, 0, heavy_load().size());
+    TEST_ASSERT(r_read);
+    TEST_ASSERT_EQUAL(heavy_load().size(), r_read->size());
+    TEST_ASSERT_EQUAL_HEX8_ARRAY(heavy_load().data(), r_read->data(), heavy_load().size());
+    TEST_ASSERT(mifare->delete_file(file.fid));
+    ESP_LOGI(TEST_TAG, "%s Completed RW cycle with %d bytes.", ut::nested_log::indent(), heavy_load().size());
+}
+
+void test_backup_data_file(ut::test_file const &file) {
+    TEST_ASSERT(pcd != nullptr and mifare != nullptr);
+    ESP_LOGI(TEST_TAG, "%s Testing backup data file, mode %s, on app with cipher type %s", ut::nested_log::indent(),
+             desfire::to_string(file.settings.generic_settings().mode),
+             desfire::to_string(mifare->active_cipher_type()));
+
+    ut::nested_log inc_indent;
+
+    TEST_ASSERT(mifare->create_file(file.fid, file.settings));
+    TEST_ASSERT(mifare->write_data(file.fid, 0, heavy_load()));
+    const auto r_read_before_commit = mifare->read_data(file.fid, 0, heavy_load().size());
+    TEST_ASSERT(r_read_before_commit);
+    TEST_ASSERT_EACH_EQUAL_HEX8(0x00, r_read_before_commit->data(), r_read_before_commit->size());
+    TEST_ASSERT(mifare->commit_transaction());
+    const auto r_read = mifare->read_data(file.fid, 0, heavy_load().size());;
+    TEST_ASSERT(r_read);
+    TEST_ASSERT_EQUAL(heavy_load().size(), r_read->size());
+    TEST_ASSERT_EQUAL_HEX8_ARRAY(heavy_load().data(), r_read->data(), heavy_load().size());
+    TEST_ASSERT(mifare->abort_transaction());
+    TEST_ASSERT(mifare->delete_file(file.fid));
+    ESP_LOGI(TEST_TAG, "%s Completed RW cycle with %d bytes.", ut::nested_log::indent(), heavy_load().size());
+}
+
+void test_value_file(ut::test_file const &file) {
+    TEST_ASSERT(pcd != nullptr and mifare != nullptr);
+
+    const auto test_get_value = [&](std::int32_t expected) {
+        const auto res_read = mifare->get_value(file.fid);
+        TEST_ASSERT(res_read);
+        TEST_ASSERT_EQUAL(expected, *res_read);
+    };
+
+    ESP_LOGI(TEST_TAG, "%s Testing value file, mode %s, on app with cipher type %s", ut::nested_log::indent(),
+             desfire::to_string(file.settings.generic_settings().mode),
+             desfire::to_string(mifare->active_cipher_type()));
+
+    ut::nested_log inc_indent;
+
+    TEST_ASSERT(mifare->create_file(file.fid, file.settings));
+    test_get_value(0);
+    TEST_ASSERT(mifare->credit(file.fid, 2));
+    test_get_value(0);  // Did not commit yet
+    TEST_ASSERT(mifare->commit_transaction());
+    test_get_value(2);
+    TEST_ASSERT(mifare->debit(file.fid, 5));
+    TEST_ASSERT(mifare->commit_transaction());
+    test_get_value(-3);
+    TEST_ASSERT(mifare->abort_transaction());
+    TEST_ASSERT(mifare->delete_file(file.fid));
+    ESP_LOGI(TEST_TAG, "%s Completed credid/debit cycle.", ut::nested_log::indent());
+}
+
+void test_record_file(ut::test_file const &file) {
+    TEST_ASSERT(pcd != nullptr and mifare != nullptr);
+
+    using record_t = std::array<std::uint8_t, 8>;
+
+    static const mlab::bin_data nibble = {0x00, 0x01, 0x02, 0x03};
+
+    const auto test_get_record_count = [&](std::uint32_t expected) {
+        const auto res_settings = mifare->get_file_settings(file.fid);
+        TEST_ASSERT(res_settings);
+        TEST_ASSERT_EQUAL(expected, res_settings->record_settings().record_count);
+    };
+
+    ESP_LOGI(TEST_TAG, "%s Testing value file, mode %s, on app with cipher type %s", ut::nested_log::indent(),
+             desfire::to_string(file.settings.generic_settings().mode),
+             desfire::to_string(mifare->active_cipher_type()));
+
+    ut::nested_log inc_indent;
+
+    test_get_record_count(0);
+    TEST_ASSERT(mifare->write_record(file.fid, 4, nibble));
+    TEST_ASSERT(mifare->commit_transaction());
+    test_get_record_count(1);
+    const auto res_records = mifare->read_records<record_t>(file.fid, 0);
+    TEST_ASSERT(res_records);
+    TEST_ASSERT_EQUAL(res_records->size(), 1);
+    const record_t expected = {0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x02, 0x03};
+    TEST_ASSERT_EQUAL_HEX8_ARRAY(expected.data(), res_records->front().data(), 8);
+    TEST_ASSERT(mifare->clear_record_file(file.fid));
+    TEST_ASSERT(mifare->commit_transaction());
+    TEST_ASSERT(mifare->delete_file(file.fid));
+    ESP_LOGI(TEST_TAG, "Completed write/read records cycle.");
+}
+
+void test_file(desfire::any_key const &root_key, ut::test_app const &app, desfire::file_type file_type, desfire::comm_mode mode) {
+    TEST_ASSERT(pcd != nullptr and mifare != nullptr);
+    app.ensure_created(*mifare, root_key);
+    app.ensure_selected_and_primary(*mifare);
+    ut::test_file const &file = ut::get_test_file(file_type, mode);
+    file.delete_preexisting(*mifare);
+    TEST_ASSERT(mifare->create_file(file.fid, file.settings));
+    switch (file_type) {
+        case desfire::file_type::standard:
+            test_standard_data_file(file);
+            break;
+        case desfire::file_type::backup:
+            test_backup_data_file(file);
+            break;
+        case desfire::file_type::value:
+            test_value_file(file);
+            break;
+        case desfire::file_type::linear_record:  // [[fallthough]];
+        case desfire::file_type::cyclic_record:
+            test_record_file(file);
+            break;
+        default: break;
     }
 }
 

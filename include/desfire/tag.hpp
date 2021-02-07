@@ -248,6 +248,12 @@ namespace desfire {
          */
         r<> write_record(file_id fid, std::uint32_t offset, bin_data const &data, file_security = file_security::automatic);
 
+        template <class T>
+        r<> write_record(file_id fid, T &&record, file_security security = file_security::automatic);
+
+        template <class T>
+        r<std::vector<T>> read_records(file_id fid, std::uint32_t index, std::uint32_t count = all_records, file_security security = file_security::automatic);
+
         /**
          * @param fid Max @ref bits::max_record_file_id.
          * @param record_index Limited to 24 bits, i.e. must be below 0xFFFFFF.
@@ -473,6 +479,40 @@ namespace desfire {
         }
         return res_cmd.error();
     }
+
+
+    template <class T>
+    tag::r<> tag::write_record(file_id fid, T &&record, file_security security) {
+        static bin_data buffer{};
+        buffer.clear();
+        buffer << std::forward<T>(record);
+        return write_record(fid, 0, buffer, security);
+    }
+
+    template <class T>
+    tag::r<std::vector<T>> tag::read_records(file_id fid, std::uint32_t index, std::uint32_t count, file_security security) {
+        const auto res_read_records = read_records(fid, index, count, security);
+        if (not res_read_records) {
+            return res_read_records.error();
+        }
+        std::vector<T> records{};
+        records.reserve(count);
+        bin_stream s{*res_read_records};
+        while (s.good() and records.size() < count) {
+            records.template emplace_back();
+            s >> records.back();
+        }
+        if (not s.eof()) {
+            DESFIRE_LOGW("%s: could not parse all records, there are %d stray bytes.",
+                         to_string(command_code::read_records), s.remaining());
+        }
+        if (records.size() != count) {
+            DESFIRE_LOGW("%s: expected to parse %d records, got only %d.",
+                         to_string(command_code::read_records), count, records.size());
+        }
+        return std::move(records);
+    }
+
 
 }
 

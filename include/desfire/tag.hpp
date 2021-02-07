@@ -157,7 +157,7 @@ namespace desfire {
         r<any_file_settings> get_file_settings(file_id fid);
 
         template <file_type Type>
-        r<file_settings<Type>> get_specific_file_settings(file_id fid);
+        r<file_settings<Type>> get_file_settings(file_id fid);
 
         r<> change_file_settings(file_id fid, generic_file_settings const &settings, file_security security = file_security::automatic);
 
@@ -468,7 +468,7 @@ namespace desfire {
     }
 
     template <file_type Type>
-    tag::r<file_settings<Type>> tag::get_specific_file_settings(file_id fid) {
+    tag::r<file_settings<Type>> tag::get_file_settings(file_id fid) {
         auto res_cmd = get_file_settings(fid);
         if (res_cmd) {
             // Assert the file type is correct

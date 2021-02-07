@@ -645,9 +645,16 @@ void test_mifare_create_delete_files() {
         TEST_ASSERT_EQUAL(expected, *res_read);
     };
 
+    auto test_get_record_count = [](desfire::file_id fid, std::uint32_t expected) {
+        const auto res_settings = mifare->get_file_settings(fid);
+        TEST_ASSERT(res_settings);
+        TEST_ASSERT_EQUAL(expected, res_settings->record_settings().record_count);
+    };
+
     using desfire::any_file_settings;
     using desfire::file_type;
     using desfire::file_settings;
+    using record_t = std::array<std::uint8_t, 8>;
 
     desfire::bin_data file_data;
     file_data.resize(256);
@@ -655,7 +662,7 @@ void test_mifare_create_delete_files() {
 
     const desfire::generic_file_settings gfs_plain{desfire::comm_mode::plain, desfire::access_rights{0}};
     const desfire::data_file_settings dfs{.size = file_data.size()};
-    const desfire::record_file_settings rfs{.record_size = 1, .max_record_count = 2, .record_count = 0};
+    const desfire::record_file_settings rfs{.record_size = 8, .max_record_count = 2, .record_count = 0};
     const desfire::value_file_settings vfs{.lower_limit = -10, .upper_limit = 10, .value = 0, .limited_credit_enabled = true};
 
     // Not const because we will cycle through comm modes
@@ -735,7 +742,20 @@ void test_mifare_create_delete_files() {
                     }
                         break;
                     case file_type::linear_record: // [[fallthrough]];
-                    case file_type::cyclic_record: // [[fallthrough]];
+                    case file_type::cyclic_record:  {
+                        test_get_record_count(fid, 0);
+                        const mlab::bin_data nibble = {0x00, 0x01, 0x02, 0x03};
+                        TEST_ASSERT(mifare->write_record(fid, 4, nibble));
+                        TEST_ASSERT(mifare->commit_transaction());
+                        test_get_record_count(fid, 1);
+                        const auto res_records = mifare->read_records<record_t>(fid, 0);
+                        TEST_ASSERT(res_records);
+                        TEST_ASSERT_EQUAL(res_records->size(), 1);
+                        const record_t expected = {0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x02, 0x03};
+                        TEST_ASSERT_EQUAL_HEX8_ARRAY(expected.data(), res_records->front().data(), 8);
+                        TEST_ASSERT(mifare->clear_record_file(fid));
+                        ESP_LOGI(TEST_TAG, "Completed write/read records cycle.");
+                    }
                     default: break;
                 }
                 TEST_ASSERT(mifare->delete_file(fid));

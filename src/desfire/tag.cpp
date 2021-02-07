@@ -571,7 +571,7 @@ namespace desfire {
             return error::parameter_error;
         }
 
-        const auto res_mode = determine_file_comm_mode(fid, file_access::read, security);
+        const auto res_mode = determine_file_comm_mode(fid, file_access::write, security);
         if (not res_mode) {
             return res_mode.error();
         }
@@ -610,7 +610,7 @@ namespace desfire {
         if (amount < 0) {
             return error::parameter_error;
         }
-        const auto res_mode = determine_file_comm_mode(fid, file_access::read, security);
+        const auto res_mode = determine_file_comm_mode(fid, file_access::write, security);
         if (not res_mode) {
             return res_mode.error();
         }

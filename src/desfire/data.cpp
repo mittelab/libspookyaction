@@ -248,6 +248,64 @@ namespace desfire {
         return _dummy;
     }
 
+    data_file_settings const &any_file_settings::data_settings() const {
+        if (not _settings.empty()) {
+            switch (type()) {
+                case file_type::standard:
+                    return get_settings<file_type::standard>();
+                case file_type::backup:
+                    return get_settings<file_type::backup>();
+                case file_type::value:  // [[fallthrough]];
+                case file_type::linear_record:  // [[fallthrough]];
+                case file_type::cyclic_record:  // [[fallthrough]];
+                default:
+                    DESFIRE_LOGE("Cannot retrieve data settings from a file of type %s", to_string(type()));
+                    break;
+            }
+        }
+        static data_file_settings _dummy{};
+        _dummy = {};
+        return _dummy;
+    }
+
+    record_file_settings const &any_file_settings::record_settings() const {
+        if (not _settings.empty()) {
+            switch (type()) {
+                case file_type::linear_record:
+                    return get_settings<file_type::linear_record>();
+                case file_type::cyclic_record:
+                    return get_settings<file_type::cyclic_record>();
+                case file_type::standard:  // [[fallthrough]];
+                case file_type::backup:  // [[fallthrough]];
+                case file_type::value:  // [[fallthrough]];
+                default:
+                    DESFIRE_LOGE("Cannot retrieve record settings from a file of type %s", to_string(type()));
+                    break;
+            }
+        }
+        static record_file_settings _dummy{};
+        _dummy = {};
+        return _dummy;
+    }
+
+    value_file_settings const &any_file_settings::value_settings() const {
+        if (not _settings.empty()) {
+            switch (type()) {
+                case file_type::value:
+                    return get_settings<file_type::value>();
+                case file_type::standard:  // [[fallthrough]];
+                case file_type::backup:  // [[fallthrough]];
+                case file_type::linear_record:  // [[fallthrough]];
+                case file_type::cyclic_record:  // [[fallthrough]];
+                default:
+                    DESFIRE_LOGE("Cannot retrieve value settings from a file of type %s", to_string(type()));
+                    break;
+            }
+        }
+        static value_file_settings _dummy{};
+        _dummy = {};
+        return _dummy;
+    }
 
     bool access_rights::is_free(file_access access, std::uint8_t active_key_num) const {
         switch (access) {
@@ -267,6 +325,18 @@ namespace desfire {
 
     generic_file_settings &any_file_settings::generic_settings() {
         return const_cast<generic_file_settings &>(static_cast<any_file_settings const *>(this)->generic_settings());
+    }
+
+    data_file_settings &any_file_settings::data_settings() {
+        return const_cast<data_file_settings &>(static_cast<any_file_settings const *>(this)->data_settings());
+    }
+
+    record_file_settings &any_file_settings::record_settings() {
+        return const_cast<record_file_settings &>(static_cast<any_file_settings const *>(this)->record_settings());
+    }
+
+    value_file_settings &any_file_settings::value_settings() {
+        return const_cast<value_file_settings &>(static_cast<any_file_settings const *>(this)->value_settings());
     }
 
 

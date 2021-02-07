@@ -243,6 +243,12 @@ namespace desfire {
         inline file_type type() const;
         generic_file_settings const &generic_settings() const;
         generic_file_settings &generic_settings();
+        data_file_settings const &data_settings() const;
+        data_file_settings &data_settings();
+        record_file_settings const &record_settings() const;
+        record_file_settings &record_settings();
+        value_file_settings const &value_settings() const;
+        value_file_settings &value_settings();
 
         template <file_type Type>
         file_settings<Type> const &get_settings() const;

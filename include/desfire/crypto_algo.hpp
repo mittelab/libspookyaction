@@ -15,6 +15,7 @@
 
 namespace desfire {
 
+    static constexpr std::array<std::uint8_t, 2> default_padding_bytes = {0x00, 0x80};
 
     template <class Integral, class = typename std::enable_if<std::is_integral<Integral>::value and std::is_unsigned<Integral>::value>::type>
     std::pair<unsigned, Integral> log2_remainder(Integral n);
@@ -60,7 +61,7 @@ namespace desfire {
      */
     template <std::size_t BlockSize, class ByteIterator, class N, class Fn, std::size_t NPaddingBytes = 2>
     std::pair<ByteIterator, bool> find_crc_tail(ByteIterator begin, ByteIterator end, Fn &&crc_fn, N init, bool incremental_crc,
-                                                std::array<std::uint8_t, NPaddingBytes> valid_padding_bytes = {0x00, 0x80});
+                                                std::array<std::uint8_t, NPaddingBytes> const &valid_padding_bytes = default_padding_bytes);
 
     struct randbytes {
         std::size_t n;
@@ -109,7 +110,7 @@ namespace desfire {
     template <std::size_t BlockSize, class ByteIterator, class N, class Fn, std::size_t NPaddingBytes>
     std::pair<ByteIterator, bool> find_crc_tail(ByteIterator begin, ByteIterator end, Fn &&crc_fn, N init,
                                                        bool incremental_crc,
-                                                       std::array<std::uint8_t, NPaddingBytes> valid_padding_bytes)
+                                                       std::array<std::uint8_t, NPaddingBytes> const &valid_padding_bytes)
    {
         static const auto nonzero_byte_pred = [&](std::uint8_t b) -> bool {
             return std::find(std::begin(valid_padding_bytes), std::end(valid_padding_bytes), b) == std::end(valid_padding_bytes);

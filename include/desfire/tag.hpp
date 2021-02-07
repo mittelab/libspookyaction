@@ -205,15 +205,14 @@ namespace desfire {
         r<> abort_transaction();
 
         /**
-         * @todo check fid
+         * @param fid Max @ref bits::max_standard_data_file_id or @ref bits::max_backup_data_file_id
          * @param offset Limited to 24 bits, i.e. must be below 0xFFFFFF.
          * @param length Limited to 24 bits, i.e. must be below 0xFFFFFF.
          */
         r<bin_data> read_data(file_id fid, std::uint32_t offset, std::uint32_t length, file_security security = file_security::automatic);
 
         /**
-         * @todo check fid
-         *
+         * @param fid Max @ref bits::max_standard_data_file_id or @ref bits::max_backup_data_file_id
          * @param offset Limited to 24 bits, i.e. must be below 0xFFFFFF.
          * @param data Limited to 24 bits, i.e. must be below 0xFFFFFF.
          */
@@ -225,36 +224,32 @@ namespace desfire {
         r<std::int32_t> get_value(file_id fid, file_security security = file_security::automatic);
 
         /**
-         * @todo check fid
          * @param fid Max @ref bits::max_value_file_id.
          * @param amount Must be nonnegative.
          */
         r<> credit(file_id fid, std::int32_t amount, file_security security = file_security::automatic);
 
         /**
-         * @todo check fid
          * @param fid Max @ref bits::max_value_file_id.
          * @param amount Must be nonnegative.
          */
         r<> limited_credit(file_id fid, std::int32_t amount, file_security security = file_security::automatic);
 
         /**
-         * @todo check fid
          * @param fid Max @ref bits::max_value_file_id.
          * @param amount Must be nonnegative.
          */
         r<> debit(file_id fid, std::int32_t amount, file_security security = file_security::automatic);
 
         /**
-         *
-         * @todo check fid
+         * @param fid Max @ref bits::max_record_file_id.
          * @param offset Limited to 24 bits, i.e. must be below 0xFFFFFF.
          * @param data Limited to 24 bits, i.e. must be below 0xFFFFFF.
          */
         r<> write_record(file_id fid, std::uint32_t offset, bin_data const &data, file_security = file_security::automatic);
 
         /**
-         * @todo check fid
+         * @param fid Max @ref bits::max_record_file_id.
          * @param record_index Limited to 24 bits, i.e. must be below 0xFFFFFF.
          * @param record_count Limited to 24 bits, i.e. must be below 0xFFFFFF.
          */
@@ -273,13 +268,13 @@ namespace desfire {
         void ut_init_session(desfire::key<Cipher> const &session_key, desfire::app_id app, std::uint8_t key_no);
 
         r<comm_mode> determine_file_comm_mode(file_id fid, file_access access, file_security requested_security);
-        comm_mode determine_file_comm_mode(file_access access, any_file_settings const &settings);
+        comm_mode determine_file_comm_mode(file_access access, any_file_settings const &settings) const;
 
         static r<> safe_drop_payload(command_code cmd, tag::r<bin_data> const &result);
         static void log_not_empty(command_code cmd, range<bin_data::const_iterator> const &data);
 
         inline controller &ctrl();
-        inline cipher &active_cipher();
+
         r<> change_key_internal(any_key const *current_key, std::uint8_t key_no_to_change, any_key const &new_key);
 
         /**
@@ -295,6 +290,9 @@ namespace desfire {
          */
         void logout(bool due_to_error);
 
+        /**
+         * @todo Rename
+         */
         comm_cfg const &cipher_default() const;
 
         struct auto_logout;
@@ -365,10 +363,6 @@ namespace desfire {
 
 
     cipher const &tag::active_cipher() const {
-        return *_active_cipher;
-    }
-
-    cipher &tag::active_cipher() {
         return *_active_cipher;
     }
 

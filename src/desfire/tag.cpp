@@ -217,7 +217,7 @@ namespace desfire {
     }
 
     tag::r<> tag::select_application(app_id const &app) {
-        /*
+        /**
          * @bug Test if it has to be CMAC RX for modern ciphers
          */
         const auto res_cmd =  command_response(command_code::select_application, bin_data::chain(app), comm_mode::plain);
@@ -334,7 +334,7 @@ namespace desfire {
             DESFIRE_LOGW("%s: attempt to create an app where keys and settings cannot be changed; this is probably a "
                          "mistake.", to_string(command_code::create_application));
         }
-        /*
+        /**
          * @bug Test if it has to be CMAC RX for modern ciphers
          */
         return safe_drop_payload(command_code::create_application, command_response(
@@ -361,7 +361,7 @@ namespace desfire {
     }
 
     tag::r<> tag::delete_application(app_id const &app) {
-        /*
+        /**
          * @bug Test if it has to be CMAC RX for modern ciphers
          */
         return command_response(command_code::delete_application,
@@ -370,7 +370,7 @@ namespace desfire {
     }
 
     tag::r<std::vector<app_id>> tag::get_application_ids() {
-        /*
+        /**
          * @bug Test if it has to be CMAC RX for modern ciphers
          */
         return command_parse_response<std::vector<app_id>>(command_code::get_application_ids, {}, comm_mode::plain);
@@ -381,7 +381,7 @@ namespace desfire {
     }
 
     tag::r<> tag::format_picc() {
-        /*
+        /**
          * @bug Test if it has to be CMAC RX for modern ciphers
          */
         const auto res_cmd = command_response(command_code::format_picc, bin_data{}, comm_mode::plain);
@@ -519,7 +519,7 @@ namespace desfire {
         ));
     }
 
-    comm_mode tag::determine_file_comm_mode(file_access access, any_file_settings const &settings) {
+    comm_mode tag::determine_file_comm_mode(file_access access, any_file_settings const &settings) const {
         // Send in plain mode if the specific operation is "free".
         if (settings.generic_settings().rights.is_free(access, active_key_no())) {
             return comm_mode::plain;
@@ -540,6 +540,10 @@ namespace desfire {
 
 
     tag::r<bin_data> tag::read_data(file_id fid, std::uint32_t offset, std::uint32_t length, file_security security) {
+        if (fid > bits::max_backup_data_file_id or fid > bits::max_standard_data_file_id) {
+            DESFIRE_LOGW("%s: invalid file id %d for data or backup file.", to_string(command_code::read_data), fid);
+            return error::parameter_error;
+        }
         if ((offset & 0xffffff) != offset) {
             DESFIRE_LOGW("%s: offset can be at most 24 bits, %d is an invalid value.",
                          to_string(command_code::read_data), offset);
@@ -563,6 +567,10 @@ namespace desfire {
     }
 
     tag::r<> tag::write_data(file_id fid, std::uint32_t offset, bin_data const &data, file_security security) {
+        if (fid > bits::max_backup_data_file_id or fid > bits::max_standard_data_file_id) {
+            DESFIRE_LOGW("%s: invalid file id %d for data or backup file.", to_string(command_code::write_data), fid);
+            return error::parameter_error;
+        }
         if ((offset & 0xffffff) != offset) {
             DESFIRE_LOGW("%s: offset can be at most 24 bits, %d is an invalid value.",
                          to_string(command_code::write_data), offset);
@@ -590,6 +598,7 @@ namespace desfire {
 
     tag::r<std::int32_t> tag::get_value(file_id fid, file_security security) {
         if (fid > bits::max_value_file_id) {
+            DESFIRE_LOGW("%s: invalid file id %d for a value file.", to_string(command_code::get_value), fid);
             return error::parameter_error;
         }
         const auto res_mode = determine_file_comm_mode(fid, file_access::read, security);
@@ -608,6 +617,7 @@ namespace desfire {
             return error::parameter_error;
         }
         if (fid > bits::max_value_file_id) {
+            DESFIRE_LOGW("%s: invalid file id %d for a value file.", to_string(cmd), fid);
             return error::parameter_error;
         }
         if (amount < 0) {
@@ -636,6 +646,10 @@ namespace desfire {
     }
 
     tag::r<> tag::write_record(file_id fid, std::uint32_t offset, bin_data const &data, file_security security) {
+        if (fid > bits::max_record_file_id) {
+            DESFIRE_LOGW("%s: invalid file id %d for a record file.", to_string(command_code::write_record), fid);
+            return error::parameter_error;
+        }
         if ((offset & 0xffffff) != offset) {
             DESFIRE_LOGW("%s: offset can be at most 24 bits, %d is an invalid value.",
                          to_string(command_code::write_record), offset);
@@ -661,6 +675,10 @@ namespace desfire {
     }
 
     tag::r<bin_data> tag::read_records(file_id fid, std::uint32_t record_index, std::uint32_t record_count, file_security security) {
+        if (fid > bits::max_record_file_id) {
+            DESFIRE_LOGW("%s: invalid file id %d for a record file.", to_string(command_code::write_record), fid);
+            return error::parameter_error;
+        }
         if ((record_index & 0xffffff) != record_index) {
             DESFIRE_LOGW("%s: record index can be at most 24 bits, %d is an invalid value.",
                          to_string(command_code::read_records), record_index);
@@ -701,6 +719,7 @@ namespace desfire {
 
     tag::r<> tag::create_file(file_id fid, file_settings<file_type::standard> const &settings) {
         if (fid > bits::max_standard_data_file_id) {
+            DESFIRE_LOGW("%s: invalid file id %d for a data file.", to_string(command_code::create_std_data_file), fid);
             return error::parameter_error;
         }
         return safe_drop_payload(command_code::create_std_data_file, command_response(
@@ -709,6 +728,7 @@ namespace desfire {
 
     tag::r<> tag::create_file(file_id fid, file_settings<file_type::backup> const &settings) {
         if (fid > bits::max_backup_data_file_id) {
+            DESFIRE_LOGW("%s: invalid file id %d for a backup file.", to_string(command_code::create_backup_data_file), fid);
             return error::parameter_error;
         }
         return safe_drop_payload(command_code::create_backup_data_file, command_response(
@@ -728,6 +748,7 @@ namespace desfire {
 
     tag::r<> tag::create_file(file_id fid, file_settings<file_type::linear_record> const &settings) {
         if (fid > bits::max_record_file_id) {
+            DESFIRE_LOGW("%s: invalid file id %d for a record file.", to_string(command_code::create_linear_record_file), fid);
             return error::parameter_error;
         }
         if (settings.record_size < 1) {
@@ -739,6 +760,7 @@ namespace desfire {
 
     tag::r<> tag::create_file(file_id fid, file_settings<file_type::cyclic_record> const &settings) {
         if (fid > bits::max_record_file_id) {
+            DESFIRE_LOGW("%s: invalid file id %d for a record file.", to_string(command_code::create_cyclic_record_file), fid);
             return error::parameter_error;
         }
         if (settings.record_size < 1) {
@@ -758,6 +780,7 @@ namespace desfire {
 
     tag::r<> tag::clear_record_file(file_id fid) {
         if (fid > bits::max_record_file_id) {
+            DESFIRE_LOGW("%s: invalid file id %d for a record file.", to_string(command_code::clear_record_file), fid);
             return error::parameter_error;
         }
         return safe_drop_payload(command_code::clear_record_file, command_response(

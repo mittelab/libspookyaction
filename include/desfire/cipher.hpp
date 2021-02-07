@@ -60,6 +60,9 @@ namespace desfire {
         }
     };
 
+    /**
+     * @todo @ref do_cipher is never used, and maybe also the other two
+     */
     struct cipher::config {
         comm_mode mode;
         bool do_mac;        // If required by protocol and comm_mode

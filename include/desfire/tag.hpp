@@ -258,6 +258,7 @@ namespace desfire {
         void ut_init_session(desfire::key<Cipher> const &session_key, desfire::app_id app, std::uint8_t key_no);
 
         r<comm_mode> determine_file_comm_mode(file_id fid, file_access access, file_security requested_security);
+        comm_mode determine_file_comm_mode(file_access access, any_file_settings const &settings);
 
         static r<> safe_drop_payload(command_code cmd, tag::r<bin_data> const &result);
         static void log_not_empty(command_code cmd, range<bin_data::const_iterator> const &data);

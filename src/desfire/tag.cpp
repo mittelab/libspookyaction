@@ -519,6 +519,13 @@ namespace desfire {
         ));
     }
 
+    comm_mode tag::determine_file_comm_mode(file_access access, any_file_settings const &settings) {
+        // Send in plain mode if the specific operation is "free".
+        if (settings.generic_settings().rights.is_free(access, active_key_no())) {
+            return comm_mode::plain;
+        }
+        return settings.generic_settings().mode;
+    }
 
     tag::r<comm_mode> tag::determine_file_comm_mode(file_id fid, file_access access, file_security requested_security) {
         if (requested_security != file_security::automatic) {
@@ -528,11 +535,7 @@ namespace desfire {
         if (not res_get_settings) {
             return res_get_settings.error();
         }
-        // Send in plain mode if the specific operation is "free".
-        if (res_get_settings->generic_settings().rights.is_free(access, active_key_no())) {
-            return comm_mode::plain;
-        }
-        return res_get_settings->generic_settings().mode;
+        return determine_file_comm_mode(access, *res_get_settings);
     }
 
 

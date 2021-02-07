@@ -646,40 +646,11 @@ namespace desfire {
                          to_string(command_code::write_record), data.size());
             return error::parameter_error;
         }
-        /**
-         * Determine file access mode manually instead of using @ref determine_file_comm_mode, so that we can retain
-         * the @ref any_file_settings object and make extra checks.
-         */
-        comm_mode mode = comm_mode::plain;
-        if (security == file_security::automatic) {
-            const auto res_settings = get_file_settings(fid);
-            if (not res_settings) {
-                return res_settings.error();
-            }
-            mode = determine_file_comm_mode(file_access::write, *res_settings);
-            // Now perform extra checks for example on offset and file type
-            if (res_settings->type() != file_type::cyclic_record and res_settings->type() != file_type::linear_record) {
-                DESFIRE_LOGW("%s: attempt to write record to a file of type %s.", to_string(command_code::write_record),
-                             to_string(res_settings->type()));
-                return error::parameter_error;
-            }
-            const auto record_size = res_settings->record_settings().record_size;
-            if (offset > record_size) {
-                DESFIRE_LOGW("%s: offset (%d) exceeds record size %d.",
-                             to_string(command_code::write_record), offset, record_size);
-                return error::parameter_error;
-            }
-            if (offset + data.size() > record_size) {
-                DESFIRE_LOGW("%s: offset (%d) + data size (%d) exceeds record size %d.",
-                             to_string(command_code::write_record), offset, data.size(), record_size);
-                return error::parameter_error;
-            }
-        } else {
-            // Just use what the user requested
-            mode = comm_mode_from_security(security);
+        const auto res_mode = determine_file_comm_mode(fid, file_access::write, security);
+        if (not res_mode) {
+            return res_mode.error();
         }
-
-        const comm_cfg cfg{cipher::config{mode, true, true, true}, cipher_default().rx,
+        const comm_cfg cfg{cipher::config{*res_mode, true, true, true}, cipher_default().rx,
                            8 /* secure with legacy MAC only data */};
 
         bin_data payload{prealloc(data.size() + 7)};
@@ -700,40 +671,12 @@ namespace desfire {
                          to_string(command_code::read_records), record_count);
             return error::parameter_error;
         }
-        /**
-         * Determine file access mode manually instead of using @ref determine_file_comm_mode, so that we can retain
-         * the @ref any_file_settings object and make extra checks.
-         */
-        comm_mode mode = comm_mode::plain;
-        if (security == file_security::automatic) {
-            const auto res_settings = get_file_settings(fid);
-            if (not res_settings) {
-                return res_settings.error();
-            }
-            mode = determine_file_comm_mode(file_access::read, *res_settings);
-            // Now perform extra checks for example on record_index and file type
-            if (res_settings->type() != file_type::cyclic_record and res_settings->type() != file_type::linear_record) {
-                DESFIRE_LOGW("%s: attempt to read records from a file of type %s.",
-                             to_string(command_code::read_records), to_string(res_settings->type()));
-                return error::parameter_error;
-            }
-            const auto tot_record_count = res_settings->record_settings().record_count;
-            if (record_index > tot_record_count) {
-                DESFIRE_LOGW("%s: record index (%d) exceeds total record count %d.",
-                             to_string(command_code::read_records), record_index, tot_record_count);
-                return error::parameter_error;
-            }
-            if (record_index + tot_record_count > tot_record_count) {
-                DESFIRE_LOGW("%s: record index (%d) + record count (%d) exceeds total record count %d.",
-                             to_string(command_code::read_records), record_index, tot_record_count, tot_record_count);
-                return error::parameter_error;
-            }
-        } else {
-            // Just use what the user requested
-            mode = comm_mode_from_security(security);
+        const auto res_mode = determine_file_comm_mode(fid, file_access::write, security);
+        if (not res_mode) {
+            return res_mode.error();
         }
         // RX happens with the chosen file protection, except on nonlegacy ciphers where plain becomes maced
-        const auto rx_comm_mode = comm_mode_most_secure(mode, cipher_default().rx.mode);
+        const auto rx_comm_mode = comm_mode_most_secure(*res_mode, cipher_default().rx.mode);
         const comm_cfg cfg{cipher_default().tx, cipher::config{rx_comm_mode, true, true, true}};
 
         bin_data payload{prealloc(record_count + 7)};

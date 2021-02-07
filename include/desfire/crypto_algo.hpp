@@ -44,6 +44,8 @@ namespace desfire {
      * @param incremental_crc If true, @p crc_fn will be called only on the new bytes being tested, using as ''init''
      *  value the previously calculated CRC value. If false, @p crc_fn is always called on the full data interval,
      *  starting at @p begin.
+     * @param valid_padding_bytes An array of possible padding bytes values, by default just 0x00. Some ciphers prepend
+     *  0x80 before the zeroes.
      * @note In general, for a CRC function, it should hold ''CRC(A || B, init) = CRC(B, CRC(A, init))''. If this is the
      * case, specify @p incremental_crc true. If this is not the case (e.g. you are simulating the injection of extra
      * data in between the data payload and the CRC), specify false. The behavior is pseudo code is as follows:
@@ -56,8 +58,9 @@ namespace desfire {
      * @endcode
      * @return
      */
-    template <std::size_t BlockSize, class ByteIterator, class N, class Fn>
-    static std::pair<ByteIterator, bool> find_crc_tail(ByteIterator begin, ByteIterator end, Fn &&crc_fn, N init, bool incremental_crc);
+    template <std::size_t BlockSize, class ByteIterator, class N, class Fn, std::size_t NPaddingBytes = 2>
+    std::pair<ByteIterator, bool> find_crc_tail(ByteIterator begin, ByteIterator end, Fn &&crc_fn, N init, bool incremental_crc,
+                                                std::array<std::uint8_t, NPaddingBytes> valid_padding_bytes = {0x00, 0x80});
 
     struct randbytes {
         std::size_t n;
@@ -103,9 +106,14 @@ namespace desfire {
         return (size + BlockSize - 1) & -BlockSize;
     }
 
-    template <std::size_t BlockSize, class ByteIterator, class N, class Fn>
-    static std::pair<ByteIterator, bool> find_crc_tail(ByteIterator begin, ByteIterator end, Fn &&crc_fn, N init, bool incremental_crc) {
-        static const auto nonzero_byte_pred = [](std::uint8_t b) -> bool { return b != 0; };
+    template <std::size_t BlockSize, class ByteIterator, class N, class Fn, std::size_t NPaddingBytes>
+    std::pair<ByteIterator, bool> find_crc_tail(ByteIterator begin, ByteIterator end, Fn &&crc_fn, N init,
+                                                       bool incremental_crc,
+                                                       std::array<std::uint8_t, NPaddingBytes> valid_padding_bytes)
+   {
+        static const auto nonzero_byte_pred = [&](std::uint8_t b) -> bool {
+            return std::find(std::begin(valid_padding_bytes), std::end(valid_padding_bytes), b) == std::end(valid_padding_bytes);
+        };
         const bool multiple_of_block_size = std::distance(begin, end) % BlockSize == 0;
         if (not multiple_of_block_size) {
             DESFIRE_LOGE("Cannot scan for CRC tail if data length is not a multiple of the block size.");

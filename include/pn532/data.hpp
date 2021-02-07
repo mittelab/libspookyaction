@@ -143,39 +143,44 @@ namespace pn532 {
         p3, p7, i0i1
     };
 
+    // Data returned after "GetFirmwareVersion" (@ref nfc::get_firmware_version) (UM0701-02 §7.2.2)
     struct firmware_version {
-        std::uint8_t ic;
-        std::uint8_t version;
-        std::uint8_t revision;
-        bool iso_18092;
-        bool iso_iec_14443_typea;
-        bool iso_iec_14443_typeb;
+        std::uint8_t ic;                        //!< The ic version, for PN532 is always 0x32
+        std::uint8_t version;                   //!< IC firmware version
+        std::uint8_t revision;                  //!< IC firmware revision
+        bool iso_18092;                         //!< The chip supports ISO18092 tags
+        bool iso_iec_14443_typea;               //!< The chip supports ISO 14443 TypeA tags
+        bool iso_iec_14443_typeb;               //!< The chip supports ISO 14443 TypeB tags
     };
 
+    // Data returned after "GetGeneralStatus" (@ref nfc::get_general_status) (one for each tag) (UM0701-02 §7.2.3)
     struct target_status {
-        std::uint8_t logical_index;
-        baudrate baudrate_rx;
-        baudrate baudrate_tx;
-        modulation modulation_type;
+        std::uint8_t logical_index;             //!< Tag index (given at initialization from the PN532)
+        baudrate baudrate_rx;                   //!< Bit rate in reception
+        baudrate baudrate_tx;                   //!< Bit rate in transmission
+        modulation modulation_type;             //!< Modulation type
     };
 
+    // @todo
     struct rf_status {
-        bool nad_present;
-        bool expect_more_info;
-        controller_error error;
+        bool nad_present;                       //!< True if NAD bit is present
+        bool expect_more_info;                  //!< True if the tag expect another byte to be sent
+        controller_error error;                 //!< PN532 error
 
         inline explicit operator bool() const { return error == controller_error::none; }
     };
 
+    // Data returned after "SetParameter" (@ref nfc::set_parameters) (UM0701-02 §7.2.9)
     struct parameters {
-        bool use_nad_data;
-        bool use_did_data;
-        bool auto_generate_atr_res;
-        bool auto_generate_rats;
-        bool enable_iso_14443_4_picc_emulation;
-        bool remove_pre_post_amble;
+        bool use_nad_data;                      //!< Use NAD information (used in initiator mode)
+        bool use_did_data;                      //!< Use DID information (used in initiator mode)
+        bool auto_generate_atr_res;             //!< Automatic generation of ATR_RES (used in target mode)
+        bool auto_generate_rats;                //!< Automatic generation of RATS (used in ISO 14443-4 PCD mode)
+        bool enable_iso_14443_4_picc_emulation; //!< Emulate a ISO 14443-4 PICC (tag)
+        bool remove_pre_post_amble;             //!< Disable pre/post-amble byte
     };
 
+    // Data returned after "GetGeneralStatus" (@ref nfc::get_general_status) (UM0701-02 §7.2.3)
     struct sam_status {
         bool neg_pulse_on_clad_line;
         bool detected_rf_field_off;
@@ -183,33 +188,41 @@ namespace pn532 {
         bool clad_line_high;
     };
 
+    // Data returned after "GetGeneralStatus" (@ref nfc::get_general_status) (UM0701-02 §7.2.3)
     struct general_status {
-        controller_error last_error;
-        bool rf_field_present;
-        std::vector<target_status> targets;
-        sam_status sam;
+        controller_error last_error;            //!< Last error of the controller
+        bool rf_field_present;                  //!< True if the RF field is switched on
+        std::vector<target_status> targets;     //!< List of target inizialized by the controller (max 2)
+        sam_status sam;                         //!< SAM status information
     };
 
+    // Data returned after "TgGetTargetStatus" (@ref nfc::target_get_target_status) (UM0701-02 §7.2.21)
     struct status_as_target {
         nfcip1_picc_status status;
         baudrate initiator_speed;
         baudrate target_speed;
     };
 
+    /**
+     * Parameters for the command "Diagnose" (@ref nfc::diagnose_self_antenna) (UM0701-02 §7.2.1)
+     * The parameters are described in (PN532/C1 §8.6.9.2)
+     */
     struct reg_antenna_detector {
-        bool detected_low_pwr;
-        bool detected_high_pwr;
-        low_current_thr low_current_threshold;
-        high_current_thr high_current_threshold;
-        bool enable_detection;
+        bool detected_low_pwr;                  //!< Too low power consuption detection flag (must be 0) (PN532/C1 §8.6.9.2)
+        bool detected_high_pwr;                 //!< Too high power consuptiond detection flag (must be 0) (PN532/C1 §8.6.9.2)
+        low_current_thr low_current_threshold;  //!< Lower current threshold for low power detection (PN532/C1 §8.6.9.2)
+        high_current_thr high_current_threshold;//!< Higher current threshold for high current detection (PN532/C1 §8.6.9.2)
+        bool enable_detection;                  //!< Start antenna selftest (must be 1) (PN532/C1 §8.6.9.2)
     };
 
+    // Data returned after "InJumpForDEP" (UM0701-02 §7.3.3)
     struct jump_dep_psl {
-        rf_status status{};
-        std::uint8_t target_logical_index{};
-        atr_res_info atr_info;
+        rf_status status{};                     //!< Error Byte (UM0701-02 §7.1)
+        std::uint8_t target_logical_index{};    //!< Logical number assigned to the tag
+        atr_res_info atr_info;                  //!< ATR_RES sent by the tag
     };
 
+    // @todo
     struct mode_as_target {
         baudrate speed;
         bool iso_iec_14443_4_picc;
@@ -217,6 +230,7 @@ namespace pn532 {
         framing framing_type;
     };
 
+    // Parameters for the command "TgGetTargetStatus" (@ref nfc::target_init_as_target) (UM0701-02 §7.3.21)
     struct mifare_params {
         std::array<std::uint8_t, 2> sens_res;
         std::array<std::uint8_t, 3> nfcid_1t;
@@ -232,9 +246,10 @@ namespace pn532 {
         std::array<std::uint8_t, 2> syst_code;
     };
 
+    // Data returned after "TgInitAsTarget" (@ref nfc::target_init_as_target) (UM0701-02 §7.3.14)
     struct init_as_target_res {
-        mode_as_target mode;
-        std::vector<std::uint8_t> initiator_command;
+        mode_as_target mode;                            //!< A byte containing witch mode the PN532 has been activated
+        std::vector<std::uint8_t> initiator_command;    //!< A vector containing the first frame received by the PN532
     };
 
     template <std::size_t Length>

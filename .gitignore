@@ -8,3 +8,4 @@ build
 platformio.ini
 sdkconfig
 sdkconfig.h
+docs/_build

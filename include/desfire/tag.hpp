@@ -498,7 +498,7 @@ namespace desfire {
         std::vector<T> records{};
         records.reserve(count);
         bin_stream s{*res_read_records};
-        while (s.good() and records.size() < count) {
+        while (s.good() and (records.size() < count or count == all_records)) {
             records.template emplace_back();
             s >> records.back();
         }
@@ -506,7 +506,7 @@ namespace desfire {
             DESFIRE_LOGW("%s: could not parse all records, there are %d stray bytes.",
                          to_string(command_code::read_records), s.remaining());
         }
-        if (records.size() != count) {
+        if (count != all_records and records.size() != count) {
             DESFIRE_LOGW("%s: expected to parse %d records, got only %d.",
                          to_string(command_code::read_records), count, records.size());
         }

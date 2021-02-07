@@ -7,6 +7,7 @@
 #include <desfire/tag.hpp>
 #include <desfire/data.hpp>
 #include <desfire/msg.hpp>
+#include "utils.hpp"
 #include <string>
 
 #define TEST_TAG "UT"
@@ -35,38 +36,6 @@ namespace {
 
 namespace ut {
 
-    struct assert_comm_controller final : public desfire::controller {
-        std::list<std::pair<mlab::bin_data, mlab::bin_data>> txrx_fifo;
-
-        std::pair<mlab::bin_data, bool> communicate(mlab::bin_data const &data) override {
-            auto txrx_pair = std::move(txrx_fifo.front());
-            txrx_fifo.pop_front();
-            TEST_ASSERT_EQUAL_HEX8_ARRAY(txrx_pair.first.data(), data.data(), std::min(txrx_pair.first.size(), data.size()));
-            TEST_ASSERT_EQUAL(txrx_pair.first.size(), data.size());
-            return {std::move(txrx_pair.second), true};
-        }
-
-        void append(std::initializer_list<std::uint8_t> tx, std::initializer_list<std::uint8_t> rx) {
-            txrx_fifo.push_back(std::make_pair(mlab::bin_data::chain(tx), mlab::bin_data::chain(rx)));
-        }
-
-    };
-
-    struct session {
-        desfire::tag &tag;
-
-        template <desfire::cipher_type Cipher>
-        session(desfire::tag &tag_, desfire::key<Cipher> const &session_key, desfire::app_id app, std::uint8_t key_no) :
-            tag{tag_}
-        {
-            tag.template ut_init_session(session_key, app, key_no);
-        }
-
-        ~session() {
-            tag.logout(false);
-        }
-    };
-
     struct app_with_keys {
         desfire::app_id aid;
         desfire::any_key default_key;
@@ -87,20 +56,6 @@ namespace ut {
             app_with_keys::make<desfire::cipher_type::aes128>({0x0, 0x0, 0x4}, {0, {0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf}, 0x10})
     }};
 
-    void enable_detailed_log() {
-        esp_log_level_set(DESFIRE_TAG, ESP_LOG_DEBUG);
-        esp_log_level_set(DESFIRE_TAG " >>", ESP_LOG_DEBUG);
-        esp_log_level_set(DESFIRE_TAG " <<", ESP_LOG_DEBUG);
-        esp_log_level_set(DESFIRE_TAG " RAW >>", ESP_LOG_DEBUG);
-        esp_log_level_set(DESFIRE_TAG " RAW <<", ESP_LOG_DEBUG);
-        esp_log_level_set(DESFIRE_TAG " TX MAC", ESP_LOG_DEBUG);
-        esp_log_level_set(DESFIRE_TAG " RX MAC", ESP_LOG_DEBUG);
-        esp_log_level_set(DESFIRE_TAG " != MAC", ESP_LOG_DEBUG);
-        esp_log_level_set(DESFIRE_TAG " CRYPTO", ESP_LOG_DEBUG);
-        esp_log_level_set(DESFIRE_TAG " DATA", ESP_LOG_DEBUG);
-        esp_log_level_set(DESFIRE_TAG " BLOB", ESP_LOG_DEBUG);
-        esp_log_level_set(DESFIRE_TAG "   IV", ESP_LOG_DEBUG);
-    }
 }
 
 void setup_uart_pn532() {

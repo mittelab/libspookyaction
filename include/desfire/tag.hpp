@@ -205,13 +205,14 @@ namespace desfire {
         r<> abort_transaction();
 
         /**
-         *
+         * @todo check fid
          * @param offset Limited to 24 bits, i.e. must be below 0xFFFFFF.
          * @param length Limited to 24 bits, i.e. must be below 0xFFFFFF.
          */
         r<bin_data> read_data(file_id fid, std::uint32_t offset, std::uint32_t length, file_security security = file_security::automatic);
 
         /**
+         * @todo check fid
          *
          * @param offset Limited to 24 bits, i.e. must be below 0xFFFFFF.
          * @param data Limited to 24 bits, i.e. must be below 0xFFFFFF.
@@ -224,18 +225,21 @@ namespace desfire {
         r<std::int32_t> get_value(file_id fid, file_security security = file_security::automatic);
 
         /**
+         * @todo check fid
          * @param fid Max @ref bits::max_value_file_id.
          * @param amount Must be nonnegative.
          */
         r<> credit(file_id fid, std::int32_t amount, file_security security = file_security::automatic);
 
         /**
+         * @todo check fid
          * @param fid Max @ref bits::max_value_file_id.
          * @param amount Must be nonnegative.
          */
         r<> limited_credit(file_id fid, std::int32_t amount, file_security security = file_security::automatic);
 
         /**
+         * @todo check fid
          * @param fid Max @ref bits::max_value_file_id.
          * @param amount Must be nonnegative.
          */

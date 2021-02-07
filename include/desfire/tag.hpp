@@ -252,14 +252,14 @@ namespace desfire {
         r<> write_record(file_id fid, T &&record, file_security security = file_security::automatic);
 
         template <class T>
-        r<std::vector<T>> read_records(file_id fid, std::uint32_t index, std::uint32_t count = all_records, file_security security = file_security::automatic);
+        r<std::vector<T>> read_records(file_id fid, std::uint32_t index = 0, std::uint32_t count = all_records, file_security security = file_security::automatic);
 
         /**
          * @param fid Max @ref bits::max_record_file_id.
          * @param record_index Limited to 24 bits, i.e. must be below 0xFFFFFF.
          * @param record_count Limited to 24 bits, i.e. must be below 0xFFFFFF.
          */
-        r<bin_data> read_records(file_id fid, std::uint32_t record_index, std::uint32_t record_count = all_records, file_security security = file_security::automatic);
+        r<bin_data> read_records(file_id fid, std::uint32_t record_index = 0, std::uint32_t record_count = all_records, file_security security = file_security::automatic);
 
     private:
         /**

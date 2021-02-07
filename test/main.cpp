@@ -573,6 +573,22 @@ void test_mifare_base() {
     }
 }
 
+void test_mifare_uid() {
+    TEST_ASSERT_NOT_EQUAL(pcd, nullptr);
+    TEST_ASSERT_NOT_EQUAL(mifare, nullptr);
+
+    TEST_ASSERT(mifare->select_application(desfire::root_app));
+    test_auth_attempt(mifare->authenticate(desfire::key<desfire::cipher_type::des>{}));
+
+    const auto r_info = mifare->get_info();
+    TEST_ASSERT(r_info);
+    const auto uid = r_info->serial_no;
+
+    const auto r_get_uid = mifare->get_card_uid();
+    TEST_ASSERT(r_get_uid);
+    TEST_ASSERT_EQUAL_HEX8_ARRAY(uid.data(), r_get_uid->data(), uid.size());
+}
+
 void test_mifare_create_apps() {
     TEST_ASSERT_NOT_EQUAL(pcd, nullptr);
     TEST_ASSERT_NOT_EQUAL(mifare, nullptr);
@@ -795,6 +811,7 @@ extern "C" void app_main() {
     issue_header("MIFARE TEST (requires card, lift previous card)");
     RUN_TEST(setup_mifare);
     RUN_TEST(test_mifare_base);
+    RUN_TEST(test_mifare_uid);
     RUN_TEST(test_mifare_create_apps);
     RUN_TEST(test_mifare_change_app_key);
     RUN_TEST(test_mifare_create_delete_files);

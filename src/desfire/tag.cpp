@@ -798,4 +798,11 @@ namespace desfire {
                 command_code::abort_transaction, bin_data{}, cipher_default()));
     }
 
+    tag::r<std::array<std::uint8_t, 7>> tag::get_card_uid() {
+        if (active_cipher_type() == cipher_type::none) {
+            DESFIRE_LOGW("%s: did not authenticate, likely to fail.", to_string(command_code::get_card_uid));
+        }
+        const comm_cfg cfg{cipher_default().tx, cipher_cfg_crypto};
+        return command_parse_response<std::array<std::uint8_t, 7>>(command_code::get_card_uid, bin_data{}, cfg);
+    }
 }

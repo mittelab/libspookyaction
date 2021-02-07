@@ -261,6 +261,8 @@ namespace desfire {
          */
         r<bin_data> read_records(file_id fid, std::uint32_t record_index = 0, std::uint32_t record_count = all_records, file_security security = file_security::automatic);
 
+        r<std::array<std::uint8_t, 7>> get_card_uid();
+
     private:
         /**
          * The power of friendship, cit. Wifasoi, 2020

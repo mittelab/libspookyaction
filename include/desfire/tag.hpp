@@ -253,6 +253,13 @@ namespace desfire {
          */
         r<> write_record(file_id fid, std::uint32_t offset, bin_data const &data, file_security = file_security::automatic);
 
+        /**
+         * @todo check fid
+         * @param record_index Limited to 24 bits, i.e. must be below 0xFFFFFF.
+         * @param record_count Limited to 24 bits, i.e. must be below 0xFFFFFF.
+         */
+        r<bin_data> read_records(file_id fid, std::uint32_t record_index, std::uint32_t record_count = all_records, file_security security = file_security::automatic);
+
     private:
         /**
          * The power of friendship, cit. Wifasoi, 2020

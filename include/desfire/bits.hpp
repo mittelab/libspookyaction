@@ -139,6 +139,8 @@ namespace desfire {
         static constexpr std::uint8_t max_backup_data_file_id = 0x7;
         static constexpr std::uint8_t max_value_file_id = 0x7;
         static constexpr std::uint8_t max_record_file_id = 0x7;
+
+        static constexpr std::uint32_t all_records = 0;
     }
 }
 

@@ -19,6 +19,7 @@ namespace desfire {
     using bits::app_crypto;
     using bits::comm_mode;
     using bits::file_type;
+    using bits::all_records;
 
     inline comm_mode comm_mode_most_secure(comm_mode l, comm_mode r);
 

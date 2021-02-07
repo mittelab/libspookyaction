@@ -635,6 +635,60 @@ namespace desfire {
         return write_value(command_code::debit,  fid,amount, security);
     }
 
+    tag::r<> tag::write_record(file_id fid, std::uint32_t offset, bin_data const &data, file_security security) {
+        if ((offset & 0xffffff) != offset) {
+            DESFIRE_LOGW("%s: offset can be at most 24 bits, %d is an invalid value.",
+                         to_string(command_code::write_record), offset);
+            return error::parameter_error;
+        }
+        if ((data.size() & 0xffffff) != data.size()) {
+            DESFIRE_LOGW("%s: data size can be at most 24 bits, %d is an invalid value.",
+                         to_string(command_code::write_record), data.size());
+            return error::parameter_error;
+        }
+        /**
+         * Determine file access mode manually instead of using @ref determine_file_comm_mode, so that we can retain
+         * the @ref any_file_settings object and make extra checks.
+         */
+        comm_mode mode = comm_mode::plain;
+        if (security == file_security::automatic) {
+            const auto res_settings = get_file_settings(fid);
+            if (not res_settings) {
+                return res_settings.error();
+            }
+            mode = determine_file_comm_mode(file_access::write, *res_settings);
+            // Now perform extra checks for example on offset and file type
+            if (res_settings->type() != file_type::cyclic_record and res_settings->type() != file_type::linear_record) {
+                DESFIRE_LOGW("%s: attempt to write record to a file of type %s.", to_string(command_code::write_record),
+                             to_string(res_settings->type()));
+                return error::parameter_error;
+            }
+            const auto record_size = res_settings->record_settings().record_size;
+            if (offset > record_size) {
+                DESFIRE_LOGW("%s: offset (%d) exceeds record size %d.",
+                             to_string(command_code::write_record), offset, record_size);
+                return error::parameter_error;
+            }
+            if (offset + data.size() > record_size) {
+                DESFIRE_LOGW("%s: offset (%d) + data size (%d) exceeds reord size %d.",
+                             to_string(command_code::write_record), offset, data.size(), record_size);
+                return error::parameter_error;
+            }
+        } else {
+            // Just use what the user requested
+            mode = comm_mode_from_security(security);
+        }
+
+        const comm_cfg cfg{cipher::config{mode, true, true, true}, cipher_default().rx,
+                           8 /* secure with legacy MAC only data */};
+
+        bin_data payload{prealloc(data.size() + 7)};
+        payload << fid << lsb24 << offset << lsb24 << data.size() << data;
+
+        return safe_drop_payload(command_code::write_record,
+                                 command_response(command_code::write_record, payload, cfg));
+    }
+
 
     tag::r<> tag::create_file(file_id fid, any_file_settings const &settings) {
         switch (settings.type()) {

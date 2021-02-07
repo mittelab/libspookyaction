@@ -245,6 +245,14 @@ namespace desfire {
          */
         r<> debit(file_id fid, std::int32_t amount, file_security security = file_security::automatic);
 
+        /**
+         *
+         * @todo check fid
+         * @param offset Limited to 24 bits, i.e. must be below 0xFFFFFF.
+         * @param data Limited to 24 bits, i.e. must be below 0xFFFFFF.
+         */
+        r<> write_record(file_id fid, std::uint32_t offset, bin_data const &data, file_security = file_security::automatic);
+
     private:
         /**
          * The power of friendship, cit. Wifasoi, 2020

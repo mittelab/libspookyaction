@@ -618,7 +618,6 @@ namespace {
 
     void test_standard_data_file(ut::test_file const &file) {
         TEST_ASSERT(pcd != nullptr and mifare != nullptr);
-        TEST_ASSERT(mifare->create_file(file.fid, file.settings));
         TEST_ASSERT(mifare->write_data(file.fid, 0, heavy_load()));
         const auto r_read = mifare->read_data(file.fid, 0, heavy_load().size());
         TEST_ASSERT(r_read);
@@ -628,7 +627,6 @@ namespace {
 
     void test_backup_data_file(ut::test_file const &file) {
         TEST_ASSERT(pcd != nullptr and mifare != nullptr);
-        TEST_ASSERT(mifare->create_file(file.fid, file.settings));
         TEST_ASSERT(mifare->write_data(file.fid, 0, heavy_load()));
         const auto r_read_before_commit = mifare->read_data(file.fid, 0, heavy_load().size());
         TEST_ASSERT(r_read_before_commit);
@@ -649,7 +647,6 @@ namespace {
             TEST_ASSERT_EQUAL(expected, *res_read);
         };
 
-        TEST_ASSERT(mifare->create_file(file.fid, file.settings));
         test_get_value(0);
         TEST_ASSERT(mifare->credit(file.fid, 2));
         test_get_value(0);  // Did not commit yet

@@ -63,8 +63,7 @@ namespace desfire {
         switch (cfg.mode) {
             case comm_mode::plain:
                 break;  // Nothing to do
-            case comm_mode::mac:
-                if (cfg.do_mac) {
+            case comm_mode::mac: {
                     // Apply mac overrides mode.
                     if (offset >= data.size()) {
                         DESFIRE_LOGE("Specified offset leaves no data to mac.");
@@ -101,8 +100,7 @@ namespace desfire {
         switch (cfg.mode) {
             case comm_mode::plain:
                 break;  // Nothing to do
-            case comm_mode::mac:
-                if (cfg.do_mac) {
+            case comm_mode::mac: {
                     bin_stream s{data};
                     // Data, followed by mac, followed by status
                     const auto data_view = s.read(s.remaining() - mac_size - 1);

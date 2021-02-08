@@ -120,9 +120,6 @@ namespace desfire {
             bin_data &data, std::size_t offset, cipher::config const &cfg) {
         if (cfg.mode != comm_mode::cipher) {
             // Plain and MAC may still require to pass data through CMAC, unless specified otherwise
-            if (not cfg.do_mac) {
-                return;
-            }
             // CMAC has to be computed on the whole data
             const mac_t cmac = compute_mac(data.view());
             ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " TX MAC", cmac.data(), cmac.size(), ESP_LOG_DEBUG);
@@ -153,16 +150,14 @@ namespace desfire {
             return true;
         }
         switch (cfg.mode) {
-            case comm_mode::plain:
-                // Always pass data + status byte through CMAC, if required
-                if (cfg.do_mac) {
+            case comm_mode::plain: {
+                    // Always pass data + status byte through CMAC
                     // This will keep the IV in sync
                     const auto cmac = compute_mac(data.view());
                     ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " RX MAC", cmac.data(), cmac.size(), ESP_LOG_DEBUG);
                 }
                 break;
-            case comm_mode::mac:
-                if (cfg.do_mac) {
+            case comm_mode::mac: {
                     // [ data || mac || status ] -> [ data || status || mac ]; rotate mac_size + 1 bytes
                     std::rotate(data.rbegin(), data.rbegin() + 1, data.rbegin() + traits_base::mac_size + 1);
                     // This will keep the IV in sync

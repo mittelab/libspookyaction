@@ -608,84 +608,6 @@ void test_mifare_change_app_key() {
     }
 }
 
-namespace {
-
-    void format_picc(desfire::any_key const &root_key) {
-        TEST_ASSERT(pcd != nullptr and mifare != nullptr);
-        TEST_ASSERT(mifare->select_application(desfire::root_app));
-        TEST_ASSERT(mifare->authenticate(root_key));
-        TEST_ASSERT(mifare->format_picc());
-    }
-
-    void test_standard_data_file(ut::test_file const &file) {
-        TEST_ASSERT(pcd != nullptr and mifare != nullptr);
-        TEST_ASSERT(mifare->write_data(file.fid, 0, heavy_load()));
-        const auto r_read = mifare->read_data(file.fid, 0, heavy_load().size());
-        TEST_ASSERT(r_read);
-        TEST_ASSERT_EQUAL(heavy_load().size(), r_read->size());
-        TEST_ASSERT_EQUAL_HEX8_ARRAY(heavy_load().data(), r_read->data(), heavy_load().size());
-    }
-
-    void test_backup_data_file(ut::test_file const &file) {
-        TEST_ASSERT(pcd != nullptr and mifare != nullptr);
-        TEST_ASSERT(mifare->write_data(file.fid, 0, heavy_load()));
-        const auto r_read_before_commit = mifare->read_data(file.fid, 0, heavy_load().size());
-        TEST_ASSERT(r_read_before_commit);
-        TEST_ASSERT_EACH_EQUAL_HEX8(0x00, r_read_before_commit->data(), r_read_before_commit->size());
-        TEST_ASSERT(mifare->commit_transaction());
-        const auto r_read = mifare->read_data(file.fid, 0, heavy_load().size());;
-        TEST_ASSERT(r_read);
-        TEST_ASSERT_EQUAL(heavy_load().size(), r_read->size());
-        TEST_ASSERT_EQUAL_HEX8_ARRAY(heavy_load().data(), r_read->data(), heavy_load().size());
-    }
-
-    void test_value_file(ut::test_file const &file) {
-        TEST_ASSERT(pcd != nullptr and mifare != nullptr);
-
-        const auto test_get_value = [&](std::int32_t expected) {
-            const auto res_read = mifare->get_value(file.fid);
-            TEST_ASSERT(res_read);
-            TEST_ASSERT_EQUAL(expected, *res_read);
-        };
-
-        test_get_value(0);
-        TEST_ASSERT(mifare->credit(file.fid, 2));
-        test_get_value(0);  // Did not commit yet
-        TEST_ASSERT(mifare->commit_transaction());
-        test_get_value(2);
-        TEST_ASSERT(mifare->debit(file.fid, 5));
-        TEST_ASSERT(mifare->commit_transaction());
-        test_get_value(-3);
-    }
-
-    void test_record_file(ut::test_file const &file) {
-        TEST_ASSERT(pcd != nullptr and mifare != nullptr);
-
-        using record_t = std::array<std::uint8_t, 8>;
-
-        static const mlab::bin_data nibble = {0x00, 0x01, 0x02, 0x03};
-
-        const auto test_get_record_count = [&](std::uint32_t expected) {
-            const auto res_settings = mifare->get_file_settings(file.fid);
-            TEST_ASSERT(res_settings);
-            TEST_ASSERT_EQUAL(expected, res_settings->record_settings().record_count);
-        };
-
-        test_get_record_count(0);
-        TEST_ASSERT(mifare->write_record(file.fid, 4, nibble));
-        TEST_ASSERT(mifare->commit_transaction());
-        test_get_record_count(1);
-        const auto res_records = mifare->read_records<record_t>(file.fid, 0);
-        TEST_ASSERT(res_records);
-        TEST_ASSERT_EQUAL(res_records->size(), 1);
-        const record_t expected = {0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x02, 0x03};
-        TEST_ASSERT_EQUAL_HEX8_ARRAY(expected.data(), res_records->front().data(), 8);
-        TEST_ASSERT(mifare->clear_record_file(file.fid));
-        TEST_ASSERT(mifare->commit_transaction());
-    }
-
-}
-
 struct file_test {
     desfire::comm_mode mode = desfire::comm_mode::plain;
     desfire::cipher_type cipher = desfire::cipher_type::none;
@@ -734,6 +656,73 @@ struct file_test {
         return buffer.c_str();
     }
 
+    static void perform_standard_data_file_test(ut::test_file const &file) {
+        TEST_ASSERT(pcd != nullptr and mifare != nullptr);
+        TEST_ASSERT(mifare->write_data(file.fid, 0, heavy_load()));
+        const auto r_read = mifare->read_data(file.fid, 0, heavy_load().size());
+        TEST_ASSERT(r_read);
+        TEST_ASSERT_EQUAL(heavy_load().size(), r_read->size());
+        TEST_ASSERT_EQUAL_HEX8_ARRAY(heavy_load().data(), r_read->data(), heavy_load().size());
+    }
+
+    static void perform_backup_data_file_test(ut::test_file const &file) {
+        TEST_ASSERT(pcd != nullptr and mifare != nullptr);
+        TEST_ASSERT(mifare->write_data(file.fid, 0, heavy_load()));
+        const auto r_read_before_commit = mifare->read_data(file.fid, 0, heavy_load().size());
+        TEST_ASSERT(r_read_before_commit);
+        TEST_ASSERT_EACH_EQUAL_HEX8(0x00, r_read_before_commit->data(), r_read_before_commit->size());
+        TEST_ASSERT(mifare->commit_transaction());
+        const auto r_read = mifare->read_data(file.fid, 0, heavy_load().size());;
+        TEST_ASSERT(r_read);
+        TEST_ASSERT_EQUAL(heavy_load().size(), r_read->size());
+        TEST_ASSERT_EQUAL_HEX8_ARRAY(heavy_load().data(), r_read->data(), heavy_load().size());
+    }
+
+    static void perform_value_file_test(ut::test_file const &file) {
+        TEST_ASSERT(pcd != nullptr and mifare != nullptr);
+
+        const auto test_get_value = [&](std::int32_t expected) {
+            const auto res_read = mifare->get_value(file.fid);
+            TEST_ASSERT(res_read);
+            TEST_ASSERT_EQUAL(expected, *res_read);
+        };
+
+        test_get_value(0);
+        TEST_ASSERT(mifare->credit(file.fid, 2));
+        test_get_value(0);  // Did not commit yet
+        TEST_ASSERT(mifare->commit_transaction());
+        test_get_value(2);
+        TEST_ASSERT(mifare->debit(file.fid, 5));
+        TEST_ASSERT(mifare->commit_transaction());
+        test_get_value(-3);
+    }
+
+    static void perform_record_file_test(ut::test_file const &file) {
+        TEST_ASSERT(pcd != nullptr and mifare != nullptr);
+
+        using record_t = std::array<std::uint8_t, 8>;
+
+        static const mlab::bin_data nibble = {0x00, 0x01, 0x02, 0x03};
+
+        const auto test_get_record_count = [&](std::uint32_t expected) {
+            const auto res_settings = mifare->get_file_settings(file.fid);
+            TEST_ASSERT(res_settings);
+            TEST_ASSERT_EQUAL(expected, res_settings->record_settings().record_count);
+        };
+
+        test_get_record_count(0);
+        TEST_ASSERT(mifare->write_record(file.fid, 4, nibble));
+        TEST_ASSERT(mifare->commit_transaction());
+        test_get_record_count(1);
+        const auto res_records = mifare->read_records<record_t>(file.fid, 0);
+        TEST_ASSERT(res_records);
+        TEST_ASSERT_EQUAL(res_records->size(), 1);
+        const record_t expected = {0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x02, 0x03};
+        TEST_ASSERT_EQUAL_HEX8_ARRAY(expected.data(), res_records->front().data(), 8);
+        TEST_ASSERT(mifare->clear_record_file(file.fid));
+        TEST_ASSERT(mifare->commit_transaction());
+    }
+
     void perform_test() const {
         TEST_ASSERT(pcd != nullptr and mifare != nullptr);
         static const desfire::any_key root_key{desfire::key<desfire::cipher_type::des>{}};
@@ -759,17 +748,17 @@ struct file_test {
 
         switch (ftype) {
             case desfire::file_type::standard:
-                test_standard_data_file(file);
+                perform_standard_data_file_test(file);
                 break;
             case desfire::file_type::backup:
-                test_backup_data_file(file);
+                perform_backup_data_file_test(file);
                 break;
             case desfire::file_type::value:
-                test_value_file(file);
+                perform_value_file_test(file);
                 break;
             case desfire::file_type::linear_record:  // [[fallthough]];
             case desfire::file_type::cyclic_record:
-                test_record_file(file);
+                perform_record_file_test(file);
                 break;
             default:
                 break;
@@ -821,29 +810,32 @@ extern "C" void app_main() {
     RUN_TEST(test_mifare_change_app_key);
 
     /**
+     * Test file creation, deletion, and read/write cycle.
+     *
      * @note Since Unity does not allow parms in RUN_TEST, let's store those into a structure and then use them to call
      * the actual test function. This will generate a separate test entry for each mode.
      */
     issue_format_warning();
     for (desfire::comm_mode mode : {desfire::comm_mode::plain, desfire::comm_mode::mac, desfire::comm_mode::cipher})
     {
-        file_test::instance().mode = mode;
         for (desfire::cipher_type cipher : {desfire::cipher_type::des, desfire::cipher_type::des3_2k,
                                             desfire::cipher_type::des3_3k, desfire::cipher_type::aes128})
         {
-            file_test::instance().cipher = cipher;
-            // Format every time you switch app to recover space. This enables the tests to work with 2K cards too
             for (desfire::file_type ftype : {desfire::file_type::standard, desfire::file_type::backup,
                                              desfire::file_type::value, desfire::file_type::linear_record,
                                              desfire::file_type::cyclic_record})
             {
+                file_test::instance().mode = mode;
+                file_test::instance().cipher = cipher;
                 file_test::instance().ftype = ftype;
                 UnityDefaultTestRun(&file_test::run, file_test::instance().description(), __LINE__);
             }
         }
     }
 
-    // Teardown
+    /**
+     * Teardown.
+     */
     if (tag_reader != nullptr) {
         if (pcd != nullptr) {
             tag_reader->initiator_deselect(pcd->target_logical_index());

@@ -459,7 +459,8 @@ void issue_header(std::string const &title) {
 }
 
 void issue_format_warning() {
-    ESP_LOGW(TEST_TAG, "This test will format the PICC; remove the tag from RF field if you care for your data.");
+    ESP_LOGW(TEST_TAG, "The following test are destructive and will format the PICC!");
+    ESP_LOGW(TEST_TAG, "Remove the tag from RF field if you care for your data.");
     for (unsigned i = 3; i > 0; --i) {
         ESP_LOGW(TEST_TAG, "%d...", i);
         vTaskDelay(1000 / portTICK_PERIOD_MS);
@@ -683,20 +684,76 @@ namespace {
         TEST_ASSERT(mifare->commit_transaction());
     }
 
-    void test_file(desfire::comm_mode mode, desfire::cipher_type cipher, desfire::file_type ftype, bool format = false)
-    {
+}
+
+struct file_test {
+    desfire::comm_mode mode = desfire::comm_mode::plain;
+    desfire::cipher_type cipher = desfire::cipher_type::none;
+    desfire::file_type ftype = desfire::file_type::standard;
+
+    const char *mode_description() const {
+        switch (mode) {
+            case desfire::comm_mode::plain:  return "plain";
+            case desfire::comm_mode::cipher: return "cipher";
+            case desfire::comm_mode::mac:    return "mac";
+            default: return nullptr;
+        }
+    }
+
+    const char *cipher_description() const {
+        switch (cipher) {
+            case desfire::cipher_type::des:     return "des";
+            case desfire::cipher_type::des3_2k: return "des3_2k";
+            case desfire::cipher_type::des3_3k: return "des3_3k";
+            case desfire::cipher_type::aes128:  return "aes128";
+            default: return nullptr;
+        }
+    }
+
+    const char *ftype_description() const {
+        switch (ftype) {
+            case desfire::file_type::standard:      return "standard";
+            case desfire::file_type::backup:        return "backup";
+            case desfire::file_type::value:         return "value";
+            case desfire::file_type::linear_record: return "linear_record";
+            case desfire::file_type::cyclic_record: return "cyclic_record";
+            default: return nullptr;
+        }
+    }
+
+    const char *description() const {
+        static std::string buffer;
+        buffer.reserve(128);
+        buffer = "test_file(desfire::comm_mode::";
+        buffer.append(mode_description());
+        buffer.append(", desfire::cipher_type::");
+        buffer.append(cipher_description());
+        buffer.append(", desfire::file_type::");
+        buffer.append(ftype_description());
+        buffer.append(")");
+        return buffer.c_str();
+    }
+
+    void perform_test() const {
         TEST_ASSERT(pcd != nullptr and mifare != nullptr);
         static const desfire::any_key root_key{desfire::key<desfire::cipher_type::des>{}};
 
-        if (format) {
-            format_picc(root_key);
+        // Make sure there is enough space to run. 1376B is a decent estimate for how much space is needed
+        TEST_ASSERT(mifare->select_application(desfire::root_app));
+        TEST_ASSERT(mifare->authenticate(root_key));
+        const auto r_free_mem = mifare->get_free_mem();
+        TEST_ASSERT(r_free_mem);
+        if (*r_free_mem < 1376) {
+            ESP_LOGI(TEST_TAG, "Formatting to recover space (only %d B free).", *r_free_mem);
+            TEST_ASSERT(mifare->format_picc());
         }
 
         ut::test_app const &app = ut::get_test_app(cipher);
+        ut::test_file const &file = ut::get_test_file(ftype, mode);
         app.ensure_created(*mifare, root_key);
         app.ensure_selected_and_primary(*mifare);
-
-        ut::test_file const &file = ut::get_test_file(ftype, mode);
+        TEST_ASSERT_EQUAL_HEX8_ARRAY(app.aid.data(), mifare->active_app().data(), 3);
+        TEST_ASSERT_EQUAL(app.primary_key.key_number(), mifare->active_key_no());
         file.delete_preexisting(*mifare);
         TEST_ASSERT(mifare->create_file(file.fid, file.settings));
 
@@ -719,18 +776,16 @@ namespace {
         }
         TEST_ASSERT(mifare->delete_file(file.fid));
     }
-}
 
-struct {
-    desfire::comm_mode mode = desfire::comm_mode::plain;
-    desfire::cipher_type cipher = desfire::cipher_type::none;
-    desfire::file_type file = desfire::file_type::standard;
-    bool format = false;
-} current_test_file;
+    static file_test &instance() {
+        static file_test _instance{};
+        return _instance;
+    }
 
-void test_current_file() {
-    test_file(current_test_file.mode, current_test_file.cipher, current_test_file.file, current_test_file.format);
-}
+    static void run() {
+        instance().perform_test();
+    }
+};
 
 extern "C" void app_main() {
     UNITY_BEGIN();
@@ -772,26 +827,18 @@ extern "C" void app_main() {
     issue_format_warning();
     for (desfire::comm_mode mode : {desfire::comm_mode::plain, desfire::comm_mode::mac, desfire::comm_mode::cipher})
     {
-        current_test_file.mode = mode;
+        file_test::instance().mode = mode;
         for (desfire::cipher_type cipher : {desfire::cipher_type::des, desfire::cipher_type::des3_2k,
                                             desfire::cipher_type::des3_3k, desfire::cipher_type::aes128})
         {
-            current_test_file.cipher = cipher;
+            file_test::instance().cipher = cipher;
             // Format every time you switch app to recover space. This enables the tests to work with 2K cards too
-            current_test_file.format = true;
-            for (desfire::file_type file : {desfire::file_type::standard, desfire::file_type::backup,
-                                            desfire::file_type::value, desfire::file_type::linear_record,
-                                            desfire::file_type::cyclic_record})
+            for (desfire::file_type ftype : {desfire::file_type::standard, desfire::file_type::backup,
+                                             desfire::file_type::value, desfire::file_type::linear_record,
+                                             desfire::file_type::cyclic_record})
             {
-                current_test_file.file = file;
-
-                // Unity does not allow parms in RUN_TEST
-                char test_description[256];
-                std::sprintf(test_description, "test_file(%s, %s, %s)",
-                             desfire::to_string(mode), desfire::to_string(cipher), desfire::to_string(file));
-
-                UnityDefaultTestRun(&test_current_file, test_description, __LINE__);
-                current_test_file.format = false;
+                file_test::instance().ftype = ftype;
+                UnityDefaultTestRun(&file_test::run, file_test::instance().description(), __LINE__);
             }
         }
     }

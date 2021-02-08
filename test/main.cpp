@@ -2,6 +2,7 @@
 #include <driver/uart.h>
 #include <pn532/hsu.hpp>
 #include <pn532/nfc.hpp>
+#include <driver/gpio.h>
 #include <esp_log.h>
 #include <pn532/desfire_pcd.hpp>
 #include <desfire/tag.hpp>
@@ -10,6 +11,7 @@
 #include "utils.hpp"
 #include <string>
 #include <cstdio>
+#include <numeric>
 
 #define TEST_TAG "UT"
 #define TX_PIN   (GPIO_NUM_17)

@@ -4,6 +4,7 @@
 #include "pn532/bits_algo.hpp"
 #include "pn532/nfc.hpp"
 #include "pn532/log.h"
+#include <numeric>
 
 namespace pn532 {
 

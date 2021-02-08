@@ -3,8 +3,6 @@
 //
 
 
-#include <freertos/portmacro.h>
-#include <freertos/FreeRTOSConfig.h>
 #include <esp_log.h>
 #include "pn532/log.h"
 #include "pn532/hsu.hpp"

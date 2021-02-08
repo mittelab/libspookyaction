@@ -2,7 +2,7 @@
 // Created by Pietro Saccardi on 10/01/2021.
 //
 
-#include <rom/crc.h>
+#include <esp32/rom/crc.h>
 #include "desfire/crypto_algo.hpp"
 
 namespace desfire {

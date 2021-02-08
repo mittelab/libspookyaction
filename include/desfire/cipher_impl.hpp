@@ -5,8 +5,18 @@
 #ifndef DESFIRE_CIPHER_IMPL_HPP
 #define DESFIRE_CIPHER_IMPL_HPP
 
+/**
+ * @note ''esp_config.h'' must be included before ''aes.h'' to enable hardware AES.
+ * @{
+ */
+#include <mbedtls/esp_config.h>
+/**
+ * @}
+ */
+
 #include <mbedtls/des.h>
 #include <mbedtls/aes.h>
+
 #include "cipher_scheme_impl.hpp"
 
 namespace desfire {

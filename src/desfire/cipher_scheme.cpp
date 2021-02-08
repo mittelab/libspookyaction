@@ -76,20 +76,18 @@ namespace desfire {
                 }
                 break;
             case comm_mode::cipher:
-                if (cfg.do_cipher) {
-                    if (offset >= data.size()) {
-                        DESFIRE_LOGE("Specified offset leaves no data to encipher.");
-                        break;
-                    }
-                    if (cfg.do_crc) {
-                        data.reserve(offset + padded_length<block_size>(data.size() + crc_size - offset));
-                        data << lsb16 << compute_crc16(data.view(offset));
-                    } else {
-                        data.reserve(offset + padded_length<block_size>(data.size() - offset));
-                    }
-                    data.resize(offset + padded_length<block_size>(data.size() - offset), 0x00);
-                    do_crypto(data.view(offset), crypto_mode::encrypt, get_iv());
+                if (offset >= data.size()) {
+                    DESFIRE_LOGE("Specified offset leaves no data to encipher.");
+                    break;
                 }
+                if (cfg.do_crc) {
+                    data.reserve(offset + padded_length<block_size>(data.size() + crc_size - offset));
+                    data << lsb16 << compute_crc16(data.view(offset));
+                } else {
+                    data.reserve(offset + padded_length<block_size>(data.size() - offset));
+                }
+                data.resize(offset + padded_length<block_size>(data.size() - offset), 0x00);
+                do_crypto(data.view(offset), crypto_mode::encrypt, get_iv());
                 break;
         }
     }
@@ -125,29 +123,27 @@ namespace desfire {
                 }
                 break;
             case comm_mode::cipher:
-                if (cfg.do_cipher) {
-                    // Pop the status byte
-                    const std::uint8_t status = data.back();
-                    data.pop_back();
-                    // Decipher what's left
-                    if (data.size() % block_size != 0) {
-                        DESFIRE_LOGW("Received enciphered data of length %u, not a multiple of the block size %u.",
-                             data.size(), block_size);
-                        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG, data.data(), data.size(), ESP_LOG_WARN);
-                        return false;
-                    }
-                    do_crypto(data.view(), crypto_mode::decrypt, get_iv());
-                    if (cfg.do_crc) {
-                        // Truncate the padding and the crc
-                        const bool did_verify = drop_padding_verify_crc(data);
-                        // Reappend the status byte
-                        data << status;
-                        return did_verify;
-                    } else {
-                        // Reappend the status byte
-                        data << status;
-                        return true;
-                    }
+                // Pop the status byte
+                const std::uint8_t status = data.back();
+                data.pop_back();
+                // Decipher what's left
+                if (data.size() % block_size != 0) {
+                    DESFIRE_LOGW("Received enciphered data of length %u, not a multiple of the block size %u.",
+                         data.size(), block_size);
+                    ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG, data.data(), data.size(), ESP_LOG_WARN);
+                    return false;
+                }
+                do_crypto(data.view(), crypto_mode::decrypt, get_iv());
+                if (cfg.do_crc) {
+                    // Truncate the padding and the crc
+                    const bool did_verify = drop_padding_verify_crc(data);
+                    // Reappend the status byte
+                    data << status;
+                    return did_verify;
+                } else {
+                    // Reappend the status byte
+                    data << status;
+                    return true;
                 }
                 break;
         }

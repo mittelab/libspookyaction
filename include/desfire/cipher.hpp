@@ -66,35 +66,30 @@ namespace desfire {
     struct cipher::config {
         comm_mode mode;
         bool do_mac;        // If required by protocol and comm_mode
-        bool do_cipher;     // If required by protocol and comm_mode
         bool do_crc;        // If required by protocol and comm_mode;
     };
 
     static constexpr cipher::config cipher_cfg_plain{
             .mode = comm_mode::plain,
             .do_mac = true,
-            .do_cipher = true,
             .do_crc = true
     };
 
     static constexpr cipher::config cipher_cfg_mac{
             .mode = comm_mode::mac,
             .do_mac = true,
-            .do_cipher = true,
             .do_crc = true
     };
 
     static constexpr cipher::config cipher_cfg_crypto{
             .mode = comm_mode::cipher,
             .do_mac = true,
-            .do_cipher = true,
             .do_crc = true
     };
 
     static constexpr cipher::config cipher_cfg_crypto_nocrc{
             .mode = comm_mode::cipher,
             .do_mac = true,
-            .do_cipher = true,
             .do_crc = false
     };
 

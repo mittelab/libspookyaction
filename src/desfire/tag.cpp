@@ -160,10 +160,10 @@ namespace desfire {
             DESFIRE_LOGE("No active cipher and no override cipher: 'tag' is in an invalid state (coding mistake).");
             return error::crypto_error;
         }
-        DESFIRE_LOGD("%s: TX mode: %s, (C)MAC: %d, CRC: %d, cipher: %d, ofs: %u", to_string(cmd),
-                     to_string(cfg.tx.mode), cfg.tx.do_mac, cfg.tx.do_crc, cfg.tx.do_cipher, cfg.tx_secure_data_offset);
-        DESFIRE_LOGD("%s: RX mode: %s, (C)MAC: %d, CRC: %d, cipher: %d, fetch AF: %u", to_string(cmd),
-                     to_string(cfg.rx.mode), cfg.rx.do_mac, cfg.rx.do_crc, cfg.rx.do_cipher, cfg.rx_auto_fetch_additional_frames);
+        DESFIRE_LOGD("%s: TX mode: %s, (C)MAC: %d, CRC: %d, ofs: %u", to_string(cmd),
+                     to_string(cfg.tx.mode), cfg.tx.do_mac, cfg.tx.do_crc, cfg.tx_secure_data_offset);
+        DESFIRE_LOGD("%s: RX mode: %s, (C)MAC: %d, CRC: %d, fetch AF: %u", to_string(cmd),
+                     to_string(cfg.rx.mode), cfg.rx.do_mac, cfg.rx.do_crc, cfg.rx_auto_fetch_additional_frames);
 
         // If we exit prematurely, and we are using the cipher of this tag, trigger a logout by error.
         auto_logout logout_on_error{*this, cfg.override_cipher != nullptr};
@@ -446,8 +446,8 @@ namespace desfire {
     tag::r<> tag::change_key_internal(any_key const *current_key, std::uint8_t key_no_to_change, any_key const &new_key)
     {
         static const comm_cfg change_key_cfg{
-            cipher::config{.mode = comm_mode::cipher, .do_mac = false, .do_cipher = true, .do_crc = false},
-            cipher::config{.mode = comm_mode::plain, .do_mac = false, .do_cipher = false, .do_crc = false},
+            cipher::config{.mode = comm_mode::cipher, .do_mac = false, .do_crc = false},
+            cipher::config{.mode = comm_mode::plain, .do_mac = false, .do_crc = false},
             2,  // command code and key number are not encrypted
         };
 
@@ -573,7 +573,7 @@ namespace desfire {
         }
         // RX happens with the chosen file protection, except on nonlegacy ciphers where plain becomes maced
         const auto rx_comm_mode = comm_mode_most_secure(*res_mode, cipher_default().rx.mode);
-        const comm_cfg cfg{cipher_default().tx, cipher::config{rx_comm_mode, true, true, true}};
+        const comm_cfg cfg{cipher_default().tx, cipher::config{rx_comm_mode, true, true}};
         bin_data payload{prealloc(7)};
         payload << fid << lsb24 << offset << lsb24 << length;
         return command_response(command_code::read_data, payload, cfg);
@@ -599,7 +599,7 @@ namespace desfire {
         if (not res_mode) {
             return res_mode.error();
         }
-        const comm_cfg cfg{cipher::config{*res_mode, true, true, true}, cipher_default().rx,
+        const comm_cfg cfg{cipher::config{*res_mode, true, true}, cipher_default().rx,
                            8 /* secure with legacy MAC only data */};
 
         bin_data payload{prealloc(data.size() + 7)};
@@ -620,7 +620,7 @@ namespace desfire {
         }
         // RX happens with the chosen file protection, except on nonlegacy ciphers where plain becomes maced
         const auto rx_comm_mode = comm_mode_most_secure(*res_mode, cipher_default().rx.mode);
-        const comm_cfg cfg{cipher_default().tx, cipher::config{rx_comm_mode, true, true, true}};
+        const comm_cfg cfg{cipher_default().tx, cipher::config{rx_comm_mode, true, true}};
         return command_parse_response<std::int32_t>(command_code::get_value, bin_data::chain(prealloc(1), fid), cfg);
     }
 
@@ -640,7 +640,7 @@ namespace desfire {
         if (not res_mode) {
             return res_mode.error();
         }
-        const comm_cfg cfg{cipher::config{*res_mode, true, true, true}, cipher_default().rx, 2 /* after FID */};
+        const comm_cfg cfg{cipher::config{*res_mode, true, true}, cipher_default().rx, 2 /* after FID */};
         bin_data payload{prealloc(5)};
         payload << fid << lsb32 << amount;
         return safe_drop_payload(cmd, command_response(cmd, payload, cfg));
@@ -677,7 +677,7 @@ namespace desfire {
         if (not res_mode) {
             return res_mode.error();
         }
-        const comm_cfg cfg{cipher::config{*res_mode, true, true, true}, cipher_default().rx,
+        const comm_cfg cfg{cipher::config{*res_mode, true, true}, cipher_default().rx,
                            8 /* secure with legacy MAC only data */};
 
         bin_data payload{prealloc(data.size() + 7)};
@@ -708,7 +708,7 @@ namespace desfire {
         }
         // RX happens with the chosen file protection, except on nonlegacy ciphers where plain becomes maced
         const auto rx_comm_mode = comm_mode_most_secure(*res_mode, cipher_default().rx.mode);
-        const comm_cfg cfg{cipher_default().tx, cipher::config{rx_comm_mode, true, true, true}};
+        const comm_cfg cfg{cipher_default().tx, cipher::config{rx_comm_mode, true, true}};
 
         bin_data payload{prealloc(record_count + 7)};
         payload << fid << lsb24 << record_index << lsb24 << record_count;

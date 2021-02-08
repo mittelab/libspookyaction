@@ -36,18 +36,26 @@ namespace ut {
     }
 
     void test_app::ensure_selected_and_primary(desfire::tag &tag) const {
-        TEST_ASSERT(tag.select_application(aid));
-        if (not tag.authenticate(primary_key)) {
-            TEST_ASSERT(tag.authenticate(secondary_key));
-            ESP_LOGI("UT", "Resetting key of app %02x %02x %02x.", aid[0], aid[1], aid[2]);
-            TEST_ASSERT(tag.change_key(primary_key));
-            TEST_ASSERT(tag.authenticate(primary_key));
+        if (tag.active_app() != aid) {
+            TEST_ASSERT(tag.select_application(aid));
+        }
+        if (tag.active_key_no() != primary_key.key_number()) {
+            if (not tag.authenticate(primary_key)) {
+                TEST_ASSERT(tag.authenticate(secondary_key));
+                ESP_LOGI("UT", "Resetting key of app %02x %02x %02x.", aid[0], aid[1], aid[2]);
+                TEST_ASSERT(tag.change_key(primary_key));
+                TEST_ASSERT(tag.authenticate(primary_key));
+            }
         }
     }
 
     void test_app::ensure_created(desfire::tag &tag, desfire::any_key const &root_key) const {
-        TEST_ASSERT(tag.select_application(desfire::root_app));
-        TEST_ASSERT(tag.authenticate(root_key));
+        if (tag.active_app() != desfire::root_app) {
+            TEST_ASSERT(tag.select_application(desfire::root_app));
+        }
+        if (tag.active_key_no() != root_key.key_number()) {
+            TEST_ASSERT(tag.authenticate(root_key));
+        }
         const auto r_get_aids = tag.get_application_ids();
         TEST_ASSERT(r_get_aids);
         if (std::find(std::begin(*r_get_aids), std::end(*r_get_aids), aid) == std::end(*r_get_aids)) {
@@ -57,6 +65,7 @@ namespace ut {
 
     void test_file::delete_preexisting(desfire::tag &tag) const {
         const auto r_get_fids = tag.get_file_ids();
+        TEST_ASSERT(r_get_fids);
         if (std::find(std::begin(*r_get_fids), std::end(*r_get_fids), fid) != std::end(*r_get_fids)) {
             TEST_ASSERT(tag.abort_transaction());
             TEST_ASSERT(tag.delete_file(fid));

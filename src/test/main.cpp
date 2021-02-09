@@ -778,7 +778,7 @@ struct file_test {
     }
 };
 
-extern "C" void app_main() {
+void unity_main() {
     UNITY_BEGIN();
     esp_log_level_set("*", ESP_LOG_INFO);
     issue_header("MIFARE CIPHER TEST (no card)");
@@ -846,3 +846,19 @@ extern "C" void app_main() {
     }
     UNITY_END();
 }
+
+#ifdef KEYCARD_UNIT_TEST_MAIN
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+void app_main() {
+    unity_main();
+}
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif

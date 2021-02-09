@@ -7,4 +7,18 @@
       <file path="$PROJECT_DIR$/cmake-build-m5stack-core-esp32" />
     </excludeRoots>
   </component>
+  <component name="CompDBSettings">
+    <option name="linkedExternalProjectsSettings">
+      <CompDBProjectSettings>
+        <option name="externalProjectPath" value="$PROJECT_DIR$" />
+        <option name="modules">
+          <set>
+            <option value="$PROJECT_DIR$" />
+          </set>
+        </option>
+      </CompDBProjectSettings>
+    </option>
+  </component>
+  <component name="CompDBWorkspace" PROJECT_DIR="$PROJECT_DIR$" />
+  <component name="ExternalStorageConfigurationManager" enabled="true" />
 </project>

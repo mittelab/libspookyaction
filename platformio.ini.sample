@@ -1,13 +1,20 @@
 [env:m5stack-core-esp32]
 platform = espressif32
 framework = espidf
-test_build_project_src = yes
+
+; CONFIG_MBEDTLS_DES_C: DES is not included by default in Mbedtls, we have to define this.
+; KEYCARD_UNIT_TEST_MAIN: when defined, compiles a `void app_main()` that kicks off the unit tests.
+
 build_flags =
 	-D CONFIG_MBEDTLS_DES_C
+	-D KEYCARD_UNIT_TEST_MAIN
 ;    -D LOG_LOCAL_LEVEL=ESP_LOG_DEBUG
 ;    -D CORE_DEBUG_LEVEL=5
-;    -fno-inline
-;    -fno-omit-frame-pointer
+
+; These settings combined with -D KEYCARD_UNIT_TEST_MAIN allow to compile the tests with `pio run` which is not
+test_transport = custom
+monitor_flags = --raw
+test_build_project_src = yes
 
 ;upload_port=/dev/ttyUSB0
 ;monitor_port=/dev/ttyUSB0

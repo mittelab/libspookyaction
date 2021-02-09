@@ -6,6 +6,7 @@ build
 .vscode
 .idea
 platformio.ini
+compile_commands.json
 sdkconfig
 sdkconfig.h
 docs/_build

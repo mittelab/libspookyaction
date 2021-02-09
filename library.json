@@ -1,9 +1,9 @@
 {
-    "name": "HelloWorld",
+    "name": "KeycardAccess",
     "version": "1.0.0",
-    "description": "A library for interfacing with desfire tags",
+    "description": "A library for interfacing with Desfire tags",
     "keywords": "desfire, pn532, nfc, rfid",
     "frameworks": "espidf",
     "platforms": "*",
-    "flags": ["-D CONFIG_MBEDTLS_AES_C","-D CONFIG_MBEDTLS_DES_C"]
+    "flags": ["-D CONFIG_MBEDTLS_DES_C"]
   }

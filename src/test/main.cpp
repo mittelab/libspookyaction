@@ -136,6 +136,16 @@ void test_scan_all() {
     }
 }
 
+void test_pn532_cycle_rf() {
+    TEST_ASSERT_NOT_EQUAL(tag_reader, nullptr);
+    const auto r_status = tag_reader->get_general_status();
+    TEST_ASSERT(r_status);
+    for (auto const &target : r_status->targets) {
+        TEST_ASSERT(tag_reader->initiator_deselect(target.logical_index));
+    }
+    TEST_ASSERT(tag_reader->rf_configuration_field(true, false));
+}
+
 void test_data_exchange() {
     TEST_ASSERT_NOT_EQUAL(tag_reader, nullptr);
     ESP_LOGI(TEST_TAG, "Please bring card close now (searching for one passive 106 kbps target)...");
@@ -796,15 +806,18 @@ void unity_main() {
     RUN_TEST(test_write_data_cmac_des);
     issue_header("HARDWARE SETUP (no card)");
     RUN_TEST(setup_uart_pn532);
-    // issue_header("PN532 TEST AND DIAGNOSTICS (no card)");
-    // RUN_TEST(test_get_fw);
-    // RUN_TEST(test_diagnostics);
-    // issue_header("PN532 SCAN TEST (optionally requires card)");
-    // RUN_TEST(test_scan_mifare);
-    // RUN_TEST(test_scan_all);
-    // issue_header("PN532 MIFARE COMM TEST (requires card, lift previous card)");
-    // RUN_TEST(test_data_exchange);
-    issue_header("MIFARE TEST (requires card, lift previous card)");
+    issue_header("PN532 TEST AND DIAGNOSTICS (no card)");
+    RUN_TEST(test_get_fw);
+    RUN_TEST(test_diagnostics);
+    issue_header("PN532 SCAN TEST (optionally requires card)");
+    RUN_TEST(test_scan_mifare);
+    RUN_TEST(test_pn532_cycle_rf);
+    RUN_TEST(test_scan_all);
+    RUN_TEST(test_pn532_cycle_rf);
+    issue_header("PN532 MIFARE COMM TEST (requires card)");
+    RUN_TEST(test_data_exchange);
+    RUN_TEST(test_pn532_cycle_rf);
+    issue_header("MIFARE TEST (requires card)");
     RUN_TEST(setup_mifare);
     RUN_TEST(test_mifare_base);
     RUN_TEST(test_mifare_uid);

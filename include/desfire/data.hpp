@@ -233,16 +233,10 @@ namespace desfire {
     };
 
 
-    class any_file_settings {
-        file_type _type;
-        any _settings;
+    class any_file_settings : public mlab::any_of<file_type, file_settings, file_type::standard> {
     public:
-        inline any_file_settings();
+        using mlab::any_of<file_type, file_settings, file_type::standard>::any_of;
 
-        template <file_type Type>
-        inline explicit any_file_settings(file_settings<Type> settings);
-
-        inline file_type type() const;
         generic_file_settings const &generic_settings() const;
         generic_file_settings &generic_settings();
         data_file_settings const &data_settings() const;
@@ -251,14 +245,6 @@ namespace desfire {
         record_file_settings &record_settings();
         value_file_settings const &value_settings() const;
         value_file_settings &value_settings();
-
-        template <file_type Type>
-        file_settings<Type> const &get_settings() const;
-        template <file_type Type>
-        file_settings<Type> &get_settings();
-
-        template <file_type Type>
-        any_file_settings &operator=(file_settings<Type> settings);
     };
 
     struct app_settings {
@@ -485,37 +471,6 @@ namespace desfire {
     template <std::size_t KeyLength, class Cipher, bool ParityBitsAreVersion>
     std::unique_ptr<cipher> key_base<KeyLength, Cipher, ParityBitsAreVersion>::make_cipher() const {
         return std::unique_ptr<Cipher>(new Cipher(storage::k));
-    }
-
-    any_file_settings::any_file_settings() : _type{file_type::value}, _settings{} {}
-
-    template <file_type Type>
-    any_file_settings::any_file_settings(file_settings<Type> settings) :
-            _type{Type}, _settings{std::move(settings)} {}
-
-    template <file_type Type>
-    any_file_settings &any_file_settings::operator=(file_settings<Type> settings) {
-        _type = Type;
-        _settings = std::move(settings);
-        return *this;
-    }
-
-    file_type any_file_settings::type() const {
-        if (_settings.empty()) {
-            DESFIRE_LOGE("Cannot retrieve file settings from an empty file settings container.");
-        }
-        return _type;
-    }
-
-
-    template <file_type Type>
-    file_settings<Type> const &any_file_settings::get_settings() const {
-        return _settings.template get<file_settings<Type>>();
-    }
-
-    template <file_type Type>
-    file_settings<Type> &any_file_settings::get_settings() {
-        return _settings.template get<file_settings<Type>>();
     }
 
     app_settings::app_settings(app_crypto crypto_, key_rights rights_, std::uint8_t max_num_keys_) :

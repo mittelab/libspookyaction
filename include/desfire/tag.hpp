@@ -484,7 +484,7 @@ namespace desfire {
             if (res_cmd->type() != Type) {
                 return error::malformed;
             }
-            return std::move(res_cmd->template get_settings<Type>());
+            return std::move(res_cmd->template get<Type>());
         }
         return res_cmd.error();
     }

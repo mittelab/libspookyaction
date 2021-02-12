@@ -3,6 +3,23 @@ stages:
   - check
   - deploy
 
+check format:
+  stage: check
+  image: ubuntu:latest
+  allow_failure: true
+  before_script:
+    - apt update -y
+    - apt install git clang-format -y
+  script:
+    - clang-format -style=file **/*.*pp -i
+    - git diff --patch | tee 001-formatting.patch
+    - test ! -s 001-formatting.patch
+  artifacts:
+    paths:
+      - 001-formatting.patch
+    expire_in: 1 week
+  
+
 test examples:
   stage: check
   image: shaguarger/platformio:latest
@@ -12,6 +29,8 @@ test examples:
     key: ${CI_COMMIT_REF_SLUG}
     paths:
       - /root/.platformio/
+      - .pio/
+
 
 test hardware:
   stage: check
@@ -23,6 +42,10 @@ test hardware:
     key: ${CI_COMMIT_REF_SLUG}
     paths:
       - /root/.platformio/
+      - .pio/
+  rules:
+    - if: "$PLATFORMIO_AUTH_TOKEN"
+  
 
 pages:
   stage: deploy

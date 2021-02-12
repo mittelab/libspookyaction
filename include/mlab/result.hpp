@@ -184,14 +184,17 @@ namespace mlab {
 
     template <class E, class T>
     result<E, T> &result<E, T>::operator=(result<E, T> const &other) {
-        switch (other.type()) {
-            case result_content::error:
-                base::template set<result_content::error>(content_wrap<result_content::error>{other.error()});
-                break;
-            case result_content::data:
-                base::template set<result_content::data>(content_wrap<result_content::data>{*other});
-                break;
-            default: break;
+        if (&other != this) {
+            switch (other.type()) {
+                case result_content::error:
+                    base::template set<result_content::error>(content_wrap<result_content::error>{other.error()});
+                    break;
+                case result_content::data:
+                    base::template set<result_content::data>(content_wrap<result_content::data>{*other});
+                    break;
+                default:
+                    break;
+            }
         }
         return *this;
     }

@@ -211,9 +211,11 @@ namespace mlab {
 
     template <class Enum, template<Enum> class T, Enum Default>
     any_of<Enum, T, Default> &any_of<Enum, T, Default>::operator=(any_of &&other) noexcept {
-        std::swap(_deleter, other._deleter);
-        std::swap(_storage, other._storage);
-        std::swap(_active, other._active);
+        if (&other != this) {
+            std::swap(_deleter, other._deleter);
+            std::swap(_storage, other._storage);
+            std::swap(_active, other._active);
+        }
         return *this;
     }
 

@@ -199,10 +199,6 @@ namespace mlab {
         return *this;
     }
 
-    /*
-     * Nothing interesting happening in these methods:
-     */
-
     template <class E, class T>
     result<E, T>::operator bool() const {
         return type() == result_content::data;

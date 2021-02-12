@@ -13,13 +13,13 @@ namespace desfire {
             case cipher_type::none:
                 return std::numeric_limits<std::uint8_t>::max();
             case cipher_type::des:
-                return get_key<cipher_type::des>().key_number;
+                return get<cipher_type::des>().key_number;
             case cipher_type::des3_2k:
-                return get_key<cipher_type::des3_2k>().key_number;
+                return get<cipher_type::des3_2k>().key_number;
             case cipher_type::des3_3k:
-                return get_key<cipher_type::des3_3k>().key_number;
+                return get<cipher_type::des3_3k>().key_number;
             case cipher_type::aes128:
-                return get_key<cipher_type::aes128>().key_number;
+                return get<cipher_type::aes128>().key_number;
             default:
                 DESFIRE_LOGE("any_key::key_number: unhandled cipher type.");
                 return std::numeric_limits<std::uint8_t>::max();
@@ -31,13 +31,13 @@ namespace desfire {
             case cipher_type::none:
                 return std::numeric_limits<std::uint8_t>::max();
             case cipher_type::des:
-                return get_key<cipher_type::des>().version();
+                return get<cipher_type::des>().version();
             case cipher_type::des3_2k:
-                return get_key<cipher_type::des3_2k>().version();
+                return get<cipher_type::des3_2k>().version();
             case cipher_type::des3_3k:
-                return get_key<cipher_type::des3_3k>().version();
+                return get<cipher_type::des3_3k>().version();
             case cipher_type::aes128:
-                return get_key<cipher_type::aes128>().version();
+                return get<cipher_type::aes128>().version();
             default:
                 DESFIRE_LOGE("any_key::version: unhandled cipher type.");
                 return std::numeric_limits<std::uint8_t>::max();
@@ -65,15 +65,15 @@ namespace desfire {
     std::unique_ptr<cipher> any_key::make_cipher() const {
         switch (type()) {
             case cipher_type::none:
-                return get_key<cipher_type::none>().make_cipher();
+                return get<cipher_type::none>().make_cipher();
             case cipher_type::des:
-                return get_key<cipher_type::des>().make_cipher();
+                return get<cipher_type::des>().make_cipher();
             case cipher_type::des3_2k:
-                return get_key<cipher_type::des3_2k>().make_cipher();
+                return get<cipher_type::des3_2k>().make_cipher();
             case cipher_type::des3_3k:
-                return get_key<cipher_type::des3_3k>().make_cipher();
+                return get<cipher_type::des3_3k>().make_cipher();
             case cipher_type::aes128:
-                return get_key<cipher_type::aes128>().make_cipher();
+                return get<cipher_type::aes128>().make_cipher();
             default:
                 DESFIRE_LOGE("any_key::make_cipher:: unhandled cipher type: %s", to_string(type()));
                 return nullptr;
@@ -186,18 +186,18 @@ namespace desfire {
                  * @note Special treatment for DES.
                  */
                 {
-                    auto const &k = get_key<cipher_type::des>().k;
+                    auto const &k = get<cipher_type::des>().k;
                     body << prealloc(2 * k.size()) << k << k;
                 }
                 break;
             case cipher_type::des3_2k:
-                body << get_key<cipher_type::des3_2k>().k;
+                body << get<cipher_type::des3_2k>().k;
                 break;
             case cipher_type::des3_3k:
-                body << get_key<cipher_type::des3_3k>().k;
+                body << get<cipher_type::des3_3k>().k;
                 break;
             case cipher_type::aes128:
-                body << get_key<cipher_type::aes128>().k;
+                body << get<cipher_type::aes128>().k;
                 break;
             default:
                 DESFIRE_LOGE("any_key::get_packed_key_body: unhandled cipher type: %s", to_string(type()));

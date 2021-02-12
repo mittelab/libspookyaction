@@ -6,6 +6,7 @@
 #define DESFIRE_DATA_HPP
 
 #include <memory>
+#include <mlab/any_of.hpp>
 #include "mlab/any.hpp"
 #include "bits.hpp"
 #include "cipher_impl.hpp"
@@ -320,16 +321,10 @@ namespace desfire {
         }
     };
 
-    class any_key {
-        cipher_type _type;
-        any _key;
+    class any_key : public mlab::any_of<cipher_type, key, cipher_type::none> {
     public:
-        inline any_key();
+        using mlab::any_of<cipher_type, key, cipher_type::none>::any_of;
 
-        template <cipher_type Type>
-        inline explicit any_key(key<Type> entry);
-
-        inline cipher_type type() const;
         std::uint8_t key_number() const;
         std::uint8_t version() const;
 
@@ -340,14 +335,6 @@ namespace desfire {
         std::size_t size() const;
 
         std::unique_ptr<cipher> make_cipher() const;
-
-        template <cipher_type Type>
-        key<Type> const &get_key() const;
-        template <cipher_type Type>
-        key<Type> &get_key();
-
-        template <cipher_type Type>
-        any_key &operator=(key<Type> entry);
 
         bool parity_bits_are_version() const;
 
@@ -499,35 +486,6 @@ namespace desfire {
     std::unique_ptr<cipher> key_base<KeyLength, Cipher, ParityBitsAreVersion>::make_cipher() const {
         return std::unique_ptr<Cipher>(new Cipher(storage::k));
     }
-
-    any_key::any_key() : _type{cipher_type::none}, _key{key<cipher_type::none>{}} {}
-
-    template <cipher_type Type>
-    any_key::any_key(key<Type> entry) :
-            _type{Type}, _key{std::move(entry)} {}
-
-    template <cipher_type Type>
-    any_key &any_key::operator=(key<Type> entry) {
-        _type = Type;
-        _key = std::move(entry);
-        return *this;
-    }
-
-    cipher_type any_key::type() const {
-        return _type;
-    }
-
-
-    template <cipher_type Type>
-    key<Type> const &any_key::get_key() const {
-        return _key.template get<key<Type>>();
-    }
-
-    template <cipher_type Type>
-    key<Type> &any_key::get_key() {
-        return _key.template get<key<Type>>();
-    }
-
 
     any_file_settings::any_file_settings() : _type{file_type::value}, _settings{} {}
 

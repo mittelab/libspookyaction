@@ -409,14 +409,6 @@ namespace desfire {
 }
 
 namespace mlab {
-    namespace ctti {
-        template <desfire::cipher_type Type>
-        struct type_info<desfire::key<Type>> : public std::integral_constant<id_type, static_cast<id_type>(Type)> {
-        };
-        template <desfire::file_type Type>
-        struct type_info<desfire::file_settings<Type>> : public std::integral_constant<id_type, static_cast<id_type>(Type)> {
-        };
-    }
 
     bin_stream &operator>>(bin_stream &s, desfire::key_rights &kr);
     bin_stream &operator>>(bin_stream &s, desfire::app_settings &ks);

@@ -3,17 +3,15 @@ stages:
   - check
   - deploy
 
-cache:
-  key: ${CI_COMMIT_REF_SLUG}
-  paths:
-    - /root/.platformio/
-
 test examples:
   stage: check
   image: shaguarger/platformio:latest
   script:
     - for file in examples/*; do pio ci --lib="." --board="m5stack-core-esp32" -O "framework=espidf" -O "platform=espressif32" -O "test_build_project_src=yes" $file; done
-
+  cache:
+    key: ${CI_COMMIT_REF_SLUG}
+    paths:
+      - /root/.platformio/
 
 test hardware:
   stage: check
@@ -21,6 +19,10 @@ test hardware:
   script:
     - pio project init --board="m5stack-core-esp32" -O "framework=espidf" -O "platform=espressif32" -O "test_build_project_src=yes" -O "build_flags = -D CONFIG_MBEDTLS_DES_C -D KEYCARD_UNIT_TEST_MAIN"
     - pio remote test
+  cache:
+    key: ${CI_COMMIT_REF_SLUG}
+    paths:
+      - /root/.platformio/
 
 pages:
   stage: deploy

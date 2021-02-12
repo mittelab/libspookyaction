@@ -18,6 +18,7 @@ check format:
     paths:
       - 001-formatting.patch
     expire_in: 1 week
+    when: on_failure
   
 
 test examples:

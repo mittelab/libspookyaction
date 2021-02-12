@@ -7,6 +7,7 @@
 
 #include <cassert>
 #include <type_traits>
+#include <esp_log.h>
 
 namespace mlab {
 

@@ -5,6 +5,7 @@
 #ifndef MLAB_ANY_OF_HPP
 #define MLAB_ANY_OF_HPP
 
+#include <cassert>
 #include <type_traits>
 
 namespace mlab {
@@ -43,10 +44,12 @@ namespace mlab {
         template <enum_type E>
         any_of(T<E> obj);
 
-        any_of(any_of &&) = default;
-        any_of &operator=(any_of &&) noexcept = default;
+        any_of(any_of &&other) noexcept;
+
+        any_of &operator=(any_of &&other) noexcept;
 
         any_of(any_of const &) = delete;
+
         any_of &operator=(any_of const &) = delete;
 
         ~any_of();
@@ -87,7 +90,7 @@ namespace mlab {
         explicit any_of(enum_type e);
 
         template <enum_type E, class U>
-        T<E> &set(U &&obj);
+        void set(U &&obj);
 
     private:
         /**
@@ -202,6 +205,19 @@ namespace mlab {
 namespace mlab {
 
     template <class Enum, template<Enum> class T, Enum Default>
+    any_of<Enum, T, Default>::any_of(any_of &&other) noexcept : any_of{} {
+        *this = std::move(other);
+    }
+
+    template <class Enum, template<Enum> class T, Enum Default>
+    any_of<Enum, T, Default> &any_of<Enum, T, Default>::operator=(any_of &&other) noexcept {
+        std::swap(_deleter, other._deleter);
+        std::swap(_storage, other._storage);
+        std::swap(_active, other._active);
+        return *this;
+    }
+
+    template <class Enum, template<Enum> class T, Enum Default>
     any_of<Enum, T, Default>::any_of(enum_type e) : _active{e}, _storage{}, _deleter{nullptr} {}
 
     template <class Enum, template<Enum> class T, Enum Default>
@@ -245,8 +261,8 @@ namespace mlab {
 
     template <class Enum, template<Enum> class T, Enum Default>
     template <Enum E, class U>
-    T<E> &any_of<Enum, T, Default>::set(U &&obj) {
-        return set_impl<E>(std::forward<U>(obj), storage_for<E>{});
+    void any_of<Enum, T, Default>::set(U &&obj) {
+        set_impl<E>(std::forward<U>(obj), storage_for<E>{});
     }
 
 
@@ -346,13 +362,13 @@ namespace mlab {
     template <class Enum, template<Enum> class T, Enum Default>
     template <Enum E>
     void any_of<Enum, T, Default>::default_deleter_fn(void *ptr) {
-        static const std::default_delete<T<E>> deleter_impl{};
-        deleter_impl(reinterpret_cast<T<E> *>(ptr));
+        auto *typed_ptr = reinterpret_cast<T<E> *>(ptr);
+        delete typed_ptr;
     }
 
     template <class Enum, template<Enum> class T, Enum Default>
     bool any_of<Enum, T, Default>::holds_memory() const {
-        return bool(_deleter);
+        return _deleter != nullptr;
     }
 
     template <class Enum, template<Enum> class T, Enum Default>

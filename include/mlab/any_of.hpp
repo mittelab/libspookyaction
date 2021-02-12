@@ -325,6 +325,7 @@ namespace mlab {
         free();
         // Can call trivial assignment operator
         *reinterpret_cast<T<E> *>(storage_in_place()) = std::forward<U>(obj);
+        _active = E;
     }
 
     template <class Enum, template<Enum> class T, Enum Default>
@@ -340,6 +341,7 @@ namespace mlab {
             free();
             storage_allocated() = new T<E>(std::forward<U>(obj));
             _deleter = get_default_deleter<E>();
+            _active = E;
         }
     }
 

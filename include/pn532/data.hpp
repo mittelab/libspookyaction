@@ -8,7 +8,6 @@
 #include <limits>
 #include "mlab/bin_data.hpp"
 #include "mlab/result.hpp"
-#include "mlab/any.hpp"
 #include "bits.hpp"
 #include "msg.hpp"
 #include "log.h"

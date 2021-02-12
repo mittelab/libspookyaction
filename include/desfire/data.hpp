@@ -7,13 +7,11 @@
 
 #include <memory>
 #include <mlab/any_of.hpp>
-#include "mlab/any.hpp"
 #include "bits.hpp"
 #include "cipher_impl.hpp"
 #include "key_actor.hpp"
 
 namespace desfire {
-    using mlab::any;
     using bits::status;
     using bits::cipher_type;
     using bits::command_code;

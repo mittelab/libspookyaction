@@ -20,16 +20,6 @@ namespace ut {
 
 namespace desfire {
 
-    enum struct file_security : std::uint8_t {
-        none = static_cast<std::uint8_t>(comm_mode::plain),
-        cipher = static_cast<std::uint8_t>(comm_mode::cipher),
-        mac = static_cast<std::uint8_t>(comm_mode::mac),
-        automatic,     ///< Will determine the appropriate mode based on access rights
-        plain = none   ///< Alias for @ref file_security::none
-    };
-
-    inline comm_mode comm_mode_from_security(file_security security);
-
     class tag {
     public:
 
@@ -159,7 +149,9 @@ namespace desfire {
         template <file_type Type>
         r<file_settings<Type>> get_file_settings(file_id fid);
 
-        r<> change_file_settings(file_id fid, generic_file_settings const &settings, file_security security = file_security::automatic);
+        r<> change_file_settings(file_id fid, generic_file_settings const &settings);
+
+        r<> change_file_settings(file_id fid, generic_file_settings const &settings, comm_mode security);
 
         /**
          * @param fid Max @ref bits::max_standard_data_file_id.
@@ -209,57 +201,71 @@ namespace desfire {
          * @param offset Limited to 24 bits, i.e. must be below 0xFFFFFF.
          * @param length Limited to 24 bits, i.e. must be below 0xFFFFFF.
          */
-        r<bin_data> read_data(file_id fid, std::uint32_t offset, std::uint32_t length, file_security security = file_security::automatic);
+        r<bin_data> read_data(file_id fid, std::uint32_t offset, std::uint32_t length);
+        r<bin_data> read_data(file_id fid, std::uint32_t offset, std::uint32_t length, comm_mode security);
 
         /**
          * @param fid Max @ref bits::max_standard_data_file_id or @ref bits::max_backup_data_file_id
          * @param offset Limited to 24 bits, i.e. must be below 0xFFFFFF.
          * @param data Limited to 24 bits, i.e. must be below 0xFFFFFF.
          */
-        r<> write_data(file_id fid, std::uint32_t offset, bin_data const &data, file_security = file_security::automatic);
+        r<> write_data(file_id fid, std::uint32_t offset, bin_data const &data);
+        r<> write_data(file_id fid, std::uint32_t offset, bin_data const &data, comm_mode security);
 
         /**
          * @param fid Max @ref bits::max_value_file_id.
          */
-        r<std::int32_t> get_value(file_id fid, file_security security = file_security::automatic);
-
-        /**
-         * @param fid Max @ref bits::max_value_file_id.
-         * @param amount Must be nonnegative.
-         */
-        r<> credit(file_id fid, std::int32_t amount, file_security security = file_security::automatic);
+        r<std::int32_t> get_value(file_id fid);
+        r<std::int32_t> get_value(file_id fid, comm_mode security);
 
         /**
          * @param fid Max @ref bits::max_value_file_id.
          * @param amount Must be nonnegative.
          */
-        r<> limited_credit(file_id fid, std::int32_t amount, file_security security = file_security::automatic);
+        r<> credit(file_id fid, std::int32_t amount);
+        r<> credit(file_id fid, std::int32_t amount, comm_mode security);
 
         /**
          * @param fid Max @ref bits::max_value_file_id.
          * @param amount Must be nonnegative.
          */
-        r<> debit(file_id fid, std::int32_t amount, file_security security = file_security::automatic);
+        r<> limited_credit(file_id fid, std::int32_t amount);
+        r<> limited_credit(file_id fid, std::int32_t amount, comm_mode security);
+
+        /**
+         * @param fid Max @ref bits::max_value_file_id.
+         * @param amount Must be nonnegative.
+         */
+        r<> debit(file_id fid, std::int32_t amount);
+        r<> debit(file_id fid, std::int32_t amount, comm_mode security);
 
         /**
          * @param fid Max @ref bits::max_record_file_id.
          * @param offset Limited to 24 bits, i.e. must be below 0xFFFFFF.
          * @param data Limited to 24 bits, i.e. must be below 0xFFFFFF.
          */
-        r<> write_record(file_id fid, std::uint32_t offset, bin_data const &data, file_security = file_security::automatic);
+        r<> write_record(file_id fid, std::uint32_t offset, bin_data const &data);
+        r<> write_record(file_id fid, std::uint32_t offset, bin_data const &data, comm_mode security);
 
         template <class T>
-        r<> write_record(file_id fid, T &&record, file_security security = file_security::automatic);
+        r<> write_record(file_id fid, T &&record);
+        template <class T>
+        r<> write_record(file_id fid, T &&record, comm_mode security);
 
         template <class T>
-        r<std::vector<T>> read_records(file_id fid, std::uint32_t index = 0, std::uint32_t count = all_records, file_security security = file_security::automatic);
+        r<std::vector<T>> read_records(file_id fid, std::uint32_t index = 0, std::uint32_t count = all_records);
+
+        template <class T>
+        r<std::vector<T>> read_records(file_id fid, std::uint32_t index, std::uint32_t count, comm_mode security);
 
         /**
          * @param fid Max @ref bits::max_record_file_id.
          * @param record_index Limited to 24 bits, i.e. must be below 0xFFFFFF.
          * @param record_count Limited to 24 bits, i.e. must be below 0xFFFFFF.
          */
-        r<bin_data> read_records(file_id fid, std::uint32_t record_index = 0, std::uint32_t record_count = all_records, file_security security = file_security::automatic);
+        r<bin_data> read_records(file_id fid, std::uint32_t record_index = 0, std::uint32_t record_count = all_records);
+        r<bin_data> read_records(file_id fid, std::uint32_t record_index, std::uint32_t record_count, comm_mode security);
+
 
         r<std::array<std::uint8_t, 7>> get_card_uid();
 
@@ -282,7 +288,7 @@ namespace desfire {
         template <cipher_type Cipher>
         void ut_init_session(desfire::key<Cipher> const &session_key, desfire::app_id app, std::uint8_t key_no);
 
-        r<comm_mode> determine_file_comm_mode(file_id fid, file_access access, file_security requested_security);
+        r<comm_mode> determine_file_comm_mode(file_id fid, file_access access);
         comm_mode determine_file_comm_mode(file_access access, any_file_settings const &settings) const;
 
         static r<> safe_drop_payload(command_code cmd, tag::r<bin_data> const &result);
@@ -297,7 +303,7 @@ namespace desfire {
          * @param fid Max @ref bits::max_value_file_id.
          * @param amount Must be nonnegative.
          */
-        r<> write_value(command_code cmd, file_id fid, std::int32_t amount, file_security security);
+        r<> write_value(command_code cmd, file_id fid, std::int32_t amount, comm_mode security);
 
 
         /**
@@ -336,14 +342,6 @@ namespace desfire {
 }
 
 namespace desfire {
-
-    comm_mode comm_mode_from_security(file_security security) {
-        if (security == file_security::automatic) {
-            DESFIRE_LOGE("Cannot convert file_security::automatic to comm_mode. Data will be transmitted plain!");
-            return comm_mode::plain;
-        }
-        return static_cast<comm_mode>(security);
-    }
 
     controller & tag::ctrl() {
         return *_controller;
@@ -470,7 +468,7 @@ namespace desfire {
 
 
     template <class T>
-    tag::r<> tag::write_record(file_id fid, T &&record, file_security security) {
+    tag::r<> tag::write_record(file_id fid, T &&record, comm_mode security) {
         static bin_data buffer{};
         buffer.clear();
         buffer << std::forward<T>(record);
@@ -478,27 +476,51 @@ namespace desfire {
     }
 
     template <class T>
-    tag::r<std::vector<T>> tag::read_records(file_id fid, std::uint32_t index, std::uint32_t count, file_security security) {
+    tag::r<> tag::write_record(file_id fid, T &&record) {
+        static bin_data buffer{};
+        buffer.clear();
+        buffer << std::forward<T>(record);
+        return write_record(fid, 0, buffer);
+    }
+
+    namespace impl {
+        template <class T>
+        std::vector<T> read_records(bin_data const &data, std::uint32_t exp_count) {
+            std::vector<T> records{};
+            records.reserve(exp_count);
+            bin_stream s{data};
+            while (s.good() and (records.size() < exp_count or exp_count == all_records)) {
+                records.template emplace_back();
+                s >> records.back();
+            }
+            if (not s.eof()) {
+                DESFIRE_LOGW("%s: could not parse all records, there are %d stray bytes.",
+                             to_string(command_code::read_records), s.remaining());
+            }
+            if (exp_count != all_records and records.size() != exp_count) {
+                DESFIRE_LOGW("%s: expected to parse %d records, got only %d.",
+                             to_string(command_code::read_records), exp_count, records.size());
+            }
+            return records;
+        }
+    }
+
+    template <class T>
+    tag::r<std::vector<T>> tag::read_records(file_id fid, std::uint32_t index, std::uint32_t count, comm_mode security) {
         const auto res_read_records = read_records(fid, index, count, security);
         if (not res_read_records) {
             return res_read_records.error();
         }
-        std::vector<T> records{};
-        records.reserve(count);
-        bin_stream s{*res_read_records};
-        while (s.good() and (records.size() < count or count == all_records)) {
-            records.template emplace_back();
-            s >> records.back();
+        return impl::read_records<T>(*res_read_records, count);
+    }
+
+    template <class T>
+    tag::r<std::vector<T>> tag::read_records(file_id fid, std::uint32_t index, std::uint32_t count) {
+        const auto res_read_records = read_records(fid, index, count);
+        if (not res_read_records) {
+            return res_read_records.error();
         }
-        if (not s.eof()) {
-            DESFIRE_LOGW("%s: could not parse all records, there are %d stray bytes.",
-                         to_string(command_code::read_records), s.remaining());
-        }
-        if (count != all_records and records.size() != count) {
-            DESFIRE_LOGW("%s: expected to parse %d records, got only %d.",
-                         to_string(command_code::read_records), count, records.size());
-        }
-        return std::move(records);
+        return impl::read_records<T>(*res_read_records, count);
     }
 
 

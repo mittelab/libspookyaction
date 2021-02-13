@@ -506,28 +506,6 @@ namespace desfire {
                 command_code::get_file_settings, bin_data::chain(fid), cipher_default());
     }
 
-    tag::r<> tag::change_file_settings(file_id fid, generic_file_settings const &settings, file_security security) {
-        r<comm_mode> res_mode = determine_file_comm_mode(fid, file_access::change, security);
-        if (not res_mode) {
-            return res_mode.error();
-        }
-        if (*res_mode == comm_mode::mac) {
-            // We do not use MAC res_mode for this command, upgrade it
-            *res_mode = comm_mode::cipher;
-            if (security == file_security::mac) {
-                // The user specified it? The user should know bettter.
-                DESFIRE_LOGW("%s: unsupported security res_mode MAC, will be upgraded to cipher.",
-                             to_string(command_code::change_file_settings));
-            }
-        }
-        const comm_cfg cfg{cipher_mode_from_comm_mode(*res_mode), 2 /* After command code and file id */};
-        return safe_drop_payload(command_code::change_file_settings, command_response(
-                command_code::change_file_settings,
-                bin_data::chain(fid, settings),
-                cfg
-        ));
-    }
-
     comm_mode tag::determine_file_comm_mode(file_access access, any_file_settings const &settings) const {
         // Send in plain mode if the specific operation is "free".
         if (settings.generic_settings().rights.is_free(access, active_key_no())) {
@@ -536,10 +514,7 @@ namespace desfire {
         return settings.generic_settings().mode;
     }
 
-    tag::r<comm_mode> tag::determine_file_comm_mode(file_id fid, file_access access, file_security requested_security) {
-        if (requested_security != file_security::automatic) {
-            return comm_mode_from_security(requested_security);
-        }
+    tag::r<comm_mode> tag::determine_file_comm_mode(file_id fid, file_access access) {
         const auto res_get_settings = get_file_settings(fid);
         if (not res_get_settings) {
             return res_get_settings.error();
@@ -547,8 +522,36 @@ namespace desfire {
         return determine_file_comm_mode(access, *res_get_settings);
     }
 
+    tag::r<> tag::change_file_settings(file_id fid, generic_file_settings const &settings) {
+        const auto res_mode = determine_file_comm_mode(fid, file_access::change);
+        if (not res_mode) {
+            return res_mode.error();
+        }
+        return change_file_settings(fid, settings, *res_mode);
+    }
 
-    tag::r<bin_data> tag::read_data(file_id fid, std::uint32_t offset, std::uint32_t length, file_security security) {
+    tag::r<> tag::change_file_settings(file_id fid, generic_file_settings const &settings, comm_mode security) {
+        if (security == comm_mode::mac) {
+            // We do not use MAC res_mode for this command, upgrade it
+            security = comm_mode::cipher;
+        }
+        const comm_cfg cfg{cipher_mode_from_comm_mode(security), 2 /* After command code and file id */};
+        return safe_drop_payload(command_code::change_file_settings, command_response(
+                command_code::change_file_settings,
+                bin_data::chain(fid, settings),
+                cfg
+        ));
+    }
+
+    tag::r<bin_data> tag::read_data(file_id fid, std::uint32_t offset, std::uint32_t length) {
+        const auto res_mode = determine_file_comm_mode(fid, file_access::read);
+        if (not res_mode) {
+            return res_mode.error();
+        }
+        return read_data(fid, offset, length, *res_mode);
+    }
+
+    tag::r<bin_data> tag::read_data(file_id fid, std::uint32_t offset, std::uint32_t length, comm_mode security) {
         if (fid > bits::max_backup_data_file_id or fid > bits::max_standard_data_file_id) {
             DESFIRE_LOGW("%s: invalid file id %d for data or backup file.", to_string(command_code::read_data), fid);
             return error::parameter_error;
@@ -563,18 +566,22 @@ namespace desfire {
                          to_string(command_code::read_data), length);
             return error::parameter_error;
         }
-        const auto res_mode = determine_file_comm_mode(fid, file_access::read, security);
-        if (not res_mode) {
-            return res_mode.error();
-        }
         // RX happens with the chosen file protection, except on nonlegacy ciphers where plain becomes maced
-        const auto rx_cipher_mode = cipher_mode_most_secure(cipher_mode_from_comm_mode(*res_mode), cipher_default().rx);
+        const auto rx_cipher_mode = cipher_mode_most_secure(cipher_mode_from_comm_mode(security), cipher_default().rx);
         bin_data payload{prealloc(7)};
         payload << fid << lsb24 << offset << lsb24 << length;
         return command_response(command_code::read_data, payload, comm_cfg{cipher_default().tx, rx_cipher_mode});
     }
 
-    tag::r<> tag::write_data(file_id fid, std::uint32_t offset, bin_data const &data, file_security security) {
+    tag::r<> tag::write_data(file_id fid, std::uint32_t offset, bin_data const &data) {
+        const auto res_mode = determine_file_comm_mode(fid, file_access::write);
+        if (not res_mode) {
+            return res_mode.error();
+        }
+        return write_data(fid, offset, data, *res_mode);
+    }
+
+    tag::r<> tag::write_data(file_id fid, std::uint32_t offset, bin_data const &data, comm_mode security) {
         if (fid > bits::max_backup_data_file_id or fid > bits::max_standard_data_file_id) {
             DESFIRE_LOGW("%s: invalid file id %d for data or backup file.", to_string(command_code::write_data), fid);
             return error::parameter_error;
@@ -589,12 +596,7 @@ namespace desfire {
                          to_string(command_code::write_data), data.size());
             return error::parameter_error;
         }
-
-        const auto res_mode = determine_file_comm_mode(fid, file_access::write, security);
-        if (not res_mode) {
-            return res_mode.error();
-        }
-        const comm_cfg cfg{cipher_mode_from_comm_mode(*res_mode), cipher_default().rx,
+        const comm_cfg cfg{cipher_mode_from_comm_mode(security), cipher_default().rx,
                            8 /* secure with legacy MAC only data */};
 
         bin_data payload{prealloc(data.size() + 7)};
@@ -604,24 +606,28 @@ namespace desfire {
     }
 
 
-    tag::r<std::int32_t> tag::get_value(file_id fid, file_security security) {
+    tag::r<std::int32_t> tag::get_value(file_id fid) {
+        const auto res_mode = determine_file_comm_mode(fid, file_access::read);
+        if (not res_mode) {
+            return res_mode.error();
+        }
+        return get_value(fid, *res_mode);
+    }
+
+    tag::r<std::int32_t> tag::get_value(file_id fid, comm_mode security) {
         if (fid > bits::max_value_file_id) {
             DESFIRE_LOGW("%s: invalid file id %d for a value file.", to_string(command_code::get_value), fid);
             return error::parameter_error;
         }
-        const auto res_mode = determine_file_comm_mode(fid, file_access::read, security);
-        if (not res_mode) {
-            return res_mode.error();
-        }
         // RX happens with the chosen file protection, except on nonlegacy ciphers where plain becomes maced
-        const auto rx_cipher_mode = cipher_mode_most_secure(cipher_mode_from_comm_mode(*res_mode), cipher_default().rx);
+        const auto rx_cipher_mode = cipher_mode_most_secure(cipher_mode_from_comm_mode(security), cipher_default().rx);
         return command_parse_response<std::int32_t>(
                 command_code::get_value,
                 bin_data::chain(prealloc(1), fid),
                 comm_cfg{cipher_default().tx, rx_cipher_mode});
     }
 
-    tag::r<> tag::write_value(command_code cmd, file_id fid, std::int32_t amount, file_security security) {
+    tag::r<> tag::write_value(command_code cmd, file_id fid, std::int32_t amount, comm_mode security) {
         if (cmd != command_code::credit and cmd != command_code::debit and cmd != command_code::limited_credit) {
             DESFIRE_LOGE("write_value command used with invalid command code %s.", to_string(cmd));
             return error::parameter_error;
@@ -633,29 +639,57 @@ namespace desfire {
         if (amount < 0) {
             return error::parameter_error;
         }
-        const auto res_mode = determine_file_comm_mode(fid, file_access::write, security);
-        if (not res_mode) {
-            return res_mode.error();
-        }
-        const comm_cfg cfg{cipher_mode_from_comm_mode(*res_mode), cipher_default().rx, 2 /* after FID */};
+        const comm_cfg cfg{cipher_mode_from_comm_mode(security), cipher_default().rx, 2 /* after FID */};
         bin_data payload{prealloc(5)};
         payload << fid << lsb32 << amount;
         return safe_drop_payload(cmd, command_response(cmd, payload, cfg));
     }
 
-    tag::r<> tag::credit(file_id fid, std::int32_t amount, file_security security) {
+    tag::r<> tag::credit(file_id fid, std::int32_t amount) {
+        const auto res_mode = determine_file_comm_mode(fid, file_access::write);
+        if (not res_mode) {
+            return res_mode.error();
+        }
+        return write_value(command_code::credit, fid, amount, *res_mode);
+    }
+
+    tag::r<> tag::limited_credit(file_id fid, std::int32_t amount) {
+        const auto res_mode = determine_file_comm_mode(fid, file_access::write);
+        if (not res_mode) {
+            return res_mode.error();
+        }
+        return write_value(command_code::limited_credit, fid, amount, *res_mode);
+    }
+
+    tag::r<> tag::debit(file_id fid, std::int32_t amount) {
+        const auto res_mode = determine_file_comm_mode(fid, file_access::write);
+        if (not res_mode) {
+            return res_mode.error();
+        }
+        return write_value(command_code::debit,  fid, amount, *res_mode);
+    }
+
+    tag::r<> tag::credit(file_id fid, std::int32_t amount, comm_mode security) {
         return write_value(command_code::credit, fid, amount, security);
     }
 
-    tag::r<> tag::limited_credit(file_id fid, std::int32_t amount, file_security security) {
+    tag::r<> tag::limited_credit(file_id fid, std::int32_t amount, comm_mode security) {
         return write_value(command_code::limited_credit, fid, amount, security);
     }
 
-    tag::r<> tag::debit(file_id fid, std::int32_t amount, file_security security) {
+    tag::r<> tag::debit(file_id fid, std::int32_t amount, comm_mode security) {
         return write_value(command_code::debit,  fid,amount, security);
     }
 
-    tag::r<> tag::write_record(file_id fid, std::uint32_t offset, bin_data const &data, file_security security) {
+    tag::r<> tag::write_record(file_id fid, std::uint32_t offset, bin_data const &data) {
+        const auto res_mode = determine_file_comm_mode(fid, file_access::write);
+        if (not res_mode) {
+            return res_mode.error();
+        }
+        return write_record(fid, offset, data, *res_mode);
+    }
+
+    tag::r<> tag::write_record(file_id fid, std::uint32_t offset, bin_data const &data, comm_mode security) {
         if (fid > bits::max_record_file_id) {
             DESFIRE_LOGW("%s: invalid file id %d for a record file.", to_string(command_code::write_record), fid);
             return error::parameter_error;
@@ -670,11 +704,7 @@ namespace desfire {
                          to_string(command_code::write_record), data.size());
             return error::parameter_error;
         }
-        const auto res_mode = determine_file_comm_mode(fid, file_access::write, security);
-        if (not res_mode) {
-            return res_mode.error();
-        }
-        const comm_cfg cfg{cipher_mode_from_comm_mode(*res_mode), cipher_default().rx,
+        const comm_cfg cfg{cipher_mode_from_comm_mode(security), cipher_default().rx,
                            8 /* secure with legacy MAC only data */};
 
         bin_data payload{prealloc(data.size() + 7)};
@@ -684,7 +714,15 @@ namespace desfire {
                                  command_response(command_code::write_record, payload, cfg));
     }
 
-    tag::r<bin_data> tag::read_records(file_id fid, std::uint32_t record_index, std::uint32_t record_count, file_security security) {
+    tag::r<bin_data> tag::read_records(file_id fid, std::uint32_t record_index, std::uint32_t record_count) {
+        const auto res_mode = determine_file_comm_mode(fid, file_access::write);
+        if (not res_mode) {
+            return res_mode.error();
+        }
+        return read_records(fid, record_index, record_count, *res_mode);
+    }
+
+    tag::r<bin_data> tag::read_records(file_id fid, std::uint32_t record_index, std::uint32_t record_count, comm_mode security) {
         if (fid > bits::max_record_file_id) {
             DESFIRE_LOGW("%s: invalid file id %d for a record file.", to_string(command_code::write_record), fid);
             return error::parameter_error;
@@ -699,12 +737,8 @@ namespace desfire {
                          to_string(command_code::read_records), record_count);
             return error::parameter_error;
         }
-        const auto res_mode = determine_file_comm_mode(fid, file_access::write, security);
-        if (not res_mode) {
-            return res_mode.error();
-        }
         // RX happens with the chosen file protection, except on nonlegacy ciphers where plain becomes maced
-        const auto rx_cipher_mode = cipher_mode_most_secure(cipher_mode_from_comm_mode(*res_mode), cipher_default().rx);
+        const auto rx_cipher_mode = cipher_mode_most_secure(cipher_mode_from_comm_mode(security), cipher_default().rx);
         bin_data payload{prealloc(record_count + 7)};
         payload << fid << lsb24 << record_index << lsb24 << record_count;
 

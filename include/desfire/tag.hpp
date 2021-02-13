@@ -59,13 +59,13 @@ namespace desfire {
          * @see command_response
          * @see command_parse_response
          */
-        r<status, bin_data> command_status_response(command_code cmd, bin_data const &data, comm_cfg const &cfg, cipher *override_cipher = nullptr);
+        r<status, bin_data> command_status_response(command_code cmd, bin_data const &data, comm_cfg const &cfg, bool rx_fetch_additional_frames = true, cipher *override_cipher = nullptr);
 
         /**
          * Will automatically fetch all additional frames if requested to do so by @p cfg, and at the end will parse the
          * status byte to decide whether the command was successful (@ref status::ok or @ref status::no_changes).
          */
-        r<bin_data> command_response(command_code cmd, bin_data const &payload, comm_cfg const &cfg, cipher *override_cipher = nullptr);
+        r<bin_data> command_response(command_code cmd, bin_data const &payload, comm_cfg const &cfg, bool rx_fetch_additional_frames = true, cipher *override_cipher = nullptr);
 
         template <class Data, class = typename std::enable_if<bin_stream::is_extractable<Data>::value or std::is_integral<Data>::value>::type>
         r<Data> command_parse_response(command_code cmd, bin_data const &payload, comm_cfg const &cfg);
@@ -337,12 +337,9 @@ namespace desfire {
         cipher_mode tx = cipher_mode::plain;
         cipher_mode rx = cipher_mode::plain;
         std::size_t tx_secure_data_offset = 0;
-        bool rx_auto_fetch_additional_frames = true;
 
-        inline comm_cfg(cipher_mode txrx, std::size_t sec_data_ofs = 1, bool fetch_af = true);
-        inline comm_cfg(cipher_mode tx, cipher_mode rx, std::size_t sec_data_ofs = 1, bool fetch_af = true);
-
-        inline comm_cfg with(std::size_t new_ofs, bool fetch_af) const;
+        inline comm_cfg(cipher_mode txrx, std::size_t sec_data_ofs = 1);
+        inline comm_cfg(cipher_mode tx, cipher_mode rx, std::size_t sec_data_ofs = 1);
     };
 }
 
@@ -391,26 +388,17 @@ namespace desfire {
         return _active_key_number;
     }
 
-    tag::comm_cfg::comm_cfg(cipher_mode txrx, std::size_t sec_data_ofs, bool fetch_af) :
+    tag::comm_cfg::comm_cfg(cipher_mode txrx, std::size_t sec_data_ofs) :
             tx{txrx},
             rx{txrx},
-            tx_secure_data_offset{sec_data_ofs},
-            rx_auto_fetch_additional_frames{fetch_af}
+            tx_secure_data_offset{sec_data_ofs}
     {}
 
-    tag::comm_cfg::comm_cfg(cipher_mode tx, cipher_mode rx, std::size_t sec_data_ofs, bool fetch_af) :
+    tag::comm_cfg::comm_cfg(cipher_mode tx, cipher_mode rx, std::size_t sec_data_ofs) :
             tx{tx},
             rx{rx},
-            tx_secure_data_offset{sec_data_ofs},
-            rx_auto_fetch_additional_frames{fetch_af}
+            tx_secure_data_offset{sec_data_ofs}
     {}
-
-    tag::comm_cfg tag::comm_cfg::with(std::size_t new_ofs, bool fetch_af) const {
-        comm_cfg copy = *this;
-        copy.tx_secure_data_offset = new_ofs;
-        copy.rx_auto_fetch_additional_frames = fetch_af;
-        return copy;
-    }
 
     namespace impl {
         template <class T, bool /* IsIntegral */>

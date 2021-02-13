@@ -159,7 +159,7 @@ namespace desfire {
         return std::move(rx_data);
     }
 
-    tag::r<status, bin_data> tag::command_status_response(command_code cmd, bin_data const &data, comm_cfg const &cfg, cipher *override_cipher)
+    tag::r<status, bin_data> tag::command_status_response(command_code cmd, bin_data const &data, comm_cfg const &cfg, bool rx_fetch_additional_frames, cipher *override_cipher)
     {
         if (_active_cipher == nullptr and override_cipher == nullptr) {
             DESFIRE_LOGE("No active cipher and no override cipher: 'tag' is in an invalid state (coding mistake).");
@@ -168,7 +168,7 @@ namespace desfire {
         DESFIRE_LOGD("%s: TX mode: %s, ofs: %u", to_string(cmd),
                      to_string(cfg.tx), cfg.tx_secure_data_offset);
         DESFIRE_LOGD("%s: RX mode: %s, fetch AF: %u", to_string(cmd),
-                     to_string(cfg.rx), cfg.rx_auto_fetch_additional_frames);
+                     to_string(cfg.rx), rx_fetch_additional_frames);
 
         // If we exit prematurely, and we are using the cipher of this tag, trigger a logout by error.
         auto_logout logout_on_error{*this, override_cipher != nullptr};
@@ -186,7 +186,7 @@ namespace desfire {
         c.prepare_tx(tx_data, cfg.tx_secure_data_offset, cfg.tx);
 
         bin_stream tx_stream{tx_data};
-        auto res_cmd = raw_command_response(tx_stream, cfg.rx_auto_fetch_additional_frames);
+        auto res_cmd = raw_command_response(tx_stream, rx_fetch_additional_frames);
         if (not res_cmd) {
             DESFIRE_LOGE("%s: failed, %s", to_string(cmd), to_string(res_cmd.error()));
             return res_cmd.error();
@@ -214,11 +214,11 @@ namespace desfire {
         return {cmd_status, std::move(rx_data)};
     }
 
-    tag::r<bin_data> tag::command_response(command_code cmd, const bin_data &payload, const tag::comm_cfg &cfg, cipher *override_cipher)
+    tag::r<bin_data> tag::command_response(command_code cmd, const bin_data &payload, const tag::comm_cfg &cfg, bool rx_fetch_additional_frames, cipher *override_cipher)
     {
         auto_logout logout_on_error{*this, override_cipher != nullptr};
 
-        auto res_status_cmd = command_status_response(cmd, payload, cfg, override_cipher);
+        auto res_status_cmd = command_status_response(cmd, payload, cfg, rx_fetch_additional_frames, override_cipher);
         if (not res_status_cmd) {
             return res_status_cmd.error();
         }
@@ -268,7 +268,8 @@ namespace desfire {
         const auto res_rndb = command_status_response(
                 auth_command(k.type()),
                 bin_data::chain(k.key_number()),
-                comm_cfg{cipher_mode::ciphered_no_crc, 2, false},
+                comm_cfg{cipher_mode::ciphered_no_crc, 2},
+                false,
                 pcipher.get()
         );
 
@@ -293,6 +294,7 @@ namespace desfire {
                 command_code::additional_frame,
                 bin_data::chain(prealloc(rnda.size() * 2), rnda, rndb.view(1), rndb.front()),
                 cipher_mode::ciphered_no_crc,
+                false,
                 pcipher.get()
         );
 

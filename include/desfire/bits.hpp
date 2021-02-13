@@ -17,6 +17,13 @@ namespace desfire {
             cipher = 0b11
         };
 
+        enum struct cipher_mode : std::uint8_t {
+            plain = static_cast<std::uint8_t>(comm_mode::plain),
+            mac = static_cast<std::uint8_t>(comm_mode::mac),
+            cipher_crc = static_cast<std::uint8_t>(comm_mode::cipher),
+            cipher_no_crc
+        };
+
         enum struct command_code : std::uint8_t {
             authenticate_legacy = 0x0a,
             change_key_settings = 0x54,

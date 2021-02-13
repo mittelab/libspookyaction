@@ -8,10 +8,22 @@ namespace desfire {
     const char *to_string(comm_mode comm) {
         switch (comm) {
             case comm_mode::plain:  return "plain";
-            case comm_mode::mac:    return "(C)MAC";
+            case comm_mode::mac:    return "maced";
             case comm_mode::cipher: return "ciphered";
             default:
                 return "UNKNOWN";
+        }
+    }
+
+    const char *to_string(cipher_mode mode) {
+        switch (mode) {
+            case cipher_mode::cipher_no_crc:
+                return "ciphered (no CRC)";
+            case cipher_mode::plain:       // [[fallthrough]];
+            case cipher_mode::mac:         // [[fallthrough]];
+            case cipher_mode::cipher_crc:  // [[fallthrough]];
+            default:
+                return to_string(static_cast<comm_mode>(mode));
         }
     }
 

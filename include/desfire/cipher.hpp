@@ -12,16 +12,11 @@
 
 namespace desfire {
     using bits::comm_mode;
+    using bits::cipher_mode;
+
     namespace {
         using namespace mlab;
     }
-
-    enum struct cipher_mode : std::uint8_t {
-        plain = static_cast<std::uint8_t>(comm_mode::plain),
-        mac = static_cast<std::uint8_t>(comm_mode::mac),
-        cipher_crc = static_cast<std::uint8_t>(comm_mode::cipher),
-        cipher_no_crc
-    };
 
     inline cipher_mode cipher_mode_from_comm_mode(comm_mode mode, bool use_crc = true);
 

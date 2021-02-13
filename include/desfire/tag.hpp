@@ -323,16 +323,16 @@ namespace desfire {
 
 
     struct tag::comm_cfg {
-        cipher::config tx = cipher_cfg_plain;
-        cipher::config rx = cipher_cfg_plain;
+        cipher_mode tx = cipher_mode::plain;
+        cipher_mode rx = cipher_mode::plain;
         std::size_t tx_secure_data_offset = 0;
         bool rx_auto_fetch_additional_frames = true;
         cipher *override_cipher = nullptr;
 
         inline comm_cfg(comm_mode txrx, std::size_t sec_data_ofs = 1, bool fetch_af = true, cipher *custom_c = nullptr);
-        inline comm_cfg(cipher::config txrx, std::size_t sec_data_ofs = 1, bool fetch_af = true, cipher *custom_c = nullptr);
+        inline comm_cfg(cipher_mode txrx, std::size_t sec_data_ofs = 1, bool fetch_af = true, cipher *custom_c = nullptr);
         inline comm_cfg(comm_mode tx, comm_mode rx, std::size_t sec_data_ofs = 1, bool fetch_af = true, cipher *custom_c = nullptr);
-        inline comm_cfg(cipher::config tx, cipher::config rx, std::size_t sec_data_ofs = 1, bool fetch_af = true, cipher *custom_c = nullptr);
+        inline comm_cfg(cipher_mode tx, cipher_mode rx, std::size_t sec_data_ofs = 1, bool fetch_af = true, cipher *custom_c = nullptr);
 
         inline comm_cfg with(std::size_t new_ofs, bool fetch_af) const;
     };
@@ -392,14 +392,14 @@ namespace desfire {
     }
 
     tag::comm_cfg::comm_cfg(comm_mode txrx, std::size_t sec_data_ofs, bool fetch_af, cipher *custom_c) :
-        tx{.mode = txrx, .do_crc = true},
-        rx{.mode = txrx, .do_crc = true},
+        tx{cipher_mode_from_comm_mode(txrx)},
+        rx{cipher_mode_from_comm_mode(txrx)},
         tx_secure_data_offset{sec_data_ofs},
         rx_auto_fetch_additional_frames{fetch_af},
         override_cipher{custom_c}
     {}
 
-    tag::comm_cfg::comm_cfg(cipher::config txrx, std::size_t sec_data_ofs, bool fetch_af, cipher *custom_c) :
+    tag::comm_cfg::comm_cfg(cipher_mode txrx, std::size_t sec_data_ofs, bool fetch_af, cipher *custom_c) :
             tx{txrx},
             rx{txrx},
             tx_secure_data_offset{sec_data_ofs},
@@ -408,14 +408,14 @@ namespace desfire {
     {}
 
     tag::comm_cfg::comm_cfg(comm_mode tx, comm_mode rx, std::size_t sec_data_ofs, bool fetch_af, cipher *custom_c) :
-            tx{.mode = tx, .do_crc = true},
-            rx{.mode = rx, .do_crc = true},
+            tx{cipher_mode_from_comm_mode(tx)},
+            rx{cipher_mode_from_comm_mode(rx)},
             tx_secure_data_offset{sec_data_ofs},
             rx_auto_fetch_additional_frames{fetch_af},
             override_cipher{custom_c}
     {}
 
-    tag::comm_cfg::comm_cfg(cipher::config tx, cipher::config rx, std::size_t sec_data_ofs, bool fetch_af, cipher *custom_c) :
+    tag::comm_cfg::comm_cfg(cipher_mode tx, cipher_mode rx, std::size_t sec_data_ofs, bool fetch_af, cipher *custom_c) :
             tx{tx},
             rx{rx},
             tx_secure_data_offset{sec_data_ofs},

@@ -16,7 +16,7 @@ namespace desfire {
     using bits::cipher_type;
     using bits::command_code;
     using bits::app_crypto;
-    using bits::comm_mode;
+    using bits::file_security;
     using bits::cipher_mode;
     using bits::file_type;
     using bits::all_records;
@@ -56,7 +56,7 @@ namespace desfire {
         file_integrity_error = static_cast<std::uint8_t>(status::file_integrity_error),
         controller_error,    ///< Specific for PCD error
         malformed,           ///< No data or incorrect data received when some specific format was expected
-        crypto_error         /**< @brief Something went wrong with crypto (@ref cipher::config)
+        crypto_error         /**< @brief Something went wrong with crypto (@ref cipher_mode)
                               * This could mean invalid MAC, CMAC, or CRC, or data length is not a multiple of block
                               * size when encrypted; this depends on the specified communication config.
                               */
@@ -140,11 +140,11 @@ namespace desfire {
     static_assert(sizeof(access_rights) == sizeof(std::uint16_t), "Must be able to pack 2 bytes structures.");
 
     struct generic_file_settings {
-        comm_mode mode = comm_mode::plain;
+        file_security security = file_security::none;
         access_rights rights;
 
         generic_file_settings() = default;
-        inline generic_file_settings(comm_mode mode_, access_rights rights_);
+        inline generic_file_settings(file_security security_, access_rights rights_);
     };
 
     struct data_file_settings {
@@ -301,7 +301,7 @@ namespace desfire {
             return std::unique_ptr<cipher>(new cipher_dummy());
         }
         inline bin_data &operator<<(bin_data &bd) const {
-            DESFIRE_LOGE("Attempt at writing key of an invalid cipher type.");
+            DESFIRE_LOGE("Attempt at writing key of an invalid encrypted type.");
             return bd;
         }
     };
@@ -484,12 +484,12 @@ namespace desfire {
     }
 
     cipher_mode cipher_mode_most_secure(cipher_mode l, cipher_mode r) {
-        if (l == cipher_mode::cipher_crc or r == cipher_mode::cipher_crc) {
-            return cipher_mode::cipher_crc;
-        } else if (l == cipher_mode::cipher_no_crc or r == cipher_mode::cipher_no_crc) {
-            return cipher_mode::cipher_no_crc;
-        } else if (l == cipher_mode::mac or r == cipher_mode::mac) {
-            return cipher_mode::mac;
+        if (l == cipher_mode::ciphered or r == cipher_mode::ciphered) {
+            return cipher_mode::ciphered;
+        } else if (l == cipher_mode::ciphered_no_crc or r == cipher_mode::ciphered_no_crc) {
+            return cipher_mode::ciphered_no_crc;
+        } else if (l == cipher_mode::maced or r == cipher_mode::maced) {
+            return cipher_mode::maced;
         } else {
             return cipher_mode::plain;
         }
@@ -527,7 +527,7 @@ namespace desfire {
         return retval;
     }
 
-    generic_file_settings::generic_file_settings(comm_mode mode_, access_rights rights_) : mode{mode_}, rights{rights_}
+    generic_file_settings::generic_file_settings(file_security security_, access_rights rights_) : security{security_}, rights{rights_}
     {}
 }
 

@@ -60,12 +60,12 @@ namespace desfire {
         if (offset >= data.size() or mode == cipher_mode::plain) {
             return;  // Nothing to do
         }
-        if (mode == cipher_mode::mac) {
+        if (mode == cipher_mode::maced) {
             const auto mac = compute_mac(data.view(offset));
             ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " TX MAC", mac.data(), mac.size(), ESP_LOG_DEBUG);
             data << mac;
         } else {
-            if (mode == cipher_mode::cipher_crc) {
+            if (mode == cipher_mode::ciphered) {
                 data.reserve(offset + padded_length<block_size>(data.size() + crc_size - offset));
                 data << lsb16 << compute_crc16(data.view(offset));
             } else {
@@ -82,7 +82,7 @@ namespace desfire {
             // Just status byte, return as-is
             return true;
         }
-        if (mode == cipher_mode::mac) {
+        if (mode == cipher_mode::maced) {
             bin_stream s{data};
             // Data, followed by mac, followed by status
             const auto data_view = s.read(s.remaining() - mac_size - 1);
@@ -112,7 +112,7 @@ namespace desfire {
                 return false;
             }
             do_crypto(data.view(), crypto_mode::decrypt, get_iv());
-            if (mode == cipher_mode::cipher_crc) {
+            if (mode == cipher_mode::ciphered) {
                 // Truncate the padding and the crc
                 const bool did_verify = drop_padding_verify_crc(data);
                 // Reappend the status byte

@@ -79,7 +79,7 @@ namespace ut {
 
     ut::test_app const &get_test_app(desfire::cipher_type t);
     ut::test_file const &get_test_file(desfire::file_type t);
-    ut::test_file get_test_file(desfire::file_type t, desfire::comm_mode mode);
+    ut::test_file get_test_file(desfire::file_type t, desfire::file_security security);
 }
 
 namespace ut {

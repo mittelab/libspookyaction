@@ -10,14 +10,14 @@
 #include "log.h"
 
 namespace desfire {
-    using bits::comm_mode;
+    using bits::file_security;
     using bits::cipher_mode;
 
     namespace {
         using namespace mlab;
     }
 
-    inline cipher_mode cipher_mode_from_comm_mode(comm_mode mode, bool use_crc = true);
+    inline cipher_mode cipher_mode_from_security(file_security security);
 
     enum struct cipher_iv {
         global,
@@ -79,15 +79,15 @@ namespace desfire {
     /**
      * @todo Fix header includes so that this forward declaration is redundant.
      */
-    const char *to_string(comm_mode);
+    const char *to_string(file_security);
 
-    cipher_mode cipher_mode_from_comm_mode(comm_mode mode, bool use_crc) {
-        switch (mode) {
-            case comm_mode::plain:  return cipher_mode::plain;
-            case comm_mode::mac:    return cipher_mode::mac;
-            case comm_mode::cipher: return use_crc ? cipher_mode::cipher_crc : cipher_mode::cipher_no_crc;
+    cipher_mode cipher_mode_from_security(file_security security) {
+        switch (security) {
+            case file_security::none:           return cipher_mode::plain;
+            case file_security::authenticated:  return cipher_mode::maced;
+            case file_security::encrypted:      return cipher_mode::ciphered;
             default:
-                DESFIRE_LOGE("Unsupported comm mode %s", to_string(mode));
+                DESFIRE_LOGE("Unsupported file security %s", to_string(security));
                 break;
         }
         return cipher_mode::plain;

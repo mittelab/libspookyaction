@@ -116,12 +116,12 @@ namespace desfire {
     template <std::size_t BlockSize, std::uint8_t CMACSubkeyR>
     void cipher_scheme<BlockSize, CMACSubkeyR>::prepare_tx(
             bin_data &data, std::size_t offset, cipher_mode mode) {
-        if (mode == cipher_mode::plain or mode == cipher_mode::mac) {
+        if (mode == cipher_mode::plain or mode == cipher_mode::maced) {
             // Plain and MAC may still require to pass data through CMAC, unless specified otherwise
             // CMAC has to be computed on the whole data
             const mac_t cmac = compute_mac(data.view());
             ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " TX MAC", cmac.data(), cmac.size(), ESP_LOG_DEBUG);
-            if (mode == cipher_mode::mac) {
+            if (mode == cipher_mode::maced) {
                 // Only MAC comm mode will actually append
                 data << cmac;
             }
@@ -129,7 +129,7 @@ namespace desfire {
             if (offset >= data.size()) {
                 return;  // Nothing to do
             }
-            if (mode == cipher_mode::cipher_crc) {
+            if (mode == cipher_mode::ciphered) {
                 data.reserve(offset + padded_length<block_size>(data.size() + crc_size - offset));
                 // CRC has to be computed on the whole data
                 data << lsb32 << compute_crc32(data);
@@ -152,19 +152,19 @@ namespace desfire {
             // This will keep the IV in sync
             const auto cmac = compute_mac(data.view());
             ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " RX MAC", cmac.data(), cmac.size(), ESP_LOG_DEBUG);
-        } else if (mode == cipher_mode::mac) {
-            // [ data || mac || status ] -> [ data || status || mac ]; rotate mac_size + 1 bytes
+        } else if (mode == cipher_mode::maced) {
+            // [ data || maced || status ] -> [ data || status || maced ]; rotate mac_size + 1 bytes
             std::rotate(data.rbegin(), data.rbegin() + 1, data.rbegin() + traits_base::mac_size + 1);
             // This will keep the IV in sync
             const mac_t computed_mac = compute_mac(data.view(0, data.size() - traits_base::mac_size));
             ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " RX MAC", computed_mac.data(), computed_mac.size(), ESP_LOG_DEBUG);
-            // Extract the transmitted mac
+            // Extract the transmitted maced
             bin_stream s{data};
             s.seek(data.size() - traits_base::mac_size);
             mac_t rxd_mac{};
             s >> rxd_mac;
             if (rxd_mac == computed_mac) {
-                // Good, drop the mac
+                // Good, drop the maced
                 data.resize(data.size() - traits_base::mac_size);
                 return true;
             }
@@ -182,7 +182,7 @@ namespace desfire {
                 return false;
             }
             do_crypto(data.view(), crypto_mode::decrypt, get_iv());
-            if (mode == cipher_mode::cipher_crc) {
+            if (mode == cipher_mode::ciphered) {
                 // Truncate the padding and the crc
                 const bool did_verify = drop_padding_verify_crc(data, status);
                 // Reappend the status byte

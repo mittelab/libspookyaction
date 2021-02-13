@@ -75,7 +75,7 @@ namespace desfire {
             case cipher_type::aes128:
                 return get<cipher_type::aes128>().make_cipher();
             default:
-                DESFIRE_LOGE("any_key::make_cipher:: unhandled cipher type: %s", to_string(type()));
+                DESFIRE_LOGE("any_key::make_cipher: unhandled cipher type: %s", to_string(type()));
                 return nullptr;
         }
     }
@@ -473,11 +473,11 @@ namespace mlab {
             s.set_bad();
             return s;
         }
-        return s >> fs.mode >> fs.rights;
+        return s >> fs.security >> fs.rights;
     }
 
     bin_data &operator<<(bin_data &bd, desfire::generic_file_settings const &fs) {
-        return bd << fs.mode << fs.rights;
+        return bd << fs.security << fs.rights;
     }
 
     bin_stream &operator>>(bin_stream &s, desfire::data_file_settings &fs) {

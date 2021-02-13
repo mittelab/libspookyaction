@@ -130,7 +130,7 @@ namespace ut {
     ut::test_file const &get_test_file(desfire::file_type t) {
         static const ut::test_file dummy{};
 
-        static const desfire::generic_file_settings gfs{desfire::comm_mode::plain, desfire::access_rights{0}};
+        static const desfire::generic_file_settings gfs{desfire::file_security::none, desfire::access_rights{0}};
         static const desfire::data_file_settings dfs{.size = 0x100};
         static const desfire::record_file_settings rfs{.record_size = 8, .max_record_count = 2, .record_count = 0};
         static const desfire::value_file_settings vfs{.lower_limit = -10, .upper_limit = 10, .value = 0, .limited_credit_enabled = true};
@@ -176,7 +176,7 @@ namespace ut {
         }
     }
 
-    ut::test_file get_test_file(desfire::file_type t, desfire::comm_mode mode) {
+    ut::test_file get_test_file(desfire::file_type t, desfire::file_security security) {
         ut::test_file retval;
         ut::test_file const &base_file = get_test_file(t);
         // This is basically an implementation for a copy constructor
@@ -207,7 +207,7 @@ namespace ut {
         // These are in common
         retval.settings.generic_settings() = base_file.settings.generic_settings();
         // Update the comm mode
-        retval.settings.generic_settings().mode = mode;
+        retval.settings.generic_settings().security = security;
         retval.type = t;
         retval.fid = base_file.fid;
         return retval;

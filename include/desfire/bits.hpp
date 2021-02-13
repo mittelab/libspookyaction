@@ -11,17 +11,17 @@
 namespace desfire {
     namespace bits {
 
-        enum struct comm_mode : std::uint8_t {
+        enum struct cipher_mode : std::uint8_t {
             plain = 0b00,
-            mac = 0b01,
-            cipher = 0b11
+            maced = 0b01,
+            ciphered = 0b11,
+            ciphered_no_crc  ///< This enum entry is not by spec, only for us to arrange code in an easier way
         };
 
-        enum struct cipher_mode : std::uint8_t {
-            plain = static_cast<std::uint8_t>(comm_mode::plain),
-            mac = static_cast<std::uint8_t>(comm_mode::mac),
-            cipher_crc = static_cast<std::uint8_t>(comm_mode::cipher),
-            cipher_no_crc
+        enum struct file_security : std::uint8_t {
+            none = static_cast<std::uint8_t>(cipher_mode::plain),
+            authenticated = static_cast<std::uint8_t>(cipher_mode::maced),
+            encrypted = static_cast<std::uint8_t>(cipher_mode::ciphered)
         };
 
         enum struct command_code : std::uint8_t {

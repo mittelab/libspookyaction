@@ -20,6 +20,11 @@ namespace ut {
 
 namespace desfire {
 
+    namespace {
+        template<unsigned N>
+        using lsb_t = mlab::lsb_t<N>;
+    }
+
     class tag {
     public:
 

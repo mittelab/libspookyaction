@@ -8,6 +8,10 @@
 
 namespace desfire {
 
+    namespace {
+        using mlab::prealloc;
+    }
+
     std::uint8_t any_key::key_number() const {
         switch (type()) {
             case cipher_type::none:

@@ -205,7 +205,7 @@ void test_cipher_des() {
     {
         /**
          * @note This test checks that the direction of the encrypted matches the odd implementation in Desfire, which
-         * requires to de-encrypted the data that we are sending. See note on @ref desfire::cipher_legacy_scheme.
+         * requires to de-encrypted the data that we are sending. See note on @ref desfire::cipher_scheme_legacy.
          */
         const auto k = desfire::key<desfire::cipher_type::des>{0, {0xc8, 0x6d, 0xb4, 0x4f, 0x05, 0x52, 0xb6, 0x9b}};
         desfire::cipher_des c{k.k};

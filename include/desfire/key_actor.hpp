@@ -2,8 +2,8 @@
 // Created by Pietro Saccardi on 20/01/2021.
 //
 
-#ifndef APERTURAPORTA_KEY_ACTOR_HPP
-#define APERTURAPORTA_KEY_ACTOR_HPP
+#ifndef DESFIRE_KEY_ACTOR_HPP
+#define DESFIRE_KEY_ACTOR_HPP
 
 #include "bits.hpp"
 
@@ -117,4 +117,4 @@ namespace desfire {
     }
 }
 
-#endif //APERTURAPORTA_KEY_ACTOR_HPP
+#endif //DESFIRE_KEY_ACTOR_HPP

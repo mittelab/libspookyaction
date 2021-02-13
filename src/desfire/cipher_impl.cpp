@@ -36,7 +36,7 @@ namespace desfire {
         mbedtls_des_init(&_mac_enc_context);
         /**
          * @note Using @ref mbedtls_des_setkey_dec on @ref _enc_context is **deliberate**, see note on
-         * @ref cipher_legacy_scheme.
+         * @ref cipher_scheme_legacy.
          */
         mbedtls_des_setkey_dec(&_enc_context, key.data());
         mbedtls_des_setkey_dec(&_dec_context, key.data());
@@ -63,7 +63,7 @@ namespace desfire {
         set_key_version(new_key, 0x00);
         /**
          * @note Using @ref mbedtls_des_setkey_dec on @ref _enc_context is **deliberate**, see note on
-         * @ref cipher_legacy_scheme.
+         * @ref cipher_scheme_legacy.
          */
         mbedtls_des_setkey_dec(&_enc_context, new_key.data());
         mbedtls_des_setkey_dec(&_dec_context, new_key.data());
@@ -119,7 +119,7 @@ namespace desfire {
         mbedtls_des3_init(&_mac_enc_context);
         /**
          * @note Using @ref mbedtls_des3_set2key_dec on @ref _enc_context is **deliberate**, see note on
-         * @ref cipher_legacy_scheme.
+         * @ref cipher_scheme_legacy.
          */
         mbedtls_des3_set2key_dec(&_enc_context, key.data());
         mbedtls_des3_set2key_dec(&_dec_context, key.data());
@@ -157,7 +157,7 @@ namespace desfire {
         set_key_version(new_key, 0x00);
         /**
          * @note Using @ref mbedtls_des3_set2key_dec on @ref _enc_context is **deliberate**, see note on
-         * @ref cipher_legacy_scheme.
+         * @ref cipher_scheme_legacy.
          */
         mbedtls_des3_set2key_dec(&_enc_context, new_key.data());
         mbedtls_des3_set2key_dec(&_dec_context, new_key.data());

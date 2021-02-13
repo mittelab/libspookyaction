@@ -2,22 +2,26 @@
 // Created by Pietro Saccardi on 02/01/2021.
 //
 
-#include <esp_log.h>
-#include "desfire/msg.hpp"
 #include "desfire/log.h"
 #include "desfire/crypto_algo.hpp"
-#include "desfire/cipher_scheme.hpp"
+#include "desfire/cipher_scheme_legacy.hpp"
 
 namespace desfire {
-    cipher_legacy_scheme::cipher_legacy_scheme() : _global_iv{} {
+
+    namespace {
+        using mlab::lsb16;
+        using mlab::bin_stream;
+    }
+
+    cipher_scheme_legacy::cipher_scheme_legacy() : _global_iv{} {
         set_iv_mode(cipher_iv::zero);
     }
 
-    void cipher_legacy_scheme::initialize() {
+    void cipher_scheme_legacy::initialize() {
         std::fill_n(std::begin(_global_iv), block_size, 0);
     }
 
-    cipher_legacy_scheme::block_t &cipher_legacy_scheme::get_iv() {
+    cipher_scheme_legacy::block_t &cipher_scheme_legacy::get_iv() {
         static block_t dummy_iv{};
         if (iv_mode() == cipher_iv::global) {
             return _global_iv;
@@ -27,7 +31,7 @@ namespace desfire {
         return dummy_iv;
     }
 
-    cipher_legacy_scheme::mac_t cipher_legacy_scheme::compute_mac(range <bin_data::const_iterator> const &data) {
+    cipher_scheme_legacy::mac_t cipher_scheme_legacy::compute_mac(range <bin_data::const_iterator> const &data) {
         static bin_data buffer{};
 
         // Resize the buffer and copy data
@@ -41,7 +45,7 @@ namespace desfire {
         return {iv[0], iv[1], iv[2], iv[3]};
     }
 
-    bool cipher_legacy_scheme::drop_padding_verify_crc(bin_data &d) {
+    bool cipher_scheme_legacy::drop_padding_verify_crc(bin_data &d) {
         static const auto crc_fn = [](
                 bin_data::const_iterator b, bin_data::const_iterator e, std::uint16_t init) -> std::uint16_t {
             return compute_crc16(range<bin_data::const_iterator>{b, e}, init);
@@ -56,7 +60,7 @@ namespace desfire {
         return false;
     }
 
-    void cipher_legacy_scheme::prepare_tx(bin_data &data, std::size_t offset, cipher_mode mode) {
+    void cipher_scheme_legacy::prepare_tx(bin_data &data, std::size_t offset, cipher_mode mode) {
         if (offset >= data.size() or mode == cipher_mode::plain) {
             return;  // Nothing to do
         }
@@ -77,7 +81,7 @@ namespace desfire {
     }
 
 
-    bool cipher_legacy_scheme::confirm_rx(bin_data &data, cipher_mode mode) {
+    bool cipher_scheme_legacy::confirm_rx(bin_data &data, cipher_mode mode) {
         if (data.size() == 1 or mode == cipher_mode::plain) {
             // Just status byte, return as-is
             return true;

@@ -27,6 +27,11 @@ namespace desfire {
 
     namespace {
 
+        using mlab::prealloc;
+        using mlab::result_success;
+        using mlab::lsb16;
+        using mlab::lsb24;
+
         template <class T, class = typename std::enable_if<std::is_unsigned<T>::value>::type>
         T saturate_sub(T a, T b) {
             return std::max(a, b) - b;

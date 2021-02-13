@@ -17,11 +17,12 @@
 #include <mbedtls/des.h>
 #include <mbedtls/aes.h>
 
-#include "cipher_scheme_impl.hpp"
+#include "cipher_scheme.hpp"
+#include "cipher_scheme_legacy.hpp"
 
 namespace desfire {
 
-    class cipher_des final : public cipher_legacy_scheme {
+    class cipher_des final : public cipher_scheme_legacy {
         mbedtls_des_context _enc_context;
         mbedtls_des_context _dec_context;
         mbedtls_des_context _mac_enc_context;
@@ -33,7 +34,7 @@ namespace desfire {
         void do_crypto(range<bin_data::iterator> const &data, crypto_direction dir, block_t &iv) override;
     };
 
-    class cipher_2k3des final : public cipher_legacy_scheme {
+    class cipher_2k3des final : public cipher_scheme_legacy {
         mbedtls_des3_context _enc_context;
         mbedtls_des3_context _dec_context;
         mbedtls_des3_context _mac_enc_context;

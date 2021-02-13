@@ -9,7 +9,6 @@
 #include "data.hpp"
 
 namespace desfire {
-    const char *to_string(bits::file_security security);
     const char *to_string(bits::cipher_mode comm);
     const char *to_string(bits::status s);
     const char *to_string(error e);

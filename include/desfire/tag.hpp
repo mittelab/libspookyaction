@@ -328,9 +328,7 @@ namespace desfire {
         std::size_t tx_secure_data_offset = 0;
         bool rx_auto_fetch_additional_frames = true;
 
-        inline comm_cfg(comm_mode txrx, std::size_t sec_data_ofs = 1, bool fetch_af = true);
         inline comm_cfg(cipher_mode txrx, std::size_t sec_data_ofs = 1, bool fetch_af = true);
-        inline comm_cfg(comm_mode tx, comm_mode rx, std::size_t sec_data_ofs = 1, bool fetch_af = true);
         inline comm_cfg(cipher_mode tx, cipher_mode rx, std::size_t sec_data_ofs = 1, bool fetch_af = true);
 
         inline comm_cfg with(std::size_t new_ofs, bool fetch_af) const;
@@ -390,23 +388,9 @@ namespace desfire {
         return _active_key_number;
     }
 
-    tag::comm_cfg::comm_cfg(comm_mode txrx, std::size_t sec_data_ofs, bool fetch_af) :
-        tx{cipher_mode_from_comm_mode(txrx)},
-        rx{cipher_mode_from_comm_mode(txrx)},
-        tx_secure_data_offset{sec_data_ofs},
-        rx_auto_fetch_additional_frames{fetch_af}
-    {}
-
     tag::comm_cfg::comm_cfg(cipher_mode txrx, std::size_t sec_data_ofs, bool fetch_af) :
             tx{txrx},
             rx{txrx},
-            tx_secure_data_offset{sec_data_ofs},
-            rx_auto_fetch_additional_frames{fetch_af}
-    {}
-
-    tag::comm_cfg::comm_cfg(comm_mode tx, comm_mode rx, std::size_t sec_data_ofs, bool fetch_af) :
-            tx{cipher_mode_from_comm_mode(tx)},
-            rx{cipher_mode_from_comm_mode(rx)},
             tx_secure_data_offset{sec_data_ofs},
             rx_auto_fetch_additional_frames{fetch_af}
     {}

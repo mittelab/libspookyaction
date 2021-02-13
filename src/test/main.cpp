@@ -182,21 +182,21 @@ void test_cipher_des() {
             {
                 desfire::bin_data enc_data = {0x5D, 0x99, 0x4C, 0xE0, 0x85, 0xF2, 0x40, 0x89, /* status */ 0xAF};
                 const desfire::bin_data dec_data = {0x4F, 0xD1, 0xB7, 0x59, 0x42, 0xA8, 0xB8, 0xE1, /* status */ 0xAF};
-                c.confirm_rx(enc_data, desfire::cipher_cfg_crypto_nocrc);
+                c.confirm_rx(enc_data, desfire::cipher_mode::ciphered_no_crc);
                 TEST_ASSERT_EQUAL_HEX8_ARRAY(dec_data.data(), enc_data.data(), std::min(enc_data.size(), dec_data.size()));
                 TEST_ASSERT_EQUAL(enc_data.size(), dec_data.size());
             }
             {
                 desfire::bin_data dec_data = {0x84, 0x9B, 0x36, 0xC5, 0xF8, 0xBF, 0x4A, 0x09, 0xD1, 0xB7, 0x59, 0x42, 0xA8, 0xB8, 0xE1, 0x4F};
                 const desfire::bin_data enc_data = {0x21, 0xD0, 0xAD, 0x5F, 0x2F, 0xD9, 0x74, 0x54, 0xA7, 0x46, 0xCC, 0x80, 0x56, 0x7F, 0x1B, 0x1C};
-                c.prepare_tx(dec_data, 0, desfire::cipher_cfg_crypto_nocrc);
+                c.prepare_tx(dec_data, 0, desfire::cipher_mode::ciphered_no_crc);
                 TEST_ASSERT_EQUAL_HEX8_ARRAY(enc_data.data(), dec_data.data(), std::min(enc_data.size(), dec_data.size()));
                 TEST_ASSERT_EQUAL(enc_data.size(), dec_data.size());
             }
             {
                 desfire::bin_data enc_data = {0x91, 0x3C, 0x6D, 0xED, 0x84, 0x22, 0x1C, 0x41, /* status */ 0x00};
                 const desfire::bin_data dec_data = {0x9B, 0x36, 0xC5, 0xF8, 0xBF, 0x4A, 0x09, 0x84, /* status */ 0x00};
-                c.confirm_rx(enc_data, desfire::cipher_cfg_crypto_nocrc);
+                c.confirm_rx(enc_data, desfire::cipher_mode::ciphered_no_crc);
                 TEST_ASSERT_EQUAL_HEX8_ARRAY(dec_data.data(), enc_data.data(), std::min(enc_data.size(), dec_data.size()));
                 TEST_ASSERT_EQUAL(enc_data.size(), dec_data.size());
             }
@@ -205,14 +205,14 @@ void test_cipher_des() {
     {
         /**
          * @note This test checks that the direction of the cipher matches the odd implementation in Desfire, which
-         * requires to de-cipher the data that we are sending. See note on @ref desfire::cipher_legacy_scheme.
+         * requires to de-cipher the data that we are sending. See note on @ref desfire::cipher_scheme_legacy.
          */
         const auto k = desfire::key<desfire::cipher_type::des>{0, {0xc8, 0x6d, 0xb4, 0x4f, 0x05, 0x52, 0xb6, 0x9b}};
         desfire::cipher_des c{k.k};
         desfire::bin_data dec_data = {0x00, 0x02, 0x04, 0x07, 0x08, 0x0a, 0x0c, 0x0e, 0x00, 0x02, 0x04, 0x07, 0x08, 0x0a, 0x0c, 0x0e, 0x2a, 0xec, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
         const desfire::bin_data enc_data = {0xae, 0x99, 0x2b, 0xd7, 0x2b, 0x90, 0x32, 0x4f, 0x3e, 0x2c, 0xf2, 0xf3, 0x5e, 0x4f, 0xd7, 0x9a, 0x99, 0xbe, 0xa5, 0x61, 0xad, 0x04, 0x24, 0xbc};
         std::array<std::uint8_t, 8> iv{0, 0, 0, 0, 0, 0, 0, 0};
-        c.do_crypto(dec_data.view(), desfire::crypto_mode::encrypt, iv);
+        c.do_crypto(dec_data.view(), desfire::crypto_direction::encrypt, iv);
         TEST_ASSERT_EQUAL_HEX8_ARRAY(enc_data.data(), dec_data.data(), std::min(enc_data.size(), dec_data.size()));
     }
 }
@@ -228,21 +228,21 @@ void test_cipher_2k3des() {
             {
                 desfire::bin_data enc_data = {0xDE, 0x50, 0xF9, 0x23, 0x10, 0xCA, 0xF5, 0xA5, /* status */ 0xAF};
                 const desfire::bin_data dec_data = {0x4C, 0x64, 0x7E, 0x56, 0x72, 0xE2, 0xA6, 0x51, /* status */ 0xAF};
-                c.confirm_rx(enc_data, desfire::cipher_cfg_crypto_nocrc);
+                c.confirm_rx(enc_data, desfire::cipher_mode::ciphered_no_crc);
                 TEST_ASSERT_EQUAL_HEX8_ARRAY(dec_data.data(), enc_data.data(), std::min(enc_data.size(), dec_data.size()));
                 TEST_ASSERT_EQUAL(enc_data.size(), dec_data.size());
             }
             {
                 desfire::bin_data dec_data = {0xC9, 0x6C, 0xE3, 0x5E, 0x4D, 0x60, 0x87, 0xF2, 0x64, 0x7E, 0x56, 0x72, 0xE2, 0xA6, 0x51, 0x4C};
                 const desfire::bin_data enc_data = {0xE0, 0x06, 0x16, 0x66, 0x87, 0x04, 0xD5, 0x54, 0x9C, 0x8D, 0x6A, 0x13, 0xA0, 0xF8, 0xFC, 0xED};
-                c.prepare_tx(dec_data, 0, desfire::cipher_cfg_crypto_nocrc);
+                c.prepare_tx(dec_data, 0, desfire::cipher_mode::ciphered_no_crc);
                 TEST_ASSERT_EQUAL_HEX8_ARRAY(enc_data.data(), dec_data.data(), std::min(enc_data.size(), dec_data.size()));
                 TEST_ASSERT_EQUAL(enc_data.size(), dec_data.size());
             }
             {
                 desfire::bin_data enc_data = {0x1D, 0x9D, 0x29, 0x54, 0x69, 0x7D, 0xE7, 0x60, /* status */ 0x00};
                 const desfire::bin_data dec_data = {0x6C, 0xE3, 0x5E, 0x4D, 0x60, 0x87, 0xF2, 0xC9, /* status */ 0x00};
-                c.confirm_rx(enc_data, desfire::cipher_cfg_crypto_nocrc);
+                c.confirm_rx(enc_data, desfire::cipher_mode::ciphered_no_crc);
                 TEST_ASSERT_EQUAL_HEX8_ARRAY(dec_data.data(), enc_data.data(), std::min(enc_data.size(), dec_data.size()));
                 TEST_ASSERT_EQUAL(enc_data.size(), dec_data.size());
             }
@@ -255,7 +255,7 @@ void test_cipher_2k3des() {
         {
             desfire::bin_data enc_data = {0xB2, 0x95, 0x57, 0x99, 0x26, 0x15, 0x5A, 0xE3, /* status */ 0xAF};
             const desfire::bin_data dec_data = {0xBC, 0xD8, 0x29, 0x97, 0x47, 0x33, 0x2D, 0xAF, /* status */ 0xAF};
-            c.confirm_rx(enc_data, desfire::cipher_cfg_crypto_nocrc);
+            c.confirm_rx(enc_data, desfire::cipher_mode::ciphered_no_crc);
             TEST_ASSERT_EQUAL_HEX8_ARRAY(dec_data.data(), enc_data.data(), std::min(enc_data.size(), dec_data.size()));
             TEST_ASSERT_EQUAL(enc_data.size(), dec_data.size());
         }
@@ -270,21 +270,21 @@ void test_cipher_3k3des() {
         {
             desfire::bin_data enc_data = {0xBC, 0x1C, 0x57, 0x0B, 0xC9, 0x48, 0x15, 0x61, 0x87, 0x13, 0x23, 0x64, 0xE4, 0xDC, 0xE1, 0x76, /* status */ 0xAF};
             const desfire::bin_data dec_data = {0x31, 0x6E, 0x6D, 0x76, 0xA4, 0x49, 0xF9, 0x25, 0xBA, 0x30, 0x4F, 0xB2, 0x65, 0x36, 0x56, 0xA2, /* status */ 0xAF};
-            c.confirm_rx(enc_data, desfire::cipher_cfg_crypto_nocrc);
+            c.confirm_rx(enc_data, desfire::cipher_mode::ciphered_no_crc);
             TEST_ASSERT_EQUAL_HEX8_ARRAY(dec_data.data(), enc_data.data(), std::min(enc_data.size(), dec_data.size()));
             TEST_ASSERT_EQUAL(enc_data.size(), dec_data.size());
         }
         {
             desfire::bin_data dec_data = {0x36, 0xC5, 0xF8, 0xBF, 0x4A, 0x09, 0xAC, 0x23, 0x9E, 0x8D, 0xA0, 0xC7, 0x32, 0x51, 0xD4, 0xAB, 0x6E, 0x6D, 0x76, 0xA4, 0x49, 0xF9, 0x25, 0xBA, 0x30, 0x4F, 0xB2, 0x65, 0x36, 0x56, 0xA2, 0x31};
             const desfire::bin_data enc_data = {0xDD, 0xDC, 0x9A, 0x77, 0x59, 0x7F, 0x03, 0xA4, 0x0C, 0x7F, 0xAA, 0x36, 0x2F, 0x45, 0xA8, 0xEA, 0xDB, 0xE4, 0x6A, 0x11, 0x5D, 0x98, 0x19, 0x8C, 0xBF, 0x36, 0xA6, 0xE5, 0x1B, 0x39, 0xD8, 0x7C};
-            c.prepare_tx(dec_data, 0, desfire::cipher_cfg_crypto_nocrc);
+            c.prepare_tx(dec_data, 0, desfire::cipher_mode::ciphered_no_crc);
             TEST_ASSERT_EQUAL_HEX8_ARRAY(enc_data.data(), dec_data.data(), std::min(enc_data.size(), dec_data.size()));
             TEST_ASSERT_EQUAL(enc_data.size(), dec_data.size());
         }
         {
             desfire::bin_data enc_data = {0x72, 0x44, 0xD9, 0x35, 0xED, 0x9A, 0x13, 0x06, 0xCD, 0x8C, 0x84, 0x1A, 0x7C, 0x1D, 0xE3, 0x9A, /* status */ 0x00};
             const desfire::bin_data dec_data = {0xC5, 0xF8, 0xBF, 0x4A, 0x09, 0xAC, 0x23, 0x9E, 0x8D, 0xA0, 0xC7, 0x32, 0x51, 0xD4, 0xAB, 0x36, /* status */ 0x00};
-            c.confirm_rx(enc_data, desfire::cipher_cfg_crypto_nocrc);
+            c.confirm_rx(enc_data, desfire::cipher_mode::ciphered_no_crc);
             TEST_ASSERT_EQUAL_HEX8_ARRAY(dec_data.data(), enc_data.data(), std::min(enc_data.size(), dec_data.size()));
             TEST_ASSERT_EQUAL(enc_data.size(), dec_data.size());
         }
@@ -296,7 +296,7 @@ void test_cipher_3k3des() {
         {
             desfire::bin_data enc_data = {0xFA, 0x2F, 0xB9, 0xA1, 0x7B, 0x35, 0x9D, 0x03, 0x4D, 0xF3, 0xEB, 0x1C, 0x41, 0x79, 0x20, 0x7E, /* status */ 0xAF};
             const desfire::bin_data dec_data = {0xF4, 0xD6, 0x56, 0x42, 0xAE, 0xEB, 0x3D, 0x12, 0xFB, 0x8A, 0xC6, 0xFE, 0x46, 0xCE, 0x7A, 0x2F, /* status */ 0xAF};
-            c.confirm_rx(enc_data, desfire::cipher_cfg_crypto_nocrc);
+            c.confirm_rx(enc_data, desfire::cipher_mode::ciphered_no_crc);
             TEST_ASSERT_EQUAL_HEX8_ARRAY(dec_data.data(), enc_data.data(), std::min(enc_data.size(), dec_data.size()));
             TEST_ASSERT_EQUAL(enc_data.size(), dec_data.size());
         }
@@ -310,21 +310,21 @@ void test_cipher_aes() {
     {
         desfire::bin_data enc_data = {0xB9, 0x69, 0xFD, 0xFE, 0x56, 0xFD, 0x91, 0xFC, 0x9D, 0xE6, 0xF6, 0xF2, 0x13, 0xB8, 0xFD, 0x1E, /* status */ 0xAF};
         const desfire::bin_data dec_data = {0xC0, 0x5D, 0xDD, 0x71, 0x4F, 0xD7, 0x88, 0xA6, 0xB7, 0xB7, 0x54, 0xF3, 0xC4, 0xD0, 0x66, 0xE8, /* status */ 0xAF};
-        c.confirm_rx(enc_data, desfire::cipher_cfg_crypto_nocrc);
+        c.confirm_rx(enc_data, desfire::cipher_mode::ciphered_no_crc);
         TEST_ASSERT_EQUAL_HEX8_ARRAY(dec_data.data(), enc_data.data(), std::min(enc_data.size(), dec_data.size()));
         TEST_ASSERT_EQUAL(enc_data.size(), dec_data.size());
     }
     {
         desfire::bin_data dec_data = {0xF4, 0x4B, 0x26, 0xF5, 0x68, 0x6F, 0x3A, 0x39, 0x1C, 0xD3, 0x8E, 0xBD, 0x10, 0x77, 0x22, 0x81, 0x5D, 0xDD, 0x71, 0x4F, 0xD7, 0x88, 0xA6, 0xB7, 0xB7, 0x54, 0xF3, 0xC4, 0xD0, 0x66, 0xE8, 0xC0};
         const desfire::bin_data enc_data = {0x36, 0xAA, 0xD7, 0xDF, 0x6E, 0x43, 0x6B, 0xA0, 0x8D, 0x18, 0x61, 0x38, 0x30, 0xA7, 0x0D, 0x5A, 0xD4, 0x3E, 0x3D, 0x3F, 0x4A, 0x8D, 0x47, 0x54, 0x1E, 0xEE, 0x62, 0x3A, 0x93, 0x4E, 0x47, 0x74};
-        c.prepare_tx(dec_data, 0, desfire::cipher_cfg_crypto_nocrc);
+        c.prepare_tx(dec_data, 0, desfire::cipher_mode::ciphered_no_crc);
         TEST_ASSERT_EQUAL_HEX8_ARRAY(enc_data.data(), dec_data.data(), std::min(enc_data.size(), dec_data.size()));
         TEST_ASSERT_EQUAL(enc_data.size(), dec_data.size());
     }
     {
         desfire::bin_data enc_data = {0x80, 0x0D, 0xB6, 0x80, 0xBC, 0x14, 0x6B, 0xD1, 0x21, 0xD6, 0x57, 0x8F, 0x2D, 0x2E, 0x20, 0x59, /* status */ 0x00};
         const desfire::bin_data dec_data = {0x4B, 0x26, 0xF5, 0x68, 0x6F, 0x3A, 0x39, 0x1C, 0xD3, 0x8E, 0xBD, 0x10, 0x77, 0x22, 0x81, 0xF4, /* status */ 0x00};
-        c.confirm_rx(enc_data, desfire::cipher_cfg_crypto_nocrc);
+        c.confirm_rx(enc_data, desfire::cipher_mode::ciphered_no_crc);
         TEST_ASSERT_EQUAL_HEX8_ARRAY(dec_data.data(), enc_data.data(), std::min(enc_data.size(), dec_data.size()));
         TEST_ASSERT_EQUAL(enc_data.size(), dec_data.size());
     }
@@ -389,7 +389,7 @@ void test_create_write_file_rx_cmac() {
     ctrl.append({0x3D, 0x05, 0x00, 0x00, 0x00, 0x34, 0x00, 0x00, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F, 0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x2A, 0x2B, 0x2C, 0x2D, 0x2E, 0x2F, 0x30, 0x31, 0x32, 0x33}, {0x00, 0x76, 0x5C, 0x9D, 0xAA, 0x50, 0xEC, 0xB6, 0x2F});
 
     TEST_ASSERT(tag.create_file(5, desfire::file_settings<desfire::file_type::standard>{
-        desfire::generic_file_settings{desfire::comm_mode::plain, desfire::access_rights::from_mask(0x0011)},
+        desfire::generic_file_settings{desfire::file_security::none, desfire::access_rights::from_mask(0x0011)},
         desfire::data_file_settings{.size = 80}
     }));
 
@@ -621,15 +621,15 @@ void test_mifare_change_app_key() {
 }
 
 struct file_test {
-    desfire::comm_mode mode = desfire::comm_mode::plain;
+    desfire::file_security security = desfire::file_security::none;
     desfire::cipher_type cipher = desfire::cipher_type::none;
     desfire::file_type ftype = desfire::file_type::standard;
 
     const char *mode_description() const {
-        switch (mode) {
-            case desfire::comm_mode::plain:  return "plain";
-            case desfire::comm_mode::cipher: return "cipher";
-            case desfire::comm_mode::mac:    return "mac";
+        switch (security) {
+            case desfire::file_security::none:  return "none";
+            case desfire::file_security::encrypted: return "encrypted";
+            case desfire::file_security::authenticated:    return "maced";
             default: return nullptr;
         }
     }
@@ -658,7 +658,7 @@ struct file_test {
     const char *description() const {
         static std::string buffer;
         buffer.reserve(128);
-        buffer = "test_file(desfire::comm_mode::";
+        buffer = "test_file(desfire::file_security::";
         buffer.append(mode_description());
         buffer.append(", desfire::cipher_type::");
         buffer.append(cipher_description());
@@ -750,7 +750,7 @@ struct file_test {
         }
 
         ut::test_app const &app = ut::get_test_app(cipher);
-        ut::test_file const &file = ut::get_test_file(ftype, mode);
+        ut::test_file const &file = ut::get_test_file(ftype, security);
         app.ensure_created(*mifare, root_key);
         app.ensure_selected_and_primary(*mifare);
         TEST_ASSERT_EQUAL_HEX8_ARRAY(app.aid.data(), mifare->active_app().data(), 3);
@@ -831,7 +831,7 @@ void unity_main() {
      * the actual test function. This will generate a separate test entry for each mode.
      */
     issue_format_warning();
-    for (desfire::comm_mode mode : {desfire::comm_mode::plain, desfire::comm_mode::mac, desfire::comm_mode::cipher})
+    for (desfire::file_security sec : {desfire::file_security::none, desfire::file_security::authenticated, desfire::file_security::encrypted})
     {
         for (desfire::cipher_type cipher : {desfire::cipher_type::des, desfire::cipher_type::des3_2k,
                                             desfire::cipher_type::des3_3k, desfire::cipher_type::aes128})
@@ -840,7 +840,7 @@ void unity_main() {
                                              desfire::file_type::value, desfire::file_type::linear_record,
                                              desfire::file_type::cyclic_record})
             {
-                file_test::instance().mode = mode;
+                file_test::instance().security = sec;
                 file_test::instance().cipher = cipher;
                 file_test::instance().ftype = ftype;
                 UnityDefaultTestRun(&file_test::run, file_test::instance().description(), __LINE__);

@@ -17,11 +17,12 @@
 #include <mbedtls/des.h>
 #include <mbedtls/aes.h>
 
-#include "cipher_scheme_impl.hpp"
+#include "cipher_scheme.hpp"
+#include "cipher_scheme_legacy.hpp"
 
 namespace desfire {
 
-    class cipher_des final : public cipher_legacy_scheme {
+    class cipher_des final : public cipher_scheme_legacy {
         mbedtls_des_context _enc_context;
         mbedtls_des_context _dec_context;
         mbedtls_des_context _mac_enc_context;
@@ -30,10 +31,10 @@ namespace desfire {
         void reinit_with_session_key(bin_data const &rndab) override;
         ~cipher_des() override;
 
-        void do_crypto(range<bin_data::iterator> const &data, crypto_mode mode, block_t &iv) override;
+        void do_crypto(range<bin_data::iterator> const &data, crypto_direction dir, block_t &iv) override;
     };
 
-    class cipher_2k3des final : public cipher_legacy_scheme {
+    class cipher_2k3des final : public cipher_scheme_legacy {
         mbedtls_des3_context _enc_context;
         mbedtls_des3_context _dec_context;
         mbedtls_des3_context _mac_enc_context;
@@ -43,7 +44,7 @@ namespace desfire {
         void reinit_with_session_key(bin_data const &rndab) override;
         ~cipher_2k3des() override;
 
-        void do_crypto(range<bin_data::iterator> const &data, crypto_mode mode, block_t &iv) override;
+        void do_crypto(range<bin_data::iterator> const &data, crypto_direction dir, block_t &iv) override;
     };
 
     class cipher_3k3des final : public cipher_scheme<8, 0x1b> {
@@ -55,7 +56,7 @@ namespace desfire {
         void reinit_with_session_key(bin_data const &rndab) override;
         ~cipher_3k3des() override;
 
-        void do_crypto(range<bin_data::iterator> const &data, crypto_mode mode, block_t &iv) override;
+        void do_crypto(range<bin_data::iterator> const &data, crypto_direction dir, block_t &iv) override;
     };
 
     class cipher_aes final : public cipher_scheme<16, 0x87> {
@@ -67,19 +68,19 @@ namespace desfire {
         void reinit_with_session_key(bin_data const &rndab) override;
         ~cipher_aes() override;
 
-        void do_crypto(range<bin_data::iterator> const &data, crypto_mode mode, block_t &iv) override;
+        void do_crypto(range<bin_data::iterator> const &data, crypto_direction dir, block_t &iv) override;
     };
 
     class cipher_dummy final : public cipher {
     public:
-        void prepare_tx(bin_data &, std::size_t, config const &cfg) override {
-            if (cfg.mode != comm_mode::plain) {
+        void prepare_tx(bin_data &, std::size_t, cipher_mode mode) override {
+            if (mode != cipher_mode::plain) {
                 DESFIRE_LOGE("Dummy cipher supports only plain comm mode.");
             }
         }
 
-        bool confirm_rx(bin_data &, config const &cfg) override {
-            if (cfg.mode != comm_mode::plain) {
+        bool confirm_rx(bin_data &, cipher_mode mode) override {
+            if (mode != cipher_mode::plain) {
                 DESFIRE_LOGE("Dummy cipher supports only plain comm mode.");
                 return false;
             }

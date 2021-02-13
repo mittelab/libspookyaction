@@ -9,13 +9,13 @@
 #include "data.hpp"
 
 namespace desfire {
-    const char *to_string(bits::comm_mode comm);
+    const char *to_string(bits::cipher_mode comm);
     const char *to_string(bits::status s);
     const char *to_string(error e);
     const char *to_string(cipher_type c);
     const char *to_string(command_code c);
     const char *to_string(file_type t);
-    const char *to_string(crypto_mode mode);
+    const char *to_string(crypto_direction mode);
 }
 
 #endif //DESFIRE_MSG_HPP

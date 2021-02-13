@@ -8,13 +8,12 @@
 #include <limits>
 #include "mlab/bin_data.hpp"
 #include "mlab/result.hpp"
-#include "mlab/any.hpp"
 #include "bits.hpp"
 #include "msg.hpp"
 #include "log.h"
 
 namespace pn532 {
-    // Locally import all declaration from mlab. I don't
+    // Locally import all declaration from mlab.
     namespace {
         using namespace mlab;
     }
@@ -121,23 +120,7 @@ namespace pn532 {
     };
 
 
-    class any_target {
-        target_type _type;
-        any _poll_entry;
-    public:
-        inline any_target();
-
-        template <target_type Type>
-        inline explicit any_target(poll_entry<Type> entry);
-
-        inline target_type type() const;
-
-        template <target_type Type>
-        poll_entry<Type> const &get_entry() const;
-
-        template <target_type Type>
-        any_target &operator=(poll_entry<Type> entry);
-    };
+    using any_target = any_of<target_type, poll_entry>;
 
     enum struct gpio_loc {
         p3, p7, i0i1
@@ -365,42 +348,9 @@ namespace mlab {
 
     bin_stream &operator>>(bin_stream &s, init_as_target_res &mt);
 
-    namespace ctti {
-        template <target_type Type>
-            struct type_info<poll_entry<Type>> : public std::integral_constant<id_type, static_cast<id_type>(Type)> {
-        };
-    }
 }
 
 namespace pn532 {
-
-    any_target::any_target() : _type{}, _poll_entry{} {}
-
-
-    template <target_type Type>
-    any_target::any_target(poll_entry<Type> entry) :
-            _type{Type}, _poll_entry{std::move(entry)} {}
-
-    template <target_type Type>
-    any_target &any_target::operator=(poll_entry<Type> entry) {
-        _type = Type;
-        _poll_entry = std::move(entry);
-        return *this;
-    }
-
-    target_type any_target::type() const {
-        if (_poll_entry.empty()) {
-            PN532_LOGE("Requested target type of an empty any_target.");
-            return {};
-        }
-        return _type;
-    }
-
-
-    template <target_type Type>
-    poll_entry<Type> const &any_target::get_entry() const {
-        return _poll_entry.template get<poll_entry<Type>>();
-    }
 
     bool gpio_status::operator[](std::pair<gpio_loc, std::uint8_t> const &gpio_idx) const {
         switch (gpio_idx.first) {

@@ -8,18 +8,22 @@
 
 namespace desfire {
 
+    namespace {
+        using mlab::prealloc;
+    }
+
     std::uint8_t any_key::key_number() const {
         switch (type()) {
             case cipher_type::none:
                 return std::numeric_limits<std::uint8_t>::max();
             case cipher_type::des:
-                return get_key<cipher_type::des>().key_number;
+                return get<cipher_type::des>().key_number;
             case cipher_type::des3_2k:
-                return get_key<cipher_type::des3_2k>().key_number;
+                return get<cipher_type::des3_2k>().key_number;
             case cipher_type::des3_3k:
-                return get_key<cipher_type::des3_3k>().key_number;
+                return get<cipher_type::des3_3k>().key_number;
             case cipher_type::aes128:
-                return get_key<cipher_type::aes128>().key_number;
+                return get<cipher_type::aes128>().key_number;
             default:
                 DESFIRE_LOGE("any_key::key_number: unhandled cipher type.");
                 return std::numeric_limits<std::uint8_t>::max();
@@ -31,13 +35,13 @@ namespace desfire {
             case cipher_type::none:
                 return std::numeric_limits<std::uint8_t>::max();
             case cipher_type::des:
-                return get_key<cipher_type::des>().version();
+                return get<cipher_type::des>().version();
             case cipher_type::des3_2k:
-                return get_key<cipher_type::des3_2k>().version();
+                return get<cipher_type::des3_2k>().version();
             case cipher_type::des3_3k:
-                return get_key<cipher_type::des3_3k>().version();
+                return get<cipher_type::des3_3k>().version();
             case cipher_type::aes128:
-                return get_key<cipher_type::aes128>().version();
+                return get<cipher_type::aes128>().version();
             default:
                 DESFIRE_LOGE("any_key::version: unhandled cipher type.");
                 return std::numeric_limits<std::uint8_t>::max();
@@ -65,17 +69,17 @@ namespace desfire {
     std::unique_ptr<cipher> any_key::make_cipher() const {
         switch (type()) {
             case cipher_type::none:
-                return get_key<cipher_type::none>().make_cipher();
+                return get<cipher_type::none>().make_cipher();
             case cipher_type::des:
-                return get_key<cipher_type::des>().make_cipher();
+                return get<cipher_type::des>().make_cipher();
             case cipher_type::des3_2k:
-                return get_key<cipher_type::des3_2k>().make_cipher();
+                return get<cipher_type::des3_2k>().make_cipher();
             case cipher_type::des3_3k:
-                return get_key<cipher_type::des3_3k>().make_cipher();
+                return get<cipher_type::des3_3k>().make_cipher();
             case cipher_type::aes128:
-                return get_key<cipher_type::aes128>().make_cipher();
+                return get<cipher_type::aes128>().make_cipher();
             default:
-                DESFIRE_LOGE("any_key::make_cipher:: unhandled cipher type: %s", to_string(type()));
+                DESFIRE_LOGE("any_key::make_cipher: unhandled cipher type: %s", to_string(type()));
                 return nullptr;
         }
     }
@@ -186,18 +190,18 @@ namespace desfire {
                  * @note Special treatment for DES.
                  */
                 {
-                    auto const &k = get_key<cipher_type::des>().k;
+                    auto const &k = get<cipher_type::des>().k;
                     body << prealloc(2 * k.size()) << k << k;
                 }
                 break;
             case cipher_type::des3_2k:
-                body << get_key<cipher_type::des3_2k>().k;
+                body << get<cipher_type::des3_2k>().k;
                 break;
             case cipher_type::des3_3k:
-                body << get_key<cipher_type::des3_3k>().k;
+                body << get<cipher_type::des3_3k>().k;
                 break;
             case cipher_type::aes128:
-                body << get_key<cipher_type::aes128>().k;
+                body << get<cipher_type::aes128>().k;
                 break;
             default:
                 DESFIRE_LOGE("any_key::get_packed_key_body: unhandled cipher type: %s", to_string(type()));
@@ -225,22 +229,20 @@ namespace desfire {
     }
 
     generic_file_settings const &any_file_settings::generic_settings() const {
-        if (not _settings.empty()) {
-            switch (type()) {
-                case file_type::standard:
-                    return get_settings<file_type::standard>();
-                case file_type::backup:
-                    return get_settings<file_type::backup>();
-                case file_type::value:
-                    return get_settings<file_type::value>();
-                case file_type::linear_record:
-                    return get_settings<file_type::linear_record>();
-                case file_type::cyclic_record:
-                    return get_settings<file_type::cyclic_record>();
-                default:
-                    DESFIRE_LOGE("any_file_settings::generic_settings: unhandled file type: %s", to_string(type()));
-                    break;
-            }
+        switch (type()) {
+            case file_type::standard:
+                return get<file_type::standard>();
+            case file_type::backup:
+                return get<file_type::backup>();
+            case file_type::value:
+                return get<file_type::value>();
+            case file_type::linear_record:
+                return get<file_type::linear_record>();
+            case file_type::cyclic_record:
+                return get<file_type::cyclic_record>();
+            default:
+                DESFIRE_LOGE("any_file_settings::generic_settings: unhandled file type: %s", to_string(type()));
+                break;
         }
         static generic_file_settings _dummy{};
         DESFIRE_LOGE("Cannot retrieve file settings from an empty file settings container.");
@@ -249,19 +251,17 @@ namespace desfire {
     }
 
     data_file_settings const &any_file_settings::data_settings() const {
-        if (not _settings.empty()) {
-            switch (type()) {
-                case file_type::standard:
-                    return get_settings<file_type::standard>();
-                case file_type::backup:
-                    return get_settings<file_type::backup>();
-                case file_type::value:  // [[fallthrough]];
-                case file_type::linear_record:  // [[fallthrough]];
-                case file_type::cyclic_record:  // [[fallthrough]];
-                default:
-                    DESFIRE_LOGE("Cannot retrieve data settings from a file of type %s", to_string(type()));
-                    break;
-            }
+        switch (type()) {
+            case file_type::standard:
+                return get<file_type::standard>();
+            case file_type::backup:
+                return get<file_type::backup>();
+            case file_type::value:  // [[fallthrough]];
+            case file_type::linear_record:  // [[fallthrough]];
+            case file_type::cyclic_record:  // [[fallthrough]];
+            default:
+                DESFIRE_LOGE("Cannot retrieve data settings from a file of type %s", to_string(type()));
+                break;
         }
         static data_file_settings _dummy{};
         _dummy = {};
@@ -269,19 +269,17 @@ namespace desfire {
     }
 
     record_file_settings const &any_file_settings::record_settings() const {
-        if (not _settings.empty()) {
-            switch (type()) {
-                case file_type::linear_record:
-                    return get_settings<file_type::linear_record>();
-                case file_type::cyclic_record:
-                    return get_settings<file_type::cyclic_record>();
-                case file_type::standard:  // [[fallthrough]];
-                case file_type::backup:  // [[fallthrough]];
-                case file_type::value:  // [[fallthrough]];
-                default:
-                    DESFIRE_LOGE("Cannot retrieve record settings from a file of type %s", to_string(type()));
-                    break;
-            }
+        switch (type()) {
+            case file_type::linear_record:
+                return get<file_type::linear_record>();
+            case file_type::cyclic_record:
+                return get<file_type::cyclic_record>();
+            case file_type::standard:  // [[fallthrough]];
+            case file_type::backup:  // [[fallthrough]];
+            case file_type::value:  // [[fallthrough]];
+            default:
+                DESFIRE_LOGE("Cannot retrieve record settings from a file of type %s", to_string(type()));
+                break;
         }
         static record_file_settings _dummy{};
         _dummy = {};
@@ -289,18 +287,16 @@ namespace desfire {
     }
 
     value_file_settings const &any_file_settings::value_settings() const {
-        if (not _settings.empty()) {
-            switch (type()) {
-                case file_type::value:
-                    return get_settings<file_type::value>();
-                case file_type::standard:  // [[fallthrough]];
-                case file_type::backup:  // [[fallthrough]];
-                case file_type::linear_record:  // [[fallthrough]];
-                case file_type::cyclic_record:  // [[fallthrough]];
-                default:
-                    DESFIRE_LOGE("Cannot retrieve value settings from a file of type %s", to_string(type()));
-                    break;
-            }
+        switch (type()) {
+            case file_type::value:
+                return get<file_type::value>();
+            case file_type::standard:  // [[fallthrough]];
+            case file_type::backup:  // [[fallthrough]];
+            case file_type::linear_record:  // [[fallthrough]];
+            case file_type::cyclic_record:  // [[fallthrough]];
+            default:
+                DESFIRE_LOGE("Cannot retrieve value settings from a file of type %s", to_string(type()));
+                break;
         }
         static value_file_settings _dummy{};
         _dummy = {};
@@ -481,11 +477,11 @@ namespace mlab {
             s.set_bad();
             return s;
         }
-        return s >> fs.mode >> fs.rights;
+        return s >> fs.security >> fs.rights;
     }
 
     bin_data &operator<<(bin_data &bd, desfire::generic_file_settings const &fs) {
-        return bd << fs.mode << fs.rights;
+        return bd << fs.security << fs.rights;
     }
 
     bin_stream &operator>>(bin_stream &s, desfire::data_file_settings &fs) {
@@ -596,19 +592,19 @@ namespace mlab {
         bd << fs.type();
         switch (fs.type()) {
             case desfire::file_type::standard:
-                bd << fs.get_settings<desfire::file_type::standard>();
+                bd << fs.get<desfire::file_type::standard>();
                 break;
             case desfire::file_type::backup:
-                bd << fs.get_settings<desfire::file_type::backup>();
+                bd << fs.get<desfire::file_type::backup>();
                 break;
             case desfire::file_type::value:
-                bd << fs.get_settings<desfire::file_type::value>();
+                bd << fs.get<desfire::file_type::value>();
                 break;
             case desfire::file_type::linear_record:
-                bd << fs.get_settings<desfire::file_type::linear_record>();
+                bd << fs.get<desfire::file_type::linear_record>();
                 break;
             case desfire::file_type::cyclic_record:
-                bd << fs.get_settings<desfire::file_type::cyclic_record>();
+                bd << fs.get<desfire::file_type::cyclic_record>();
                 break;
             default:
                 DESFIRE_LOGE("operator<<(any_file_settings const &): unhandled file type: %s", desfire::to_string(fs.type()));

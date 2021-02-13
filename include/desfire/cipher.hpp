@@ -10,33 +10,43 @@
 #include "log.h"
 
 namespace desfire {
-    using bits::comm_mode;
+    using bits::file_security;
+    using bits::cipher_mode;
+
     namespace {
-        using namespace mlab;
+        using mlab::bin_data;
+
+        template <class It>
+        using range = mlab::range<It>;
     }
 
-    enum cipher_iv {
+
+    inline cipher_mode cipher_mode_from_security(file_security security);
+
+    enum struct cipher_iv {
         global,
         zero
     };
 
-    inline const char *to_string(cipher_iv civ);
+    enum struct crypto_direction {
+        encrypt,
+        decrypt,
+        mac
+    };
 
     class cipher {
         cipher_iv _iv_mode = cipher_iv::global;
     public:
-        struct config;
-
         inline void set_iv_mode(cipher_iv v);
 
         inline cipher_iv iv_mode() const;
 
-        virtual void prepare_tx(bin_data &data, std::size_t offset, config const &cfg) = 0;
+        virtual void prepare_tx(bin_data &data, std::size_t offset, cipher_mode mode) = 0;
 
         /**
          * Assume that status byte comes last.
          */
-        virtual bool confirm_rx(bin_data &data, config const &cfg) = 0;
+        virtual bool confirm_rx(bin_data &data, cipher_mode mode) = 0;
 
         virtual void reinit_with_session_key(bin_data const &rndab) = 0;
 
@@ -50,34 +60,8 @@ namespace desfire {
         cipher &_c;
         cipher_iv _old_iv_mode;
     public:
-        explicit iv_session(cipher &c, cipher_iv iv_mode) : _c{c}, _old_iv_mode{c.iv_mode()} {
-            DESFIRE_LOGD("Switching crypto IV mode to %s (was %s).", to_string(iv_mode), to_string(_c.iv_mode()));
-            _c.set_iv_mode(iv_mode);
-        }
-        ~iv_session() {
-            DESFIRE_LOGD("Restoring crypto IV mode to %s.", to_string(_old_iv_mode));
-            _c.set_iv_mode(_old_iv_mode);
-        }
-    };
-
-    struct cipher::config {
-        comm_mode mode;
-        bool do_crc;        // If required by protocol and comm_mode;
-    };
-
-    static constexpr cipher::config cipher_cfg_plain{
-            .mode = comm_mode::plain,
-            .do_crc = true
-    };
-
-    static constexpr cipher::config cipher_cfg_crypto{
-            .mode = comm_mode::cipher,
-            .do_crc = true
-    };
-
-    static constexpr cipher::config cipher_cfg_crypto_nocrc{
-            .mode = comm_mode::cipher,
-            .do_crc = false
+        inline explicit iv_session(cipher &c, cipher_iv iv_mode);
+        inline ~iv_session();
     };
 
     template <std::size_t BlockSize, std::size_t MACSize, std::size_t CRCSize>
@@ -93,6 +77,34 @@ namespace desfire {
 }
 
 namespace desfire {
+
+    /**
+     * @todo Fix header includes so that this forward declaration is redundant.
+     */
+    const char *to_string(file_security);
+    const char *to_string(cipher_iv);
+
+    iv_session::iv_session(cipher &c, cipher_iv iv_mode) : _c{c}, _old_iv_mode{c.iv_mode()} {
+        DESFIRE_LOGD("Switching crypto IV mode to %s (was %s).", to_string(iv_mode), to_string(_c.iv_mode()));
+        _c.set_iv_mode(iv_mode);
+    }
+
+    iv_session::~iv_session() {
+        DESFIRE_LOGD("Restoring crypto IV mode to %s.", to_string(_old_iv_mode));
+        _c.set_iv_mode(_old_iv_mode);
+    }
+
+    cipher_mode cipher_mode_from_security(file_security security) {
+        switch (security) {
+            case file_security::none:           return cipher_mode::plain;
+            case file_security::authenticated:  return cipher_mode::maced;
+            case file_security::encrypted:      return cipher_mode::ciphered;
+            default:
+                DESFIRE_LOGE("Unsupported file security %s", to_string(security));
+                break;
+        }
+        return cipher_mode::plain;
+    }
     void cipher::set_iv_mode(cipher_iv v) {
         _iv_mode = v;
     }
@@ -115,14 +127,6 @@ namespace desfire {
             default:
                 DESFIRE_LOGE("Requesting whether a cipher is legacy with no cipher!");
                 return true;
-        }
-    }
-
-    const char *to_string(cipher_iv civ) {
-        switch (civ) {
-            case cipher_iv::global: return "global";
-            case cipher_iv::zero:   return "zero (local)";
-            default: return "UNKNOWN";
         }
     }
 

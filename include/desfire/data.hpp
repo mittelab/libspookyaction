@@ -6,22 +6,22 @@
 #define DESFIRE_DATA_HPP
 
 #include <memory>
-#include "mlab/any.hpp"
+#include <mlab/any_of.hpp>
 #include "bits.hpp"
 #include "cipher_impl.hpp"
 #include "key_actor.hpp"
 
 namespace desfire {
-    using mlab::any;
     using bits::status;
     using bits::cipher_type;
     using bits::command_code;
     using bits::app_crypto;
-    using bits::comm_mode;
+    using bits::file_security;
+    using bits::cipher_mode;
     using bits::file_type;
     using bits::all_records;
 
-    inline comm_mode comm_mode_most_secure(comm_mode l, comm_mode r);
+    inline cipher_mode cipher_mode_most_secure(cipher_mode l, cipher_mode r);
 
     using app_id = std::array<std::uint8_t, bits::app_id_length>;
     using file_id = std::uint8_t;
@@ -56,7 +56,7 @@ namespace desfire {
         file_integrity_error = static_cast<std::uint8_t>(status::file_integrity_error),
         controller_error,    ///< Specific for PCD error
         malformed,           ///< No data or incorrect data received when some specific format was expected
-        crypto_error         /**< @brief Something went wrong with crypto (@ref cipher::config)
+        crypto_error         /**< @brief Something went wrong with crypto (@ref cipher_mode)
                               * This could mean invalid MAC, CMAC, or CRC, or data length is not a multiple of block
                               * size when encrypted; this depends on the specified communication config.
                               */
@@ -140,11 +140,11 @@ namespace desfire {
     static_assert(sizeof(access_rights) == sizeof(std::uint16_t), "Must be able to pack 2 bytes structures.");
 
     struct generic_file_settings {
-        comm_mode mode = comm_mode::plain;
+        file_security security = file_security::none;
         access_rights rights;
 
         generic_file_settings() = default;
-        inline generic_file_settings(comm_mode mode_, access_rights rights_);
+        inline generic_file_settings(file_security security_, access_rights rights_);
     };
 
     struct data_file_settings {
@@ -232,16 +232,10 @@ namespace desfire {
     };
 
 
-    class any_file_settings {
-        file_type _type;
-        any _settings;
+    class any_file_settings : public mlab::any_of<file_type, file_settings, file_type::standard> {
     public:
-        inline any_file_settings();
+        using mlab::any_of<file_type, file_settings, file_type::standard>::any_of;
 
-        template <file_type Type>
-        inline explicit any_file_settings(file_settings<Type> settings);
-
-        inline file_type type() const;
         generic_file_settings const &generic_settings() const;
         generic_file_settings &generic_settings();
         data_file_settings const &data_settings() const;
@@ -250,14 +244,6 @@ namespace desfire {
         record_file_settings &record_settings();
         value_file_settings const &value_settings() const;
         value_file_settings &value_settings();
-
-        template <file_type Type>
-        file_settings<Type> const &get_settings() const;
-        template <file_type Type>
-        file_settings<Type> &get_settings();
-
-        template <file_type Type>
-        any_file_settings &operator=(file_settings<Type> settings);
     };
 
     struct app_settings {
@@ -315,21 +301,15 @@ namespace desfire {
             return std::unique_ptr<cipher>(new cipher_dummy());
         }
         inline bin_data &operator<<(bin_data &bd) const {
-            DESFIRE_LOGE("Attempt at writing key of an invalid cipher type.");
+            DESFIRE_LOGE("Attempt at writing key of an invalid encrypted type.");
             return bd;
         }
     };
 
-    class any_key {
-        cipher_type _type;
-        any _key;
+    class any_key : public mlab::any_of<cipher_type, key, cipher_type::none> {
     public:
-        inline any_key();
+        using mlab::any_of<cipher_type, key, cipher_type::none>::any_of;
 
-        template <cipher_type Type>
-        inline explicit any_key(key<Type> entry);
-
-        inline cipher_type type() const;
         std::uint8_t key_number() const;
         std::uint8_t version() const;
 
@@ -340,14 +320,6 @@ namespace desfire {
         std::size_t size() const;
 
         std::unique_ptr<cipher> make_cipher() const;
-
-        template <cipher_type Type>
-        key<Type> const &get_key() const;
-        template <cipher_type Type>
-        key<Type> &get_key();
-
-        template <cipher_type Type>
-        any_key &operator=(key<Type> entry);
 
         bool parity_bits_are_version() const;
 
@@ -438,14 +410,6 @@ namespace desfire {
 }
 
 namespace mlab {
-    namespace ctti {
-        template <desfire::cipher_type Type>
-        struct type_info<desfire::key<Type>> : public std::integral_constant<id_type, static_cast<id_type>(Type)> {
-        };
-        template <desfire::file_type Type>
-        struct type_info<desfire::file_settings<Type>> : public std::integral_constant<id_type, static_cast<id_type>(Type)> {
-        };
-    }
 
     bin_stream &operator>>(bin_stream &s, desfire::key_rights &kr);
     bin_stream &operator>>(bin_stream &s, desfire::app_settings &ks);
@@ -500,66 +464,6 @@ namespace desfire {
         return std::unique_ptr<Cipher>(new Cipher(storage::k));
     }
 
-    any_key::any_key() : _type{cipher_type::none}, _key{key<cipher_type::none>{}} {}
-
-    template <cipher_type Type>
-    any_key::any_key(key<Type> entry) :
-            _type{Type}, _key{std::move(entry)} {}
-
-    template <cipher_type Type>
-    any_key &any_key::operator=(key<Type> entry) {
-        _type = Type;
-        _key = std::move(entry);
-        return *this;
-    }
-
-    cipher_type any_key::type() const {
-        return _type;
-    }
-
-
-    template <cipher_type Type>
-    key<Type> const &any_key::get_key() const {
-        return _key.template get<key<Type>>();
-    }
-
-    template <cipher_type Type>
-    key<Type> &any_key::get_key() {
-        return _key.template get<key<Type>>();
-    }
-
-
-    any_file_settings::any_file_settings() : _type{file_type::value}, _settings{} {}
-
-    template <file_type Type>
-    any_file_settings::any_file_settings(file_settings<Type> settings) :
-            _type{Type}, _settings{std::move(settings)} {}
-
-    template <file_type Type>
-    any_file_settings &any_file_settings::operator=(file_settings<Type> settings) {
-        _type = Type;
-        _settings = std::move(settings);
-        return *this;
-    }
-
-    file_type any_file_settings::type() const {
-        if (_settings.empty()) {
-            DESFIRE_LOGE("Cannot retrieve file settings from an empty file settings container.");
-        }
-        return _type;
-    }
-
-
-    template <file_type Type>
-    file_settings<Type> const &any_file_settings::get_settings() const {
-        return _settings.template get<file_settings<Type>>();
-    }
-
-    template <file_type Type>
-    file_settings<Type> &any_file_settings::get_settings() {
-        return _settings.template get<file_settings<Type>>();
-    }
-
     app_settings::app_settings(app_crypto crypto_, key_rights rights_, std::uint8_t max_num_keys_) :
             rights{rights_}, max_num_keys{max_num_keys_}, crypto{crypto_} {}
 
@@ -579,10 +483,16 @@ namespace desfire {
         return 1 << (approx() ? exponent() + 1 : exponent());
     }
 
-    comm_mode comm_mode_most_secure(comm_mode l, comm_mode r) {
-        static_assert(std::uint8_t(comm_mode::plain) < std::uint8_t(comm_mode::mac) and std::uint8_t(comm_mode::mac) < std::uint8_t(comm_mode::cipher),
-                "If this does not hold this method must be reimplemented manually.");
-        return static_cast<comm_mode>(std::max(static_cast<std::uint8_t>(l), static_cast<std::uint8_t>(r)));
+    cipher_mode cipher_mode_most_secure(cipher_mode l, cipher_mode r) {
+        if (l == cipher_mode::ciphered or r == cipher_mode::ciphered) {
+            return cipher_mode::ciphered;
+        } else if (l == cipher_mode::ciphered_no_crc or r == cipher_mode::ciphered_no_crc) {
+            return cipher_mode::ciphered_no_crc;
+        } else if (l == cipher_mode::maced or r == cipher_mode::maced) {
+            return cipher_mode::maced;
+        } else {
+            return cipher_mode::plain;
+        }
     }
 
     constexpr access_rights::access_rights() : value{0} {}
@@ -617,7 +527,7 @@ namespace desfire {
         return retval;
     }
 
-    generic_file_settings::generic_file_settings(comm_mode mode_, access_rights rights_) : mode{mode_}, rights{rights_}
+    generic_file_settings::generic_file_settings(file_security security_, access_rights rights_) : security{security_}, rights{rights_}
     {}
 }
 

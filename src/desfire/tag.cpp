@@ -154,22 +154,22 @@ namespace desfire {
         return std::move(rx_data);
     }
 
-    tag::r<status, bin_data> tag::command_status_response(command_code cmd, bin_data const &data, comm_cfg const &cfg)
+    tag::r<status, bin_data> tag::command_status_response(command_code cmd, bin_data const &data, comm_cfg const &cfg, cipher *override_cipher)
     {
-        if (_active_cipher == nullptr and cfg.override_cipher == nullptr) {
+        if (_active_cipher == nullptr and override_cipher == nullptr) {
             DESFIRE_LOGE("No active cipher and no override cipher: 'tag' is in an invalid state (coding mistake).");
             return error::crypto_error;
         }
-        DESFIRE_LOGD("%s: TX mode: %s, CRC: %d, ofs: %u", to_string(cmd),
-                     to_string(cfg.tx.mode), cfg.tx.do_crc, cfg.tx_secure_data_offset);
-        DESFIRE_LOGD("%s: RX mode: %s, CRC: %d, fetch AF: %u", to_string(cmd),
-                     to_string(cfg.rx.mode), cfg.rx.do_crc, cfg.rx_auto_fetch_additional_frames);
+        DESFIRE_LOGD("%s: TX mode: %s, ofs: %u", to_string(cmd),
+                     to_string(cfg.tx), cfg.tx_secure_data_offset);
+        DESFIRE_LOGD("%s: RX mode: %s, fetch AF: %u", to_string(cmd),
+                     to_string(cfg.rx), cfg.rx_auto_fetch_additional_frames);
 
         // If we exit prematurely, and we are using the cipher of this tag, trigger a logout by error.
-        auto_logout logout_on_error{*this, cfg.override_cipher != nullptr};
+        auto_logout logout_on_error{*this, override_cipher != nullptr};
 
         // Select the right cipher and prepare the buffers
-        cipher &c = cfg.override_cipher == nullptr ? *_active_cipher : *cfg.override_cipher;
+        cipher &c = override_cipher == nullptr ? *_active_cipher : *override_cipher;
 
         // Assemble data to transmit and preprocess
         static bin_data tx_data;
@@ -209,11 +209,11 @@ namespace desfire {
         return {cmd_status, std::move(rx_data)};
     }
 
-    tag::r<bin_data> tag::command_response(command_code cmd, const bin_data &payload, const tag::comm_cfg &cfg)
+    tag::r<bin_data> tag::command_response(command_code cmd, const bin_data &payload, const tag::comm_cfg &cfg, cipher *override_cipher)
     {
-        auto_logout logout_on_error{*this, cfg.override_cipher != nullptr};
+        auto_logout logout_on_error{*this, override_cipher != nullptr};
 
-        auto res_status_cmd = command_status_response(cmd, payload, cfg);
+        auto res_status_cmd = command_status_response(cmd, payload, cfg, override_cipher);
         if (not res_status_cmd) {
             return res_status_cmd.error();
         }
@@ -251,21 +251,18 @@ namespace desfire {
 
         /// Initialize a new cipher of the appropriate type for the key exchange protocol and the relative comm modes
         auto pcipher = k.make_cipher();
-        const comm_cfg cfg_txrx_cipher_nocrc{cipher_cfg_crypto_nocrc, 1, false, pcipher.get()};
 
         /// Send the right authentication command for the key type and the key number, get RndB
         DESFIRE_LOGD("Authentication with key %u (%s): sending auth command.", k.key_number(), to_string(k.type()));
 
-        // The authentication is all plain, but we receive it as encrypted data without CRC. Just set everything to
-        // crypto without CRC and the offset beyond the payload.
-        // Also, do not parse the status into an error, because this packet will have an "additional frame" status,
+        // Do not parse the status into an error, because this packet will have an "additional frame" status,
         // which we need to handle in a custom way (sending our own payload). We will later assess and return if the
         // returned status is not "additional frame".
         const auto res_rndb = command_status_response(
                 auth_command(k.type()),
                 bin_data::chain(k.key_number()),
-                // After auth command and payload, i.e. no encryption is performed in TX
-                cfg_txrx_cipher_nocrc.with(2, false)
+                comm_cfg{cipher_mode::plain, cipher_mode::cipher_no_crc},
+                pcipher.get()
         );
 
         if (not res_rndb) {
@@ -288,7 +285,8 @@ namespace desfire {
         const auto res_rndap = command_response(
                 command_code::additional_frame,
                 bin_data::chain(prealloc(rnda.size() * 2), rnda, rndb.view(1), rndb.front()),
-                cfg_txrx_cipher_nocrc
+                cipher_mode::cipher_no_crc,
+                pcipher.get()
         );
 
         if (not res_rndap) {
@@ -370,7 +368,7 @@ namespace desfire {
         return safe_drop_payload(command_code::change_key_settings, command_response(
                 command_code::change_key_settings,
                 bin_data::chain(new_rights),
-                {cipher_cfg_crypto, cipher_default().rx}));
+                {cipher_mode::cipher_crc, cipher_default().rx}));
     }
 
     tag::r<> tag::delete_application(app_id const &app) {
@@ -445,12 +443,6 @@ namespace desfire {
 
     tag::r<> tag::change_key_internal(any_key const *current_key, std::uint8_t key_no_to_change, any_key const &new_key)
     {
-        static const comm_cfg change_key_cfg{
-            cipher::config{.mode = comm_mode::cipher, .do_crc = false},
-            cipher::config{.mode = comm_mode::plain, .do_crc = false},
-            2,  // command code and key number are not encrypted
-        };
-
         // Tweak the key number to allow change type of key on the root app (since cipher type must be set at creation).
         const std::uint8_t key_no_flag = (active_app() == root_app
                 ? key_no_to_change | static_cast<std::uint8_t>(app_crypto_from_cipher(new_key.type()))
@@ -488,7 +480,11 @@ namespace desfire {
             }
         }
 
-        const auto res_cmd =  command_response(command_code::change_key, payload, change_key_cfg);
+        const auto res_cmd =  command_response(
+                command_code::change_key,
+                payload,                     // command code and key number are not encrypted -vv
+                comm_cfg{cipher_mode::cipher_no_crc, cipher_mode::plain, 2}
+        );
         if (res_cmd) {
             DESFIRE_LOGD("Key %d (%s) was changed.", new_key.key_number(), to_string(new_key.type()));
         } else {
@@ -572,11 +568,10 @@ namespace desfire {
             return res_mode.error();
         }
         // RX happens with the chosen file protection, except on nonlegacy ciphers where plain becomes maced
-        const auto rx_comm_mode = comm_mode_most_secure(*res_mode, cipher_default().rx.mode);
-        const comm_cfg cfg{cipher_default().tx, cipher::config{rx_comm_mode, true}};
+        const auto rx_cipher_mode = cipher_mode_most_secure(cipher_mode_from_comm_mode(*res_mode), cipher_default().rx);
         bin_data payload{prealloc(7)};
         payload << fid << lsb24 << offset << lsb24 << length;
-        return command_response(command_code::read_data, payload, cfg);
+        return command_response(command_code::read_data, payload, comm_cfg{cipher_default().tx, rx_cipher_mode});
     }
 
     tag::r<> tag::write_data(file_id fid, std::uint32_t offset, bin_data const &data, file_security security) {
@@ -599,7 +594,7 @@ namespace desfire {
         if (not res_mode) {
             return res_mode.error();
         }
-        const comm_cfg cfg{cipher::config{*res_mode, true}, cipher_default().rx,
+        const comm_cfg cfg{cipher_mode_from_comm_mode(*res_mode), cipher_default().rx,
                            8 /* secure with legacy MAC only data */};
 
         bin_data payload{prealloc(data.size() + 7)};
@@ -619,9 +614,11 @@ namespace desfire {
             return res_mode.error();
         }
         // RX happens with the chosen file protection, except on nonlegacy ciphers where plain becomes maced
-        const auto rx_comm_mode = comm_mode_most_secure(*res_mode, cipher_default().rx.mode);
-        const comm_cfg cfg{cipher_default().tx, cipher::config{rx_comm_mode, true}};
-        return command_parse_response<std::int32_t>(command_code::get_value, bin_data::chain(prealloc(1), fid), cfg);
+        const auto rx_cipher_mode = cipher_mode_most_secure(cipher_mode_from_comm_mode(*res_mode), cipher_default().rx);
+        return command_parse_response<std::int32_t>(
+                command_code::get_value,
+                bin_data::chain(prealloc(1), fid),
+                comm_cfg{cipher_default().tx, rx_cipher_mode});
     }
 
     tag::r<> tag::write_value(command_code cmd, file_id fid, std::int32_t amount, file_security security) {
@@ -640,7 +637,7 @@ namespace desfire {
         if (not res_mode) {
             return res_mode.error();
         }
-        const comm_cfg cfg{cipher::config{*res_mode, true}, cipher_default().rx, 2 /* after FID */};
+        const comm_cfg cfg{cipher_mode_from_comm_mode(*res_mode), cipher_default().rx, 2 /* after FID */};
         bin_data payload{prealloc(5)};
         payload << fid << lsb32 << amount;
         return safe_drop_payload(cmd, command_response(cmd, payload, cfg));
@@ -677,7 +674,7 @@ namespace desfire {
         if (not res_mode) {
             return res_mode.error();
         }
-        const comm_cfg cfg{cipher::config{*res_mode, true}, cipher_default().rx,
+        const comm_cfg cfg{cipher_mode_from_comm_mode(*res_mode), cipher_default().rx,
                            8 /* secure with legacy MAC only data */};
 
         bin_data payload{prealloc(data.size() + 7)};
@@ -707,13 +704,11 @@ namespace desfire {
             return res_mode.error();
         }
         // RX happens with the chosen file protection, except on nonlegacy ciphers where plain becomes maced
-        const auto rx_comm_mode = comm_mode_most_secure(*res_mode, cipher_default().rx.mode);
-        const comm_cfg cfg{cipher_default().tx, cipher::config{rx_comm_mode, true}};
-
+        const auto rx_cipher_mode = cipher_mode_most_secure(cipher_mode_from_comm_mode(*res_mode), cipher_default().rx);
         bin_data payload{prealloc(record_count + 7)};
         payload << fid << lsb24 << record_index << lsb24 << record_count;
 
-        return command_response(command_code::read_records, payload, cfg);
+        return command_response(command_code::read_records, payload, comm_cfg{cipher_default().tx, rx_cipher_mode});
     }
 
 
@@ -815,8 +810,10 @@ namespace desfire {
         if (active_cipher_type() == cipher_type::none) {
             DESFIRE_LOGW("%s: did not authenticate, likely to fail.", to_string(command_code::get_card_uid));
         }
-        const comm_cfg cfg{cipher_default().tx, cipher_cfg_crypto};
-        return command_parse_response<std::array<std::uint8_t, 7>>(command_code::get_card_uid, bin_data{}, cfg);
+        return command_parse_response<std::array<std::uint8_t, 7>>(
+                command_code::get_card_uid,
+                bin_data{},
+                comm_cfg{cipher_default().tx, cipher_mode::cipher_crc});
     }
 
     tag::r<std::uint32_t> tag::get_free_mem() {
@@ -841,7 +838,7 @@ namespace desfire {
         if (enable_random_id) {
             flag |= bits::config_flag_enable_random_uid;
         }
-        const comm_cfg cfg{cipher_cfg_crypto, cipher_default().rx, 2};
+        const comm_cfg cfg{cipher_mode::cipher_crc, cipher_default().rx, 2};
         return safe_drop_payload(command_code::set_configuration, command_response(
                 command_code::set_configuration,
                 bin_data::chain(prealloc(2), active_key_no(), flag),

@@ -17,10 +17,11 @@ namespace desfire {
     using bits::command_code;
     using bits::app_crypto;
     using bits::comm_mode;
+    using bits::cipher_mode;
     using bits::file_type;
     using bits::all_records;
 
-    inline comm_mode comm_mode_most_secure(comm_mode l, comm_mode r);
+    inline cipher_mode cipher_mode_most_secure(cipher_mode l, cipher_mode r);
 
     using app_id = std::array<std::uint8_t, bits::app_id_length>;
     using file_id = std::uint8_t;
@@ -482,10 +483,16 @@ namespace desfire {
         return 1 << (approx() ? exponent() + 1 : exponent());
     }
 
-    comm_mode comm_mode_most_secure(comm_mode l, comm_mode r) {
-        static_assert(std::uint8_t(comm_mode::plain) < std::uint8_t(comm_mode::mac) and std::uint8_t(comm_mode::mac) < std::uint8_t(comm_mode::cipher),
-                "If this does not hold this method must be reimplemented manually.");
-        return static_cast<comm_mode>(std::max(static_cast<std::uint8_t>(l), static_cast<std::uint8_t>(r)));
+    cipher_mode cipher_mode_most_secure(cipher_mode l, cipher_mode r) {
+        if (l == cipher_mode::cipher_crc or r == cipher_mode::cipher_crc) {
+            return cipher_mode::cipher_crc;
+        } else if (l == cipher_mode::cipher_no_crc or r == cipher_mode::cipher_no_crc) {
+            return cipher_mode::cipher_no_crc;
+        } else if (l == cipher_mode::mac or r == cipher_mode::mac) {
+            return cipher_mode::mac;
+        } else {
+            return cipher_mode::plain;
+        }
     }
 
     constexpr access_rights::access_rights() : value{0} {}

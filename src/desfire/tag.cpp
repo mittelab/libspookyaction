@@ -263,10 +263,12 @@ namespace desfire {
         // Do not parse the status into an error, because this packet will have an "additional frame" status,
         // which we need to handle in a custom way (sending our own payload). We will later assess and return if the
         // returned status is not "additional frame".
+        // Also, we do not want to pass the initial command through CMAC even in modern ciphers, so we set secure data
+        // offset to >= 2 (length of the payload) and mode to ciphered_no_crc
         const auto res_rndb = command_status_response(
                 auth_command(k.type()),
                 bin_data::chain(k.key_number()),
-                comm_cfg{cipher_mode::plain, cipher_mode::ciphered_no_crc},
+                comm_cfg{cipher_mode::ciphered_no_crc, 2, false},
                 pcipher.get()
         );
 

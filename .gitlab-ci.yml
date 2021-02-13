@@ -19,7 +19,7 @@ check format:
       - 001-formatting.patch
     expire_in: 1 week
     when: on_failure
-  
+
 
 test examples:
   stage: check
@@ -38,7 +38,7 @@ test hardware:
   image: shaguarger/platformio:latest
   script:
     - pio project init --board="m5stack-core-esp32" -O "framework=espidf" -O "platform=espressif32" -O "test_build_project_src=yes" -O "build_flags = -D CONFIG_MBEDTLS_DES_C -D KEYCARD_UNIT_TEST_MAIN"
-    - pio remote test
+    - pio remote test --upload-port /dev/ttyUSB0
   cache:
     key: ${CI_COMMIT_REF_SLUG}
     paths:
@@ -46,7 +46,7 @@ test hardware:
       - .pio/
   rules:
     - if: "$PLATFORMIO_AUTH_TOKEN"
-  
+
 
 pages:
   stage: deploy

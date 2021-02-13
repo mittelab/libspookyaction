@@ -204,8 +204,8 @@ void test_cipher_des() {
     }
     {
         /**
-         * @note This test checks that the direction of the encrypted matches the odd implementation in Desfire, which
-         * requires to de-encrypted the data that we are sending. See note on @ref desfire::cipher_scheme_legacy.
+         * @note This test checks that the direction of the cipher matches the odd implementation in Desfire, which
+         * requires to de-cipher the data that we are sending. See note on @ref desfire::cipher_scheme_legacy.
          */
         const auto k = desfire::key<desfire::cipher_type::des>{0, {0xc8, 0x6d, 0xb4, 0x4f, 0x05, 0x52, 0xb6, 0x9b}};
         desfire::cipher_des c{k.k};
@@ -563,7 +563,7 @@ void test_mifare_create_apps() {
 
     for (ut::app_with_keys const &app : ut::test_apps) {
         const auto ct = app.default_key.type();
-        ESP_LOGI(TEST_TAG, "Creating app with encrypted %s.", desfire::to_string(ct));
+        ESP_LOGI(TEST_TAG, "Creating app with cipher %s.", desfire::to_string(ct));
         TEST_ASSERT(mifare->select_application(desfire::root_app));
         TEST_ASSERT(mifare->authenticate(desfire::key<desfire::cipher_type::des>{}));
         TEST_ASSERT(mifare->create_application(app.aid, desfire::app_settings{ct}));
@@ -596,7 +596,7 @@ void test_mifare_change_app_key() {
     TEST_ASSERT(pcd != nullptr and mifare != nullptr);
 
     for (ut::app_with_keys const &app : ut::test_apps) {
-        ESP_LOGI(TEST_TAG, "Changing same key of app with encrypted %s.", desfire::to_string(app.default_key.type()));
+        ESP_LOGI(TEST_TAG, "Changing same key of app with cipher %s.", desfire::to_string(app.default_key.type()));
         TEST_ASSERT(mifare->select_application(app.aid));
         if (not mifare->authenticate(app.default_key)) {
             ESP_LOGW(TEST_TAG, "Default key not working, attempting secondary key and reset...");

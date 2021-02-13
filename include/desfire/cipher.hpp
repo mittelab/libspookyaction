@@ -8,6 +8,7 @@
 #include "mlab/bin_data.hpp"
 #include "bits.hpp"
 #include "log.h"
+#include "msg.hpp"
 
 namespace desfire {
     using bits::comm_mode;
@@ -15,7 +16,16 @@ namespace desfire {
         using namespace mlab;
     }
 
-    enum cipher_iv {
+    enum struct cipher_mode : std::uint8_t {
+        plain = static_cast<std::uint8_t>(comm_mode::plain),
+        mac = static_cast<std::uint8_t>(comm_mode::mac),
+        cipher_crc = static_cast<std::uint8_t>(comm_mode::cipher),
+        cipher_no_crc
+    };
+
+    inline cipher_mode cipher_mode_from_comm_mode(comm_mode mode, bool use_crc = true);
+
+    enum struct cipher_iv {
         global,
         zero
     };
@@ -25,18 +35,16 @@ namespace desfire {
     class cipher {
         cipher_iv _iv_mode = cipher_iv::global;
     public:
-        struct config;
-
         inline void set_iv_mode(cipher_iv v);
 
         inline cipher_iv iv_mode() const;
 
-        virtual void prepare_tx(bin_data &data, std::size_t offset, config const &cfg) = 0;
+        virtual void prepare_tx(bin_data &data, std::size_t offset, cipher_mode mode) = 0;
 
         /**
          * Assume that status byte comes last.
          */
-        virtual bool confirm_rx(bin_data &data, config const &cfg) = 0;
+        virtual bool confirm_rx(bin_data &data, cipher_mode mode) = 0;
 
         virtual void reinit_with_session_key(bin_data const &rndab) = 0;
 
@@ -60,26 +68,6 @@ namespace desfire {
         }
     };
 
-    struct cipher::config {
-        comm_mode mode;
-        bool do_crc;        // If required by protocol and comm_mode;
-    };
-
-    static constexpr cipher::config cipher_cfg_plain{
-            .mode = comm_mode::plain,
-            .do_crc = true
-    };
-
-    static constexpr cipher::config cipher_cfg_crypto{
-            .mode = comm_mode::cipher,
-            .do_crc = true
-    };
-
-    static constexpr cipher::config cipher_cfg_crypto_nocrc{
-            .mode = comm_mode::cipher,
-            .do_crc = false
-    };
-
     template <std::size_t BlockSize, std::size_t MACSize, std::size_t CRCSize>
     struct cipher_traits {
         static constexpr std::size_t block_size = BlockSize;
@@ -93,6 +81,18 @@ namespace desfire {
 }
 
 namespace desfire {
+
+    cipher_mode cipher_mode_from_comm_mode(comm_mode mode, bool use_crc) {
+        switch (mode) {
+            case comm_mode::plain:  return cipher_mode::plain;
+            case comm_mode::mac:    return cipher_mode::mac;
+            case comm_mode::cipher: return use_crc ? cipher_mode::cipher_crc : cipher_mode::cipher_no_crc;
+            default:
+                DESFIRE_LOGE("Unsupported comm mode %s", to_string(mode));
+                break;
+        }
+        return cipher_mode::plain;
+    }
     void cipher::set_iv_mode(cipher_iv v) {
         _iv_mode = v;
     }

@@ -43,9 +43,9 @@ namespace desfire {
 
         static bool drop_padding_verify_crc(bin_data &d);
 
-        void prepare_tx(bin_data &data, std::size_t offset, config const &cfg) final;
+        void prepare_tx(bin_data &data, std::size_t offset, cipher_mode mode) final;
 
-        bool confirm_rx(bin_data &data, config const &cfg) final;
+        bool confirm_rx(bin_data &data, cipher_mode mode) final;
 
     };
 
@@ -90,9 +90,9 @@ namespace desfire {
          */
         bool drop_padding_verify_crc(bin_data &d, std::uint8_t status);
 
-        void prepare_tx(bin_data &data, std::size_t offset, config const &cfg) final;
+        void prepare_tx(bin_data &data, std::size_t offset, cipher_mode mode) final;
 
-        bool confirm_rx(bin_data &data, config const &cfg) final;
+        bool confirm_rx(bin_data &data, cipher_mode mode) final;
 
     };
 

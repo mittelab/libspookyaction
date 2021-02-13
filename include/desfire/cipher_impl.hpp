@@ -72,14 +72,14 @@ namespace desfire {
 
     class cipher_dummy final : public cipher {
     public:
-        void prepare_tx(bin_data &, std::size_t, config const &cfg) override {
-            if (cfg.mode != comm_mode::plain) {
+        void prepare_tx(bin_data &, std::size_t, cipher_mode mode) override {
+            if (mode != cipher_mode::plain) {
                 DESFIRE_LOGE("Dummy cipher supports only plain comm mode.");
             }
         }
 
-        bool confirm_rx(bin_data &, config const &cfg) override {
-            if (cfg.mode != comm_mode::plain) {
+        bool confirm_rx(bin_data &, cipher_mode mode) override {
+            if (mode != cipher_mode::plain) {
                 DESFIRE_LOGE("Dummy cipher supports only plain comm mode.");
                 return false;
             }

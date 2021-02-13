@@ -56,94 +56,73 @@ namespace desfire {
         return false;
     }
 
-    void cipher_legacy_scheme::prepare_tx(bin_data &data, std::size_t offset, cipher::config const &cfg) {
-        if (offset >= data.size()) {
+    void cipher_legacy_scheme::prepare_tx(bin_data &data, std::size_t offset, cipher_mode mode) {
+        if (offset >= data.size() or mode == cipher_mode::plain) {
             return;  // Nothing to do
         }
-        switch (cfg.mode) {
-            case comm_mode::plain:
-                break;  // Nothing to do
-            case comm_mode::mac: {
-                    // Apply mac overrides mode.
-                    if (offset >= data.size()) {
-                        DESFIRE_LOGE("Specified offset leaves no data to mac.");
-                        break;
-                    }
-                    const auto mac = compute_mac(data.view(offset));
-                    ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " TX MAC", mac.data(), mac.size(), ESP_LOG_DEBUG);
-                    data << mac;
-                }
-                break;
-            case comm_mode::cipher:
-                if (offset >= data.size()) {
-                    DESFIRE_LOGE("Specified offset leaves no data to encipher.");
-                    break;
-                }
-                if (cfg.do_crc) {
-                    data.reserve(offset + padded_length<block_size>(data.size() + crc_size - offset));
-                    data << lsb16 << compute_crc16(data.view(offset));
-                } else {
-                    data.reserve(offset + padded_length<block_size>(data.size() - offset));
-                }
-                data.resize(offset + padded_length<block_size>(data.size() - offset), 0x00);
-                do_crypto(data.view(offset), crypto_mode::encrypt, get_iv());
-                break;
+        if (mode == cipher_mode::mac) {
+            const auto mac = compute_mac(data.view(offset));
+            ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " TX MAC", mac.data(), mac.size(), ESP_LOG_DEBUG);
+            data << mac;
+        } else {
+            if (mode == cipher_mode::cipher_crc) {
+                data.reserve(offset + padded_length<block_size>(data.size() + crc_size - offset));
+                data << lsb16 << compute_crc16(data.view(offset));
+            } else {
+                data.reserve(offset + padded_length<block_size>(data.size() - offset));
+            }
+            data.resize(offset + padded_length<block_size>(data.size() - offset), 0x00);
+            do_crypto(data.view(offset), crypto_mode::encrypt, get_iv());
         }
     }
 
 
-    bool cipher_legacy_scheme::confirm_rx(bin_data &data, cipher::config const &cfg) {
-        if (data.size() == 1) {
+    bool cipher_legacy_scheme::confirm_rx(bin_data &data, cipher_mode mode) {
+        if (data.size() == 1 or mode == cipher_mode::plain) {
             // Just status byte, return as-is
             return true;
         }
-        switch (cfg.mode) {
-            case comm_mode::plain:
-                break;  // Nothing to do
-            case comm_mode::mac: {
-                    bin_stream s{data};
-                    // Data, followed by mac, followed by status
-                    const auto data_view = s.read(s.remaining() - mac_size - 1);
-                    // Compute mac on data
-                    const mac_t computed_mac = compute_mac(data_view);
-                    ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " RX MAC", computed_mac.data(), computed_mac.size(), ESP_LOG_DEBUG);
-                    // Extract the transmitted mac
-                    mac_t rxd_mac{};
-                    s >> rxd_mac;
-                    if (rxd_mac == computed_mac) {
-                        // Good, move status byte at the end and drop the mac
-                        data[data.size() - mac_size - 1] = data[data.size() - 1];
-                        data.resize(data.size() - mac_size);
-                        return true;
-                    }
-                    ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " != MAC", rxd_mac.data(), rxd_mac.size(), ESP_LOG_DEBUG);
-                    return false;
-                }
-                break;
-            case comm_mode::cipher:
-                // Pop the status byte
-                const std::uint8_t status = data.back();
-                data.pop_back();
-                // Decipher what's left
-                if (data.size() % block_size != 0) {
-                    DESFIRE_LOGW("Received enciphered data of length %u, not a multiple of the block size %u.",
-                         data.size(), block_size);
-                    ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG, data.data(), data.size(), ESP_LOG_WARN);
-                    return false;
-                }
-                do_crypto(data.view(), crypto_mode::decrypt, get_iv());
-                if (cfg.do_crc) {
-                    // Truncate the padding and the crc
-                    const bool did_verify = drop_padding_verify_crc(data);
-                    // Reappend the status byte
-                    data << status;
-                    return did_verify;
-                } else {
-                    // Reappend the status byte
-                    data << status;
-                    return true;
-                }
-                break;
+        if (mode == cipher_mode::mac) {
+            bin_stream s{data};
+            // Data, followed by mac, followed by status
+            const auto data_view = s.read(s.remaining() - mac_size - 1);
+            // Compute mac on data
+            const mac_t computed_mac = compute_mac(data_view);
+            ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " RX MAC", computed_mac.data(), computed_mac.size(), ESP_LOG_DEBUG);
+            // Extract the transmitted mac
+            mac_t rxd_mac{};
+            s >> rxd_mac;
+            if (rxd_mac == computed_mac) {
+                // Good, move status byte at the end and drop the mac
+                data[data.size() - mac_size - 1] = data[data.size() - 1];
+                data.resize(data.size() - mac_size);
+                return true;
+            }
+            ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " != MAC", rxd_mac.data(), rxd_mac.size(), ESP_LOG_DEBUG);
+            return false;
+        } else {
+            // Pop the status byte
+            const std::uint8_t status = data.back();
+            data.pop_back();
+            // Decipher what's left
+            if (data.size() % block_size != 0) {
+                DESFIRE_LOGW("Received enciphered data of length %u, not a multiple of the block size %u.",
+                             data.size(), block_size);
+                ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG, data.data(), data.size(), ESP_LOG_WARN);
+                return false;
+            }
+            do_crypto(data.view(), crypto_mode::decrypt, get_iv());
+            if (mode == cipher_mode::cipher_crc) {
+                // Truncate the padding and the crc
+                const bool did_verify = drop_padding_verify_crc(data);
+                // Reappend the status byte
+                data << status;
+                return did_verify;
+            } else {
+                // Reappend the status byte
+                data << status;
+                return true;
+            }
         }
         return true;
     }

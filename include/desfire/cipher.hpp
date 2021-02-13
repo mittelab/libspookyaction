@@ -8,7 +8,6 @@
 #include "mlab/bin_data.hpp"
 #include "bits.hpp"
 #include "log.h"
-#include "msg.hpp"
 
 namespace desfire {
     using bits::comm_mode;
@@ -76,6 +75,11 @@ namespace desfire {
 }
 
 namespace desfire {
+
+    /**
+     * @todo Fix header includes so that this forward declaration is redundant.
+     */
+    const char *to_string(comm_mode);
 
     cipher_mode cipher_mode_from_comm_mode(comm_mode mode, bool use_crc) {
         switch (mode) {

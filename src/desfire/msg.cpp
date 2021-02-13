@@ -27,11 +27,11 @@ namespace desfire {
     }
 
 
-    const char *to_string(crypto_mode mode) {
+    const char *to_string(crypto_direction mode) {
         switch (mode) {
-            case crypto_mode::encrypt: return "encrypt";
-            case crypto_mode::decrypt: return "decrypt";
-            case crypto_mode::mac:     return "mac";
+            case crypto_direction::encrypt: return "encrypt";
+            case crypto_direction::decrypt: return "decrypt";
+            case crypto_direction::mac:     return "mac";
             default:
                 return "UNKNOWN";
         }

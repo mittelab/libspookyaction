@@ -40,7 +40,7 @@ namespace desfire {
             // Prepare subkey by ciphering
             bin_data block;
             block.resize(block_size, 0x00);
-            do_crypto(block.view(), crypto_mode::mac, get_iv());
+            do_crypto(block.view(), crypto_direction::mac, get_iv());
             return block;
         }();
 
@@ -79,7 +79,7 @@ namespace desfire {
 
         // Return the first 8 bytes of the last block
         block_t &iv = get_iv();
-        do_crypto(buffer.view(), crypto_mode::mac, iv);
+        do_crypto(buffer.view(), crypto_direction::mac, iv);
         return {iv[0], iv[1], iv[2], iv[3], iv[4], iv[5], iv[6], iv[7]};
     }
 
@@ -137,7 +137,7 @@ namespace desfire {
                 data.reserve(offset + padded_length<block_size>(data.size() - offset));
             }
             data.resize(offset + padded_length<block_size>(data.size() - offset), 0x00);
-            do_crypto(data.view(offset), crypto_mode::encrypt, get_iv());
+            do_crypto(data.view(offset), crypto_direction::encrypt, get_iv());
         }
     }
 
@@ -181,7 +181,7 @@ namespace desfire {
                 ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG, data.data(), data.size(), ESP_LOG_WARN);
                 return false;
             }
-            do_crypto(data.view(), crypto_mode::decrypt, get_iv());
+            do_crypto(data.view(), crypto_direction::decrypt, get_iv());
             if (mode == cipher_mode::ciphered) {
                 // Truncate the padding and the crc
                 const bool did_verify = drop_padding_verify_crc(data, status);

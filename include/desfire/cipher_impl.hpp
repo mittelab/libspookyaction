@@ -30,7 +30,7 @@ namespace desfire {
         void reinit_with_session_key(bin_data const &rndab) override;
         ~cipher_des() override;
 
-        void do_crypto(range<bin_data::iterator> const &data, crypto_mode mode, block_t &iv) override;
+        void do_crypto(range<bin_data::iterator> const &data, crypto_direction dir, block_t &iv) override;
     };
 
     class cipher_2k3des final : public cipher_legacy_scheme {
@@ -43,7 +43,7 @@ namespace desfire {
         void reinit_with_session_key(bin_data const &rndab) override;
         ~cipher_2k3des() override;
 
-        void do_crypto(range<bin_data::iterator> const &data, crypto_mode mode, block_t &iv) override;
+        void do_crypto(range<bin_data::iterator> const &data, crypto_direction dir, block_t &iv) override;
     };
 
     class cipher_3k3des final : public cipher_scheme<8, 0x1b> {
@@ -55,7 +55,7 @@ namespace desfire {
         void reinit_with_session_key(bin_data const &rndab) override;
         ~cipher_3k3des() override;
 
-        void do_crypto(range<bin_data::iterator> const &data, crypto_mode mode, block_t &iv) override;
+        void do_crypto(range<bin_data::iterator> const &data, crypto_direction dir, block_t &iv) override;
     };
 
     class cipher_aes final : public cipher_scheme<16, 0x87> {
@@ -67,7 +67,7 @@ namespace desfire {
         void reinit_with_session_key(bin_data const &rndab) override;
         ~cipher_aes() override;
 
-        void do_crypto(range<bin_data::iterator> const &data, crypto_mode mode, block_t &iv) override;
+        void do_crypto(range<bin_data::iterator> const &data, crypto_direction dir, block_t &iv) override;
     };
 
     class cipher_dummy final : public cipher {

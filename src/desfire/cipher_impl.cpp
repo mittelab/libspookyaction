@@ -9,20 +9,20 @@
 namespace desfire {
 
     namespace {
-        const char *input_tag(crypto_mode mode) {
-            switch (mode) {
-                case crypto_mode::decrypt: return DESFIRE_TAG " BLOB";
-                case crypto_mode::encrypt: // [[fallthrough]];
-                case crypto_mode::mac: // [[ fallthrough]];
+        const char *input_tag(crypto_direction dir) {
+            switch (dir) {
+                case crypto_direction::decrypt: return DESFIRE_TAG " BLOB";
+                case crypto_direction::encrypt: // [[fallthrough]];
+                case crypto_direction::mac: // [[ fallthrough]];
                 default:
                     return DESFIRE_TAG " DATA";
             }
         }
-        const char *output_tag(crypto_mode mode) {
-            switch (mode) {
-                case crypto_mode::decrypt: return DESFIRE_TAG " DATA";
-                case crypto_mode::encrypt: // [[fallthrough]];
-                case crypto_mode::mac: // [[ fallthrough]];
+        const char *output_tag(crypto_direction dir) {
+            switch (dir) {
+                case crypto_direction::decrypt: return DESFIRE_TAG " DATA";
+                case crypto_direction::encrypt: // [[fallthrough]];
+                case crypto_direction::mac: // [[ fallthrough]];
                 default:
                     return DESFIRE_TAG " BLOB";
             }
@@ -77,26 +77,26 @@ namespace desfire {
         mbedtls_des_free(&_mac_enc_context);
     }
 
-    void cipher_des::do_crypto(range<bin_data::iterator> const &data, crypto_mode mode, cipher_des::block_t &iv) {
-        ESP_LOGD(DESFIRE_TAG " CRYPTO", "DES: %s %u bytes.", to_string(mode), std::distance(std::begin(data), std::end(data)));
-        ESP_LOG_BUFFER_HEX_LEVEL(input_tag(mode), data.data(), data.size(), ESP_LOG_DEBUG);
+    void cipher_des::do_crypto(range<bin_data::iterator> const &data, crypto_direction dir, cipher_des::block_t &iv) {
+        ESP_LOGD(DESFIRE_TAG " CRYPTO", "DES: %s %u bytes.", to_string(dir), std::distance(std::begin(data), std::end(data)));
+        ESP_LOG_BUFFER_HEX_LEVEL(input_tag(dir), data.data(), data.size(), ESP_LOG_DEBUG);
         ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG "   IV", iv.data(), iv.size(), ESP_LOG_DEBUG);
         assert(data.size() % block_size == 0);
-        switch (mode) {
-            case crypto_mode::encrypt:
+        switch (dir) {
+            case crypto_direction::encrypt:
                 mbedtls_des_crypt_cbc(&_enc_context, MBEDTLS_DES_ENCRYPT, data.size(), iv.data(), data.data(), data.data());
                 break;
-            case crypto_mode::decrypt:
+            case crypto_direction::decrypt:
                 mbedtls_des_crypt_cbc(&_dec_context, MBEDTLS_DES_DECRYPT, data.size(), iv.data(), data.data(), data.data());
                 break;
-            case crypto_mode::mac:
+            case crypto_direction::mac:
                 mbedtls_des_crypt_cbc(&_mac_enc_context, MBEDTLS_DES_ENCRYPT, data.size(), iv.data(), data.data(), data.data());
                 break;
             default:
-                DESFIRE_LOGE("Unknown crypto mode: %s", to_string(mode));
+                DESFIRE_LOGE("Unknown crypto dir: %s", to_string(dir));
                 break;
         }
-        ESP_LOG_BUFFER_HEX_LEVEL(output_tag(mode), data.data(), data.size(), ESP_LOG_DEBUG);
+        ESP_LOG_BUFFER_HEX_LEVEL(output_tag(dir), data.data(), data.size(), ESP_LOG_DEBUG);
     }
 
     cipher_2k3des::cipher_2k3des(std::array<std::uint8_t, 16> const &key) : _enc_context{}, _dec_context{},
@@ -171,26 +171,26 @@ namespace desfire {
         mbedtls_des3_free(&_mac_enc_context);
     }
 
-    void cipher_2k3des::do_crypto(range <bin_data::iterator> const &data, crypto_mode mode, cipher_2k3des::block_t &iv) {
-        ESP_LOGD(DESFIRE_TAG " CRYPTO", "2K3DES: %s %u bytes.", to_string(mode), std::distance(std::begin(data), std::end(data)));
-        ESP_LOG_BUFFER_HEX_LEVEL(input_tag(mode), data.data(), data.size(), ESP_LOG_DEBUG);
+    void cipher_2k3des::do_crypto(range <bin_data::iterator> const &data, crypto_direction dir, cipher_2k3des::block_t &iv) {
+        ESP_LOGD(DESFIRE_TAG " CRYPTO", "2K3DES: %s %u bytes.", to_string(dir), std::distance(std::begin(data), std::end(data)));
+        ESP_LOG_BUFFER_HEX_LEVEL(input_tag(dir), data.data(), data.size(), ESP_LOG_DEBUG);
         ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG "   IV", iv.data(), iv.size(), ESP_LOG_DEBUG);
         assert(data.size() % block_size == 0);
-        switch (mode) {
-            case crypto_mode::encrypt:
+        switch (dir) {
+            case crypto_direction::encrypt:
                 mbedtls_des3_crypt_cbc(&_enc_context, MBEDTLS_DES_ENCRYPT, data.size(), iv.data(), data.data(), data.data());
                 break;
-            case crypto_mode::decrypt:
+            case crypto_direction::decrypt:
                 mbedtls_des3_crypt_cbc(&_dec_context, MBEDTLS_DES_DECRYPT, data.size(), iv.data(), data.data(), data.data());
                 break;
-            case crypto_mode::mac:
+            case crypto_direction::mac:
                 mbedtls_des3_crypt_cbc(&_mac_enc_context, MBEDTLS_DES_ENCRYPT, data.size(), iv.data(), data.data(), data.data());
                 break;
             default:
-                DESFIRE_LOGE("Unknown crypto mode: %s", to_string(mode));
+                DESFIRE_LOGE("Unknown crypto dir: %s", to_string(dir));
                 break;
         }
-        ESP_LOG_BUFFER_HEX_LEVEL(output_tag(mode), data.data(), data.size(), ESP_LOG_DEBUG);
+        ESP_LOG_BUFFER_HEX_LEVEL(output_tag(dir), data.data(), data.size(), ESP_LOG_DEBUG);
     }
 
     cipher_3k3des::cipher_3k3des(std::array<std::uint8_t, 24> const &key) : _enc_context{}, _dec_context{} {
@@ -230,24 +230,24 @@ namespace desfire {
         mbedtls_des3_free(&_dec_context);
     }
 
-    void cipher_3k3des::do_crypto(range <bin_data::iterator> const &data, crypto_mode mode, cipher_3k3des::block_t &iv) {
-        ESP_LOGD(DESFIRE_TAG " CRYPTO", "3K3DES: %s %u bytes.", to_string(mode), std::distance(std::begin(data), std::end(data)));
-        ESP_LOG_BUFFER_HEX_LEVEL(input_tag(mode), data.data(), data.size(), ESP_LOG_DEBUG);
+    void cipher_3k3des::do_crypto(range <bin_data::iterator> const &data, crypto_direction dir, cipher_3k3des::block_t &iv) {
+        ESP_LOGD(DESFIRE_TAG " CRYPTO", "3K3DES: %s %u bytes.", to_string(dir), std::distance(std::begin(data), std::end(data)));
+        ESP_LOG_BUFFER_HEX_LEVEL(input_tag(dir), data.data(), data.size(), ESP_LOG_DEBUG);
         ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG "   IV", iv.data(), iv.size(), ESP_LOG_DEBUG);
         assert(data.size() % block_size == 0);
-        switch (mode) {
-            case crypto_mode::mac:  // [[fallthrough]];
-            case crypto_mode::encrypt:
+        switch (dir) {
+            case crypto_direction::mac:  // [[fallthrough]];
+            case crypto_direction::encrypt:
                 mbedtls_des3_crypt_cbc(&_enc_context, MBEDTLS_DES_ENCRYPT, data.size(), iv.data(), data.data(), data.data());
                 break;
-            case crypto_mode::decrypt:
+            case crypto_direction::decrypt:
                 mbedtls_des3_crypt_cbc(&_dec_context, MBEDTLS_DES_DECRYPT, data.size(), iv.data(), data.data(), data.data());
                 break;
             default:
-                DESFIRE_LOGE("Unknown crypto mode: %s", to_string(mode));
+                DESFIRE_LOGE("Unknown crypto dir: %s", to_string(dir));
                 break;
         }
-        ESP_LOG_BUFFER_HEX_LEVEL(output_tag(mode), data.data(), data.size(), ESP_LOG_DEBUG);
+        ESP_LOG_BUFFER_HEX_LEVEL(output_tag(dir), data.data(), data.size(), ESP_LOG_DEBUG);
     }
 
     cipher_aes::cipher_aes(std::array<std::uint8_t, 16> const &key) : _enc_context{}, _dec_context{} {
@@ -284,23 +284,23 @@ namespace desfire {
         mbedtls_aes_free(&_dec_context);
     }
 
-    void cipher_aes::do_crypto(range <bin_data::iterator> const &data, crypto_mode mode, cipher_aes::block_t &iv) {
-        ESP_LOGD(DESFIRE_TAG " CRYPTO", "AES128: %s %u bytes.", to_string(mode), std::distance(std::begin(data), std::end(data)));
-        ESP_LOG_BUFFER_HEX_LEVEL(input_tag(mode), data.data(), data.size(), ESP_LOG_DEBUG);
+    void cipher_aes::do_crypto(range <bin_data::iterator> const &data, crypto_direction dir, cipher_aes::block_t &iv) {
+        ESP_LOGD(DESFIRE_TAG " CRYPTO", "AES128: %s %u bytes.", to_string(dir), std::distance(std::begin(data), std::end(data)));
+        ESP_LOG_BUFFER_HEX_LEVEL(input_tag(dir), data.data(), data.size(), ESP_LOG_DEBUG);
         ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG "   IV", iv.data(), iv.size(), ESP_LOG_DEBUG);
         assert(data.size() % block_size == 0);
-        switch (mode) {
-            case crypto_mode::mac:  // [[fallthrough]];
-            case crypto_mode::encrypt:
+        switch (dir) {
+            case crypto_direction::mac:  // [[fallthrough]];
+            case crypto_direction::encrypt:
                 mbedtls_aes_crypt_cbc(&_enc_context, MBEDTLS_AES_ENCRYPT, data.size(), iv.data(), data.data(), data.data());
                 break;
-            case crypto_mode::decrypt:
+            case crypto_direction::decrypt:
                 mbedtls_aes_crypt_cbc(&_dec_context, MBEDTLS_AES_DECRYPT, data.size(), iv.data(), data.data(), data.data());
                 break;
             default:
-                DESFIRE_LOGE("Unknown crypto mode: %s", to_string(mode));
+                DESFIRE_LOGE("Unknown crypto dir: %s", to_string(dir));
                 break;
         }
-        ESP_LOG_BUFFER_HEX_LEVEL(output_tag(mode), data.data(), data.size(), ESP_LOG_DEBUG);
+        ESP_LOG_BUFFER_HEX_LEVEL(output_tag(dir), data.data(), data.size(), ESP_LOG_DEBUG);
     }
 }

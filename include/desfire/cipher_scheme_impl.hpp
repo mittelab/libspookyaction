@@ -12,8 +12,6 @@
 
 namespace desfire {
 
-    const char *to_string(comm_mode);
-
     template <std::size_t BlockSize, std::uint8_t CMACSubkeyR>
     cipher_scheme<BlockSize, CMACSubkeyR>::cipher_scheme() : _cmac_subkey_pad{}, _cmac_subkey_nopad{}, _global_iv{} {
         set_iv_mode(cipher_iv::global);

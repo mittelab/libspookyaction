@@ -11,9 +11,8 @@ check format:
     - apk add --update --no-cache git clang
   script:
     - >
-      find . \( -not -path '\./\.*' \) -and \( -name '*.[hc]' -or -name '*.[hc]pp' \) \
-      | while read -r FILE; do
-          echo "Format $FILE"
+      find . \( -not -path '\./\.*' \) -and \( -name '*.[hc]' -or -name '*.[hc]pp' \) | while read -r FILE; do
+          echo "Formatting $FILE"
           clang-format --style file -i "$FILE"
       done
     - git diff --patch | tee 0001-Clang-format.patch

@@ -235,9 +235,6 @@ namespace desfire {
     }
 
     tag::r<> tag::select_application(app_id const &app) {
-        /**
-         * @bug Test if it has to be CMAC RX for modern ciphers
-         */
         const auto res_cmd =  command_response(command_code::select_application, bin_data::chain(app), cipher_mode::plain);
         if (res_cmd) {
             DESFIRE_LOGD("Selected application %02x %02x %02x.", app[0], app[1], app[2]);
@@ -354,13 +351,10 @@ namespace desfire {
             DESFIRE_LOGW("%s: attempt to create an app where keys and settings cannot be changed; this is probably a "
                          "mistake.", to_string(command_code::create_application));
         }
-        /**
-         * @bug Test if it has to be CMAC RX for modern ciphers
-         */
         return safe_drop_payload(command_code::create_application, command_response(
                 command_code::create_application,
                 bin_data::chain(prealloc(5), new_app_id, settings),
-                cipher_mode::plain));
+                cipher_default()));
     }
 
     tag::r<> tag::change_app_settings(key_rights new_rights) {
@@ -381,19 +375,14 @@ namespace desfire {
     }
 
     tag::r<> tag::delete_application(app_id const &app) {
-        /**
-         * @bug Test if it has to be CMAC RX for modern ciphers
-         */
-        return command_response(command_code::delete_application,
-                                bin_data::chain(app),
-                                cipher_mode::plain);
+        return safe_drop_payload(command_code::delete_application,
+                                 command_response(command_code::delete_application,
+                                                  bin_data::chain(app),
+                                                  cipher_default()));
     }
 
     tag::r<std::vector<app_id>> tag::get_application_ids() {
-        /**
-         * @bug Test if it has to be CMAC RX for modern ciphers
-         */
-        return command_parse_response<std::vector<app_id>>(command_code::get_application_ids, {}, cipher_mode::plain);
+        return command_parse_response<std::vector<app_id>>(command_code::get_application_ids, {}, cipher_default());
     }
 
     tag::r<manufacturing_info> tag::get_info() {
@@ -401,10 +390,7 @@ namespace desfire {
     }
 
     tag::r<> tag::format_picc() {
-        /**
-         * @bug Test if it has to be CMAC RX for modern ciphers
-         */
-        const auto res_cmd = command_response(command_code::format_picc, bin_data{}, cipher_mode::plain);
+        const auto res_cmd = command_response(command_code::format_picc, bin_data{}, cipher_default());
         if (res_cmd) {
             logout(false);
             _active_app = root_app;

@@ -125,13 +125,13 @@ namespace desfire {
             }
 
             // Actual transmission
-            ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " RAW >>", tx_chunk.data(), tx_chunk.size(), ESP_LOG_DEBUG);
+            ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " RAW >>", tx_chunk.data(), tx_chunk.size(), ESP_LOG_VERBOSE);
             const auto rx_data_success = ctrl().communicate(tx_chunk);
             if (not rx_data_success.second) {
                 return error::controller_error;
             }
             bin_data const &rx_chunk = rx_data_success.first;
-            ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " RAW <<", rx_chunk.data(), rx_chunk.size(), ESP_LOG_DEBUG);
+            ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " RAW <<", rx_chunk.data(), rx_chunk.size(), ESP_LOG_VERBOSE);
 
             // Make sure there was an actual response
             if (rx_chunk.empty()) {
@@ -182,7 +182,7 @@ namespace desfire {
         tx_data.clear();
         tx_data << prealloc(data.size() + 1) << cmd << data;
 
-        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " >>", tx_data.data(), tx_data.size(), ESP_LOG_DEBUG);
+        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " >>", tx_data.data(), tx_data.size(), ESP_LOG_VERBOSE);
 
         c.prepare_tx(tx_data, cfg.tx_secure_data_offset, cfg.tx);
 
@@ -202,7 +202,7 @@ namespace desfire {
         }
         assert(not rx_data.empty());
 
-        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " <<", rx_data.data(), rx_data.size(), ESP_LOG_DEBUG);
+        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " <<", rx_data.data(), rx_data.size(), ESP_LOG_VERBOSE);
 
         // Extract status byte
         const auto cmd_status = static_cast<status>(rx_data.back());

@@ -65,7 +65,7 @@ namespace desfire {
         }
         if (mode == cipher_mode::maced) {
             const auto mac = compute_mac(data.view(offset));
-            ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " TX MAC", mac.data(), mac.size(), ESP_LOG_DEBUG);
+            ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " TX MAC", mac.data(), mac.size(), ESP_LOG_VERBOSE);
             data << mac;
         } else {
             if (mode == cipher_mode::ciphered) {
@@ -91,7 +91,7 @@ namespace desfire {
             const auto data_view = s.read(s.remaining() - mac_size - 1);
             // Compute mac on data
             const mac_t computed_mac = compute_mac(data_view);
-            ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " RX MAC", computed_mac.data(), computed_mac.size(), ESP_LOG_DEBUG);
+            ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " RX MAC", computed_mac.data(), computed_mac.size(), ESP_LOG_VERBOSE);
             // Extract the transmitted mac
             mac_t rxd_mac{};
             s >> rxd_mac;
@@ -101,7 +101,7 @@ namespace desfire {
                 data.resize(data.size() - mac_size);
                 return true;
             }
-            ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " != MAC", rxd_mac.data(), rxd_mac.size(), ESP_LOG_DEBUG);
+            ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " != MAC", rxd_mac.data(), rxd_mac.size(), ESP_LOG_VERBOSE);
             return false;
         } else {
             // Pop the status byte

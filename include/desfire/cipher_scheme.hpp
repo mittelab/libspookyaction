@@ -172,7 +172,7 @@ namespace desfire {
             // Plain and MAC may still require to pass data through CMAC, unless specified otherwise
             // CMAC has to be computed on the whole data
             const mac_t cmac = compute_mac(data.view());
-            ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " TX MAC", cmac.data(), cmac.size(), ESP_LOG_DEBUG);
+            ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " TX MAC", cmac.data(), cmac.size(), ESP_LOG_VERBOSE);
             if (mode == cipher_mode::maced) {
                 // Only MAC comm mode will actually append
                 data << cmac;
@@ -203,13 +203,13 @@ namespace desfire {
             // Always pass data + status byte through CMAC
             // This will keep the IV in sync
             const auto cmac = compute_mac(data.view());
-            ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " RX MAC", cmac.data(), cmac.size(), ESP_LOG_DEBUG);
+            ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " RX MAC", cmac.data(), cmac.size(), ESP_LOG_VERBOSE);
         } else if (mode == cipher_mode::maced) {
             // [ data || maced || status ] -> [ data || status || maced ]; rotate mac_size + 1 bytes
             std::rotate(data.rbegin(), data.rbegin() + 1, data.rbegin() + traits_base::mac_size + 1);
             // This will keep the IV in sync
             const mac_t computed_mac = compute_mac(data.view(0, data.size() - traits_base::mac_size));
-            ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " RX MAC", computed_mac.data(), computed_mac.size(), ESP_LOG_DEBUG);
+            ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " RX MAC", computed_mac.data(), computed_mac.size(), ESP_LOG_VERBOSE);
             // Extract the transmitted maced
             bin_stream s{data};
             s.seek(data.size() - traits_base::mac_size);
@@ -220,7 +220,7 @@ namespace desfire {
                 data.resize(data.size() - traits_base::mac_size);
                 return true;
             }
-            ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " != MAC", rxd_mac.data(), rxd_mac.size(), ESP_LOG_DEBUG);
+            ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " != MAC", rxd_mac.data(), rxd_mac.size(), ESP_LOG_VERBOSE);
             return false;
         } else {
             // Pop the status byte

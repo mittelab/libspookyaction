@@ -310,6 +310,9 @@ namespace desfire {
     public:
         using mlab::any_of<cipher_type, key, cipher_type::none>::any_of;
 
+        any_key(any_key const &other);
+        any_key &operator=(any_key const &other);
+
         std::uint8_t key_number() const;
         std::uint8_t version() const;
 

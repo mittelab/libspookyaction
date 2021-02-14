@@ -12,6 +12,35 @@ namespace desfire {
         using mlab::prealloc;
     }
 
+    any_key::any_key(const any_key &other) : any_key{other.type()} {
+        *this = other;
+    }
+
+    any_key &any_key::operator=(const any_key &other) {
+        switch (other.type()) {
+            case cipher_type::none:
+                set<cipher_type::none>(other.get<cipher_type::none>());
+                break;
+            case cipher_type::des:
+                set<cipher_type::des>(other.get<cipher_type::des>());
+                break;
+            case cipher_type::des3_2k:
+                set<cipher_type::des3_2k>(other.get<cipher_type::des3_2k>());
+                break;
+            case cipher_type::des3_3k:
+                set<cipher_type::des3_3k>(other.get<cipher_type::des3_3k>());
+                break;
+            case cipher_type::aes128:
+                set<cipher_type::aes128>(other.get<cipher_type::aes128>());
+                break;
+            default:
+                DESFIRE_LOGE("Unhandled cipher type %s", to_string(other.type()));
+                *this = any_key{};
+                break;
+        }
+        return *this;
+    }
+
     std::uint8_t any_key::key_number() const {
         switch (type()) {
             case cipher_type::none:

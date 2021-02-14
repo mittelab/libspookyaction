@@ -11,7 +11,7 @@ check format:
     - apt update -y
     - apt install git clang-format -y
   script:
-    - clang-format -style=file **/*.*pp -i
+    - git-clang-format --style file --commit HEAD^
     - git diff --patch | tee 001-formatting.patch
     - test ! -s 001-formatting.patch
   artifacts:

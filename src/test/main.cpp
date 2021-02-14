@@ -592,6 +592,80 @@ void test_mifare_create_apps() {
     }
 }
 
+void test_mifare_root_operations() {
+    TEST_ASSERT(pcd != nullptr and mifare != nullptr);
+
+    const desfire::any_key default_k = desfire::key<desfire::cipher_type::des>{};
+
+    std::vector<desfire::any_key> keys_to_test;
+    keys_to_test.push_back(default_k);  // Default key
+    for (ut::app_with_keys const &app : ut::test_apps) {
+        // Copy the keys from the test apps
+        keys_to_test.push_back(app.default_key);
+        keys_to_test.push_back(app.secondary_key);
+    }
+
+    const auto find_current_key = [&]() -> bool {
+        ESP_LOGI(TEST_TAG, "Attempt to recover the root key (warnings/errors here are normal).");
+        TEST_ASSERT(mifare->select_application(desfire::root_app));
+        for (auto const &key : keys_to_test) {
+            if (mifare->authenticate(key)) {
+                ESP_LOGI(TEST_TAG, "Found the right key, changing to default.");
+                TEST_ASSERT(mifare->change_key(default_k));
+                TEST_ASSERT(mifare->authenticate(default_k));
+                return true;
+            }
+        }
+        ESP_LOGW(TEST_TAG, "All the know default keys failed to authenticate root app.");
+        return false;
+    };
+
+    ESP_LOGW(TEST_TAG, "Changing root app key. This has a chance of bricking your card.");
+    ESP_LOGW(TEST_TAG, "If the implementation of change_key or authenticate is broken,");
+    ESP_LOGW(TEST_TAG, "it may set an unexpected root key. If changes were made to those");
+    ESP_LOGW(TEST_TAG, "pieces of code, test them in the context of non-root apps first.");
+    issue_format_warning();
+
+    TEST_ASSERT(mifare->select_application(desfire::root_app));
+    TEST_ASSERT(find_current_key());
+
+    const desfire::app_id test_app_id = {0x00, 0x7e, 0x57};
+
+    ESP_LOGI(TEST_TAG, "Begin key test cycle.");
+    for (auto const &key : keys_to_test) {
+        TEST_ASSERT(mifare->change_key(key));
+        ESP_LOGI(TEST_TAG, "Changed root key to %s, testing root level ops.", desfire::to_string(key.type()));
+        TEST_ASSERT(mifare->authenticate(key));
+        // Do bunch of operations on applications that can only be done at the root level, so that we can verify the
+        // trasmission modes for the root level app
+        auto r_list = mifare->get_application_ids();
+        TEST_ASSERT(r_list);
+        if (std::find(std::begin(*r_list), std::end(*r_list), test_app_id) != std::end(*r_list)) {
+            // Remove preexisting app
+            TEST_ASSERT(mifare->delete_application(test_app_id));
+        }
+        TEST_ASSERT(mifare->create_application(test_app_id, desfire::app_settings()));
+        r_list = mifare->get_application_ids();
+        TEST_ASSERT(r_list);
+        TEST_ASSERT_GREATER_OR_EQUAL(1, r_list->size());
+        TEST_ASSERT(std::find(std::begin(*r_list), std::end(*r_list), test_app_id) != std::end(*r_list));
+        TEST_ASSERT(mifare->select_application(test_app_id));
+        TEST_ASSERT(mifare->select_application(desfire::root_app));
+        TEST_ASSERT(mifare->authenticate(key));
+        TEST_ASSERT(mifare->delete_application(test_app_id));
+        // Also format picc will CMAC
+        TEST_ASSERT(mifare->format_picc());
+        TEST_ASSERT(mifare->select_application(desfire::root_app));
+        // Master key survives format
+        TEST_ASSERT(mifare->authenticate(key));
+    }
+
+    // Cleanup
+    TEST_ASSERT(mifare->change_key(default_k));
+    TEST_ASSERT(mifare->authenticate(default_k));
+    TEST_ASSERT(mifare->format_picc());
+}
+
 void test_mifare_change_app_key() {
     TEST_ASSERT(pcd != nullptr and mifare != nullptr);
 
@@ -823,6 +897,8 @@ void unity_main() {
     RUN_TEST(test_mifare_uid);
     RUN_TEST(test_mifare_create_apps);
     RUN_TEST(test_mifare_change_app_key);
+    // Note: better to first test apps, before fiddling with the root app.
+    RUN_TEST(test_mifare_root_operations);
 
     /**
      * Test file creation, deletion, and read/write cycle.

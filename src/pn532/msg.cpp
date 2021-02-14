@@ -226,4 +226,4 @@ namespace pn532 {
                 return "UNKNOWN";
         }
     }
-}
+}// namespace pn532

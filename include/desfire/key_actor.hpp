@@ -9,7 +9,7 @@
 
 namespace desfire {
 
-    struct no_key_t{};
+    struct no_key_t {};
     static constexpr no_key_t no_key{};
 
     template <class UIntT, unsigned LShift, class SpecialT, class Subclass>
@@ -29,7 +29,6 @@ namespace desfire {
         inline std::uint8_t get() const;
 
     public:
-
         inline key_actor_base(std::uint8_t key_index = 0);
         inline key_actor_base(SpecialT);
         inline key_actor_base(no_key_t);
@@ -52,7 +51,7 @@ namespace desfire {
     };
 
 
-}
+}// namespace desfire
 
 namespace desfire {
 
@@ -115,6 +114,6 @@ namespace desfire {
     bool key_actor_base<UIntT, LShift, SpecialT, Subclass>::operator!=(Subclass const &other) const {
         return get() != other.get();
     }
-}
+}// namespace desfire
 
-#endif //DESFIRE_KEY_ACTOR_HPP
+#endif//DESFIRE_KEY_ACTOR_HPP

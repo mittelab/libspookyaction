@@ -3,8 +3,8 @@
 //
 
 #include "desfire/data.hpp"
-#include "desfire/msg.hpp"
 #include "desfire/crypto_algo.hpp"
+#include "desfire/msg.hpp"
 
 namespace desfire {
 
@@ -185,7 +185,7 @@ namespace desfire {
                 data[i] |= xor_with[i];
             }
         }
-    }
+    }// namespace
 
     bool any_key::parity_bits_are_version() const {
         // Extract packed key data from the other key
@@ -285,9 +285,9 @@ namespace desfire {
                 return get<file_type::standard>();
             case file_type::backup:
                 return get<file_type::backup>();
-            case file_type::value:  // [[fallthrough]];
-            case file_type::linear_record:  // [[fallthrough]];
-            case file_type::cyclic_record:  // [[fallthrough]];
+            case file_type::value:        // [[fallthrough]];
+            case file_type::linear_record:// [[fallthrough]];
+            case file_type::cyclic_record:// [[fallthrough]];
             default:
                 DESFIRE_LOGE("Cannot retrieve data settings from a file of type %s", to_string(type()));
                 break;
@@ -303,9 +303,9 @@ namespace desfire {
                 return get<file_type::linear_record>();
             case file_type::cyclic_record:
                 return get<file_type::cyclic_record>();
-            case file_type::standard:  // [[fallthrough]];
+            case file_type::standard:// [[fallthrough]];
             case file_type::backup:  // [[fallthrough]];
-            case file_type::value:  // [[fallthrough]];
+            case file_type::value:   // [[fallthrough]];
             default:
                 DESFIRE_LOGE("Cannot retrieve record settings from a file of type %s", to_string(type()));
                 break;
@@ -319,10 +319,10 @@ namespace desfire {
         switch (type()) {
             case file_type::value:
                 return get<file_type::value>();
-            case file_type::standard:  // [[fallthrough]];
-            case file_type::backup:  // [[fallthrough]];
-            case file_type::linear_record:  // [[fallthrough]];
-            case file_type::cyclic_record:  // [[fallthrough]];
+            case file_type::standard:     // [[fallthrough]];
+            case file_type::backup:       // [[fallthrough]];
+            case file_type::linear_record:// [[fallthrough]];
+            case file_type::cyclic_record:// [[fallthrough]];
             default:
                 DESFIRE_LOGE("Cannot retrieve value settings from a file of type %s", to_string(type()));
                 break;
@@ -336,10 +336,10 @@ namespace desfire {
         switch (access) {
             case file_access::read:
                 return read != active_key_num and read_write != active_key_num and
-                        (read == all_keys or read_write == all_keys);
+                       (read == all_keys or read_write == all_keys);
             case file_access::write:
                 return write != active_key_num and read_write != active_key_num and
-                        (write == all_keys or read_write == all_keys);
+                       (write == all_keys or read_write == all_keys);
             case file_access::change:
                 return change == all_keys;
             default:
@@ -373,7 +373,7 @@ namespace desfire {
         return bd;
     }
 
-}
+}// namespace desfire
 
 namespace mlab {
     namespace {
@@ -421,11 +421,12 @@ namespace mlab {
         ks.max_num_keys = (keys_crypto_flag & bits::max_keys_mask);
         if (ks.max_num_keys > bits::max_keys_per_app) {
             DESFIRE_LOGW("Error while parsing app_settings: the specified max number of keys exceed the maximum "
-                         "number of keys declared: %u > %u.", ks.max_num_keys, bits::max_keys_per_app);
+                         "number of keys declared: %u > %u.",
+                         ks.max_num_keys, bits::max_keys_per_app);
             ks.max_num_keys = bits::max_keys_per_app;
         }
         static_assert(0 == static_cast<std::uint8_t>(bits::app_crypto::legacy_des_2k3des),
-                "This code relies on the fact that by default it's legacy, i.e. legacy has no bit set.");
+                      "This code relies on the fact that by default it's legacy, i.e. legacy has no bit set.");
         const bool wants_iso_3k3des = 0 != (keys_crypto_flag & static_cast<std::uint8_t>(bits::app_crypto::iso_3k3des));
         const bool wants_aes_128 = 0 != (keys_crypto_flag & static_cast<std::uint8_t>(bits::app_crypto::aes_128));
         if (not wants_aes_128 and not wants_iso_3k3des) {
@@ -456,8 +457,7 @@ namespace mlab {
     }
 
     bin_data &operator<<(bin_data &bd, desfire::app_settings const &ks) {
-        const std::uint8_t flag = std::min(std::max(ks.max_num_keys, std::uint8_t(1)), bits::max_keys_per_app)
-                | static_cast<std::uint8_t>(ks.crypto);
+        const std::uint8_t flag = std::min(std::max(ks.max_num_keys, std::uint8_t(1)), bits::max_keys_per_app) | static_cast<std::uint8_t>(ks.crypto);
         return bd << prealloc(2) << ks.rights << flag;
     }
 
@@ -582,32 +582,27 @@ namespace mlab {
                     desfire::file_settings<desfire::file_type::standard> typed_fs{};
                     s >> typed_fs;
                     fs = typed_fs;
-                }
-                break;
+                } break;
                 case desfire::file_type::backup: {
                     desfire::file_settings<desfire::file_type::backup> typed_fs{};
                     s >> typed_fs;
                     fs = typed_fs;
-                }
-                break;
+                } break;
                 case desfire::file_type::value: {
                     desfire::file_settings<desfire::file_type::value> typed_fs{};
                     s >> typed_fs;
                     fs = typed_fs;
-                }
-                break;
+                } break;
                 case desfire::file_type::linear_record: {
                     desfire::file_settings<desfire::file_type::linear_record> typed_fs{};
                     s >> typed_fs;
                     fs = typed_fs;
-                }
-                break;
+                } break;
                 case desfire::file_type::cyclic_record: {
                     desfire::file_settings<desfire::file_type::cyclic_record> typed_fs{};
                     s >> typed_fs;
                     fs = typed_fs;
-                }
-                break;
+                } break;
                 default:
                     DESFIRE_LOGE("operator>>(any_file_settings &): unhandled file type: %s", desfire::to_string(ft));
                     s.set_bad();
@@ -643,4 +638,4 @@ namespace mlab {
     }
 
 
-}
+}// namespace mlab

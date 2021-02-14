@@ -1,21 +1,21 @@
-#include <unity.h>
-#include <driver/uart.h>
-#include <pn532/hsu.hpp>
-#include <pn532/nfc.hpp>
-#include <driver/gpio.h>
-#include <esp_log.h>
-#include <pn532/desfire_pcd.hpp>
-#include <desfire/tag.hpp>
+#include "utils.hpp"
+#include <cstdio>
 #include <desfire/data.hpp>
 #include <desfire/msg.hpp>
-#include "utils.hpp"
-#include <string>
-#include <cstdio>
+#include <desfire/tag.hpp>
+#include <driver/gpio.h>
+#include <driver/uart.h>
+#include <esp_log.h>
 #include <numeric>
+#include <pn532/desfire_pcd.hpp>
+#include <pn532/hsu.hpp>
+#include <pn532/nfc.hpp>
+#include <string>
+#include <unity.h>
 
 #define TEST_TAG "UT"
-#define TX_PIN   (GPIO_NUM_17)
-#define RX_PIN   (GPIO_NUM_16)
+#define TX_PIN (GPIO_NUM_17)
+#define RX_PIN (GPIO_NUM_16)
 #define BUF_SIZE (1024)
 
 namespace {
@@ -25,8 +25,8 @@ namespace {
     std::unique_ptr<desfire::tag> mifare = nullptr;
 
 
-    template <class T, class ...Args>
-    std::unique_ptr<T> make_unique(Args &&...args) {
+    template <class T, class... Args>
+    std::unique_ptr<T> make_unique(Args &&... args) {
         return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
     }
 
@@ -43,7 +43,7 @@ namespace {
         return load;
     }
 
-}
+}// namespace
 
 namespace ut {
 
@@ -53,32 +53,27 @@ namespace ut {
         desfire::any_key secondary_key;
 
         template <desfire::cipher_type Cipher>
-        static app_with_keys make(desfire::app_id aid_, desfire::key<Cipher> secondary_key_, desfire::key<Cipher> default_key_ = {})
-        {
+        static app_with_keys make(desfire::app_id aid_, desfire::key<Cipher> secondary_key_, desfire::key<Cipher> default_key_ = {}) {
             return app_with_keys{.aid = aid_, .default_key = desfire::any_key(default_key_), .secondary_key = desfire::any_key(secondary_key_)};
         }
-
     };
 
-    static const std::array<app_with_keys, 4> test_apps = {{
-            app_with_keys::make<desfire::cipher_type::des>({0x0, 0x0, 0x1}, {0, {0x0, 0x2, 0x4, 0x6, 0x8, 0xa, 0xc, 0xe}, 0x10}),
-            app_with_keys::make<desfire::cipher_type::des3_2k>({0x0, 0x0, 0x2}, {0, {0x0, 0x2, 0x4, 0x6, 0x8, 0xa, 0xc, 0xe, 0x10, 0x12, 0x14, 0x16, 0x18, 0x1a, 0x1c, 0x1e}, 0x10}),
-            app_with_keys::make<desfire::cipher_type::des3_3k>({0x0, 0x0, 0x3}, {0, {0x0, 0x2, 0x4, 0x6, 0x8, 0xa, 0xc, 0xe, 0x10, 0x12, 0x14, 0x16, 0x18, 0x1a, 0x1c, 0x1e, 0x20, 0x22, 0x24, 0x26, 0x28, 0x2a, 0x2c, 0x2e}, 0x10}),
-            app_with_keys::make<desfire::cipher_type::aes128>({0x0, 0x0, 0x4}, {0, {0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf}, 0x10})
-    }};
+    static const std::array<app_with_keys, 4> test_apps = {{app_with_keys::make<desfire::cipher_type::des>({0x0, 0x0, 0x1}, {0, {0x0, 0x2, 0x4, 0x6, 0x8, 0xa, 0xc, 0xe}, 0x10}),
+                                                            app_with_keys::make<desfire::cipher_type::des3_2k>({0x0, 0x0, 0x2}, {0, {0x0, 0x2, 0x4, 0x6, 0x8, 0xa, 0xc, 0xe, 0x10, 0x12, 0x14, 0x16, 0x18, 0x1a, 0x1c, 0x1e}, 0x10}),
+                                                            app_with_keys::make<desfire::cipher_type::des3_3k>({0x0, 0x0, 0x3}, {0, {0x0, 0x2, 0x4, 0x6, 0x8, 0xa, 0xc, 0xe, 0x10, 0x12, 0x14, 0x16, 0x18, 0x1a, 0x1c, 0x1e, 0x20, 0x22, 0x24, 0x26, 0x28, 0x2a, 0x2c, 0x2e}, 0x10}),
+                                                            app_with_keys::make<desfire::cipher_type::aes128>({0x0, 0x0, 0x4}, {0, {0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf}, 0x10})}};
 
-}
+}// namespace ut
 
 void setup_uart_pn532() {
     uart_config_t uart_config = {
             .baud_rate = 115200,
             .data_bits = UART_DATA_8_BITS,
-            .parity    = UART_PARITY_DISABLE,
+            .parity = UART_PARITY_DISABLE,
             .stop_bits = UART_STOP_BITS_1,
             .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
             .rx_flow_ctrl_thresh = 122,
-            .use_ref_tick = true
-    };
+            .use_ref_tick = true};
     uart_param_config(UART_NUM_1, &uart_config);
     uart_driver_install(UART_NUM_1, BUF_SIZE, BUF_SIZE, 0, nullptr, 0);
     uart_set_pin(UART_NUM_1, TX_PIN, RX_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
@@ -334,9 +329,7 @@ void test_change_key_aes() {
     ut::assert_comm_controller ctrl;
     desfire::tag tag{ctrl};
 
-    ut::session session{tag, desfire::key<desfire::cipher_type::aes128>{
-            0, {0xF4, 0x4B, 0x26, 0xF5, 0xC0, 0x5D, 0xDD, 0x71, 0x10, 0x77, 0x22, 0x81, 0xC4, 0xD0, 0x66, 0xE8}
-    }, {0x00, 0xAE, 0x16}, 0};
+    ut::session session{tag, desfire::key<desfire::cipher_type::aes128>{0, {0xF4, 0x4B, 0x26, 0xF5, 0xC0, 0x5D, 0xDD, 0x71, 0x10, 0x77, 0x22, 0x81, 0xC4, 0xD0, 0x66, 0xE8}}, {0x00, 0xAE, 0x16}, 0};
 
     ctrl.append({0xC4, 0x00, 0xE9, 0xF8, 0x5E, 0x21, 0x94, 0x96, 0xC2, 0xB5, 0x8C, 0x10, 0x90, 0xDC, 0x39, 0x35, 0xFA, 0xE9, 0xE8, 0x40, 0xCF, 0x61, 0xB3, 0x83, 0xD9, 0x53, 0x19, 0x46, 0x25, 0x6B, 0x1F, 0x11, 0x0C, 0x10},
                 {0x00, 0x00});
@@ -349,9 +342,7 @@ void test_change_key_2k3des() {
     ut::assert_comm_controller ctrl;
     desfire::tag tag{ctrl};
 
-    ut::session session{tag, desfire::key<desfire::cipher_type::des>{
-            0, {0xc8, 0x6d, 0xb4, 0x4f, 0xd3, 0x20, 0xd9, 0x39}
-    }, {0x00, 0x00, 0x02}, 0};
+    ut::session session{tag, desfire::key<desfire::cipher_type::des>{0, {0xc8, 0x6d, 0xb4, 0x4f, 0xd3, 0x20, 0xd9, 0x39}}, {0x00, 0x00, 0x02}, 0};
 
     ctrl.append({0xc4, 0x00, 0xb2, 0x99, 0xf1, 0x06, 0xa0, 0x73, 0x23, 0x44, 0x90, 0x7b, 0x03, 0x41, 0xe6, 0x46, 0x3d, 0x42, 0x41, 0x42, 0x33, 0xa2, 0x8a, 0x12, 0xb1, 0x94},
                 {0x00});
@@ -363,9 +354,7 @@ void test_change_key_des() {
     ut::assert_comm_controller ctrl;
     desfire::tag tag{ctrl};
 
-    ut::session session{tag, desfire::key<desfire::cipher_type::des>{
-            0, {0xc8, 0x6d, 0xb4, 0x4f, 0x9e, 0x5d, 0x3a, 0xb9}
-    }, {0x00, 0x00, 0x01}, 0};
+    ut::session session{tag, desfire::key<desfire::cipher_type::des>{0, {0xc8, 0x6d, 0xb4, 0x4f, 0x9e, 0x5d, 0x3a, 0xb9}}, {0x00, 0x00, 0x01}, 0};
 
     ctrl.append({0xc4, 0x00, 0x38, 0xb6, 0xba, 0xb4, 0xd0, 0x68, 0xd7, 0xa8, 0x04, 0x77, 0x9e, 0xb1, 0x35, 0x93, 0x82, 0xa8, 0x3d, 0xca, 0xd9, 0x01, 0xe4, 0x48, 0xac, 0x27},
                 {0x00});
@@ -377,9 +366,7 @@ void test_create_write_file_rx_cmac() {
     ut::assert_comm_controller ctrl;
     desfire::tag tag{ctrl};
 
-    ut::session session{tag, desfire::key<desfire::cipher_type::aes128>{
-        0, {0x40, 0xE7, 0xD2, 0x71, 0x62, 0x6F, 0xFB, 0xD4, 0x9C, 0x53, 0x0E, 0x3D, 0x30, 0x4F, 0x5B, 0x17}
-    }, {0x00, 0xae, 0x16}, 0};
+    ut::session session{tag, desfire::key<desfire::cipher_type::aes128>{0, {0x40, 0xE7, 0xD2, 0x71, 0x62, 0x6F, 0xFB, 0xD4, 0x9C, 0x53, 0x0E, 0x3D, 0x30, 0x4F, 0x5B, 0x17}}, {0x00, 0xae, 0x16}, 0};
 
     const desfire::bin_data data_to_write = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F, 0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x2A, 0x2B, 0x2C, 0x2D, 0x2E, 0x2F, 0x30, 0x31, 0x32, 0x33};
 
@@ -389,9 +376,8 @@ void test_create_write_file_rx_cmac() {
     ctrl.append({0x3D, 0x05, 0x00, 0x00, 0x00, 0x34, 0x00, 0x00, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F, 0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x2A, 0x2B, 0x2C, 0x2D, 0x2E, 0x2F, 0x30, 0x31, 0x32, 0x33}, {0x00, 0x76, 0x5C, 0x9D, 0xAA, 0x50, 0xEC, 0xB6, 0x2F});
 
     TEST_ASSERT(tag.create_file(5, desfire::file_settings<desfire::file_type::standard>{
-        desfire::generic_file_settings{desfire::file_security::none, desfire::access_rights::from_mask(0x0011)},
-        desfire::data_file_settings{.size = 80}
-    }));
+                                           desfire::generic_file_settings{desfire::file_security::none, desfire::access_rights::from_mask(0x0011)},
+                                           desfire::data_file_settings{.size = 80}}));
 
     TEST_ASSERT(tag.get_file_ids());
 
@@ -403,18 +389,14 @@ void test_get_key_version_rx_cmac() {
     desfire::tag tag{ctrl};
 
     {
-        ut::session session{tag, desfire::key<desfire::cipher_type::aes128>{
-                0, {0x90, 0xF7, 0xA2, 0x01, 0x91, 0x03, 0x68, 0x45, 0xEC, 0x63, 0xDE, 0xCD, 0x54, 0x4B, 0x99, 0x31}
-        }, {0x00, 0xae, 0x16}, 0};
+        ut::session session{tag, desfire::key<desfire::cipher_type::aes128>{0, {0x90, 0xF7, 0xA2, 0x01, 0x91, 0x03, 0x68, 0x45, 0xEC, 0x63, 0xDE, 0xCD, 0x54, 0x4B, 0x99, 0x31}}, {0x00, 0xae, 0x16}, 0};
 
         ctrl.append({0x64, 0x00}, {0x00, 0x10, 0x8A, 0x8F, 0xA3, 0x6F, 0x55, 0xCD, 0x21, 0x0D});
 
         TEST_ASSERT(tag.get_key_version(0));
     }
     {
-        ut::session session{tag, desfire::key<desfire::cipher_type::des3_3k>{
-                0, {0xD0, 0x54, 0x2A, 0x86, 0x58, 0x14, 0xD2, 0x50, 0x4E, 0x9A, 0x18, 0x7C, 0xC0, 0x66, 0x68, 0xC0, 0x9C, 0x70, 0x56, 0x82, 0x58, 0x22, 0x7A, 0xFC}
-        }, {0x00, 0xde, 0x24}, 0};
+        ut::session session{tag, desfire::key<desfire::cipher_type::des3_3k>{0, {0xD0, 0x54, 0x2A, 0x86, 0x58, 0x14, 0xD2, 0x50, 0x4E, 0x9A, 0x18, 0x7C, 0xC0, 0x66, 0x68, 0xC0, 0x9C, 0x70, 0x56, 0x82, 0x58, 0x22, 0x7A, 0xFC}}, {0x00, 0xde, 0x24}, 0};
 
         ctrl.append({0x64, 0x00}, {0x00, 0x10, 0xAD, 0x4A, 0x52, 0xB1, 0xE3, 0x1C, 0xC7, 0x41});
 
@@ -426,9 +408,7 @@ void test_write_data_cmac_des() {
     ut::assert_comm_controller ctrl;
     desfire::tag tag{ctrl};
 
-    ut::session session{tag, desfire::key<desfire::cipher_type::des>{
-            0, {0xc8, 0x6d, 0xb4, 0x4f, 0x23, 0x43, 0xba, 0x56}
-    }, {0x00, 0xde, 0x01}, 0};
+    ut::session session{tag, desfire::key<desfire::cipher_type::des>{0, {0xc8, 0x6d, 0xb4, 0x4f, 0x23, 0x43, 0xba, 0x56}}, {0x00, 0xde, 0x01}, 0};
 
     desfire::bin_data file_data;
     file_data.resize(32);
@@ -598,7 +578,7 @@ void test_mifare_root_operations() {
     const desfire::any_key default_k = desfire::key<desfire::cipher_type::des>{};
 
     std::vector<desfire::any_key> keys_to_test;
-    keys_to_test.push_back(default_k);  // Default key
+    keys_to_test.push_back(default_k);// Default key
     for (ut::app_with_keys const &app : ut::test_apps) {
         // Copy the keys from the test apps
         keys_to_test.push_back(app.default_key);
@@ -701,31 +681,46 @@ struct file_test {
 
     const char *mode_description() const {
         switch (security) {
-            case desfire::file_security::none:  return "none";
-            case desfire::file_security::encrypted: return "encrypted";
-            case desfire::file_security::authenticated:    return "maced";
-            default: return nullptr;
+            case desfire::file_security::none:
+                return "none";
+            case desfire::file_security::encrypted:
+                return "encrypted";
+            case desfire::file_security::authenticated:
+                return "maced";
+            default:
+                return nullptr;
         }
     }
 
     const char *cipher_description() const {
         switch (cipher) {
-            case desfire::cipher_type::des:     return "des";
-            case desfire::cipher_type::des3_2k: return "des3_2k";
-            case desfire::cipher_type::des3_3k: return "des3_3k";
-            case desfire::cipher_type::aes128:  return "aes128";
-            default: return nullptr;
+            case desfire::cipher_type::des:
+                return "des";
+            case desfire::cipher_type::des3_2k:
+                return "des3_2k";
+            case desfire::cipher_type::des3_3k:
+                return "des3_3k";
+            case desfire::cipher_type::aes128:
+                return "aes128";
+            default:
+                return nullptr;
         }
     }
 
     const char *ftype_description() const {
         switch (ftype) {
-            case desfire::file_type::standard:      return "standard";
-            case desfire::file_type::backup:        return "backup";
-            case desfire::file_type::value:         return "value";
-            case desfire::file_type::linear_record: return "linear_record";
-            case desfire::file_type::cyclic_record: return "cyclic_record";
-            default: return nullptr;
+            case desfire::file_type::standard:
+                return "standard";
+            case desfire::file_type::backup:
+                return "backup";
+            case desfire::file_type::value:
+                return "value";
+            case desfire::file_type::linear_record:
+                return "linear_record";
+            case desfire::file_type::cyclic_record:
+                return "cyclic_record";
+            default:
+                return nullptr;
         }
     }
 
@@ -758,7 +753,8 @@ struct file_test {
         TEST_ASSERT(r_read_before_commit);
         TEST_ASSERT_EACH_EQUAL_HEX8(0x00, r_read_before_commit->data(), r_read_before_commit->size());
         TEST_ASSERT(mifare->commit_transaction());
-        const auto r_read = mifare->read_data(file.fid, 0, heavy_load().size());;
+        const auto r_read = mifare->read_data(file.fid, 0, heavy_load().size());
+        ;
         TEST_ASSERT(r_read);
         TEST_ASSERT_EQUAL(heavy_load().size(), r_read->size());
         TEST_ASSERT_EQUAL_HEX8_ARRAY(heavy_load().data(), r_read->data(), heavy_load().size());
@@ -775,7 +771,7 @@ struct file_test {
 
         test_get_value(0);
         TEST_ASSERT(mifare->credit(file.fid, 2));
-        test_get_value(0);  // Did not commit yet
+        test_get_value(0);// Did not commit yet
         TEST_ASSERT(mifare->commit_transaction());
         test_get_value(2);
         TEST_ASSERT(mifare->debit(file.fid, 5));
@@ -842,7 +838,7 @@ struct file_test {
             case desfire::file_type::value:
                 perform_value_file_test(file);
                 break;
-            case desfire::file_type::linear_record:  // [[fallthough]];
+            case desfire::file_type::linear_record:// [[fallthough]];
             case desfire::file_type::cyclic_record:
                 perform_record_file_test(file);
                 break;
@@ -907,15 +903,12 @@ void unity_main() {
      * the actual test function. This will generate a separate test entry for each mode.
      */
     issue_format_warning();
-    for (desfire::file_security sec : {desfire::file_security::none, desfire::file_security::authenticated, desfire::file_security::encrypted})
-    {
+    for (desfire::file_security sec : {desfire::file_security::none, desfire::file_security::authenticated, desfire::file_security::encrypted}) {
         for (desfire::cipher_type cipher : {desfire::cipher_type::des, desfire::cipher_type::des3_2k,
-                                            desfire::cipher_type::des3_3k, desfire::cipher_type::aes128})
-        {
+                                            desfire::cipher_type::des3_3k, desfire::cipher_type::aes128}) {
             for (desfire::file_type ftype : {desfire::file_type::standard, desfire::file_type::backup,
                                              desfire::file_type::value, desfire::file_type::linear_record,
-                                             desfire::file_type::cyclic_record})
-            {
+                                             desfire::file_type::cyclic_record}) {
                 file_test::instance().security = sec;
                 file_test::instance().cipher = cipher;
                 file_test::instance().ftype = ftype;

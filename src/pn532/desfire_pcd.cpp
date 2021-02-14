@@ -20,4 +20,4 @@ namespace pn532 {
             return {bin_data{}, false};
         }
     }
-}
+}// namespace pn532

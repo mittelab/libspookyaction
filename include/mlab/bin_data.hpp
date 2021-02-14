@@ -5,12 +5,12 @@
 #ifndef MLAB_BIN_DATA_HPP
 #define MLAB_BIN_DATA_HPP
 
-#include <cstdint>
-#include <vector>
 #include <algorithm>
-#include <type_traits>
 #include <array>
+#include <cstdint>
 #include <esp_log.h>
+#include <type_traits>
+#include <vector>
 
 namespace mlab {
 
@@ -89,8 +89,8 @@ namespace mlab {
 
         using std::vector<std::uint8_t>::push_back;
 
-        template <class ...ByteOrByteContainers>
-        static bin_data chain(ByteOrByteContainers &&...others);
+        template <class... ByteOrByteContainers>
+        static bin_data chain(ByteOrByteContainers &&... others);
     };
 
     inline bin_data &operator<<(bin_data &bd, prealloc const &pa);
@@ -151,14 +151,16 @@ namespace mlab {
     /**
      * @note There is apparently no better way to obtain this in C++14
      */
-#if   defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+#if defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
     static constexpr byte_order local_byte_order = byte_order::msb_first;
 #elif defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
     static constexpr byte_order local_byte_order = byte_order::lsb_first;
 #endif
 
-    template <unsigned> struct lsb_t {};
-    template <unsigned> struct msb_t {};
+    template <unsigned>
+    struct lsb_t {};
+    template <unsigned>
+    struct msb_t {};
 
     static constexpr lsb_t<16> lsb16{};
     static constexpr lsb_t<24> lsb24{};
@@ -173,10 +175,10 @@ namespace mlab {
     template <unsigned BitSize, byte_order Order>
     struct ordered_extractor { bin_stream &s; };
 
-    template<unsigned BitSize>
+    template <unsigned BitSize>
     inline ordered_extractor<BitSize, byte_order::lsb_first> operator>>(bin_stream &s, lsb_t<BitSize>);
 
-    template<unsigned BitSize>
+    template <unsigned BitSize>
     inline ordered_extractor<BitSize, byte_order::msb_first> operator>>(bin_stream &s, msb_t<BitSize>);
 
     inline bin_data &operator<<(bin_data &bd, std::uint8_t byte);
@@ -210,10 +212,11 @@ namespace mlab {
         struct is_range_enumerable {
             template <class U>
             static constexpr decltype(
-            std::begin(std::declval<U const &>()) != std::end(std::declval<U const &>()),
+                    std::begin(std::declval<U const &>()) != std::end(std::declval<U const &>()),
                     *std::begin(std::declval<U const &>()),
                     std::next(std::begin(std::declval<U const &>())),
-                    bool()) test_get(int) {
+                    bool())
+            test_get(int) {
                 return true;
             }
 
@@ -248,29 +251,22 @@ namespace mlab {
         };
 
         template <class T>
-        using is_byte_enum = typename std::integral_constant<bool, std::is_enum<T>::value
-                                                                   and std::is_same<
-                typename safe_underlying_type<T, std::is_enum<T>::value>::type, std::uint8_t>::value>;
+        using is_byte_enum = typename std::integral_constant<bool, std::is_enum<T>::value and std::is_same<typename safe_underlying_type<T, std::is_enum<T>::value>::type, std::uint8_t>::value>;
 
         template <class T>
-        using is_byte_enumerable = typename std::integral_constant<bool, is_range_enumerable<T>::value
-                                                                         and std::is_same<
-                typename safe_value_type<T, is_range_enumerable<T>::value>::type, std::uint8_t>::value>;
+        using is_byte_enumerable = typename std::integral_constant<bool, is_range_enumerable<T>::value and std::is_same<typename safe_value_type<T, is_range_enumerable<T>::value>::type, std::uint8_t>::value>;
         template <class T>
-        using is_byte_enum_enumerable = typename std::integral_constant<bool, is_range_enumerable<T>::value
-                                                                              and is_byte_enum<
-                typename safe_value_type<T, is_range_enumerable<T>::value>::type>::value>;
-    }
+        using is_byte_enum_enumerable = typename std::integral_constant<bool, is_range_enumerable<T>::value and is_byte_enum<typename safe_value_type<T, is_range_enumerable<T>::value>::type>::value>;
+    }// namespace impl
 
     template <class Enum, class = typename std::enable_if<impl::is_byte_enum<Enum>::value>::type>
     bin_stream &operator>>(bin_stream &s, Enum &t);
 
     template <class T, class = typename std::enable_if<
-            impl::is_byte_enum<T>::value or impl::is_byte_enumerable<T>::value or
-            impl::is_byte_enum_enumerable<T>::value
-    >::type>
+                               impl::is_byte_enum<T>::value or impl::is_byte_enumerable<T>::value or
+                               impl::is_byte_enum_enumerable<T>::value>::type>
     bin_data &operator<<(bin_data &bd, T const &t);
-}
+}// namespace mlab
 
 namespace mlab {
 
@@ -298,7 +294,7 @@ namespace mlab {
     }
 
     namespace impl {
-        template <class ByteOrByteContainer, class ...Args>
+        template <class ByteOrByteContainer, class... Args>
         struct chainer {
             inline void operator()(bin_data &target, ByteOrByteContainer &&data, Args &&... others) const {
                 chainer<ByteOrByteContainer>{}(target, std::forward<ByteOrByteContainer>(data));
@@ -312,10 +308,10 @@ namespace mlab {
                 target << data;
             }
         };
-    }
+    }// namespace impl
 
-    template <class ...ByteOrByteContainers>
-    bin_data bin_data::chain(ByteOrByteContainers &&...others) {
+    template <class... ByteOrByteContainers>
+    bin_data bin_data::chain(ByteOrByteContainers &&... others) {
         bin_data retval{};
         impl::chainer<ByteOrByteContainers...>{}(retval, std::forward<ByteOrByteContainers>(others)...);
         return retval;
@@ -463,7 +459,7 @@ namespace mlab {
     template <class Enum, class>
     bin_stream &operator>>(bin_stream &s, Enum &t) {
         using underlying_t = typename std::underlying_type<Enum>::type;
-        auto value = static_cast<underlying_t>(Enum{});  // A valid enum entry
+        auto value = static_cast<underlying_t>(Enum{});// A valid enum entry
         s >> value;
         if (not s.bad()) {
             t = static_cast<Enum>(value);
@@ -505,8 +501,10 @@ namespace mlab {
             }
         };
 
-        template <byte_order, bool> struct pack {};
-        template <byte_order, std::size_t, bool> struct unpack {};
+        template <byte_order, bool>
+        struct pack {};
+        template <byte_order, std::size_t, bool>
+        struct unpack {};
 
         template <>
         struct pack<byte_order::msb_first, false> {
@@ -613,7 +611,7 @@ namespace mlab {
         };
 
 
-    }
+    }// namespace impl
 
     template <class T, class>
     bin_data &operator<<(bin_data &bd, T const &t) {
@@ -622,28 +620,28 @@ namespace mlab {
     }
 
 
-    template<unsigned BitSize>
+    template <unsigned BitSize>
     ordered_extractor<BitSize, byte_order::lsb_first> operator>>(bin_stream &s, lsb_t<BitSize>) {
         return {s};
     }
 
-    template<unsigned BitSize>
+    template <unsigned BitSize>
     ordered_extractor<BitSize, byte_order::msb_first> operator>>(bin_stream &s, msb_t<BitSize>) {
         return {s};
     }
 
-    template<unsigned BitSize>
+    template <unsigned BitSize>
     ordered_injector<BitSize, byte_order::lsb_first> operator<<(bin_data &bd, lsb_t<BitSize>) {
         return {bd};
     }
 
-    template<unsigned BitSize>
+    template <unsigned BitSize>
     ordered_injector<BitSize, byte_order::msb_first> operator<<(bin_data &bd, msb_t<BitSize>) {
         return {bd};
     }
 
     template <class Num, unsigned BitSize, byte_order Order,
-            class = typename std::enable_if<(std::is_unsigned<Num>::value or std::is_signed<Num>::value) and sizeof(Num) * 8 >= BitSize>::type>
+              class = typename std::enable_if<(std::is_unsigned<Num>::value or std::is_signed<Num>::value) and sizeof(Num) * 8 >= BitSize>::type>
     bin_stream &operator>>(ordered_extractor<BitSize, Order> e, Num &n) {
         std::array<std::uint8_t, BitSize / 8> b{};
         e.s >> b;
@@ -652,13 +650,13 @@ namespace mlab {
     }
 
     template <class Num, unsigned BitSize, byte_order Order,
-            class = typename std::enable_if<(std::is_unsigned<Num>::value or std::is_signed<Num>::value) and sizeof(Num) * 8 >= BitSize>::type>
+              class = typename std::enable_if<(std::is_unsigned<Num>::value or std::is_signed<Num>::value) and sizeof(Num) * 8 >= BitSize>::type>
     bin_data &operator<<(ordered_injector<BitSize, Order> i, Num n) {
         i.bd << impl::unpack<Order, BitSize / 8, std::is_signed<Num>::value>{}(n);
         return i.bd;
     }
 
 
-}
+}// namespace mlab
 
-#endif //MLAB_BIN_DATA_HPP
+#endif//MLAB_BIN_DATA_HPP

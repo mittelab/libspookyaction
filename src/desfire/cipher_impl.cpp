@@ -2,35 +2,36 @@
 // Created by Pietro Saccardi on 02/01/2021.
 //
 
-#include <cassert>
 #include "desfire/cipher_impl.hpp"
 #include "desfire/msg.hpp"
+#include <cassert>
 
 namespace desfire {
 
     namespace {
         const char *input_tag(crypto_direction dir) {
             switch (dir) {
-                case crypto_direction::decrypt: return DESFIRE_TAG " BLOB";
-                case crypto_direction::encrypt: // [[fallthrough]];
-                case crypto_direction::mac: // [[ fallthrough]];
+                case crypto_direction::decrypt:
+                    return DESFIRE_TAG " BLOB";
+                case crypto_direction::encrypt:// [[fallthrough]];
+                case crypto_direction::mac:    // [[ fallthrough]];
                 default:
                     return DESFIRE_TAG " DATA";
             }
         }
         const char *output_tag(crypto_direction dir) {
             switch (dir) {
-                case crypto_direction::decrypt: return DESFIRE_TAG " DATA";
-                case crypto_direction::encrypt: // [[fallthrough]];
-                case crypto_direction::mac: // [[ fallthrough]];
+                case crypto_direction::decrypt:
+                    return DESFIRE_TAG " DATA";
+                case crypto_direction::encrypt:// [[fallthrough]];
+                case crypto_direction::mac:    // [[ fallthrough]];
                 default:
                     return DESFIRE_TAG " BLOB";
             }
         }
-    }
+    }// namespace
 
-    cipher_des::cipher_des(std::array<std::uint8_t, 8> const &key) : _enc_context{}, _dec_context{}, _mac_enc_context{}
-    {
+    cipher_des::cipher_des(std::array<std::uint8_t, 8> const &key) : _enc_context{}, _dec_context{}, _mac_enc_context{} {
         mbedtls_des_init(&_enc_context);
         mbedtls_des_init(&_dec_context);
         mbedtls_des_init(&_mac_enc_context);
@@ -100,8 +101,7 @@ namespace desfire {
     }
 
     cipher_2k3des::cipher_2k3des(std::array<std::uint8_t, 16> const &key) : _enc_context{}, _dec_context{},
-        _mac_enc_context{}, _degenerate{false}
-    {
+                                                                            _mac_enc_context{}, _degenerate{false} {
         /**
          * @note Indentify whether the two halves of the key are the same, up to parity bit. This means that we are
          * actually doing a DES en/decipherement operation. When we reinit with a new session key, we need to be aware
@@ -136,7 +136,7 @@ namespace desfire {
         const auto bsrc = std::begin(rndab);
         const auto btrg = std::begin(new_key);
         std::copy_n(bsrc, 4, btrg);
-        std::copy_n(bsrc + 8,  4, btrg + 4);
+        std::copy_n(bsrc + 8, 4, btrg + 4);
 
         /**
          * @note When the key is actually a DES key, i.e. the two halves are the same, here we should be deriving a DES
@@ -145,7 +145,7 @@ namespace desfire {
         if (_degenerate) {
             std::copy_n(btrg, 8, btrg + 8);
         } else {
-            std::copy_n(bsrc + 4,  4, btrg + 8);
+            std::copy_n(bsrc + 4, 4, btrg + 8);
             std::copy_n(bsrc + 12, 4, btrg + 12);
         }
         mbedtls_des3_free(&_enc_context);
@@ -171,7 +171,7 @@ namespace desfire {
         mbedtls_des3_free(&_mac_enc_context);
     }
 
-    void cipher_2k3des::do_crypto(range <bin_data::iterator> const &data, crypto_direction dir, cipher_2k3des::block_t &iv) {
+    void cipher_2k3des::do_crypto(range<bin_data::iterator> const &data, crypto_direction dir, cipher_2k3des::block_t &iv) {
         ESP_LOGD(DESFIRE_TAG " CRYPTO", "2K3DES: %s %u bytes.", to_string(dir), std::distance(std::begin(data), std::end(data)));
         ESP_LOG_BUFFER_HEX_LEVEL(input_tag(dir), data.data(), data.size(), ESP_LOG_DEBUG);
         ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG "   IV", iv.data(), iv.size(), ESP_LOG_DEBUG);
@@ -211,7 +211,7 @@ namespace desfire {
         const auto btrg = std::begin(new_key);
         std::copy_n(bsrc, 4, btrg);
         std::copy_n(bsrc + 16, 4, btrg + 4);
-        std::copy_n(bsrc + 6,  4, btrg + 8);
+        std::copy_n(bsrc + 6, 4, btrg + 8);
         std::copy_n(bsrc + 22, 4, btrg + 12);
         std::copy_n(bsrc + 12, 4, btrg + 16);
         std::copy_n(bsrc + 28, 4, btrg + 20);
@@ -230,13 +230,13 @@ namespace desfire {
         mbedtls_des3_free(&_dec_context);
     }
 
-    void cipher_3k3des::do_crypto(range <bin_data::iterator> const &data, crypto_direction dir, cipher_3k3des::block_t &iv) {
+    void cipher_3k3des::do_crypto(range<bin_data::iterator> const &data, crypto_direction dir, cipher_3k3des::block_t &iv) {
         ESP_LOGD(DESFIRE_TAG " CRYPTO", "3K3DES: %s %u bytes.", to_string(dir), std::distance(std::begin(data), std::end(data)));
         ESP_LOG_BUFFER_HEX_LEVEL(input_tag(dir), data.data(), data.size(), ESP_LOG_DEBUG);
         ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG "   IV", iv.data(), iv.size(), ESP_LOG_DEBUG);
         assert(data.size() % block_size == 0);
         switch (dir) {
-            case crypto_direction::mac:  // [[fallthrough]];
+            case crypto_direction::mac:// [[fallthrough]];
             case crypto_direction::encrypt:
                 mbedtls_des3_crypt_cbc(&_enc_context, MBEDTLS_DES_ENCRYPT, data.size(), iv.data(), data.data(), data.data());
                 break;
@@ -284,13 +284,13 @@ namespace desfire {
         mbedtls_aes_free(&_dec_context);
     }
 
-    void cipher_aes::do_crypto(range <bin_data::iterator> const &data, crypto_direction dir, cipher_aes::block_t &iv) {
+    void cipher_aes::do_crypto(range<bin_data::iterator> const &data, crypto_direction dir, cipher_aes::block_t &iv) {
         ESP_LOGD(DESFIRE_TAG " CRYPTO", "AES128: %s %u bytes.", to_string(dir), std::distance(std::begin(data), std::end(data)));
         ESP_LOG_BUFFER_HEX_LEVEL(input_tag(dir), data.data(), data.size(), ESP_LOG_DEBUG);
         ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG "   IV", iv.data(), iv.size(), ESP_LOG_DEBUG);
         assert(data.size() % block_size == 0);
         switch (dir) {
-            case crypto_direction::mac:  // [[fallthrough]];
+            case crypto_direction::mac:// [[fallthrough]];
             case crypto_direction::encrypt:
                 mbedtls_aes_crypt_cbc(&_enc_context, MBEDTLS_AES_ENCRYPT, data.size(), iv.data(), data.data(), data.data());
                 break;
@@ -303,4 +303,4 @@ namespace desfire {
         }
         ESP_LOG_BUFFER_HEX_LEVEL(output_tag(dir), data.data(), data.size(), ESP_LOG_DEBUG);
     }
-}
+}// namespace desfire

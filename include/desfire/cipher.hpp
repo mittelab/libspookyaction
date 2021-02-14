@@ -5,20 +5,20 @@
 #ifndef DESFIRE_CIPHER_HPP
 #define DESFIRE_CIPHER_HPP
 
-#include "mlab/bin_data.hpp"
 #include "bits.hpp"
 #include "log.h"
+#include "mlab/bin_data.hpp"
 
 namespace desfire {
-    using bits::file_security;
     using bits::cipher_mode;
+    using bits::file_security;
 
     namespace {
         using mlab::bin_data;
 
         template <class It>
         using range = mlab::range<It>;
-    }
+    }// namespace
 
 
     inline cipher_mode cipher_mode_from_security(file_security security);
@@ -36,6 +36,7 @@ namespace desfire {
 
     class cipher {
         cipher_iv _iv_mode = cipher_iv::global;
+
     public:
         inline void set_iv_mode(cipher_iv v);
 
@@ -59,6 +60,7 @@ namespace desfire {
     private:
         cipher &_c;
         cipher_iv _old_iv_mode;
+
     public:
         inline explicit iv_session(cipher &c, cipher_iv iv_mode);
         inline ~iv_session();
@@ -74,7 +76,7 @@ namespace desfire {
         using mac_t = std::array<std::uint8_t, mac_size>;
         using crc_t = std::array<std::uint8_t, crc_size>;
     };
-}
+}// namespace desfire
 
 namespace desfire {
 
@@ -96,9 +98,12 @@ namespace desfire {
 
     cipher_mode cipher_mode_from_security(file_security security) {
         switch (security) {
-            case file_security::none:           return cipher_mode::plain;
-            case file_security::authenticated:  return cipher_mode::maced;
-            case file_security::encrypted:      return cipher_mode::ciphered;
+            case file_security::none:
+                return cipher_mode::plain;
+            case file_security::authenticated:
+                return cipher_mode::maced;
+            case file_security::encrypted:
+                return cipher_mode::ciphered;
             default:
                 DESFIRE_LOGE("Unsupported file security %s", to_string(security));
                 break;
@@ -130,6 +135,6 @@ namespace desfire {
         }
     }
 
-}
+}// namespace desfire
 
-#endif //DESFIRE_CIPHER_HPP
+#endif//DESFIRE_CIPHER_HPP

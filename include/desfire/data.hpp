@@ -5,21 +5,21 @@
 #ifndef DESFIRE_DATA_HPP
 #define DESFIRE_DATA_HPP
 
-#include <memory>
-#include <mlab/any_of.hpp>
 #include "bits.hpp"
 #include "cipher_impl.hpp"
 #include "key_actor.hpp"
+#include <memory>
+#include <mlab/any_of.hpp>
 
 namespace desfire {
-    using bits::status;
+    using bits::all_records;
+    using bits::app_crypto;
+    using bits::cipher_mode;
     using bits::cipher_type;
     using bits::command_code;
-    using bits::app_crypto;
     using bits::file_security;
-    using bits::cipher_mode;
     using bits::file_type;
-    using bits::all_records;
+    using bits::status;
 
     inline cipher_mode cipher_mode_most_secure(cipher_mode l, cipher_mode r);
 
@@ -35,28 +35,28 @@ namespace desfire {
      * success conditions, the latter has to be handled at communication level.
      */
     enum struct error : std::uint8_t {
-        out_of_eeprom        = static_cast<std::uint8_t>(status::out_of_eeprom),
-        illegal_command      = static_cast<std::uint8_t>(status::illegal_command),
-        integrity_error      = static_cast<std::uint8_t>(status::integrity_error),
-        no_such_key          = static_cast<std::uint8_t>(status::no_such_key),
-        length_error         = static_cast<std::uint8_t>(status::length_error),
-        permission_denied    = static_cast<std::uint8_t>(status::permission_denied),
-        parameter_error      = static_cast<std::uint8_t>(status::parameter_error),
-        app_not_found        = static_cast<std::uint8_t>(status::app_not_found),
-        app_integrity_error  = static_cast<std::uint8_t>(status::app_integrity_error),
+        out_of_eeprom = static_cast<std::uint8_t>(status::out_of_eeprom),
+        illegal_command = static_cast<std::uint8_t>(status::illegal_command),
+        integrity_error = static_cast<std::uint8_t>(status::integrity_error),
+        no_such_key = static_cast<std::uint8_t>(status::no_such_key),
+        length_error = static_cast<std::uint8_t>(status::length_error),
+        permission_denied = static_cast<std::uint8_t>(status::permission_denied),
+        parameter_error = static_cast<std::uint8_t>(status::parameter_error),
+        app_not_found = static_cast<std::uint8_t>(status::app_not_found),
+        app_integrity_error = static_cast<std::uint8_t>(status::app_integrity_error),
         authentication_error = static_cast<std::uint8_t>(status::authentication_error),
-        boundary_error       = static_cast<std::uint8_t>(status::boundary_error),
+        boundary_error = static_cast<std::uint8_t>(status::boundary_error),
         picc_integrity_error = static_cast<std::uint8_t>(status::picc_integrity_error),
-        command_aborted      = static_cast<std::uint8_t>(status::command_aborted),
-        picc_disabled_error  = static_cast<std::uint8_t>(status::picc_disabled_error),
-        count_error          = static_cast<std::uint8_t>(status::count_error),
-        duplicate_error      = static_cast<std::uint8_t>(status::duplicate_error),
-        eeprom_error         = static_cast<std::uint8_t>(status::eeprom_error),
-        file_not_found       = static_cast<std::uint8_t>(status::file_not_found),
+        command_aborted = static_cast<std::uint8_t>(status::command_aborted),
+        picc_disabled_error = static_cast<std::uint8_t>(status::picc_disabled_error),
+        count_error = static_cast<std::uint8_t>(status::count_error),
+        duplicate_error = static_cast<std::uint8_t>(status::duplicate_error),
+        eeprom_error = static_cast<std::uint8_t>(status::eeprom_error),
+        file_not_found = static_cast<std::uint8_t>(status::file_not_found),
         file_integrity_error = static_cast<std::uint8_t>(status::file_integrity_error),
-        controller_error,    ///< Specific for PCD error
-        malformed,           ///< No data or incorrect data received when some specific format was expected
-        crypto_error         /**< @brief Something went wrong with crypto (@ref cipher_mode)
+        controller_error,///< Specific for PCD error
+        malformed,       ///< No data or incorrect data received when some specific format was expected
+        crypto_error     /**< @brief Something went wrong with crypto (@ref cipher_mode)
                               * This could mean invalid MAC, CMAC, or CRC, or data length is not a multiple of block
                               * size when encrypted; this depends on the specified communication config.
                               */
@@ -68,9 +68,7 @@ namespace desfire {
     struct same_key_t {};
     static constexpr same_key_t same_key{};
 
-    struct change_key_actor :
-            public key_actor_base<std::uint8_t, bits::app_change_keys_right_shift, same_key_t, change_key_actor>
-    {
+    struct change_key_actor : public key_actor_base<std::uint8_t, bits::app_change_keys_right_shift, same_key_t, change_key_actor> {
         using base = key_actor_base<std::uint8_t, bits::app_change_keys_right_shift, same_key_t, change_key_actor>;
         using base::base;
         using base::get;
@@ -189,46 +187,41 @@ namespace desfire {
     struct file_settings<file_type::standard> : public generic_file_settings, public data_file_settings {
         using specific_file_settings = data_file_settings;
         inline file_settings() : generic_file_settings{}, data_file_settings{.size = 0} {}
-        file_settings(generic_file_settings generic, data_file_settings specific) :
-            generic_file_settings{generic}, data_file_settings{specific} {}
+        file_settings(generic_file_settings generic, data_file_settings specific) : generic_file_settings{generic}, data_file_settings{specific} {}
     };
 
     template <>
     struct file_settings<file_type::backup> : public generic_file_settings, public data_file_settings {
         using specific_file_settings = data_file_settings;
         inline file_settings() : generic_file_settings{}, data_file_settings{.size = 0} {}
-        file_settings(generic_file_settings generic, data_file_settings specific) :
-            generic_file_settings{generic}, data_file_settings{specific} {}
+        file_settings(generic_file_settings generic, data_file_settings specific) : generic_file_settings{generic}, data_file_settings{specific} {}
     };
 
     template <>
     struct file_settings<file_type::value> : public generic_file_settings, public value_file_settings {
         using specific_file_settings = value_file_settings;
         inline file_settings() : generic_file_settings{},
-            value_file_settings{.lower_limit = 0, .upper_limit = 0, .value = 0, .limited_credit_enabled = false} {}
+                                 value_file_settings{.lower_limit = 0, .upper_limit = 0, .value = 0, .limited_credit_enabled = false} {}
 
-        file_settings(generic_file_settings generic, value_file_settings specific) :
-            generic_file_settings{generic}, value_file_settings{specific} {}
+        file_settings(generic_file_settings generic, value_file_settings specific) : generic_file_settings{generic}, value_file_settings{specific} {}
     };
 
     template <>
     struct file_settings<file_type::linear_record> : public generic_file_settings, public record_file_settings {
         using specific_file_settings = record_file_settings;
         inline file_settings() : generic_file_settings{},
-            record_file_settings{.record_size = 0, .max_record_count = 0, .record_count = 0} {}
+                                 record_file_settings{.record_size = 0, .max_record_count = 0, .record_count = 0} {}
 
-        file_settings(generic_file_settings generic, record_file_settings specific) :
-            generic_file_settings{generic}, record_file_settings{specific} {}
+        file_settings(generic_file_settings generic, record_file_settings specific) : generic_file_settings{generic}, record_file_settings{specific} {}
     };
 
     template <>
     struct file_settings<file_type::cyclic_record> : public generic_file_settings, public record_file_settings {
         using specific_file_settings = record_file_settings;
         inline file_settings() : generic_file_settings{},
-            record_file_settings{.record_size = 0, .max_record_count = 0, .record_count = 0} {}
+                                 record_file_settings{.record_size = 0, .max_record_count = 0, .record_count = 0} {}
 
-        file_settings(generic_file_settings generic, record_file_settings specific) :
-            generic_file_settings{generic}, record_file_settings{specific} {}
+        file_settings(generic_file_settings generic, record_file_settings specific) : generic_file_settings{generic}, record_file_settings{specific} {}
     };
 
 
@@ -265,6 +258,7 @@ namespace desfire {
 
         inline unsigned exponent() const;
         inline bool approx() const;
+
     public:
         explicit storage_size(std::size_t nbytes = 0);
 
@@ -358,7 +352,7 @@ namespace desfire {
     };
 
     template <std::size_t KeyLength>
-    struct key_storage<KeyLength, true  /* ParityBitsAreVersion */> {
+    struct key_storage<KeyLength, true /* ParityBitsAreVersion */> {
         static constexpr std::size_t key_length = KeyLength;
         using key_t = std::array<std::uint8_t, key_length>;
         key_t k;
@@ -410,7 +404,7 @@ namespace desfire {
         using key_base<16, cipher_aes, false>::key_base;
     };
 
-}
+}// namespace desfire
 
 namespace mlab {
 
@@ -443,35 +437,27 @@ namespace mlab {
 
     template <desfire::file_type Type>
     bin_data &operator<<(bin_data &bd, desfire::file_settings<Type> const &fs);
-}
+}// namespace mlab
 
 namespace desfire {
 
     template <std::size_t KeyLength, class Cipher, bool ParityBitsAreVersion>
-    key_base<KeyLength, Cipher, ParityBitsAreVersion>::key_base() :
-            storage{}, key_number{0}
-    {}
+    key_base<KeyLength, Cipher, ParityBitsAreVersion>::key_base() : storage{}, key_number{0} {}
 
     template <std::size_t KeyLength, class Cipher, bool ParityBitsAreVersion>
-    key_base<KeyLength, Cipher, ParityBitsAreVersion>::key_base(std::uint8_t key_no, key_t k_) :
-            storage{k_}, key_number{key_no}
-    {}
+    key_base<KeyLength, Cipher, ParityBitsAreVersion>::key_base(std::uint8_t key_no, key_t k_) : storage{k_}, key_number{key_no} {}
 
     template <std::size_t KeyLength, class Cipher, bool ParityBitsAreVersion>
-    key_base<KeyLength, Cipher, ParityBitsAreVersion>::key_base(std::uint8_t key_no, key_t k_, std::uint8_t v_) :
-            storage{k_, v_}, key_number{key_no}
-    {}
+    key_base<KeyLength, Cipher, ParityBitsAreVersion>::key_base(std::uint8_t key_no, key_t k_, std::uint8_t v_) : storage{k_, v_}, key_number{key_no} {}
 
     template <std::size_t KeyLength, class Cipher, bool ParityBitsAreVersion>
     std::unique_ptr<cipher> key_base<KeyLength, Cipher, ParityBitsAreVersion>::make_cipher() const {
         return std::unique_ptr<Cipher>(new Cipher(storage::k));
     }
 
-    app_settings::app_settings(app_crypto crypto_, key_rights rights_, std::uint8_t max_num_keys_) :
-            rights{rights_}, max_num_keys{max_num_keys_}, crypto{crypto_} {}
+    app_settings::app_settings(app_crypto crypto_, key_rights rights_, std::uint8_t max_num_keys_) : rights{rights_}, max_num_keys{max_num_keys_}, crypto{crypto_} {}
 
-    app_settings::app_settings(cipher_type cipher, key_rights rights_, std::uint8_t max_num_keys_) :
-            rights{rights_}, max_num_keys{max_num_keys_}, crypto{app_crypto_from_cipher(cipher)} {}
+    app_settings::app_settings(cipher_type cipher, key_rights rights_, std::uint8_t max_num_keys_) : rights{rights_}, max_num_keys{max_num_keys_}, crypto{app_crypto_from_cipher(cipher)} {}
 
     unsigned storage_size::exponent() const {
         return _flag >> bits::storage_size_exponent_shift;
@@ -500,8 +486,7 @@ namespace desfire {
 
     constexpr access_rights::access_rights() : value{0} {}
 
-    access_rights::access_rights(std::uint8_t single_key) : access_rights{}
-    {
+    access_rights::access_rights(std::uint8_t single_key) : access_rights{} {
         if (single_key > bits::max_keys_per_app) {
             DESFIRE_LOGE("Invalid key number (%d) for access rights, should be <= %d.", single_key, bits::max_keys_per_app);
         } else {
@@ -530,9 +515,8 @@ namespace desfire {
         return retval;
     }
 
-    generic_file_settings::generic_file_settings(file_security security_, access_rights rights_) : security{security_}, rights{rights_}
-    {}
-}
+    generic_file_settings::generic_file_settings(file_security security_, access_rights rights_) : security{security_}, rights{rights_} {}
+}// namespace desfire
 
 namespace mlab {
 
@@ -550,9 +534,9 @@ namespace mlab {
     template <desfire::file_type Type>
     bin_data &operator<<(bin_data &bd, desfire::file_settings<Type> const &fs) {
         return bd
-            << static_cast<desfire::generic_file_settings const &>(fs)
-            << static_cast<typename desfire::file_settings<Type>::specific_file_settings const &>(fs);
+               << static_cast<desfire::generic_file_settings const &>(fs)
+               << static_cast<typename desfire::file_settings<Type>::specific_file_settings const &>(fs);
     }
-}
+}// namespace mlab
 
-#endif //DESFIRE_DATA_HPP
+#endif//DESFIRE_DATA_HPP

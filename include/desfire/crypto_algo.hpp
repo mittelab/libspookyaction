@@ -5,13 +5,13 @@
 #ifndef DESFIRE_CRYPTO_ALGO_HPP
 #define DESFIRE_CRYPTO_ALGO_HPP
 
-#include <cstdint>
-#include <utility>
-#include <iterator>
-#include <algorithm>
-#include <esp_system.h>
-#include "mlab/bin_data.hpp"
 #include "log.h"
+#include "mlab/bin_data.hpp"
+#include <algorithm>
+#include <cstdint>
+#include <esp_system.h>
+#include <iterator>
+#include <utility>
 
 namespace desfire {
 
@@ -79,7 +79,7 @@ namespace desfire {
 
     inline std::uint16_t compute_crc16(mlab::bin_data const &data, std::uint16_t init = crc16_init);
     inline std::uint32_t compute_crc32(mlab::bin_data const &data, std::uint32_t init = crc32_init);
-}
+}// namespace desfire
 
 namespace mlab {
     inline bin_data &operator<<(bin_data &bd, desfire::randbytes const &rndb);
@@ -109,9 +109,8 @@ namespace desfire {
 
     template <std::size_t BlockSize, class ByteIterator, class N, class Fn, std::size_t NPaddingBytes>
     std::pair<ByteIterator, bool> find_crc_tail(ByteIterator begin, ByteIterator end, Fn &&crc_fn, N init,
-                                                       bool incremental_crc,
-                                                       std::array<std::uint8_t, NPaddingBytes> const &valid_padding_bytes)
-   {
+                                                bool incremental_crc,
+                                                std::array<std::uint8_t, NPaddingBytes> const &valid_padding_bytes) {
         static const auto nonzero_byte_pred = [&](std::uint8_t b) -> bool {
             return std::find(std::begin(valid_padding_bytes), std::end(valid_padding_bytes), b) == std::end(valid_padding_bytes);
         };
@@ -185,7 +184,7 @@ namespace desfire {
     }
 
 
-}
+}// namespace desfire
 namespace mlab {
 
     bin_data &operator<<(bin_data &bd, desfire::randbytes const &rndb) {
@@ -195,6 +194,6 @@ namespace mlab {
         return bd;
     }
 
-}
+}// namespace mlab
 
-#endif //DESFIRE_CRYPTO_ALGO_HPP
+#endif//DESFIRE_CRYPTO_ALGO_HPP

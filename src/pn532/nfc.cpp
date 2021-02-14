@@ -1,8 +1,8 @@
 //
 // Created by Pietro Saccardi on 20/12/2020.
 //
-#include "pn532/bits_algo.hpp"
 #include "pn532/nfc.hpp"
+#include "pn532/bits_algo.hpp"
 #include "pn532/log.h"
 #include <numeric>
 
@@ -13,8 +13,7 @@ namespace pn532 {
             target_type::generic_passive_212kbps,
             target_type::generic_passive_424kbps,
             target_type::passive_106kbps_iso_iec_14443_4_typeb,
-            target_type::innovision_jewel_tag
-    };
+            target_type::innovision_jewel_tag};
 
     const char *to_string(nfc::error e) {
         switch (e) {
@@ -67,9 +66,9 @@ namespace pn532 {
         const bool use_extended_format = (payload.size() > 0xff - 2);
         if (payload.size() > bits::max_firmware_data_length) {
             PN532_LOGE("%s: payload too long for an info frame, truncating %u bytes to %u:",
-                 to_string(cmd),
-                 payload.size(),
-                 bits::max_firmware_data_length);
+                       to_string(cmd),
+                       payload.size(),
+                       bits::max_firmware_data_length);
             ESP_LOG_BUFFER_HEX_LEVEL(PN532_TAG, payload.data(), payload.size(), ESP_LOG_WARN);
         }
         const std::uint8_t length = std::min(payload.size(), bits::max_firmware_data_length);
@@ -79,8 +78,7 @@ namespace pn532 {
         const auto checksum = bits::compute_checksum(
                 transport_byte + cmd_byte,
                 std::begin(truncated_data),
-                std::end(truncated_data)
-        );
+                std::end(truncated_data));
         bin_data frame{prealloc(length + 12)};
         frame << bits::preamble << bits::start_of_packet_code;
         if (use_extended_format) {
@@ -97,8 +95,7 @@ namespace pn532 {
                 bits::preamble,
                 bits::start_of_packet_code,
                 bits::ack_packet_code,
-                bits::postamble
-        );
+                bits::postamble);
         return ack_frame;
     }
 
@@ -108,8 +105,7 @@ namespace pn532 {
                 bits::preamble,
                 bits::start_of_packet_code,
                 bits::nack_packet_code,
-                bits::postamble
-        );
+                bits::postamble);
         return nack_frame;
     }
 
@@ -166,7 +162,7 @@ namespace pn532 {
             PN532_LOGE("Ack and nack frames do not have body.");
             return error::comm_malformed;
         }
-        const auto res = chn().receive(hdr.length + 1, timeout);  // Data includes checksum
+        const auto res = chn().receive(hdr.length + 1, timeout);// Data includes checksum
         if (not res.second) {
             return error::comm_timeout;
         }
@@ -194,8 +190,7 @@ namespace pn532 {
                 static_cast<bits::transport>(data[0]),
                 bits::pn532_to_host_command(data[1]),
                 // Copy the body
-                bin_data{std::begin(data) + 2, std::end(data) - 1}
-        };
+                bin_data{std::begin(data) + 2, std::end(data) - 1}};
     }
 
 
@@ -249,7 +244,7 @@ namespace pn532 {
         }
         if (res_body->command != cmd) {
             PN532_LOGW("%s: got a reply to command %s instead.",
-                 to_string(res_body->command), to_string(cmd));
+                       to_string(res_body->command), to_string(cmd));
             return error::comm_malformed;
         }
         if (res_body->transport != bits::transport::pn532_to_host) {
@@ -301,21 +296,21 @@ namespace pn532 {
                     // Assert that this is the only other return code possible, aka timeout, but then break because we
                     // do not know what we should be doing
                     PN532_LOGE("Implementation error unexpected error code from pn532::nfc::raw_await_response: %s",
-                         to_string(res_response.error()));
+                               to_string(res_response.error()));
                     break;
                 }
             }
         } while (not res_response and res_response.error() != error::comm_timeout);
         if (not res_response) {
             PN532_LOGW("%s: canceling command after %lld ms.", to_string(cmd), rt.elapsed().count());
-            raw_send_ack(true, one_sec); // Abort command, allow large timeout time for this
+            raw_send_ack(true, one_sec);// Abort command, allow large timeout time for this
             if (res_response.error() == error::comm_timeout) {
                 return error::canceled;
             }
             return res_response.error();
         } else {
             PN532_LOGD("%s: success, command took %lld ms.", to_string(cmd), rt.elapsed().count());
-            raw_send_ack(true, one_sec); // Confirm response, allow large timeout time for this
+            raw_send_ack(true, one_sec);// Confirm response, allow large timeout time for this
             return std::move(*res_response);
         }
     }
@@ -348,10 +343,10 @@ namespace pn532 {
     }
 
     namespace {
-        template <class ...Args>
+        template <class... Args>
         nfc::r<bool> nfc_diagnose_simple(
                 nfc &controller, bits::test test, std::uint8_t expected, ms timeout,
-                std::size_t expected_body_size = 0, Args &&...append_to_body) {
+                std::size_t expected_body_size = 0, Args &&... append_to_body) {
             PN532_LOGI("%s: running %s...", to_string(command_code::diagnose), to_string(test));
             const bin_data payload = bin_data::chain(prealloc(expected_body_size + 1), test,
                                                      std::forward<Args>(append_to_body)...);
@@ -362,7 +357,7 @@ namespace pn532 {
             // Test that the reurned data coincides
             if (res_cmd->size() != 1) {
                 PN532_LOGW("%s: %s test received %u bytes instead of 1.",
-                     to_string(command_code::diagnose), to_string(test), res_cmd->size());
+                           to_string(command_code::diagnose), to_string(test), res_cmd->size());
                 return nfc::error::comm_malformed;
             }
             if (res_cmd->at(0) == expected) {
@@ -373,7 +368,7 @@ namespace pn532 {
                 return false;
             }
         }
-    }
+    }// namespace
 
     nfc::r<unsigned, unsigned> nfc::diagnose_poll_target(bool slow, bool fast, ms timeout) {
         auto get_fails = [&](bool do_test, baudrate speed) -> nfc::r<unsigned> {
@@ -389,7 +384,7 @@ namespace pn532 {
                     return res_cmd->at(0);
                 } else {
                     PN532_LOGW("%s: %s test failed at %s.", to_string(command_code::diagnose),
-                         to_string(bits::test::poll_target), to_string(speed));
+                               to_string(bits::test::poll_target), to_string(speed));
                 }
             }
             return res_cmd.error();
@@ -415,8 +410,7 @@ namespace pn532 {
                 bits::test::echo_back,
                 std::uint8_t(reply_delay.count() * bits::echo_back_reply_delay_steps_per_ms),
                 tx_mode,
-                rx_mode
-        );
+                rx_mode);
         return command(command_code::diagnose, payload, timeout);
     }
 
@@ -439,8 +433,7 @@ namespace pn532 {
                 .detected_high_pwr = false,
                 .low_current_threshold = low_threshold,
                 .high_current_threshold = high_threshold,
-                .enable_detection = true
-        };
+                .enable_detection = true};
         return nfc_diagnose_simple(*this, bits::test::self_antenna, 0x00, timeout, 1, r);
     }
 
@@ -457,7 +450,7 @@ namespace pn532 {
         static constexpr std::size_t max_addr_count = bits::max_firmware_data_length / 2;
         if (addresses.size() > max_addr_count) {
             PN532_LOGE("%s: requested %u addresses, but can read at most %u in a single batch.",
-                 to_string(command_code::read_register), addresses.size(), max_addr_count);
+                       to_string(command_code::read_register), addresses.size(), max_addr_count);
         }
         const std::size_t effective_length = std::min(addresses.size(), max_addr_count);
         bin_data payload{prealloc(effective_length * 2)};
@@ -470,7 +463,7 @@ namespace pn532 {
         }
         if (res_cmd->size() != effective_length) {
             PN532_LOGE("%s: requested %u registers, got %u instead.", to_string(command_code::read_register),
-                 addresses.size(), res_cmd->size());
+                       addresses.size(), res_cmd->size());
         }
         return std::move(*res_cmd);
     }
@@ -479,7 +472,7 @@ namespace pn532 {
         static constexpr std::size_t max_avp_count = bits::max_firmware_data_length / 3;
         if (addr_value_pairs.size() > max_avp_count) {
             PN532_LOGE("%s: requested %u addresses, but can read at most %u in a single batch.",
-                 to_string(command_code::write_register), addr_value_pairs.size(), max_avp_count);
+                       to_string(command_code::write_register), addr_value_pairs.size(), max_avp_count);
         }
         const std::size_t effective_length = std::min(addr_value_pairs.size(), max_avp_count);
         bin_data payload{prealloc(effective_length * 3)};
@@ -616,7 +609,7 @@ namespace pn532 {
     std::uint8_t nfc::get_target(command_code cmd, std::uint8_t target_logical_index, bool expect_more_data) {
         if (target_logical_index > bits::max_num_targets) {
             PN532_LOGE("%s: out of range (unsupported) logical target index %u (> %u).",
-                 to_string(cmd), target_logical_index, bits::max_num_targets);
+                       to_string(cmd), target_logical_index, bits::max_num_targets);
         }
         target_logical_index = std::min(target_logical_index, bits::max_num_targets);
         return target_logical_index | (expect_more_data ? bits::status_more_info_mask : 0x00);
@@ -649,11 +642,11 @@ namespace pn532 {
         void sanitize_max_targets(std::uint8_t &max_targets, const char *fname) {
             if (max_targets < 1 or max_targets > bits::max_num_targets) {
                 PN532_LOGW("%s: incorrect max targets %u for %s, clamping.",
-                     to_string(command_code::in_list_passive_target), max_targets, fname);
+                           to_string(command_code::in_list_passive_target), max_targets, fname);
                 max_targets = std::min(std::max(max_targets, std::uint8_t(1)), bits::max_num_targets);
             }
         }
-    }
+    }// namespace
 
     nfc::r<std::vector<target_kbps106_typea>> nfc::initiator_list_passive_kbps106_typea(
             std::uint8_t max_targets, ms timeout) {
@@ -695,7 +688,6 @@ namespace pn532 {
         sanitize_max_targets(max_targets, "initiator_list_passive_kbps212_felica");
         return initiator_list_passive<baudrate_modulation::kbps212_felica_polling>(
                 max_targets, bin_data::chain(payload), timeout);
-
     }
 
     nfc::r<std::vector<target_kbps424_felica>> nfc::initiator_list_passive_kbps424_felica(
@@ -716,8 +708,7 @@ namespace pn532 {
                 prealloc(2 + initiator_data.size()),
                 max_targets,
                 BrMd,
-                initiator_data
-        );
+                initiator_data);
         auto res_cmd = command_parse_response<std::vector<bits::target<BrMd>>>(
                 command_code::in_list_passive_target, payload, timeout);
         if (not res_cmd and res_cmd.error() == error::canceled) {
@@ -740,8 +731,7 @@ namespace pn532 {
             }
             return make_range(
                     std::begin(v),
-                    std::begin(v) + std::min(max_len, v.size())
-            );
+                    std::begin(v) + std::min(max_len, v.size()));
         }
 
         range<std::vector<std::uint8_t>::const_iterator> sanitize_initiator_general_info(
@@ -758,7 +748,7 @@ namespace pn532 {
                 command_code cmd, std::vector<std::uint8_t> const &hb) {
             return sanitize_vector(cmd, "historical bytes", hb, bits::init_as_target_historical_bytes_max_length);
         }
-    }
+    }// namespace
 
 
     nfc::r<rf_status, atr_res_info> nfc::initiator_activate_target(std::uint8_t target_logical_index, ms timeout) {
@@ -766,8 +756,7 @@ namespace pn532 {
         return command_parse_response<std::pair<rf_status, atr_res_info>>(
                 command_code::in_atr,
                 bin_data::chain(target_logical_index, next_byte),
-                timeout
-        );
+                timeout);
     }
 
     nfc::r<rf_status, atr_res_info> nfc::initiator_activate_target(
@@ -778,8 +767,7 @@ namespace pn532 {
         return command_parse_response<std::pair<rf_status, atr_res_info>>(
                 command_code::in_atr,
                 bin_data::chain(target_logical_index, next_byte, nfcid_3t),
-                timeout
-        );
+                timeout);
     }
 
     nfc::r<rf_status, atr_res_info> nfc::initiator_activate_target(
@@ -791,8 +779,7 @@ namespace pn532 {
         return command_parse_response<std::pair<rf_status, atr_res_info>>(
                 command_code::in_atr,
                 bin_data::chain(target_logical_index, next_byte, gi_view),
-                timeout
-        );
+                timeout);
     }
 
     nfc::r<rf_status, atr_res_info> nfc::initiator_activate_target(
@@ -805,8 +792,7 @@ namespace pn532 {
         return command_parse_response<std::pair<rf_status, atr_res_info>>(
                 command_code::in_atr,
                 bin_data::chain(target_logical_index, next_byte, nfcid_3t, gi_view),
-                timeout
-        );
+                timeout);
     }
 
     nfc::r<std::vector<any_target>> nfc::initiator_auto_poll(
@@ -819,7 +805,7 @@ namespace pn532 {
         }
         if (types_to_poll.size() > bits::autopoll_max_types) {
             PN532_LOGW("%s: too many (%u) types to poll, at most %u will be considered.",
-                 to_string(command_code::in_autopoll), types_to_poll.size(), bits::autopoll_max_types);
+                       to_string(command_code::in_autopoll), types_to_poll.size(), bits::autopoll_max_types);
         }
         const auto num_types = std::min(bits::autopoll_max_types, types_to_poll.size());
         const auto target_view = make_range(std::begin(types_to_poll), std::begin(types_to_poll) + num_types);
@@ -827,8 +813,7 @@ namespace pn532 {
                 prealloc(2 + num_types),
                 polls_per_type,
                 period,
-                target_view
-        );
+                target_view);
         auto res_cmd = command_parse_response<std::vector<any_target>>(command_code::in_autopoll, payload, timeout);
         if (not res_cmd and res_cmd.error() == error::canceled) {
             // Canceled commands means no target was found, return thus an empty array as technically it's correct
@@ -839,14 +824,14 @@ namespace pn532 {
 
     nfc::r<rf_status, bin_data> nfc::initiator_data_exchange(
             std::uint8_t target_logical_index, bin_data const &data, ms timeout) {
-        static constexpr std::size_t max_chunk_length = bits::max_firmware_data_length - 1;  // - target byte
+        static constexpr std::size_t max_chunk_length = bits::max_firmware_data_length - 1;// - target byte
         const auto n_chunks = std::max(1u, (data.size() + max_chunk_length - 1) / max_chunk_length);
         if (n_chunks > 1) {
             PN532_LOGI("%s: %u bytes will be sent in %u chunks.", to_string(command_code::in_data_exchange), data.size(),
-                 n_chunks);
+                       n_chunks);
         }
         PN532_LOGD("%s: sending the following data to target %u:", to_string(command_code::in_data_exchange),
-             target_logical_index);
+                   target_logical_index);
         ESP_LOG_BUFFER_HEX_LEVEL(PN532_TAG, data.data(), data.size(), ESP_LOG_DEBUG);
         reduce_timeout rt{timeout};
         bin_data data_in{};
@@ -868,7 +853,7 @@ namespace pn532 {
             if (res_cmd->first.error != controller_error::none) {
                 if (more_data) {
                     PN532_LOGE("%s: aborting multiple chunks transfer because controller returned error %s.",
-                         to_string(command_code::in_data_exchange), to_string(res_cmd->first.error));
+                               to_string(command_code::in_data_exchange), to_string(res_cmd->first.error));
                     // Send an ack to abort whatever is left in the controller.
                     raw_send_ack(true, one_sec);
                 }
@@ -894,15 +879,14 @@ namespace pn532 {
                    | (has_nfcid_3t ? bits::in_jump_for_dep_nfcid_3t_present_mask : 0x00)
                    | (has_general_info ? bits::in_jump_for_dep_general_info_present_mask : 0x00);
         }
-    }
+    }// namespace
 
     nfc::r<jump_dep_psl> nfc::initiator_jump_for_dep_active(baudrate speed, ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(false, false, false);
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_dep,
                 bin_data::chain(true /* active */, speed, next_byte),
-                timeout
-        );
+                timeout);
     }
 
     nfc::r<jump_dep_psl> nfc::initiator_jump_for_dep_active(
@@ -911,8 +895,7 @@ namespace pn532 {
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_dep,
                 bin_data::chain(true /* active */, speed, next_byte, nfcid_3t),
-                timeout
-        );
+                timeout);
     }
 
     nfc::r<jump_dep_psl> nfc::initiator_jump_for_dep_passive_106kbps(ms timeout) {
@@ -920,8 +903,7 @@ namespace pn532 {
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_dep,
                 bin_data::chain(false /* passive */, baudrate::kbps106, next_byte),
-                timeout
-        );
+                timeout);
     }
 
     nfc::r<jump_dep_psl> nfc::initiator_jump_for_dep_passive_106kbps(
@@ -930,8 +912,7 @@ namespace pn532 {
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_dep,
                 bin_data::chain(false /* passive */, baudrate::kbps106, next_byte, nfcid_3t),
-                timeout
-        );
+                timeout);
     }
 
     nfc::r<jump_dep_psl> nfc::initiator_jump_for_dep_passive_106kbps(
@@ -940,8 +921,7 @@ namespace pn532 {
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_dep,
                 bin_data::chain(false /* passive */, baudrate::kbps106, next_byte, target_id),
-                timeout
-        );
+                timeout);
     }
 
     nfc::r<jump_dep_psl> nfc::initiator_jump_for_dep_passive_106kbps(
@@ -950,8 +930,7 @@ namespace pn532 {
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_dep,
                 bin_data::chain(false /* passive */, baudrate::kbps106, next_byte, target_id, nfcid_3t),
-                timeout
-        );
+                timeout);
     }
 
     nfc::r<jump_dep_psl> nfc::initiator_jump_for_dep_passive_212kbps(
@@ -960,8 +939,7 @@ namespace pn532 {
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_dep,
                 bin_data::chain(false /* passive */, baudrate::kbps212, next_byte, target_id, target_id),
-                timeout
-        );
+                timeout);
     }
 
     nfc::r<jump_dep_psl> nfc::initiator_jump_for_dep_passive_424kbps(
@@ -970,8 +948,7 @@ namespace pn532 {
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_dep,
                 bin_data::chain(false /* passive */, baudrate::kbps424, next_byte, target_id, target_id),
-                timeout
-        );
+                timeout);
     }
 
 
@@ -983,8 +960,7 @@ namespace pn532 {
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_dep,
                 bin_data::chain(true /* active */, speed, next_byte, gi_view),
-                timeout
-        );
+                timeout);
     }
 
     nfc::r<jump_dep_psl> nfc::initiator_jump_for_dep_active(
@@ -995,8 +971,7 @@ namespace pn532 {
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_dep,
                 bin_data::chain(true /* active */, speed, next_byte, nfcid_3t, gi_view),
-                timeout
-        );
+                timeout);
     }
 
     nfc::r<jump_dep_psl> nfc::initiator_jump_for_dep_passive_106kbps(
@@ -1006,8 +981,7 @@ namespace pn532 {
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_dep,
                 bin_data::chain(false /* passive */, baudrate::kbps106, next_byte, gi_view),
-                timeout
-        );
+                timeout);
     }
 
     nfc::r<jump_dep_psl> nfc::initiator_jump_for_dep_passive_106kbps(
@@ -1018,8 +992,7 @@ namespace pn532 {
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_dep,
                 bin_data::chain(false /* passive */, baudrate::kbps106, next_byte, nfcid_3t, gi_view),
-                timeout
-        );
+                timeout);
     }
 
     nfc::r<jump_dep_psl> nfc::initiator_jump_for_dep_passive_106kbps(
@@ -1030,8 +1003,7 @@ namespace pn532 {
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_dep,
                 bin_data::chain(false /* passive */, baudrate::kbps106, next_byte, target_id, gi_view),
-                timeout
-        );
+                timeout);
     }
 
     nfc::r<jump_dep_psl> nfc::initiator_jump_for_dep_passive_106kbps(
@@ -1042,8 +1014,7 @@ namespace pn532 {
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_dep,
                 bin_data::chain(false /* passive */, baudrate::kbps106, next_byte, target_id, nfcid_3t, gi_view),
-                timeout
-        );
+                timeout);
     }
 
     nfc::r<jump_dep_psl> nfc::initiator_jump_for_dep_passive_212kbps(
@@ -1054,8 +1025,7 @@ namespace pn532 {
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_dep,
                 bin_data::chain(false /* passive */, baudrate::kbps212, next_byte, target_id, target_id, gi_view),
-                timeout
-        );
+                timeout);
     }
 
     nfc::r<jump_dep_psl> nfc::initiator_jump_for_dep_passive_424kbps(
@@ -1066,8 +1036,7 @@ namespace pn532 {
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_dep,
                 bin_data::chain(false /* passive */, baudrate::kbps424, next_byte, target_id, target_id, gi_view),
-                timeout
-        );
+                timeout);
     }
 
 
@@ -1076,8 +1045,7 @@ namespace pn532 {
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_psl,
                 bin_data::chain(true /* active */, speed, next_byte),
-                timeout
-        );
+                timeout);
     }
 
     nfc::r<jump_dep_psl> nfc::initiator_jump_for_psl_active(
@@ -1086,8 +1054,7 @@ namespace pn532 {
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_psl,
                 bin_data::chain(true /* active */, speed, next_byte, nfcid_3t),
-                timeout
-        );
+                timeout);
     }
 
     nfc::r<jump_dep_psl> nfc::initiator_jump_for_psl_passive_106kbps(ms timeout) {
@@ -1095,8 +1062,7 @@ namespace pn532 {
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_psl,
                 bin_data::chain(false /* passive */, baudrate::kbps106, next_byte),
-                timeout
-        );
+                timeout);
     }
 
     nfc::r<jump_dep_psl> nfc::initiator_jump_for_psl_passive_106kbps(
@@ -1105,8 +1071,7 @@ namespace pn532 {
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_psl,
                 bin_data::chain(false /* passive */, baudrate::kbps106, next_byte, nfcid_3t),
-                timeout
-        );
+                timeout);
     }
 
     nfc::r<jump_dep_psl> nfc::initiator_jump_for_psl_passive_106kbps(
@@ -1115,8 +1080,7 @@ namespace pn532 {
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_psl,
                 bin_data::chain(false /* passive */, baudrate::kbps106, next_byte, target_id),
-                timeout
-        );
+                timeout);
     }
 
     nfc::r<jump_dep_psl> nfc::initiator_jump_for_psl_passive_106kbps(
@@ -1125,8 +1089,7 @@ namespace pn532 {
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_psl,
                 bin_data::chain(false /* passive */, baudrate::kbps106, next_byte, target_id, nfcid_3t),
-                timeout
-        );
+                timeout);
     }
 
     nfc::r<jump_dep_psl> nfc::initiator_jump_for_psl_passive_212kbps(
@@ -1135,8 +1098,7 @@ namespace pn532 {
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_psl,
                 bin_data::chain(false /* passive */, baudrate::kbps212, next_byte, target_id, target_id),
-                timeout
-        );
+                timeout);
     }
 
     nfc::r<jump_dep_psl> nfc::initiator_jump_for_psl_passive_424kbps(
@@ -1145,8 +1107,7 @@ namespace pn532 {
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_psl,
                 bin_data::chain(false /* passive */, baudrate::kbps424, next_byte, target_id, target_id),
-                timeout
-        );
+                timeout);
     }
 
 
@@ -1158,8 +1119,7 @@ namespace pn532 {
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_psl,
                 bin_data::chain(true /* active */, speed, next_byte, gi_view),
-                timeout
-        );
+                timeout);
     }
 
     nfc::r<jump_dep_psl> nfc::initiator_jump_for_psl_active(
@@ -1170,8 +1130,7 @@ namespace pn532 {
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_psl,
                 bin_data::chain(true /* active */, speed, next_byte, nfcid_3t, gi_view),
-                timeout
-        );
+                timeout);
     }
 
     nfc::r<jump_dep_psl> nfc::initiator_jump_for_psl_passive_106kbps(
@@ -1181,8 +1140,7 @@ namespace pn532 {
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_psl,
                 bin_data::chain(false /* passive */, baudrate::kbps106, next_byte, gi_view),
-                timeout
-        );
+                timeout);
     }
 
     nfc::r<jump_dep_psl> nfc::initiator_jump_for_psl_passive_106kbps(
@@ -1193,8 +1151,7 @@ namespace pn532 {
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_psl,
                 bin_data::chain(false /* passive */, baudrate::kbps106, next_byte, nfcid_3t, gi_view),
-                timeout
-        );
+                timeout);
     }
 
     nfc::r<jump_dep_psl> nfc::initiator_jump_for_psl_passive_106kbps(
@@ -1205,8 +1162,7 @@ namespace pn532 {
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_psl,
                 bin_data::chain(false /* passive */, baudrate::kbps106, next_byte, target_id, gi_view),
-                timeout
-        );
+                timeout);
     }
 
     nfc::r<jump_dep_psl> nfc::initiator_jump_for_psl_passive_106kbps(
@@ -1217,8 +1173,7 @@ namespace pn532 {
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_psl,
                 bin_data::chain(false /* passive */, baudrate::kbps106, next_byte, target_id, nfcid_3t, gi_view),
-                timeout
-        );
+                timeout);
     }
 
     nfc::r<jump_dep_psl> nfc::initiator_jump_for_psl_passive_212kbps(
@@ -1229,8 +1184,7 @@ namespace pn532 {
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_psl,
                 bin_data::chain(false /* passive */, baudrate::kbps212, next_byte, target_id, target_id, gi_view),
-                timeout
-        );
+                timeout);
     }
 
     nfc::r<jump_dep_psl> nfc::initiator_jump_for_psl_passive_424kbps(
@@ -1241,8 +1195,7 @@ namespace pn532 {
         return command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_psl,
                 bin_data::chain(false /* passive */, baudrate::kbps424, next_byte, target_id, target_id, gi_view),
-                timeout
-        );
+                timeout);
     }
 
     nfc::r<> nfc::set_parameters(parameters const &parms, ms timeout) {
@@ -1286,8 +1239,7 @@ namespace pn532 {
                 std::uint8_t(gi_view.size()),
                 gi_view,
                 std::uint8_t(tk_view.size()),
-                tk_view
-        );
+                tk_view);
         return command_parse_response<init_as_target_res>(command_code::tg_init_as_target, payload, timeout);
     }
 
@@ -1310,7 +1262,6 @@ namespace pn532 {
         const auto view = sanitize_vector(command_code::tg_set_metadata, "metadata", data,
                                           bits::max_firmware_data_length - 1);
         return command_parse_response<rf_status>(command_code::tg_set_metadata, bin_data::chain(view), timeout);
-
     }
 
     nfc::r<rf_status, bin_data> nfc::target_get_initiator_command(ms timeout) {
@@ -1326,4 +1277,4 @@ namespace pn532 {
     }
 
 
-}
+}// namespace pn532

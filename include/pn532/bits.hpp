@@ -6,8 +6,8 @@
 #define PN532_BITS_HPP
 
 #include <array>
-#include <vector>
 #include <cstddef>
+#include <vector>
 
 namespace pn532 {
 
@@ -41,45 +41,45 @@ namespace pn532 {
         static constexpr unsigned echo_back_reply_delay_steps_per_ms = 2;
 
         enum struct command : std::uint8_t {
-            diagnose = 0x00,                    ///< Run Diagnostic commands (UM0701-02 §7.2.1)
-            get_firmware_version = 0x02,        ///< Query for PN532 version and info (UM0701-02 §7.2.2)
-            get_general_status = 0x04,          ///< Get PN532 and initialized tag status (UM0701-02 §7.2.3)
-            read_register = 0x06,               ///< Read low level registers (UM0701-02 §7.2.4)
-            write_register = 0x08,              ///< Write low level registers (UM0701-02 §7.2.5)
-            read_gpio = 0x0c,                   ///< Get gpio state (UM0701-02 §7.2.6)
-            write_gpio = 0x0e,                  ///< Write the GPIO status (UM0701-02 §7.2.7)
-            set_serial_baudrate = 0x10,         ///< Configure serial comunication baudrate (only on HSU mode) (UM0701-02 §7.2.8)
-            set_parameters = 0x12,              ///< Set internal configuration parameters (UM0701-02 §7.2.9)
-            sam_configuration = 0x14,           ///< Configure the sam data-flow (UM0701-02 §7.2.10)
-            power_down = 0x16,                  ///< Set the PN532 in deep-sleep (UM0701-02 §7.2.11)
-            rf_configuration = 0x32,            ///< Configure RF parameters (UM0701-02 §7.3.1)
-            rf_regulation_test = 0x58,          ///< Command usefull when doing EMI test (UM0701-02 §7.3.2)
-            in_jump_for_dep = 0x56,             ///< Activate the target and setup for a DEP exchange (UM0701-02 §7.3.3)
-            in_jump_for_psl = 0x46,             ///< Activate the target and setup for a PSL or DEP exchange (UM0701-02 §7.3.4)
-            in_list_passive_target = 0x4a,      ///< Detect all target in rage (MAX 2) in passive mode (UM0701-02 §7.3.5)
-            in_atr = 0x50,                      ///< Activate the target (for passive mode) (UM0701-02 §7.3.6)
-            in_psl = 0x4e,                      ///< Change the baudrate of a TPE or ISO14443-4 target (UM0701-02 §7.3.7)
-            in_data_exchange = 0x40,            ///< Start a data excange with the selected target (UM0701-02 §7.3.8)
-            in_communicate_thru = 0x42,         ///< Start a low level data exchange (UM0701-02 §7.3.9)
-            in_deselect = 0x44,                 ///< Deselect the target, but keep configuration information in memory (UM0701-02 §7.3.10)
-            in_release = 0x52,                  ///< Terminate comunication with the target, and delete all the memorized information (UM0701-02 §7.3.11)
-            in_select = 0x54,                   ///< Select the target (UM0701-02 §7.3.12)
-            in_autopoll = 0x60,                 ///< Poll for sepcified targets in range, and inizialize them (UM0701-02 §7.3.13)
-            tg_init_as_target = 0x8c,           ///< Configure the PN532 as a target (UM0701-02 §7.3.14)
-            tg_set_general_bytes = 0x92,        ///< Set the general bytes to be sent on request, used in combination with tg_init_as_target command (UM0701-02 §7.3.15)
+            diagnose = 0x00,              ///< Run Diagnostic commands (UM0701-02 §7.2.1)
+            get_firmware_version = 0x02,  ///< Query for PN532 version and info (UM0701-02 §7.2.2)
+            get_general_status = 0x04,    ///< Get PN532 and initialized tag status (UM0701-02 §7.2.3)
+            read_register = 0x06,         ///< Read low level registers (UM0701-02 §7.2.4)
+            write_register = 0x08,        ///< Write low level registers (UM0701-02 §7.2.5)
+            read_gpio = 0x0c,             ///< Get gpio state (UM0701-02 §7.2.6)
+            write_gpio = 0x0e,            ///< Write the GPIO status (UM0701-02 §7.2.7)
+            set_serial_baudrate = 0x10,   ///< Configure serial comunication baudrate (only on HSU mode) (UM0701-02 §7.2.8)
+            set_parameters = 0x12,        ///< Set internal configuration parameters (UM0701-02 §7.2.9)
+            sam_configuration = 0x14,     ///< Configure the sam data-flow (UM0701-02 §7.2.10)
+            power_down = 0x16,            ///< Set the PN532 in deep-sleep (UM0701-02 §7.2.11)
+            rf_configuration = 0x32,      ///< Configure RF parameters (UM0701-02 §7.3.1)
+            rf_regulation_test = 0x58,    ///< Command usefull when doing EMI test (UM0701-02 §7.3.2)
+            in_jump_for_dep = 0x56,       ///< Activate the target and setup for a DEP exchange (UM0701-02 §7.3.3)
+            in_jump_for_psl = 0x46,       ///< Activate the target and setup for a PSL or DEP exchange (UM0701-02 §7.3.4)
+            in_list_passive_target = 0x4a,///< Detect all target in rage (MAX 2) in passive mode (UM0701-02 §7.3.5)
+            in_atr = 0x50,                ///< Activate the target (for passive mode) (UM0701-02 §7.3.6)
+            in_psl = 0x4e,                ///< Change the baudrate of a TPE or ISO14443-4 target (UM0701-02 §7.3.7)
+            in_data_exchange = 0x40,      ///< Start a data excange with the selected target (UM0701-02 §7.3.8)
+            in_communicate_thru = 0x42,   ///< Start a low level data exchange (UM0701-02 §7.3.9)
+            in_deselect = 0x44,           ///< Deselect the target, but keep configuration information in memory (UM0701-02 §7.3.10)
+            in_release = 0x52,            ///< Terminate comunication with the target, and delete all the memorized information (UM0701-02 §7.3.11)
+            in_select = 0x54,             ///< Select the target (UM0701-02 §7.3.12)
+            in_autopoll = 0x60,           ///< Poll for sepcified targets in range, and inizialize them (UM0701-02 §7.3.13)
+            tg_init_as_target = 0x8c,     ///< Configure the PN532 as a target (UM0701-02 §7.3.14)
+            tg_set_general_bytes = 0x92,  ///< Set the general bytes to be sent on request, used in combination with tg_init_as_target command (UM0701-02 §7.3.15)
             tg_get_data = 0x86,
             tg_set_data = 0x8e,
-            tg_set_metadata = 0x94,             ///< Get a data packer from the initiator (UM0701-02 §7.3.19)
+            tg_set_metadata = 0x94,///< Get a data packer from the initiator (UM0701-02 §7.3.19)
             tg_get_initiator_command = 0x88,
-            tg_response_to_initiator = 0x90,    ///< Send a response packet to the initiator (UM0701-02 §7.3.20)
-            tg_get_target_status = 0x8a         ///< Read the current state of the PN532
+            tg_response_to_initiator = 0x90,///< Send a response packet to the initiator (UM0701-02 §7.3.20)
+            tg_get_target_status = 0x8a     ///< Read the current state of the PN532
         };
 
         enum struct test : std::uint8_t {
-            comm_line = 0x0,                    ///< Check the comunication with PN532 by sending data, and reading it back
-            rom = 0x1,                          ///< Check the rom content of the PN532 is consistent
-            ram = 0x2,                          ///< Check the ram of the PN532
-            poll_target = 0x4,                  ///< Chck by polling a target and keep count of comunication errors
+            comm_line = 0x0,  ///< Check the comunication with PN532 by sending data, and reading it back
+            rom = 0x1,        ///< Check the rom content of the PN532 is consistent
+            ram = 0x2,        ///< Check the ram of the PN532
+            poll_target = 0x4,///< Chck by polling a target and keep count of comunication errors
             echo_back = 0x5,
             attention_req_or_card_presence = 0x6,
             self_antenna = 0x7
@@ -195,18 +195,15 @@ namespace pn532 {
             ciu_reg_iso_iec_14443_4_at_baudrate kbps212 = {
                     .rx_threshold = 0x85,
                     .mod_width = 0x15,
-                    .mif_nfc = 0x8a
-            };
+                    .mif_nfc = 0x8a};
             ciu_reg_iso_iec_14443_4_at_baudrate kbps424 = {
                     .rx_threshold = 0x85,
                     .mod_width = 0x08,
-                    .mif_nfc = 0xb2
-            };
+                    .mif_nfc = 0xb2};
             ciu_reg_iso_iec_14443_4_at_baudrate kbps848 = {
                     .rx_threshold = 0x85,
                     .mod_width = 0x01,
-                    .mif_nfc = 0xda
-            };
+                    .mif_nfc = 0xda};
         };
 
 
@@ -382,8 +379,7 @@ namespace pn532 {
         };
 
         template <>
-        struct target_info<baudrate_modulation::kbps424_felica_polling> :
-                public target_info<baudrate_modulation::kbps212_felica_polling> {
+        struct target_info<baudrate_modulation::kbps424_felica_polling> : public target_info<baudrate_modulation::kbps212_felica_polling> {
             /* identical */
             using target_info<baudrate_modulation::kbps212_felica_polling>::nfcid_2t;
             using target_info<baudrate_modulation::kbps212_felica_polling>::syst_code;
@@ -499,13 +495,13 @@ namespace pn532 {
 
         static constexpr std::uint8_t gpio_p3_pin_mask = bitmask_window<0, 5>::value;
         static constexpr std::uint8_t gpio_p7_pin_mask = bitmask_window<1, 2>::value;
-        static constexpr std::uint8_t gpio_i0i1_pin_mask = 0x00;  // Cannot set i0i1
+        static constexpr std::uint8_t gpio_i0i1_pin_mask = 0x00;// Cannot set i0i1
 
         static constexpr std::uint8_t gpio_write_validate_max = 1 << 7;
 
         static constexpr std::uint8_t sfr_registers_high = 0xff;
 
-    }
-}
+    }// namespace bits
+}// namespace pn532
 
-#endif //PN532_BITS_HPP
+#endif//PN532_BITS_HPP

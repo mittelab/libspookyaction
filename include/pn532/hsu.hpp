@@ -5,13 +5,14 @@
 #ifndef PN532_HSU_HPP
 #define PN532_HSU_HPP
 
-#include <mbcontroller.h>
 #include "channel.hpp"
+#include <mbcontroller.h>
 
 namespace pn532 {
 
     class hsu final : public channel {
         uart_port_t _port;
+
     protected:
         bool prepare_receive(std::chrono::milliseconds timeout) override;
 
@@ -24,12 +25,12 @@ namespace pn532 {
 
         inline explicit hsu(uart_port_t port);
     };
-}
+}// namespace pn532
 
 namespace pn532 {
 
     hsu::hsu(uart_port_t port) : _port{port} {}
 
-}
+}// namespace pn532
 
-#endif //PN532_HSU_HPP
+#endif//PN532_HSU_HPP

@@ -5,12 +5,12 @@
 #ifndef PN532_DATA_HPP
 #define PN532_DATA_HPP
 
-#include <limits>
+#include "bits.hpp"
+#include "log.h"
 #include "mlab/bin_data.hpp"
 #include "mlab/result.hpp"
-#include "bits.hpp"
 #include "msg.hpp"
-#include "log.h"
+#include <limits>
 
 namespace pn532 {
     // Locally import all declaration from mlab.
@@ -21,29 +21,29 @@ namespace pn532 {
     using controller_error = bits::error;
     using command_code = bits::command;
 
-    using bits::baudrate;
-    using bits::modulation;
-    using bits::baudrate_modulation;
-    using bits::sfr_register;
-    using bits::serial_baudrate;
-    using bits::sam_mode;
-    using bits::rf_timeout;
-    using bits::polling_method;
     using bits::atr_res_info;
-    using bits::tx_mode;
+    using bits::baudrate;
+    using bits::baudrate_modulation;
+    using bits::modulation;
     using bits::nfcip1_picc_status;
+    using bits::polling_method;
+    using bits::rf_timeout;
+    using bits::sam_mode;
+    using bits::serial_baudrate;
+    using bits::sfr_register;
+    using bits::tx_mode;
 
-    using bits::ciu_reg_212_424kbps;
     using bits::ciu_reg_106kbps_typea;
-    using bits::ciu_reg_typeb;
-    using bits::ciu_reg_iso_iec_14443_4_at_baudrate;
+    using bits::ciu_reg_212_424kbps;
     using bits::ciu_reg_iso_iec_14443_4;
-    using bits::low_current_thr;
-    using bits::high_current_thr;
-    using bits::target_type;
-    using bits::poll_period;
-    using bits::wakeup_source;
+    using bits::ciu_reg_iso_iec_14443_4_at_baudrate;
+    using bits::ciu_reg_typeb;
     using bits::framing;
+    using bits::high_current_thr;
+    using bits::low_current_thr;
+    using bits::poll_period;
+    using bits::target_type;
+    using bits::wakeup_source;
 
     using target_kbps106_typea = bits::target<baudrate_modulation::kbps106_iso_iec_14443_typea>;
     using target_kbps212_felica = bits::target<baudrate_modulation::kbps212_felica_polling>;
@@ -72,7 +72,10 @@ namespace pn532 {
 
         inline operator Integral() const { return v; }
 
-        inline with_inf &operator=(infty_t) { v = std::numeric_limits<Integral>::max(); return *this; }
+        inline with_inf &operator=(infty_t) {
+            v = std::numeric_limits<Integral>::max();
+            return *this;
+        }
 
         inline bool operator==(infty_t) const { return v == std::numeric_limits<Integral>::max(); }
 
@@ -90,21 +93,18 @@ namespace pn532 {
     };
 
     template <>
-    struct poll_entry<target_type::dep_passive_106kbps> :
-            public poll_entry_dep_passive<
-                    bits::baudrate_modulation_of_target<target_type::dep_passive_106kbps>::value> {
+    struct poll_entry<target_type::dep_passive_106kbps> : public poll_entry_dep_passive<
+                                                                  bits::baudrate_modulation_of_target<target_type::dep_passive_106kbps>::value> {
     };
 
     template <>
-    struct poll_entry<target_type::dep_passive_212kbps> :
-            public poll_entry_dep_passive<
-                    bits::baudrate_modulation_of_target<target_type::dep_passive_212kbps>::value> {
+    struct poll_entry<target_type::dep_passive_212kbps> : public poll_entry_dep_passive<
+                                                                  bits::baudrate_modulation_of_target<target_type::dep_passive_212kbps>::value> {
     };
 
     template <>
-    struct poll_entry<target_type::dep_passive_424kbps> :
-            public poll_entry_dep_passive<
-                    bits::baudrate_modulation_of_target<target_type::dep_passive_424kbps>::value> {
+    struct poll_entry<target_type::dep_passive_424kbps> : public poll_entry_dep_passive<
+                                                                  bits::baudrate_modulation_of_target<target_type::dep_passive_424kbps>::value> {
     };
 
     template <>
@@ -123,44 +123,46 @@ namespace pn532 {
     using any_target = any_of<target_type, poll_entry>;
 
     enum struct gpio_loc {
-        p3, p7, i0i1
+        p3,
+        p7,
+        i0i1
     };
 
     // Data returned after "GetFirmwareVersion" (@ref nfc::get_firmware_version) (UM0701-02 §7.2.2)
     struct firmware_version {
-        std::uint8_t ic;                        //!< The ic version, for PN532 is always 0x32
-        std::uint8_t version;                   //!< IC firmware version
-        std::uint8_t revision;                  //!< IC firmware revision
-        bool iso_18092;                         //!< The chip supports ISO18092 tags
-        bool iso_iec_14443_typea;               //!< The chip supports ISO 14443 TypeA tags
-        bool iso_iec_14443_typeb;               //!< The chip supports ISO 14443 TypeB tags
+        std::uint8_t ic;         //!< The ic version, for PN532 is always 0x32
+        std::uint8_t version;    //!< IC firmware version
+        std::uint8_t revision;   //!< IC firmware revision
+        bool iso_18092;          //!< The chip supports ISO18092 tags
+        bool iso_iec_14443_typea;//!< The chip supports ISO 14443 TypeA tags
+        bool iso_iec_14443_typeb;//!< The chip supports ISO 14443 TypeB tags
     };
 
     // Data returned after "GetGeneralStatus" (@ref nfc::get_general_status) (one for each tag) (UM0701-02 §7.2.3)
     struct target_status {
-        std::uint8_t logical_index;             //!< Tag index (given at initialization from the PN532)
-        baudrate baudrate_rx;                   //!< Bit rate in reception
-        baudrate baudrate_tx;                   //!< Bit rate in transmission
-        modulation modulation_type;             //!< Modulation type
+        std::uint8_t logical_index;//!< Tag index (given at initialization from the PN532)
+        baudrate baudrate_rx;      //!< Bit rate in reception
+        baudrate baudrate_tx;      //!< Bit rate in transmission
+        modulation modulation_type;//!< Modulation type
     };
 
     // @todo
     struct rf_status {
-        bool nad_present;                       //!< True if NAD bit is present
-        bool expect_more_info;                  //!< True if the tag expect another byte to be sent
-        controller_error error;                 //!< PN532 error
+        bool nad_present;      //!< True if NAD bit is present
+        bool expect_more_info; //!< True if the tag expect another byte to be sent
+        controller_error error;//!< PN532 error
 
         inline explicit operator bool() const { return error == controller_error::none; }
     };
 
     // Data returned after "SetParameter" (@ref nfc::set_parameters) (UM0701-02 §7.2.9)
     struct parameters {
-        bool use_nad_data;                      //!< Use NAD information (used in initiator mode)
-        bool use_did_data;                      //!< Use DID information (used in initiator mode)
-        bool auto_generate_atr_res;             //!< Automatic generation of ATR_RES (used in target mode)
-        bool auto_generate_rats;                //!< Automatic generation of RATS (used in ISO 14443-4 PCD mode)
-        bool enable_iso_14443_4_picc_emulation; //!< Emulate a ISO 14443-4 PICC (tag)
-        bool remove_pre_post_amble;             //!< Disable pre/post-amble byte
+        bool use_nad_data;                     //!< Use NAD information (used in initiator mode)
+        bool use_did_data;                     //!< Use DID information (used in initiator mode)
+        bool auto_generate_atr_res;            //!< Automatic generation of ATR_RES (used in target mode)
+        bool auto_generate_rats;               //!< Automatic generation of RATS (used in ISO 14443-4 PCD mode)
+        bool enable_iso_14443_4_picc_emulation;//!< Emulate a ISO 14443-4 PICC (tag)
+        bool remove_pre_post_amble;            //!< Disable pre/post-amble byte
     };
 
     // Data returned after "GetGeneralStatus" (@ref nfc::get_general_status) (UM0701-02 §7.2.3)
@@ -173,10 +175,10 @@ namespace pn532 {
 
     // Data returned after "GetGeneralStatus" (@ref nfc::get_general_status) (UM0701-02 §7.2.3)
     struct general_status {
-        controller_error last_error;            //!< Last error of the controller
-        bool rf_field_present;                  //!< True if the RF field is switched on
-        std::vector<target_status> targets;     //!< List of target inizialized by the controller (max 2)
-        sam_status sam;                         //!< SAM status information
+        controller_error last_error;       //!< Last error of the controller
+        bool rf_field_present;             //!< True if the RF field is switched on
+        std::vector<target_status> targets;//!< List of target inizialized by the controller (max 2)
+        sam_status sam;                    //!< SAM status information
     };
 
     // Data returned after "TgGetTargetStatus" (@ref nfc::target_get_target_status) (UM0701-02 §7.2.21)
@@ -200,9 +202,9 @@ namespace pn532 {
 
     // Data returned after "InJumpForDEP" (UM0701-02 §7.3.3)
     struct jump_dep_psl {
-        rf_status status{};                     //!< Error Byte (UM0701-02 §7.1)
-        std::uint8_t target_logical_index{};    //!< Logical number assigned to the tag
-        atr_res_info atr_info;                  //!< ATR_RES sent by the tag
+        rf_status status{};                 //!< Error Byte (UM0701-02 §7.1)
+        std::uint8_t target_logical_index{};//!< Logical number assigned to the tag
+        atr_res_info atr_info;              //!< ATR_RES sent by the tag
     };
 
     // @todo
@@ -231,8 +233,8 @@ namespace pn532 {
 
     // Data returned after "TgInitAsTarget" (@ref nfc::target_init_as_target) (UM0701-02 §7.3.14)
     struct init_as_target_res {
-        mode_as_target mode;                            //!< A byte containing witch mode the PN532 has been activated
-        std::vector<std::uint8_t> initiator_command;    //!< A vector containing the first frame received by the PN532
+        mode_as_target mode;                        //!< A byte containing witch mode the PN532 has been activated
+        std::vector<std::uint8_t> initiator_command;//!< A vector containing the first frame received by the PN532
     };
 
     template <std::size_t Length>
@@ -255,6 +257,7 @@ namespace pn532 {
         std::uint8_t _p3_mask = 0x00;
         std::uint8_t _p7_mask = 0x00;
         std::uint8_t _i0i1_mask = 0x00;
+
     public:
         gpio_status() = default;
 
@@ -268,7 +271,7 @@ namespace pn532 {
 
         inline bit_ref operator[](std::pair<gpio_loc, std::uint8_t> const &gpio_idx);
     };
-}
+}// namespace pn532
 
 namespace mlab {
     // Locally import pn532 so that these declaration make sense
@@ -348,7 +351,7 @@ namespace mlab {
 
     bin_stream &operator>>(bin_stream &s, init_as_target_res &mt);
 
-}
+}// namespace mlab
 
 namespace pn532 {
 
@@ -379,8 +382,7 @@ namespace pn532 {
         }
     }
 
-    gpio_status::gpio_status(std::uint8_t p3_mask, std::uint8_t p7_mask, std::uint8_t i0i1_mask) :
-            _p3_mask{p3_mask}, _p7_mask{p7_mask}, _i0i1_mask{i0i1_mask} {}
+    gpio_status::gpio_status(std::uint8_t p3_mask, std::uint8_t p7_mask, std::uint8_t i0i1_mask) : _p3_mask{p3_mask}, _p7_mask{p7_mask}, _i0i1_mask{i0i1_mask} {}
 
     inline std::uint8_t gpio_status::mask(gpio_loc loc) const {
         switch (loc) {
@@ -411,14 +413,12 @@ namespace pn532 {
         }
     }
 
-    reg_addr::reg_addr(sfr_register sfr_reg) :
-            std::array<std::uint8_t, 2>{{bits::sfr_registers_high, static_cast<std::uint8_t>(sfr_reg)}} {}
+    reg_addr::reg_addr(sfr_register sfr_reg) : std::array<std::uint8_t, 2>{{bits::sfr_registers_high, static_cast<std::uint8_t>(sfr_reg)}} {}
 
-    reg_addr::reg_addr(std::uint16_t xram_mmap_reg) :
-            std::array<std::uint8_t, 2>{{std::uint8_t(xram_mmap_reg >> 8),
-                                                std::uint8_t(xram_mmap_reg & 0xff)}} {}
+    reg_addr::reg_addr(std::uint16_t xram_mmap_reg) : std::array<std::uint8_t, 2>{{std::uint8_t(xram_mmap_reg >> 8),
+                                                                                   std::uint8_t(xram_mmap_reg & 0xff)}} {}
 
-}
+}// namespace pn532
 
 namespace mlab {
     template <baudrate_modulation BrMd>
@@ -431,7 +431,7 @@ namespace mlab {
         const auto num_targets = s.pop();
         if (num_targets > bits::max_num_targets) {
             PN532_LOGW("Parsing vector<target<%s>>: found %u targets, which is more than the number of supported targets %u.",
-                 to_string(BrMd), num_targets, bits::max_num_targets);
+                       to_string(BrMd), num_targets, bits::max_num_targets);
         }
         targets.resize(num_targets);
         for (auto &target : targets) {
@@ -478,7 +478,7 @@ namespace mlab {
                 return poll_entry_extractor<false, true>{}(s, entry);
             }
         };
-    }
+    }// namespace impl
 
     template <target_type Type>
     bin_stream &operator>>(bin_stream &s, poll_entry<Type> &entry) {
@@ -488,6 +488,6 @@ namespace mlab {
         return impl::poll_entry_extractor<HasTarget, HasAtr>{}(s, entry);
     }
 
-}
+}// namespace mlab
 
-#endif //PN532_DATA_HPP
+#endif//PN532_DATA_HPP

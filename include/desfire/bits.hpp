@@ -5,8 +5,8 @@
 #ifndef DESFIRE_BITS_HPP
 #define DESFIRE_BITS_HPP
 
-#include <cstdint>
 #include <array>
+#include <cstdint>
 
 namespace desfire {
     namespace bits {
@@ -15,7 +15,7 @@ namespace desfire {
             plain = 0b00,
             maced = 0b01,
             ciphered = 0b11,
-            ciphered_no_crc  ///< This enum entry is not by spec, only for us to arrange code in an easier way
+            ciphered_no_crc///< This enum entry is not by spec, only for us to arrange code in an easier way
         };
 
         enum struct file_security : std::uint8_t {
@@ -124,7 +124,7 @@ namespace desfire {
         static constexpr std::uint8_t max_keys_mask = 0xf;
 
         static_assert((max_keys_per_app & max_keys_mask) == max_keys_per_app,
-                "There's no spec for this max key mask, so let's make sure at least it works.");
+                      "There's no spec for this max key mask, so let's make sure at least it works.");
 
         static constexpr std::uint8_t storage_size_approx_bit = 0b1;
         static constexpr unsigned storage_size_exponent_shift = 1;
@@ -151,7 +151,7 @@ namespace desfire {
 
         static constexpr std::uint8_t config_flag_enable_random_uid = 0x02;
         static constexpr std::uint8_t config_flag_disable_format = 0x01;
-    }
-}
+    }// namespace bits
+}// namespace desfire
 
-#endif //DESFIRE_BITS_HPP
+#endif//DESFIRE_BITS_HPP

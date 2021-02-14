@@ -34,10 +34,10 @@
 #ifndef APERTURAPORTA_NFC_HPP
 #define APERTURAPORTA_NFC_HPP
 
-#include "mlab/result.hpp"
 #include "bits.hpp"
-#include "data.hpp"
 #include "channel.hpp"
+#include "data.hpp"
+#include "mlab/result.hpp"
 #include "msg.hpp"
 
 namespace pn532 {
@@ -59,7 +59,7 @@ namespace pn532 {
 
         static const std::vector<bits::target_type> poll_all_targets;
 
-        template <class ...Tn>
+        template <class... Tn>
         using r = result<error, Tn...>;
 
         inline explicit nfc(channel &chn);
@@ -497,9 +497,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        template <class T, class = typename std::enable_if<not std::is_same<
-                bin_data, typename std::remove_const<typename std::remove_reference<T>::type>::type
-        >::value>::type>
+        template <class T, class = typename std::enable_if<not std::is_same<bin_data, typename std::remove_const<typename std::remove_reference<T>::type>::type>::value>::type>
         r<rf_status, bin_data>
         initiator_data_exchange(std::uint8_t target_logical_index, T &&data, ms timeout = default_timeout);
 
@@ -1400,7 +1398,7 @@ namespace pn532 {
     };
 
     const char *to_string(nfc::error e);
-}
+}// namespace pn532
 
 
 namespace pn532 {
@@ -1443,7 +1441,7 @@ namespace pn532 {
         return initiator_data_exchange(target_logical_index, bd, timeout);
     }
 
-}
+}// namespace pn532
 
 
-#endif //PN532_NFC_HPP
+#endif//PN532_NFC_HPP

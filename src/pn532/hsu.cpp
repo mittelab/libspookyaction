@@ -3,9 +3,9 @@
 //
 
 
-#include <esp_log.h>
-#include "pn532/log.h"
 #include "pn532/hsu.hpp"
+#include "pn532/log.h"
+#include <esp_log.h>
 
 #define PN532_HSU_SEND_TAG "PN532-HSU >>"
 #define PN532_HSU_RECV_TAG "PN532-HSU <<"
@@ -16,7 +16,7 @@ namespace pn532 {
         TickType_t duration_cast(std::chrono::milliseconds ms) {
             return ms.count() / portTICK_PERIOD_MS;
         }
-    }
+    }// namespace
 
     bool hsu::wake() {
         reduce_timeout rt{ms{100}};
@@ -24,7 +24,7 @@ namespace pn532 {
         if (not send_raw({0x55, 0x55, 0x55}, rt.remaining())) {
             return false;
         }
-        return true;  // Assume awake
+        return true;// Assume awake
     }
 
     bool hsu::prepare_receive(std::chrono::milliseconds) {
@@ -73,7 +73,7 @@ namespace pn532 {
                     read_length += n_bytes;
                     if (n_bytes != buffer_length) {
                         PN532_LOGW("Read only %u bytes out of %u in uart %d.", n_bytes, buffer_length,
-                             static_cast<int>(_port));
+                                   static_cast<int>(_port));
                     }
                 }
             }
@@ -82,4 +82,4 @@ namespace pn532 {
         ESP_LOG_BUFFER_HEX_LEVEL(PN532_HSU_RECV_TAG, data.data(), read_length, ESP_LOG_VERBOSE);
         return read_length >= length;
     }
-}
+}// namespace pn532

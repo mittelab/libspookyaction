@@ -2,8 +2,8 @@
 // Created by Pietro Saccardi on 10/01/2021.
 //
 
-#include <esp32/rom/crc.h>
 #include "desfire/crypto_algo.hpp"
+#include <esp32/rom/crc.h>
 
 namespace desfire {
 
@@ -34,4 +34,4 @@ namespace desfire {
          */
         return ~crc32_le(~init, data.data(), data.size());
     }
-}
+}// namespace desfire

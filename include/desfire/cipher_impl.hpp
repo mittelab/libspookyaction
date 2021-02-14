@@ -14,8 +14,8 @@
  * @}
  */
 
-#include <mbedtls/des.h>
 #include <mbedtls/aes.h>
+#include <mbedtls/des.h>
 
 #include "cipher_scheme.hpp"
 #include "cipher_scheme_legacy.hpp"
@@ -26,6 +26,7 @@ namespace desfire {
         mbedtls_des_context _enc_context;
         mbedtls_des_context _dec_context;
         mbedtls_des_context _mac_enc_context;
+
     public:
         explicit cipher_des(std::array<std::uint8_t, 8> const &key);
         void reinit_with_session_key(bin_data const &rndab) override;
@@ -39,6 +40,7 @@ namespace desfire {
         mbedtls_des3_context _dec_context;
         mbedtls_des3_context _mac_enc_context;
         bool _degenerate;
+
     public:
         explicit cipher_2k3des(std::array<std::uint8_t, 16> const &key);
         void reinit_with_session_key(bin_data const &rndab) override;
@@ -89,6 +91,6 @@ namespace desfire {
 
         void reinit_with_session_key(bin_data const &) override {}
     };
-}
+}// namespace desfire
 
-#endif //DESFIRE_CIPHER_IMPL_HPP
+#endif//DESFIRE_CIPHER_IMPL_HPP

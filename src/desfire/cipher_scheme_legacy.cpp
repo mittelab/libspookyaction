@@ -2,16 +2,16 @@
 // Created by Pietro Saccardi on 02/01/2021.
 //
 
-#include "desfire/log.h"
-#include "desfire/crypto_algo.hpp"
 #include "desfire/cipher_scheme_legacy.hpp"
+#include "desfire/crypto_algo.hpp"
+#include "desfire/log.h"
 
 namespace desfire {
 
     namespace {
-        using mlab::lsb16;
         using mlab::bin_stream;
-    }
+        using mlab::lsb16;
+    }// namespace
 
     cipher_scheme_legacy::cipher_scheme_legacy() : _global_iv{} {
         set_iv_mode(cipher_iv::zero);
@@ -31,7 +31,7 @@ namespace desfire {
         return dummy_iv;
     }
 
-    cipher_scheme_legacy::mac_t cipher_scheme_legacy::compute_mac(range <bin_data::const_iterator> const &data) {
+    cipher_scheme_legacy::mac_t cipher_scheme_legacy::compute_mac(range<bin_data::const_iterator> const &data) {
         static bin_data buffer{};
 
         // Resize the buffer and copy data
@@ -46,8 +46,7 @@ namespace desfire {
     }
 
     bool cipher_scheme_legacy::drop_padding_verify_crc(bin_data &d) {
-        static const auto crc_fn = [](
-                bin_data::const_iterator b, bin_data::const_iterator e, std::uint16_t init) -> std::uint16_t {
+        static const auto crc_fn = [](bin_data::const_iterator b, bin_data::const_iterator e, std::uint16_t init) -> std::uint16_t {
             return compute_crc16(range<bin_data::const_iterator>{b, e}, init);
         };
         const auto end_payload_did_verify = find_crc_tail<block_size>(std::begin(d), std::end(d), crc_fn, crc16_init, true);
@@ -62,7 +61,7 @@ namespace desfire {
 
     void cipher_scheme_legacy::prepare_tx(bin_data &data, std::size_t offset, cipher_mode mode) {
         if (offset >= data.size() or mode == cipher_mode::plain) {
-            return;  // Nothing to do
+            return;// Nothing to do
         }
         if (mode == cipher_mode::maced) {
             const auto mac = compute_mac(data.view(offset));
@@ -132,4 +131,4 @@ namespace desfire {
     }
 
 
-}
+}// namespace desfire

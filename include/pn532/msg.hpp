@@ -5,8 +5,8 @@
 #ifndef PN532_MSG_HPP
 #define PN532_MSG_HPP
 
-#include <string>
 #include "bits.hpp"
+#include <string>
 
 namespace pn532 {
     const char *to_string(bits::baudrate s);
@@ -20,6 +20,6 @@ namespace pn532 {
     const char *to_string(bits::target_type t);
 
     const char *to_string(bits::error e);
-}
+}// namespace pn532
 
-#endif //PN532_MSG_HPP
+#endif//PN532_MSG_HPP

@@ -17,6 +17,7 @@ namespace desfire {
         block_t _global_iv;
 
         block_t &get_iv();
+
     public:
         cipher_scheme_legacy();
 
@@ -40,9 +41,8 @@ namespace desfire {
         void prepare_tx(bin_data &data, std::size_t offset, cipher_mode mode) final;
 
         bool confirm_rx(bin_data &data, cipher_mode mode) final;
-
     };
 
-}
+}// namespace desfire
 
-#endif //DESFIRE_CIPHER_SCHEME_LEGACY_HPP
+#endif//DESFIRE_CIPHER_SCHEME_LEGACY_HPP

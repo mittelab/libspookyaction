@@ -5,8 +5,8 @@
 #ifndef DESFIRE_CONTROLLER_HPP
 #define DESFIRE_CONTROLLER_HPP
 
-#include <utility>
 #include "mlab/bin_data.hpp"
+#include <utility>
 
 namespace desfire {
     class controller {
@@ -15,6 +15,6 @@ namespace desfire {
 
         virtual ~controller() = default;
     };
-}
+}// namespace desfire
 
-#endif //DESFIRE_CONTROLLER_HPP
+#endif//DESFIRE_CONTROLLER_HPP

@@ -5,13 +5,13 @@
 #ifndef DESFIRE_TAG_HPP
 #define DESFIRE_TAG_HPP
 
-#include <memory>
-#include <list>
-#include "mlab/result.hpp"
 #include "cipher.hpp"
 #include "controller.hpp"
 #include "data.hpp"
+#include "mlab/result.hpp"
 #include "msg.hpp"
+#include <list>
+#include <memory>
 
 
 namespace ut {
@@ -21,16 +21,15 @@ namespace ut {
 namespace desfire {
 
     namespace {
-        template<unsigned N>
+        template <unsigned N>
         using lsb_t = mlab::lsb_t<N>;
     }
 
     class tag {
     public:
-
         struct comm_cfg;
 
-        template <class ...Tn>
+        template <class... Tn>
         using r = mlab::result<error, Tn...>;
 
         inline explicit tag(controller &controller);
@@ -341,35 +340,31 @@ namespace desfire {
         inline comm_cfg(cipher_mode txrx, std::size_t sec_data_ofs = 1);
         inline comm_cfg(cipher_mode tx, cipher_mode rx, std::size_t sec_data_ofs = 1);
     };
-}
+}// namespace desfire
 
 namespace desfire {
 
-    controller & tag::ctrl() {
+    controller &tag::ctrl() {
         return *_controller;
     }
 
-    tag::tag(controller &controller) :
-            _controller{&controller},
-            _active_cipher{new cipher_dummy{}},
-            _active_cipher_type{cipher_type::none},
-            _active_key_number{std::numeric_limits<std::uint8_t>::max()},
-            _active_app{root_app}
-    {}
+    tag::tag(controller &controller) : _controller{&controller},
+                                       _active_cipher{new cipher_dummy{}},
+                                       _active_cipher_type{cipher_type::none},
+                                       _active_key_number{std::numeric_limits<std::uint8_t>::max()},
+                                       _active_app{root_app} {}
 
     template <cipher_type Type>
     tag::r<> tag::authenticate(key<Type> const &k) {
         return authenticate(any_key{k});
     }
     template <cipher_type Type>
-    tag::r<> tag::change_key(key<Type> const &new_key)
-    {
+    tag::r<> tag::change_key(key<Type> const &new_key) {
         return change_key(any_key{new_key});
     }
 
     template <cipher_type Type1, cipher_type Type2>
-    tag::r<> tag::change_key(key<Type1> const &current_key, std::uint8_t key_no_to_change, key<Type2> const &new_key)
-    {
+    tag::r<> tag::change_key(key<Type1> const &current_key, std::uint8_t key_no_to_change, key<Type2> const &new_key) {
         return change_key(any_key{current_key}, key_no_to_change, any_key{new_key});
     }
 
@@ -388,17 +383,13 @@ namespace desfire {
         return _active_key_number;
     }
 
-    tag::comm_cfg::comm_cfg(cipher_mode txrx, std::size_t sec_data_ofs) :
-            tx{txrx},
-            rx{txrx},
-            tx_secure_data_offset{sec_data_ofs}
-    {}
+    tag::comm_cfg::comm_cfg(cipher_mode txrx, std::size_t sec_data_ofs) : tx{txrx},
+                                                                          rx{txrx},
+                                                                          tx_secure_data_offset{sec_data_ofs} {}
 
-    tag::comm_cfg::comm_cfg(cipher_mode tx, cipher_mode rx, std::size_t sec_data_ofs) :
-            tx{tx},
-            rx{rx},
-            tx_secure_data_offset{sec_data_ofs}
-    {}
+    tag::comm_cfg::comm_cfg(cipher_mode tx, cipher_mode rx, std::size_t sec_data_ofs) : tx{tx},
+                                                                                        rx{rx},
+                                                                                        tx_secure_data_offset{sec_data_ofs} {}
 
     namespace impl {
         template <class T, bool /* IsIntegral */>
@@ -415,11 +406,10 @@ namespace desfire {
             }
         };
 
-    }
+    }// namespace impl
 
     template <class Data, class>
-    tag::r<Data> tag::command_parse_response(command_code cmd, bin_data const &payload, comm_cfg const &cfg)
-    {
+    tag::r<Data> tag::command_parse_response(command_code cmd, bin_data const &payload, comm_cfg const &cfg) {
         const auto res_cmd = command_response(cmd, payload, cfg);
         if (not res_cmd) {
             return res_cmd.error();
@@ -496,7 +486,7 @@ namespace desfire {
             }
             return records;
         }
-    }
+    }// namespace impl
 
     template <class T>
     tag::r<std::vector<T>> tag::read_records(file_id fid, std::uint32_t index, std::uint32_t count, file_security security) {
@@ -517,6 +507,6 @@ namespace desfire {
     }
 
 
-}
+}// namespace desfire
 
-#endif //DESFIRE_TAG_HPP
+#endif//DESFIRE_TAG_HPP

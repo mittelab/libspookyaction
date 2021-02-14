@@ -5,27 +5,27 @@
 #ifndef DESFIRE_CIPHER_SCHEME_HPP
 #define DESFIRE_CIPHER_SCHEME_HPP
 
-#include "log.h"
 #include "cipher.hpp"
 #include "crypto_algo.hpp"
+#include "log.h"
 
 namespace desfire {
 
     namespace {
         using mlab::bin_stream;
         using mlab::lsb32;
-    }
+    }// namespace
 
     template <std::size_t BlockSize, std::uint8_t CMACSubkeyR>
     class cipher_scheme : public virtual cipher, public cipher_traits<BlockSize, 8, 4> {
     public:
         using traits_base = cipher_traits<BlockSize, 8, 4>;
-        using typename traits_base::mac_t;
-        using typename traits_base::crc_t;
         using typename traits_base::block_t;
+        using typename traits_base::crc_t;
+        using typename traits_base::mac_t;
 
-        using traits_base::crc_size;
         using traits_base::block_size;
+        using traits_base::crc_size;
 
     private:
         static constexpr std::uint8_t cmac_subkey_r = CMACSubkeyR;
@@ -60,10 +60,9 @@ namespace desfire {
         void prepare_tx(bin_data &data, std::size_t offset, cipher_mode mode) final;
 
         bool confirm_rx(bin_data &data, cipher_mode mode) final;
-
     };
 
-}
+}// namespace desfire
 
 namespace desfire {
 
@@ -110,7 +109,7 @@ namespace desfire {
 
     template <std::size_t BlockSize, std::uint8_t CMACSubkeyR>
     typename cipher_scheme<BlockSize, CMACSubkeyR>::mac_t cipher_scheme<BlockSize, CMACSubkeyR>::compute_mac(
-            range <bin_data::const_iterator> const &data) {
+            range<bin_data::const_iterator> const &data) {
         static const auto xor_op = [](std::uint8_t l, std::uint8_t r) -> std::uint8_t { return l ^ r; };
         static bin_data buffer{};
 
@@ -140,9 +139,7 @@ namespace desfire {
 
     template <std::size_t BlockSize, std::uint8_t CMACSubkeyR>
     bool cipher_scheme<BlockSize, CMACSubkeyR>::drop_padding_verify_crc(bin_data &d, std::uint8_t status) {
-        const auto crc_fn = [=](
-                bin_data::const_iterator b, bin_data::const_iterator e, std::uint32_t init) -> std::uint32_t
-        {
+        const auto crc_fn = [=](bin_data::const_iterator b, bin_data::const_iterator e, std::uint32_t init) -> std::uint32_t {
             // Here we get a sequence [[ DATA || CRC ]]. But we need to compute the CRC on [[ DATA || STATUS || CRC ]].
             // So we split into two ranges, b..m and m..e, and chain the CRCs
             assert(std::distance(b, e) >= 0);
@@ -182,7 +179,7 @@ namespace desfire {
             }
         } else {
             if (offset >= data.size()) {
-                return;  // Nothing to do
+                return;// Nothing to do
             }
             if (mode == cipher_mode::ciphered) {
                 data.reserve(offset + padded_length<block_size>(data.size() + crc_size - offset));
@@ -263,6 +260,6 @@ namespace desfire {
         return _null_iv;
     }
 
-}
+}// namespace desfire
 
-#endif //DESFIRE_CIPHER_SCHEME_HPP
+#endif//DESFIRE_CIPHER_SCHEME_HPP

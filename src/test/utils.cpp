@@ -3,8 +3,8 @@
 //
 
 
-#include <unity.h>
 #include "utils.hpp"
+#include <unity.h>
 
 namespace ut {
 
@@ -92,23 +92,19 @@ namespace ut {
         static const ut::test_app dummy{};
         static const ut::test_app app_des{
                 {0x00, 0xde, 0x08},
-                desfire::key<desfire::cipher_type::des>{0, secondary_des_key, secondary_keys_version}
-        };
+                desfire::key<desfire::cipher_type::des>{0, secondary_des_key, secondary_keys_version}};
 
         static const ut::test_app app_des3_2k{
                 {0x00, 0xde, 0x16},
-                desfire::key<desfire::cipher_type::des3_2k>{0, secondary_des3_2k_key, secondary_keys_version}
-        };
+                desfire::key<desfire::cipher_type::des3_2k>{0, secondary_des3_2k_key, secondary_keys_version}};
 
         static const ut::test_app app_des3_3k{
                 {0x00, 0xde, 0x24},
-                desfire::key<desfire::cipher_type::des3_3k>{0, secondary_des3_3k_key, secondary_keys_version}
-        };
+                desfire::key<desfire::cipher_type::des3_3k>{0, secondary_des3_3k_key, secondary_keys_version}};
 
         static const ut::test_app app_aes128{
                 {0x00, 0xae, 0x16},
-                desfire::key<desfire::cipher_type::aes128>{0, secondary_aes_key, secondary_keys_version}
-        };
+                desfire::key<desfire::cipher_type::aes128>{0, secondary_aes_key, secondary_keys_version}};
         switch (t) {
             case desfire::cipher_type::des:
                 return app_des;
@@ -137,28 +133,23 @@ namespace ut {
 
         static const ut::test_file file_standard{
                 0x00,
-                desfire::file_settings<desfire::file_type::standard>{gfs, dfs}
-        };
+                desfire::file_settings<desfire::file_type::standard>{gfs, dfs}};
 
         static const ut::test_file file_backup{
                 0x00,
-                desfire::file_settings<desfire::file_type::backup>{gfs, dfs}
-        };
+                desfire::file_settings<desfire::file_type::backup>{gfs, dfs}};
 
         static const ut::test_file file_value{
                 0x00,
-                desfire::file_settings<desfire::file_type::value>{gfs, vfs}
-        };
+                desfire::file_settings<desfire::file_type::value>{gfs, vfs}};
 
         static const ut::test_file file_linear_record{
                 0x00,
-                desfire::file_settings<desfire::file_type::linear_record>{gfs, rfs}
-        };
+                desfire::file_settings<desfire::file_type::linear_record>{gfs, rfs}};
 
         static const ut::test_file file_cyclic_record{
                 0x00,
-                desfire::file_settings<desfire::file_type::cyclic_record>{gfs, rfs}
-        };
+                desfire::file_settings<desfire::file_type::cyclic_record>{gfs, rfs}};
         switch (t) {
             case desfire::file_type::standard:
                 return file_standard;
@@ -202,7 +193,8 @@ namespace ut {
                 retval.settings = desfire::file_settings<desfire::file_type::cyclic_record>{};
                 retval.settings.record_settings() = base_file.settings.record_settings();
                 break;
-            default: break;
+            default:
+                break;
         }
         // These are in common
         retval.settings.generic_settings() = base_file.settings.generic_settings();
@@ -212,4 +204,4 @@ namespace ut {
         retval.fid = base_file.fid;
         return retval;
     }
-}
+}// namespace ut

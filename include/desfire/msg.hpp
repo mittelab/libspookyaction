@@ -16,6 +16,6 @@ namespace desfire {
     const char *to_string(command_code c);
     const char *to_string(file_type t);
     const char *to_string(crypto_direction mode);
-}
+}// namespace desfire
 
-#endif //DESFIRE_MSG_HPP
+#endif//DESFIRE_MSG_HPP

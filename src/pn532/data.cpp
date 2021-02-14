@@ -133,7 +133,7 @@ namespace mlab {
         const auto num_targets = s.pop();
         if (num_targets > bits::max_num_targets) {
             PN532_LOGW("%s: detected %u targets, more than %u targets handled by PN532, most likely an error.",
-                 to_string(command_code::get_general_status), num_targets, bits::max_num_targets);
+                       to_string(command_code::get_general_status), num_targets, bits::max_num_targets);
         }
         gs.targets.resize(num_targets, target_status{});
         for (target_status &ts : gs.targets) {
@@ -195,7 +195,7 @@ namespace mlab {
         const auto response_code = s.pop();
         if (response_code != 0x01) {
             PN532_LOGW("Incorrect response code (%u)  parsing target_kbps212/424_felica target info; continuing...",
-                 response_code);
+                       response_code);
         }
 
         s >> target.info.nfcid_2t;
@@ -277,7 +277,7 @@ namespace mlab {
             s >> entry;
             return entry;
         }
-    }
+    }// namespace
 
     bin_stream &operator>>(bin_stream &s, any_target &t) {
         if (s.remaining() < 2) {
@@ -358,7 +358,7 @@ namespace mlab {
         const auto num_targets = s.pop();
         if (num_targets > bits::max_num_targets) {
             PN532_LOGW("Parsing vector<any_target>: found %u targets, which is more than the number of supported targets %u.",
-                 num_targets, bits::max_num_targets);
+                       num_targets, bits::max_num_targets);
         }
         targets.resize(num_targets);
         for (auto &target : targets) {
@@ -468,4 +468,4 @@ namespace mlab {
                  << p.pad
                  << p.syst_code;
     }
-}
+}// namespace mlab

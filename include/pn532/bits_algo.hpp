@@ -5,10 +5,10 @@
 #ifndef PN532_BITS_ALGO_HPP
 #define PN532_BITS_ALGO_HPP
 
-#include <cstdint>
-#include <array>
-#include <numeric>
 #include "bits.hpp"
+#include <array>
+#include <cstdint>
+#include <numeric>
 
 namespace pn532 {
     namespace bits {
@@ -36,8 +36,8 @@ namespace pn532 {
 
         inline command pn532_to_host_command(std::uint8_t cmd);
 
-    }
-}
+    }// namespace bits
+}// namespace pn532
 
 namespace pn532 {
     namespace bits {
@@ -86,7 +86,7 @@ namespace pn532 {
         inline command pn532_to_host_command(std::uint8_t cmd) {
             return static_cast<command>(cmd - 1);
         }
-    }
-}
+    }// namespace bits
+}// namespace pn532
 
-#endif //PN532_BITS_ALGO_HPP
+#endif//PN532_BITS_ALGO_HPP

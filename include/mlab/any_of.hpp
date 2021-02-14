@@ -6,8 +6,8 @@
 #define MLAB_ANY_OF_HPP
 
 #include <cassert>
-#include <type_traits>
 #include <esp_log.h>
+#include <type_traits>
 
 namespace mlab {
 
@@ -30,9 +30,9 @@ namespace mlab {
          * @}
          */
 
-    }
+    }// namespace any_of_impl
 
-    template <class Enum, template<Enum> class T, Enum Default = Enum{}>
+    template <class Enum, template <Enum> class T, Enum Default = Enum{}>
     class any_of {
     public:
         template <Enum E>
@@ -67,7 +67,6 @@ namespace mlab {
         any_of &operator=(T<E> obj);
 
     protected:
-
         /**
          * Create uninitialized @ref any_of with type set as @p e. No memory is allocated and in-place storages are
          * zero-initialized. This is suitable to be called as a base constructor when the type is know only at runtime
@@ -107,8 +106,7 @@ namespace mlab {
         using storage_for = typename std::conditional<
                 sizeof(T<E>) <= sizeof(std::uintptr_t) and alignof(T<E>) <= alignof(std::uintptr_t) and std::is_trivial<T<E>>::value,
                 any_of_impl::in_place_obj_storage_type,
-                any_of_impl::allocated_ptr_storage_type
-        >::type;
+                any_of_impl::allocated_ptr_storage_type>::type;
 
         /**
          * @addtogroup MemberVariables
@@ -199,18 +197,17 @@ namespace mlab {
         /**
          * @}
          */
-
     };
-}
+}// namespace mlab
 
 namespace mlab {
 
-    template <class Enum, template<Enum> class T, Enum Default>
+    template <class Enum, template <Enum> class T, Enum Default>
     any_of<Enum, T, Default>::any_of(any_of &&other) noexcept : any_of{} {
         *this = std::move(other);
     }
 
-    template <class Enum, template<Enum> class T, Enum Default>
+    template <class Enum, template <Enum> class T, Enum Default>
     any_of<Enum, T, Default> &any_of<Enum, T, Default>::operator=(any_of &&other) noexcept {
         if (&other != this) {
             std::swap(_deleter, other._deleter);
@@ -220,41 +217,41 @@ namespace mlab {
         return *this;
     }
 
-    template <class Enum, template<Enum> class T, Enum Default>
+    template <class Enum, template <Enum> class T, Enum Default>
     any_of<Enum, T, Default>::any_of(enum_type e) : _active{e}, _storage{}, _deleter{nullptr} {}
 
-    template <class Enum, template<Enum> class T, Enum Default>
+    template <class Enum, template <Enum> class T, Enum Default>
     template <Enum E>
     any_of<Enum, T, Default>::any_of(T<E> obj) : any_of{E} {
         set<E>(std::move(obj));
     }
 
-    template <class Enum, template<Enum> class T, Enum Default>
+    template <class Enum, template <Enum> class T, Enum Default>
     any_of<Enum, T, Default>::any_of() : any_of{T<Default>{}} {}
 
-    template <class Enum, template<Enum> class T, Enum Default>
+    template <class Enum, template <Enum> class T, Enum Default>
     any_of<Enum, T, Default>::~any_of() {
         free();
     }
 
-    template <class Enum, template<Enum> class T, Enum Default>
+    template <class Enum, template <Enum> class T, Enum Default>
     Enum any_of<Enum, T, Default>::type() const {
         return _active;
     }
 
-    template <class Enum, template<Enum> class T, Enum Default>
+    template <class Enum, template <Enum> class T, Enum Default>
     template <Enum E>
     T<E> const &any_of<Enum, T, Default>::get() const {
         return get_impl<E>(storage_for<E>{});
     }
 
-    template <class Enum, template<Enum> class T, Enum Default>
+    template <class Enum, template <Enum> class T, Enum Default>
     template <Enum E>
     T<E> &any_of<Enum, T, Default>::get() {
         return get_impl<E>(storage_for<E>{});
     }
 
-    template <class Enum, template<Enum> class T, Enum Default>
+    template <class Enum, template <Enum> class T, Enum Default>
     template <Enum E>
     any_of<Enum, T, Default> &any_of<Enum, T, Default>::operator=(T<E> obj) {
         set<E>(std::move(obj));
@@ -262,14 +259,14 @@ namespace mlab {
     }
 
 
-    template <class Enum, template<Enum> class T, Enum Default>
+    template <class Enum, template <Enum> class T, Enum Default>
     template <Enum E, class U>
     void any_of<Enum, T, Default>::set(U &&obj) {
         set_impl<E>(std::forward<U>(obj), storage_for<E>{});
     }
 
 
-    template <class Enum, template<Enum> class T, Enum Default>
+    template <class Enum, template <Enum> class T, Enum Default>
     void any_of<Enum, T, Default>::assert_type_is(Enum e) const {
         if (type() != e) {
             ESP_LOGE("MLAB", "any_of holds <type %d>, cannot get reference to <type %d>.",
@@ -277,14 +274,14 @@ namespace mlab {
         }
     }
 
-    template <class Enum, template<Enum> class T, Enum Default>
+    template <class Enum, template <Enum> class T, Enum Default>
     void any_of<Enum, T, Default>::assert_holds_memory() const {
         if (not holds_memory()) {
             ESP_LOGE("MLAB", "any_of is empty, cannot get reference.");
         }
     }
 
-    template <class Enum, template<Enum> class T, Enum Default>
+    template <class Enum, template <Enum> class T, Enum Default>
     template <Enum E>
     T<E> const &any_of<Enum, T, Default>::get_impl(any_of_impl::in_place_obj_storage_type) const {
         static_assert(std::is_same<storage_for<E>, any_of_impl::in_place_obj_storage_type>::value, "Use allocated storage.");
@@ -292,7 +289,7 @@ namespace mlab {
         return *reinterpret_cast<T<E> const *>(storage_in_place());
     }
 
-    template <class Enum, template<Enum> class T, Enum Default>
+    template <class Enum, template <Enum> class T, Enum Default>
     template <Enum E>
     T<E> const &any_of<Enum, T, Default>::get_impl(any_of_impl::allocated_ptr_storage_type) const {
         static_assert(std::is_same<storage_for<E>, any_of_impl::allocated_ptr_storage_type>::value, "Use in-place storage.");
@@ -301,7 +298,7 @@ namespace mlab {
         return *reinterpret_cast<T<E> const *>(storage_allocated());
     }
 
-    template <class Enum, template<Enum> class T, Enum Default>
+    template <class Enum, template <Enum> class T, Enum Default>
     template <Enum E>
     T<E> &any_of<Enum, T, Default>::get_impl(any_of_impl::in_place_obj_storage_type) {
         static_assert(std::is_same<storage_for<E>, any_of_impl::in_place_obj_storage_type>::value, "Use allocated storage.");
@@ -309,7 +306,7 @@ namespace mlab {
         return *reinterpret_cast<T<E> *>(storage_in_place());
     }
 
-    template <class Enum, template<Enum> class T, Enum Default>
+    template <class Enum, template <Enum> class T, Enum Default>
     template <Enum E>
     T<E> &any_of<Enum, T, Default>::get_impl(any_of_impl::allocated_ptr_storage_type) {
         static_assert(std::is_same<storage_for<E>, any_of_impl::allocated_ptr_storage_type>::value, "Use in-place storage.");
@@ -318,7 +315,7 @@ namespace mlab {
         return *reinterpret_cast<T<E> *>(storage_allocated());
     }
 
-    template <class Enum, template<Enum> class T, Enum Default>
+    template <class Enum, template <Enum> class T, Enum Default>
     template <Enum E, class U>
     void any_of<Enum, T, Default>::set_impl(U &&obj, any_of_impl::in_place_obj_storage_type) {
         static_assert(std::is_same<storage_for<E>, any_of_impl::in_place_obj_storage_type>::value, "Use allocated storage.");
@@ -329,7 +326,7 @@ namespace mlab {
         _active = E;
     }
 
-    template <class Enum, template<Enum> class T, Enum Default>
+    template <class Enum, template <Enum> class T, Enum Default>
     template <Enum E, class U>
     void any_of<Enum, T, Default>::set_impl(U &&obj, any_of_impl::allocated_ptr_storage_type) {
         static_assert(std::is_same<storage_for<E>, any_of_impl::allocated_ptr_storage_type>::value, "Use in-place storage.");
@@ -346,7 +343,7 @@ namespace mlab {
         }
     }
 
-    template <class Enum, template<Enum> class T, Enum Default>
+    template <class Enum, template <Enum> class T, Enum Default>
     void any_of<Enum, T, Default>::free() {
         // Deleter is defined only if we stored a pointer
         if (holds_memory()) {
@@ -358,43 +355,43 @@ namespace mlab {
         storage_allocated() = nullptr;
     }
 
-    template <class Enum, template<Enum> class T, Enum Default>
+    template <class Enum, template <Enum> class T, Enum Default>
     template <Enum E>
     constexpr typename any_of<Enum, T, Default>::deleter_type any_of<Enum, T, Default>::get_default_deleter() {
         return &default_deleter_fn<E>;
     }
 
-    template <class Enum, template<Enum> class T, Enum Default>
+    template <class Enum, template <Enum> class T, Enum Default>
     template <Enum E>
     void any_of<Enum, T, Default>::default_deleter_fn(void *ptr) {
         auto *typed_ptr = reinterpret_cast<T<E> *>(ptr);
         delete typed_ptr;
     }
 
-    template <class Enum, template<Enum> class T, Enum Default>
+    template <class Enum, template <Enum> class T, Enum Default>
     bool any_of<Enum, T, Default>::holds_memory() const {
         return _deleter != nullptr;
     }
 
-    template <class Enum, template<Enum> class T, Enum Default>
+    template <class Enum, template <Enum> class T, Enum Default>
     void const *any_of<Enum, T, Default>::storage_allocated() const {
-        return *reinterpret_cast<void const * const *>(&_storage);
+        return *reinterpret_cast<void const *const *>(&_storage);
     }
 
-    template <class Enum, template<Enum> class T, Enum Default>
-    void * &any_of<Enum, T, Default>::storage_allocated() {
-        return *reinterpret_cast<void * *>(&_storage);
+    template <class Enum, template <Enum> class T, Enum Default>
+    void *&any_of<Enum, T, Default>::storage_allocated() {
+        return *reinterpret_cast<void **>(&_storage);
     }
 
-    template <class Enum, template<Enum> class T, Enum Default>
+    template <class Enum, template <Enum> class T, Enum Default>
     void const *any_of<Enum, T, Default>::storage_in_place() const {
         return reinterpret_cast<void const *>(&_storage);
     }
 
-    template <class Enum, template<Enum> class T, Enum Default>
+    template <class Enum, template <Enum> class T, Enum Default>
     void *any_of<Enum, T, Default>::storage_in_place() {
         return reinterpret_cast<void *>(&_storage);
     }
-}
+}// namespace mlab
 
 #endif//MLAB_ANY_OF_HPP

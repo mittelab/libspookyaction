@@ -5,10 +5,10 @@
 #ifndef PN532_CHANNEL_HPP
 #define PN532_CHANNEL_HPP
 
-#include <chrono>
+#include "mlab/bin_data.hpp"
 #include <algorithm>
 #include <array>
-#include "mlab/bin_data.hpp"
+#include <chrono>
 
 namespace pn532 {
     using mlab::bin_data;
@@ -18,6 +18,7 @@ namespace pn532 {
 
     class timer {
         std::chrono::time_point<std::chrono::high_resolution_clock> _timestamp;
+
     public:
         inline timer();
 
@@ -27,6 +28,7 @@ namespace pn532 {
     class reduce_timeout {
         ms _timeout;
         timer _timer;
+
     public:
         inline explicit reduce_timeout(ms timeout);
 
@@ -39,6 +41,7 @@ namespace pn532 {
 
     class channel {
         bool _ready_to_receive = false;
+
     protected:
         inline bool is_ready_to_receive() const;
 
@@ -70,7 +73,6 @@ namespace pn532 {
         bool ensure_ready_to_receive(ms timeout);
 
     public:
-
         virtual bool wake() = 0;
 
         std::pair<bin_data, bool> receive(std::size_t length, ms timeout);
@@ -92,14 +94,13 @@ namespace pn532 {
 
         virtual ~channel() = default;
     };
-}
+}// namespace pn532
 
 
 namespace pn532 {
 
-    reduce_timeout::reduce_timeout(ms timeout) :
-            _timeout{timeout},
-            _timer{} {}
+    reduce_timeout::reduce_timeout(ms timeout) : _timeout{timeout},
+                                                 _timer{} {}
 
     timer::timer() : _timestamp{std::chrono::high_resolution_clock::now()} {}
 
@@ -164,7 +165,7 @@ namespace pn532 {
         return data_success.second;
     }
 
-}
+}// namespace pn532
 
 
-#endif //PN532_CHANNEL_HPP
+#endif//PN532_CHANNEL_HPP

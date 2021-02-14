@@ -48,4 +48,4 @@ namespace pn532 {
         return true;
     }
 
-}
+}// namespace pn532

@@ -5,11 +5,11 @@
 #ifndef MLAB_RESULT_HPP
 #define MLAB_RESULT_HPP
 
-#include <vector>
+#include "any_of.hpp"
+#include <esp_log.h>
 #include <memory>
 #include <type_traits>
-#include <esp_log.h>
-#include "any_of.hpp"
+#include <vector>
 
 namespace mlab {
 
@@ -27,7 +27,7 @@ namespace mlab {
      * ''result<void, E>''.
      */
 
-    template <class ...Args>
+    template <class... Args>
     class result;
 
     struct result_success_type {
@@ -54,8 +54,7 @@ namespace mlab {
     };
 
     template <class E, class T>
-    class result<E, T> : private any_of<result_content, result_impl<E, T>::template content_wrap, result_content::error>
-    {
+    class result<E, T> : private any_of<result_content, result_impl<E, T>::template content_wrap, result_content::error> {
         template <result_content RC>
         using content_wrap = typename result_impl<E, T>::template content_wrap<RC>;
 
@@ -105,26 +104,26 @@ namespace mlab {
         inline result(base b);
 
         using base::base;
-        using base::type;
         using base::error;
+        using base::type;
         using base::operator=;
         using base::operator*;
         using base::operator->;
         using base::operator bool;
     };
 
-    template <class E, class T1, class T2, class T3, class ...Tn>
+    template <class E, class T1, class T2, class T3, class... Tn>
     class result<E, T1, T2, T3, Tn...> : private result<E, std::tuple<T1, T2, T3, Tn...>> {
     public:
         using base = result<E, std::pair<T1, T2>>;
 
-        inline result(T1 data1, T2 data2, T2 data3, Tn ...dataN);
+        inline result(T1 data1, T2 data2, T2 data3, Tn... dataN);
 
         inline result(base b);
 
         using base::base;
-        using base::type;
         using base::error;
+        using base::type;
         using base::operator=;
         using base::operator*;
         using base::operator->;
@@ -137,14 +136,14 @@ namespace mlab {
     public:
         using base = result<E, result_success_type>;
 
-        template <class T, class = typename std::enable_if<  // Disable copies of the same copy constructor
-                not std::is_void<T>::value and not std::is_same<T, result_success_type>::value>::type>
+        template <class T, class = typename std::enable_if<// Disable copies of the same copy constructor
+                                   not std::is_void<T>::value and not std::is_same<T, result_success_type>::value>::type>
         inline result(result<E, T> const &other);
 
         using base::base;
         using base::operator=;
-        using base::type;
         using base::error;
+        using base::type;
         using base::operator bool;
     };
 
@@ -155,13 +154,13 @@ namespace mlab {
 
         using base::base;
         using base::operator=;
-        using base::type;
         using base::error;
+        using base::type;
         using base::operator bool;
     };
 
 
-}
+}// namespace mlab
 
 namespace mlab {
 
@@ -252,21 +251,17 @@ namespace mlab {
     }
 
     template <class E, class T1, class T2>
-    result<E, T1, T2>::result(T1 data1, T2 data2) :
-            base{std::make_pair(data1, data2)} {}
+    result<E, T1, T2>::result(T1 data1, T2 data2) : base{std::make_pair(data1, data2)} {}
 
     template <class E, class T1, class T2>
-    result<E, T1, T2>::result(result<E, T1, T2>::base b) :
-            base{std::move(b)} {}
+    result<E, T1, T2>::result(result<E, T1, T2>::base b) : base{std::move(b)} {}
 
 
-    template <class E, class T1, class T2, class T3, class ...Tn>
-    result<E, T1, T2, T3, Tn...>::result(T1 data1, T2 data2, T2 data3, Tn ...dataN) :
-            base{std::make_tuple(data1, data2, data3, std::forward<Tn>(dataN)...)} {}
+    template <class E, class T1, class T2, class T3, class... Tn>
+    result<E, T1, T2, T3, Tn...>::result(T1 data1, T2 data2, T2 data3, Tn... dataN) : base{std::make_tuple(data1, data2, data3, std::forward<Tn>(dataN)...)} {}
 
-    template <class E, class T1, class T2, class T3, class ...Tn>
-    result<E, T1, T2, T3, Tn...>::result(result<E, T1, T2, T3, Tn...>::base b) :
-            base{std::move(b)} {}
-}
+    template <class E, class T1, class T2, class T3, class... Tn>
+    result<E, T1, T2, T3, Tn...>::result(result<E, T1, T2, T3, Tn...>::base b) : base{std::move(b)} {}
+}// namespace mlab
 
-#endif //MLAB_RESULT_HPP
+#endif//MLAB_RESULT_HPP

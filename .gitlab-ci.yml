@@ -1,31 +1,43 @@
-
 stages:
   - check
+  - test
   - deploy
 
 check format:
   stage: check
-  image: ubuntu:latest
+  image: alpine
   allow_failure: true
   before_script:
-    - apt update -y
-    - apt install git clang-format -y
+    - apk add --update --no-cache git clang
   script:
-    - git-clang-format --style file --commit HEAD^
-    - git diff --patch | tee 001-formatting.patch
-    - test ! -s 001-formatting.patch
+    - >
+      find . \( -not -path '\./\.*' \) -and \( -name '*.[hc]' -or -name '*.[hc]pp' \) \
+      | while read -r FILE; do
+          echo "Format $FILE"
+          clang-format --style file -i "$FILE"
+      done
+    - git diff --patch | tee 0001-Clang-format.patch
+    - test ! -s 0001-Clang-format.patch
   artifacts:
     paths:
-      - 001-formatting.patch
+      - 0001-Clang-format.patch
     expire_in: 1 week
     when: on_failure
 
 
 test examples:
-  stage: check
+  stage: test
   image: shaguarger/platformio:latest
   script:
-    - for file in examples/*; do pio ci --lib="." --board="m5stack-core-esp32" -O "framework=espidf" -O "platform=espressif32" -O "test_build_project_src=yes" $file; done
+    - >
+      for file in examples/*; do
+        pio ci \
+          --lib="." \
+          --board="m5stack-core-esp32" \
+          -O "framework=espidf" \
+          -O "platform=espressif32" \
+          -O "test_build_project_src=yes" $file
+      done
   cache:
     key: ${CI_COMMIT_REF_SLUG}
     paths:
@@ -34,10 +46,12 @@ test examples:
 
 
 test hardware:
-  stage: check
+  stage: test
   image: shaguarger/platformio:latest
+  before_script:
+    - cp .platformio-ci.ini platformio.ini
   script:
-    - pio project init --board="m5stack-core-esp32" -O "framework=espidf" -O "platform=espressif32" -O "test_build_project_src=yes" -O "build_flags = -D CONFIG_MBEDTLS_DES_C -D KEYCARD_UNIT_TEST_MAIN"
+    - pio project init
     - pio remote --agent testinator test --upload-port /dev/ttyUSB0 --test-port /dev/ttyUSB0
   cache:
     key: ${CI_COMMIT_REF_SLUG}
@@ -51,8 +65,9 @@ test hardware:
 pages:
   stage: deploy
   image: alpine
+  before_script:
+    - apk add --update --no-cache doxygen
   script:
-    - apk add doxygen
     - doxygen ./docs/doxigen.conf
     - mkdir -p public
     - cp -r docs/_build/html/* public

@@ -6,6 +6,7 @@ framework = espidf
 ; KEYCARD_UNIT_TEST_MAIN: when defined, compiles a `void app_main()` that kicks off the unit tests.
 
 build_flags =
+    -Wall -Wextra
 	-D CONFIG_MBEDTLS_DES_C
 	-D KEYCARD_UNIT_TEST_MAIN
 ;    -D LOG_LOCAL_LEVEL=ESP_LOG_DEBUG

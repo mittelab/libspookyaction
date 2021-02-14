@@ -70,20 +70,11 @@ namespace desfire {
         r<Data> command_parse_response(command_code cmd, bin_data const &payload, comm_cfg const &cfg);
 
         /**
-         * @return Always returns something but it may be @ref cipher_dummy if no authentication has took place.
-         */
-        inline cipher const &active_cipher() const;
-
-        /**
          * @return @ref root_app if no app was selected, otherwise the app id.
-         * @todo Make sure active_app is always in sync
          */
         inline app_id const &active_app() const;
 
-        /**
-         * @todo Rename this to active_key_type
-         */
-        inline cipher_type active_cipher_type() const;
+        inline cipher_type active_key_type() const;
 
         /**
          * @return ''std::numeric_limits<std::uint8_t>::max'' when no authentication has took place, the the key number.
@@ -315,10 +306,7 @@ namespace desfire {
          */
         void logout(bool due_to_error);
 
-        /**
-         * @todo Rename
-         */
-        comm_cfg const &cipher_default() const;
+        comm_cfg const &default_comm_cfg() const;
 
         struct auto_logout;
 
@@ -369,14 +357,10 @@ namespace desfire {
     }
 
 
-    cipher const &tag::active_cipher() const {
-        return *_active_cipher;
-    }
-
     app_id const &tag::active_app() const {
         return _active_app;
     }
-    cipher_type tag::active_cipher_type() const {
+    cipher_type tag::active_key_type() const {
         return _active_cipher_type;
     }
     std::uint8_t tag::active_key_no() const {

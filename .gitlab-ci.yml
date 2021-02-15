@@ -24,9 +24,37 @@ check format:
     when: on_failure
 
 
-test examples:
-  stage: test
+.platformio-cache: &platformio-cache
   image: shaguarger/platformio:latest
+  before_script:
+    - PIO_FOLDERS=(packages platforms)
+    - >
+      function pio-restore-cache() {
+        for PIO_FOLDER in "${PIO_FOLDERS[@]}"; do
+          if [ -d ".pio-$PIO_FOLDER" ]; then
+            mv ".pio-packages" "/root/.platformio/packages"
+          fi
+        done
+      }
+    - >
+      function pio-save-cache() {
+        for PIO_FOLDER in "${PIO_FOLDERS[@]}"; do
+          if [ -d "/root/.platformio/$PIO_FOLDER" ]; then
+            mv "/root/.platformio/$PIO_FOLDER" ".pio-$PIO_FOLDER"
+          fi
+        done
+      }
+    - pio-restore-cache
+  cache:
+    key: ${CI_COMMIT_REF_SLUG}
+    paths:
+      - .pio-packages
+      - .pio-platforms
+      - .pio
+
+test examples:
+  <<: *platformio-cache
+  stage: test
   script:
     - >
       for file in examples/*; do
@@ -37,26 +65,17 @@ test examples:
           -O "platform=espressif32" \
           -O "test_build_project_src=yes" $file
       done
-  cache:
-    key: ${CI_COMMIT_REF_SLUG}
-    paths:
-      - /root/.platformio/
-      - .pio/
+    - pio-save-cache
 
 
 test hardware:
+  <<: *platformio-cache
   stage: test
-  image: shaguarger/platformio:latest
-  before_script:
-    - cp .platformio-ci.ini platformio.ini
   script:
+    - cp .platformio-ci.ini platformio.ini
     - pio project init
     - pio remote --agent testinator test --upload-port /dev/ttyUSB0 --test-port /dev/ttyUSB0
-  cache:
-    key: ${CI_COMMIT_REF_SLUG}
-    paths:
-      - /root/.platformio/
-      - .pio/
+    - pio-save-cache
   rules:
     - if: "$PLATFORMIO_AUTH_TOKEN"
 

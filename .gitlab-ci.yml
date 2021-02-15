@@ -26,32 +26,12 @@ check format:
 
 .platformio-cache: &platformio-cache
   image: shaguarger/platformio:latest
-  before_script:
-    - PIO_FOLDERS=(packages platforms)
-    - >
-      function pio-restore-cache() {
-        for PIO_FOLDER in "${PIO_FOLDERS[@]}"; do
-          if [ -d ".pio-$PIO_FOLDER" ]; then
-            echo "Restoring PlatformIO's $PIO_FOLDER"
-            mv ".pio-$PIO_FOLDER" "/root/.platformio/$PIO_FOLDER"
-          fi
-        done
-      }
-    - >
-      function pio-save-cache() {
-        for PIO_FOLDER in "${PIO_FOLDERS[@]}"; do
-          if [ -d "/root/.platformio/$PIO_FOLDER" ]; then
-            echo "Saving PlatformIO's $PIO_FOLDER"
-            mv "/root/.platformio/$PIO_FOLDER" ".pio-$PIO_FOLDER"
-          fi
-        done
-      }
-    - pio-restore-cache
+  variables:
+    PLATFORMIO_CORE_DIR: "$CI_PROJECT_DIR/.pio-core"
   cache:
     key: ${CI_COMMIT_REF_SLUG}
     paths:
-      - .pio-packages
-      - .pio-platforms
+      - .pio-core
       - .pio
 
 test examples:
@@ -67,17 +47,16 @@ test examples:
           -O "platform=espressif32" \
           -O "test_build_project_src=yes" $file
       done
-    - pio-save-cache
 
 
 test hardware:
   <<: *platformio-cache
   stage: test
-  script:
+  before_script:
     - cp .platformio-ci.ini platformio.ini
+  script:
     - pio project init
     - pio remote --agent testinator test --upload-port /dev/ttyUSB0 --test-port /dev/ttyUSB0
-    - pio-save-cache
   rules:
     - if: "$PLATFORMIO_AUTH_TOKEN"
 

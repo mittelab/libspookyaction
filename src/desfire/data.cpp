@@ -381,11 +381,11 @@ namespace mlab {
     }
 
     bin_data &operator<<(bin_data &bd, desfire::key_rights const &kr) {
-        const std::uint8_t flag = kr.allowed_to_change_keys.get()
-                | (kr.config_changeable ? bits::app_change_config_allowed_flag : 0x0)
-                | (kr.master_key_changeable ? bits::app_changeable_master_key_flag : 0x0)
-                | (kr.create_delete_without_auth ? bits::app_create_delete_without_master_key_flag : 0x0)
-                | (kr.dir_access_without_auth ? bits::app_list_without_master_key_flag : 0x0);
+        const std::uint8_t flag = kr.allowed_to_change_keys.get() |
+                                  (kr.config_changeable ? bits::app_change_config_allowed_flag : 0x0) |
+                                  (kr.master_key_changeable ? bits::app_changeable_master_key_flag : 0x0) |
+                                  (kr.create_delete_without_auth ? bits::app_create_delete_without_master_key_flag : 0x0) |
+                                  (kr.dir_access_without_auth ? bits::app_list_without_master_key_flag : 0x0);
         return bd << flag;
     }
 

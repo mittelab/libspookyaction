@@ -394,13 +394,12 @@ namespace mlab {
     }
 
     bin_data &operator<<(bin_data &s, parameters const &p) {
-        const std::uint8_t parms_byte = (p.use_nad_data ? bits::parameters_use_nad_data_bit : 0x0)
-                                        | (p.use_did_data ? bits::parameters_use_did_data_bit : 0x0)
-                                        | (p.auto_generate_atr_res ? bits::parameters_auto_generate_atr_res_bit : 0x0)
-                                        | (p.auto_generate_rats ? bits::parameters_auto_generate_rats_bit : 0x0)
-                                        | (p.enable_iso_14443_4_picc_emulation
-                                           ? bits::parameters_enable_iso_14443_4_picc_emulation_bit : 0x0)
-                                        | (p.remove_pre_post_amble ? bits::parameters_remove_pre_post_amble_bit : 0x0);
+        const std::uint8_t parms_byte = (p.use_nad_data ? bits::parameters_use_nad_data_bit : 0x0) |
+                                        (p.use_did_data ? bits::parameters_use_did_data_bit : 0x0) |
+                                        (p.auto_generate_atr_res ? bits::parameters_auto_generate_atr_res_bit : 0x0) |
+                                        (p.auto_generate_rats ? bits::parameters_auto_generate_rats_bit : 0x0) |
+                                        (p.enable_iso_14443_4_picc_emulation ? bits::parameters_enable_iso_14443_4_picc_emulation_bit : 0x0) |
+                                        (p.remove_pre_post_amble ? bits::parameters_remove_pre_post_amble_bit : 0x0);
         return s << parms_byte;
     }
 

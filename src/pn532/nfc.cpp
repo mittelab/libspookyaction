@@ -720,8 +720,8 @@ namespace pn532 {
 
     namespace {
         std::uint8_t get_in_atr_next(bool has_nfcid_3t, bool has_general_info) {
-            return (has_nfcid_3t ? bits::in_atr_nfcid_3t_present_mask : 0x00)
-                   | (has_general_info ? bits::in_atr_general_info_present_mask : 0x00);
+            return (has_nfcid_3t ? bits::in_atr_nfcid_3t_present_mask : 0x00) |
+                   (has_general_info ? bits::in_atr_general_info_present_mask : 0x00);
         }
 
         range<std::vector<std::uint8_t>::const_iterator> sanitize_vector(
@@ -875,9 +875,9 @@ namespace pn532 {
     namespace {
         std::uint8_t get_in_jump_for_dep_psl_next(
                 bool has_passive_init_data, bool has_nfcid_3t, bool has_general_info) {
-            return (has_passive_init_data ? bits::in_jump_for_dep_passive_init_data_present_mask : 0x00)
-                   | (has_nfcid_3t ? bits::in_jump_for_dep_nfcid_3t_present_mask : 0x00)
-                   | (has_general_info ? bits::in_jump_for_dep_general_info_present_mask : 0x00);
+            return (has_passive_init_data ? bits::in_jump_for_dep_passive_init_data_present_mask : 0x00) |
+                   (has_nfcid_3t ? bits::in_jump_for_dep_nfcid_3t_present_mask : 0x00) |
+                   (has_general_info ? bits::in_jump_for_dep_general_info_present_mask : 0x00);
         }
     }// namespace
 
@@ -1225,9 +1225,9 @@ namespace pn532 {
             felica_params const &felica, std::array<std::uint8_t, 10> const &nfcid_3t,
             std::vector<std::uint8_t> const &general_info,
             std::vector<std::uint8_t> const &historical_bytes, ms timeout) {
-        const std::uint8_t mode_byte = (picc_only ? bits::init_as_target_picc_only_bit : 0x00)
-                                       | (dep_only ? bits::init_as_target_dep_only_bit : 0x00)
-                                       | (passive_only ? bits::init_as_target_passive_only_bit : 0x00);
+        const std::uint8_t mode_byte = (picc_only ? bits::init_as_target_picc_only_bit : 0x00) |
+                                       (dep_only ? bits::init_as_target_dep_only_bit : 0x00) |
+                                       (passive_only ? bits::init_as_target_passive_only_bit : 0x00);
         const auto gi_view = sanitize_target_general_info(command_code::tg_init_as_target, general_info);
         const auto tk_view = sanitize_target_historical_bytes(command_code::tg_init_as_target, historical_bytes);
         const bin_data payload = bin_data::chain(

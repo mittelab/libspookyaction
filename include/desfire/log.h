@@ -22,4 +22,4 @@ extern "C" {
 }
 #endif
 
-#endif //DESFIRE_LOG_H
+#endif//DESFIRE_LOG_H

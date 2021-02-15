@@ -22,4 +22,4 @@ extern "C" {
 }
 #endif
 
-#endif //PN532_LOG_H
+#endif//PN532_LOG_H

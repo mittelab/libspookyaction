@@ -10,6 +10,14 @@
 #include "desfire/msg.hpp"
 #include <esp_system.h>
 
+#define ESP_LOG_BIN_DATA(tag, bin_data_like, level)                       \
+    do {                                                                  \
+        if (LOG_LOCAL_LEVEL >= (level)) {                                 \
+            auto const &_bd = (bin_data_like);                            \
+            ESP_LOG_BUFFER_HEX_LEVEL(tag, _bd.data(), _bd.size(), level); \
+        }                                                                 \
+    } while (false)
+
 namespace desfire {
 
     struct lsb_uint24 {
@@ -280,11 +288,16 @@ namespace desfire {
         }
         bin_data const &rndb = res_rndb->second;
         DESFIRE_LOGD("Authentication: received RndB (%u bytes).", rndb.size());
+        ESP_LOGV(DESFIRE_TAG " KEY", "RndB:");
+        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " KEY", rndb.data(), rndb.size(), ESP_LOG_VERBOSE);
 
         /// Prepare and send a response: AdditionalFrames || Crypt(RndA || RndB'), RndB' = RndB << 8, obtain RndA >> 8
         const bin_data rnda = bin_data::chain(randbytes(rndb.size()));
 
         DESFIRE_LOGD("Authentication: sending RndA || (RndB << 8).");
+        ESP_LOGV(DESFIRE_TAG " KEY", "RndA:");
+        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " KEY", rnda.data(), rnda.size(), ESP_LOG_VERBOSE);
+
         // Send and received encrypted; this time parse the status byte because we regularly expect a status::ok.
         const auto res_rndap = command_response(
                 command_code::additional_frame,
@@ -441,11 +454,15 @@ namespace desfire {
         payload << key_no_flag;
         // Changing from a different key requires to xor it with that other key
         if (current_key != nullptr) {
+            ESP_LOGV(DESFIRE_TAG " KEY", "Current key %d: %s", current_key->key_number(), to_string(current_key->type()));
+            ESP_LOG_BIN_DATA(DESFIRE_TAG " KEY", current_key->get_packed_key_body(), ESP_LOG_VERBOSE);
             payload << new_key.xored_with(*current_key);
         } else {
             payload << new_key;
         }
 
+        ESP_LOGV(DESFIRE_TAG " KEY", "New key %d: %s", new_key.key_number(), to_string(new_key.type()));
+        ESP_LOG_BIN_DATA(DESFIRE_TAG " KEY", new_key.get_packed_key_body(), ESP_LOG_VERBOSE);
 
         // Now we need to compute CRCs, here we need to make distinction depending on legacy/non-legacy protocol.
         // There is no way to fit this business into the cipher model.

@@ -62,6 +62,10 @@ namespace desfire {
         mbedtls_des_init(&_dec_context);
         mbedtls_des_init(&_mac_enc_context);
         set_key_version(new_key, 0x00);
+
+        ESP_LOGV(DESFIRE_TAG " KEY", "Session key %s:", to_string(cipher_type::des));
+        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " KEY", new_key.data(), new_key.size(), ESP_LOG_VERBOSE);
+
         /**
          * @note Using @ref mbedtls_des_setkey_dec on @ref _enc_context is **deliberate**, see note on
          * @ref cipher_scheme_legacy.
@@ -155,6 +159,10 @@ namespace desfire {
         mbedtls_des3_init(&_dec_context);
         mbedtls_des3_init(&_mac_enc_context);
         set_key_version(new_key, 0x00);
+
+        ESP_LOGV(DESFIRE_TAG " KEY", "Session key %s:", to_string(cipher_type::des3_2k));
+        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " KEY", new_key.data(), new_key.size(), ESP_LOG_VERBOSE);
+
         /**
          * @note Using @ref mbedtls_des3_set2key_dec on @ref _enc_context is **deliberate**, see note on
          * @ref cipher_scheme_legacy.
@@ -220,6 +228,10 @@ namespace desfire {
         mbedtls_des3_init(&_enc_context);
         mbedtls_des3_init(&_dec_context);
         set_key_version(new_key, 0x00);
+
+        ESP_LOGV(DESFIRE_TAG " KEY", "Session key %s:", to_string(cipher_type::des3_3k));
+        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " KEY", new_key.data(), new_key.size(), ESP_LOG_VERBOSE);
+
         mbedtls_des3_set3key_enc(&_enc_context, new_key.data());
         mbedtls_des3_set3key_dec(&_dec_context, new_key.data());
         initialize();
@@ -276,6 +288,10 @@ namespace desfire {
         mbedtls_aes_init(&_dec_context);
         mbedtls_aes_setkey_enc(&_enc_context, new_key.data(), 8 * new_key.size());
         mbedtls_aes_setkey_dec(&_dec_context, new_key.data(), 8 * new_key.size());
+
+        ESP_LOGV(DESFIRE_TAG " KEY", "Session key %s:", to_string(cipher_type::aes128));
+        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " KEY", new_key.data(), new_key.size(), ESP_LOG_VERBOSE);
+
         initialize();
     }
 

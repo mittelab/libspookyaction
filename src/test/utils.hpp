@@ -28,17 +28,19 @@ namespace ut {
         inline ~session();
     };
 
-    class nested_log {
-        static unsigned _level;
-
-    public:
-        inline nested_log() { ++_level; }
-        inline ~nested_log() { --_level; }
-
-        static const char *indent();
+    struct log_options {
+        bool generic;
+        bool plain_data;
+        bool mac_cmac;
+        bool raw_data;
+        bool crypto_operations;
+        bool reveal_keys;
     };
 
-    void enable_detailed_log();
+    static constexpr log_options log_everything{true, true, true, true, true, true};
+    static constexpr log_options log_debug{true, true, true, true, false, false};
+
+    void enable_verbose_log(log_options options);
 
     struct test_app {
         desfire::app_id aid = {{0xff, 0xff, 0xff}};

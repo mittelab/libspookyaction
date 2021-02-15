@@ -14,14 +14,6 @@ namespace ut {
     static constexpr std::array<std::uint8_t, 24> secondary_des3_3k_key = {0x0, 0x2, 0x4, 0x6, 0x8, 0xa, 0xc, 0xe, 0x10, 0x12, 0x14, 0x16, 0x18, 0x1a, 0x1c, 0x1e, 0x20, 0x22, 0x24, 0x26, 0x28, 0x2a, 0x2c, 0x2e};
     static constexpr std::array<std::uint8_t, 16> secondary_aes_key = {0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf};
 
-    unsigned nested_log::_level = 0;
-
-    const char *nested_log::indent() {
-        static std::string _buffer{};
-        _buffer.resize(2 * _level, ' ');
-        return _buffer.c_str();
-    }
-
     std::pair<mlab::bin_data, bool> assert_comm_controller::communicate(const mlab::bin_data &data) {
         auto txrx_pair = std::move(txrx_fifo.front());
         txrx_fifo.pop_front();
@@ -72,19 +64,33 @@ namespace ut {
         }
     }
 
-    void enable_detailed_log() {
-        esp_log_level_set(DESFIRE_TAG, ESP_LOG_DEBUG);
-        esp_log_level_set(DESFIRE_TAG " >>", ESP_LOG_DEBUG);
-        esp_log_level_set(DESFIRE_TAG " <<", ESP_LOG_DEBUG);
-        esp_log_level_set(DESFIRE_TAG " RAW >>", ESP_LOG_DEBUG);
-        esp_log_level_set(DESFIRE_TAG " RAW <<", ESP_LOG_DEBUG);
-        esp_log_level_set(DESFIRE_TAG " TX MAC", ESP_LOG_DEBUG);
-        esp_log_level_set(DESFIRE_TAG " RX MAC", ESP_LOG_DEBUG);
-        esp_log_level_set(DESFIRE_TAG " != MAC", ESP_LOG_DEBUG);
-        esp_log_level_set(DESFIRE_TAG " CRYPTO", ESP_LOG_DEBUG);
-        esp_log_level_set(DESFIRE_TAG " DATA", ESP_LOG_DEBUG);
-        esp_log_level_set(DESFIRE_TAG " BLOB", ESP_LOG_DEBUG);
-        esp_log_level_set(DESFIRE_TAG "   IV", ESP_LOG_DEBUG);
+    void enable_verbose_log(log_options options) {
+        if (options.generic) {
+            esp_log_level_set(DESFIRE_TAG, ESP_LOG_VERBOSE);
+        }
+        if (options.mac_cmac) {
+            esp_log_level_set(DESFIRE_TAG " TX MAC", ESP_LOG_VERBOSE);
+            esp_log_level_set(DESFIRE_TAG " RX MAC", ESP_LOG_VERBOSE);
+            esp_log_level_set(DESFIRE_TAG " != MAC", ESP_LOG_VERBOSE);
+        }
+        if (options.crypto_operations) {
+            esp_log_level_set(DESFIRE_TAG " CRYPTO", ESP_LOG_VERBOSE);
+            esp_log_level_set(DESFIRE_TAG " DATA", ESP_LOG_VERBOSE);
+            esp_log_level_set(DESFIRE_TAG " BLOB", ESP_LOG_VERBOSE);
+            esp_log_level_set(DESFIRE_TAG "   IV", ESP_LOG_VERBOSE);
+        }
+        if (options.plain_data) {
+            esp_log_level_set(DESFIRE_TAG " >>", ESP_LOG_VERBOSE);
+            esp_log_level_set(DESFIRE_TAG " <<", ESP_LOG_VERBOSE);
+        }
+        if (options.raw_data) {
+            esp_log_level_set(DESFIRE_TAG " RAW >>", ESP_LOG_VERBOSE);
+            esp_log_level_set(DESFIRE_TAG " RAW <<", ESP_LOG_VERBOSE);
+        }
+        if (options.reveal_keys) {
+            esp_log_level_set(DESFIRE_TAG " KEY", ESP_LOG_VERBOSE);
+            esp_log_level_set(DESFIRE_TAG " KEY", ESP_LOG_VERBOSE);
+        }
     }
 
 

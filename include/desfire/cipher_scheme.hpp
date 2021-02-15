@@ -105,6 +105,11 @@ namespace desfire {
         // Do it again
         _cmac_subkey_pad = _cmac_subkey_nopad;
         prepare_subkey(_cmac_subkey_pad, (_cmac_subkey_nopad.front() & 0x80) != 0);
+
+        ESP_LOGV(DESFIRE_TAG " KEY", "CMAC key for unpadded data:");
+        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " KEY", _cmac_subkey_nopad.data(), _cmac_subkey_nopad.size(), ESP_LOG_VERBOSE);
+        ESP_LOGV(DESFIRE_TAG " KEY", "CMAC key for padded data:");
+        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " KEY", _cmac_subkey_pad.data(), _cmac_subkey_pad.size(), ESP_LOG_VERBOSE);
     }
 
     template <std::size_t BlockSize, std::uint8_t CMACSubkeyR>

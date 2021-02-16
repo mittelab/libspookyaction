@@ -40,7 +40,7 @@ namespace ut {
     static constexpr log_options log_everything{true, true, true, true, true, true};
     static constexpr log_options log_debug{true, true, true, true, false, false};
 
-    void enable_verbose_log(log_options options);
+    void enable_debug_log(log_options options);
 
     struct test_app {
         desfire::app_id aid = {{0xff, 0xff, 0xff}};

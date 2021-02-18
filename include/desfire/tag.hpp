@@ -2,6 +2,25 @@
 // Created by Pietro Saccardi on 02/01/2021.
 //
 
+/**
+ * @defgroup card Mifare Card
+ * @{
+ */
+
+/**
+ * @defgroup application Application management
+ * Command to create and modify application on the mifare card
+ */
+
+/**
+ * @defgroup data Data storage
+ * Commands to create and read/write files on the card
+ */
+
+/**
+ * @}
+ */
+
 #ifndef DESFIRE_TAG_HPP
 #define DESFIRE_TAG_HPP
 
@@ -86,28 +105,55 @@ namespace desfire {
         r<> authenticate(any_key const &k);
 
         /**
+         * @brief Selects the application to use for sucessive operations
+         * @ingroup application
+         * @param app The id of the app to be selected
          * @note After selecting a new application, the controller is logged out and a new authentication is necessary.
          */
         r<> select_application(app_id const &app = root_app);
 
         /**
+         * @brief Add a new application to the card
+         * @ingroup application
+         * @param new_app_id the id of the new app to be created
+         * @param settings configuration of tha app (mainly: number of keys and witch cipher to use)
          * @note Must be on the @ref root_app for this to succeed.
          */
         r<> create_application(app_id const &new_app_id, app_settings settings);
 
+        /**
+         * @brief Change the setting of the selected app
+         * @ingroup application
+         * @param new_rights the new app settings
+         * @note Need to be autenticated to the app (with @ref authenticate) for this to succeed.
+         */
         r<> change_app_settings(key_rights new_rights);
 
+        /**
+         * @brief Get the configuration of the selected app
+         * @ingroup application
+         * @note The app need to be selected first (with @ref select_application) for this to succeed.
+         */
         r<app_settings> get_app_settings();
 
+        /**
+         * @brief Get the version of the key (in the selected application)
+         *
+         */
         r<std::uint8_t> get_key_version(std::uint8_t key_num);
 
         /**
+         * @brief Get a list of all application in the card
+         * @ingroup application
          * @note Must be on the @ref root_app, possibly authenticated.
          */
         r<std::vector<app_id>> get_application_ids();
 
         /**
-         * @note Must be on the @ref root_app or in @p app, with the appropriate master key.
+         * @brief Delete the application, and all data stored in it
+         * @ingroup application
+         * @param app_id The app ID of the application to be deleted
+         * @note Must authenticated on the @ref root_app or in @p app, with the appropriate master key.
          */
         r<> delete_application(app_id const &app);
 
@@ -116,6 +162,8 @@ namespace desfire {
 
 
         /**
+         * @brief Delete all the application, and keys on the card
+         * @ingroup application
          * @note Must be on the @ref root_app for this to succeed, and authenticated with the master key. After
          * formatting the controller will be logged out and on the @ref root_app.
          */
@@ -137,30 +185,73 @@ namespace desfire {
         r<> change_key(key<Type1> const &current_key, std::uint8_t key_no_to_change, key<Type2> const &new_key);
         r<> change_key(any_key const &current_key, std::uint8_t key_no_to_change, any_key const &new_key);
 
+        /** 
+         * @brief get a list of files in the selected application
+         * @ingroup data
+         */
         r<std::vector<file_id>> get_file_ids();
 
+        /**
+         * @brief Read the file settings
+         * @ingroup data
+         * @param fid The file ID, Max @ref bits::max_standard_data_file_id.
+         */
         r<any_file_settings> get_file_settings(file_id fid);
 
+        /**
+         * @brief Read the file settings
+         * @ingroup data
+         * @param fid The file ID, Max @ref bits::max_standard_data_file_id.
+         */
         template <file_type Type>
         r<file_settings<Type>> get_specific_file_settings(file_id fid);
 
+        /**
+         * @brief Modify the file settings
+         * @ingroup data
+         * @param fid The file ID, Max @ref bits::max_standard_data_file_id.
+         * @param settings The new file settings
+         * @note will read the file configuration to check witch comunication mode (@ref file_security) should use
+         */
         r<> change_file_settings(file_id fid, generic_file_settings const &settings);
 
+        /**
+         * @brief Modify the file settings
+         * @ingroup data
+         * @param fid The file ID, Max @ref bits::max_standard_data_file_id.
+         * @param settings The new file settings
+         * @param security The comunication mode to use
+         */
         r<> change_file_settings(file_id fid, generic_file_settings const &settings, file_security security);
 
         /**
-         * @param fid Max @ref bits::max_standard_data_file_id.
+         * @brief Create a new file in the selected application
+         * @ingroup data
+         * @param fid file ID, Max @ref bits::max_standard_data_file_id.
+         * @param settings The new file settings
          */
         r<> create_file(file_id fid, file_settings<file_type::standard> const &settings);
 
+        /**
+         * @brief Create a new file in the selected application
+         * @ingroup data
+         * @param fid file ID, Max @ref bits::max_standard_data_file_id.
+         * @param settings The file settings of the created file
+         */
         r<> create_file(file_id fid, any_file_settings const &settings);
 
+
         /**
+         * @brief Create a new file in the selected application
+         * @ingroup data
          * @param fid Max @ref bits::max_backup_data_file_id.
+         * @param settings The file settings of the created file
          */
         r<> create_file(file_id fid, file_settings<file_type::backup> const &settings);
 
         /**
+         * @brief Create a new file in the selected application
+         * @ingroup data
          * @param fid Max @ref bits::max_value_file_id.
          * @param settings Must have @ref value_file_settings::upper_limit greater than or equal to
          *  @ref value_file_settings::lower_limit.
@@ -168,6 +259,8 @@ namespace desfire {
         r<> create_file(file_id fid, file_settings<file_type::value> const &settings);
 
         /**
+         * @brief Create a new file in the selected application
+         * @ingroup data
          * @param fid Max @ref bits::max_record_file_id.
          * @param settings Must have @ref record_file_settings::record_size > 0 and
          *  @ref record_file_settings::max_record_count > 0.
@@ -175,16 +268,25 @@ namespace desfire {
         r<> create_file(file_id fid, file_settings<file_type::linear_record> const &settings);
 
         /**
+         * @brief Create a new file in the selected application
+         * @ingroup data
          * @param fid Max @ref bits::max_record_file_id.
          * @param settings Must have @ref record_file_settings::record_size > 0 and
          *  @ref record_file_settings::max_record_count > 1 (at least 2).
          */
         r<> create_file(file_id fid, file_settings<file_type::cyclic_record> const &settings);
 
+        /**
+         * @brief Delete file
+         * @ingroup data
+         * @param fid The file id to be removed, Max @ref bits::max_record_file_id.
+         */
         r<> delete_file(file_id fid);
 
         /**
-         * @param fid Max @ref bits::max_record_file_id.
+         * @brief clear the linear records from the file
+         * @ingroup data
+         * @param fid The file id of the record, Max @ref bits::max_record_file_id.
          */
         r<> clear_record_file(file_id fid);
 

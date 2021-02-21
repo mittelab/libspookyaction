@@ -5,10 +5,12 @@
 #include <desfire/tag.hpp>
 #include <driver/gpio.h>
 #include <driver/uart.h>
+#include <driver/i2c.h>
 #include <esp_log.h>
 #include <numeric>
 #include <pn532/desfire_pcd.hpp>
 #include <pn532/hsu.hpp>
+#include <pn532/i2c.hpp>
 #include <pn532/nfc.hpp>
 #include <string>
 #include <unity.h>
@@ -79,6 +81,25 @@ void setup_uart_pn532() {
     TEST_ASSERT_EQUAL(ESP_OK, uart_set_pin(UART_NUM_1, TX_OR_SCL_PIN, RX_OR_SDA_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
 
     channel = make_unique<pn532::hsu_channel>(UART_NUM_1);
+    tag_reader = make_unique<pn532::nfc>(*channel);
+    TEST_ASSERT(channel->wake());
+    const auto r_sam = tag_reader->sam_configuration(pn532::sam_mode::normal, pn532::one_sec);
+    TEST_ASSERT(r_sam);
+}
+
+void setup_i2c_pn532() {
+    i2c_config_t i2c_config = {
+            .mode = I2C_MODE_MASTER,
+            .sda_io_num = RX_OR_SDA_PIN,
+            .scl_io_num = TX_OR_SCL_PIN,
+            .sda_pullup_en = GPIO_PULLUP_ENABLE,
+            .scl_pullup_en = GPIO_PULLUP_ENABLE,
+            .master = {.clk_speed = 400000}};
+    TEST_ASSERT_EQUAL(ESP_OK, i2c_param_config(I2C_NUM_0, &i2c_config));
+    TEST_ASSERT_EQUAL(ESP_OK, i2c_driver_install(I2C_NUM_0, I2C_MODE_MASTER, BUF_SIZE, BUF_SIZE, 0));
+    TEST_ASSERT_EQUAL(ESP_OK, i2c_set_pin(I2C_NUM_0, RX_OR_SDA_PIN, TX_OR_SCL_PIN, true, true, I2C_MODE_MASTER));
+
+    channel = make_unique<pn532::i2c_channel>(I2C_NUM_0);
     tag_reader = make_unique<pn532::nfc>(*channel);
     TEST_ASSERT(channel->wake());
     const auto r_sam = tag_reader->sam_configuration(pn532::sam_mode::normal, pn532::one_sec);

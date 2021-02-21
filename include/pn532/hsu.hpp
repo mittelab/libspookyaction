@@ -10,7 +10,7 @@
 
 namespace pn532 {
 
-    class hsu final : public channel {
+    class hsu_channel final : public channel {
         uart_port_t _port;
 
     protected:
@@ -23,13 +23,13 @@ namespace pn532 {
     public:
         bool wake() override;
 
-        inline explicit hsu(uart_port_t port);
+        inline explicit hsu_channel(uart_port_t port);
     };
 }// namespace pn532
 
 namespace pn532 {
 
-    hsu::hsu(uart_port_t port) : _port{port} {}
+    hsu_channel::hsu_channel(uart_port_t port) : _port{port} {}
 
 }// namespace pn532
 

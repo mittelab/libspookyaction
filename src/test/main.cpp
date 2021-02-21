@@ -19,7 +19,7 @@
 #define BUF_SIZE (1024)
 
 namespace {
-    std::unique_ptr<pn532::hsu> serial = nullptr;
+    std::unique_ptr<pn532::hsu_channel> serial = nullptr;
     std::unique_ptr<pn532::nfc> tag_reader = nullptr;
     std::unique_ptr<pn532::desfire_pcd> pcd = nullptr;
     std::unique_ptr<desfire::tag> mifare = nullptr;
@@ -78,7 +78,7 @@ void setup_uart_pn532() {
     uart_driver_install(UART_NUM_1, BUF_SIZE, BUF_SIZE, 0, nullptr, 0);
     uart_set_pin(UART_NUM_1, TX_PIN, RX_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
 
-    serial = make_unique<pn532::hsu>(UART_NUM_1);
+    serial = make_unique<pn532::hsu_channel>(UART_NUM_1);
     tag_reader = make_unique<pn532::nfc>(*serial);
     serial->wake();
     const auto r_sam = tag_reader->sam_configuration(pn532::sam_mode::normal, pn532::one_sec);

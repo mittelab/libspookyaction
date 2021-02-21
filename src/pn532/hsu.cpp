@@ -18,7 +18,7 @@ namespace pn532 {
         }
     }// namespace
 
-    bool hsu::wake() {
+    bool hsu_channel::wake() {
         reduce_timeout rt{ms{100}};
         // One 0x55 would be enough but I always snooze at least twice, so...
         if (not send_raw({0x55, 0x55, 0x55}, rt.remaining())) {
@@ -27,11 +27,11 @@ namespace pn532 {
         return true;// Assume awake
     }
 
-    bool hsu::prepare_receive(std::chrono::milliseconds) {
+    bool hsu_channel::prepare_receive(std::chrono::milliseconds) {
         return true;
     }
 
-    bool hsu::send_raw(const bin_data &data, std::chrono::milliseconds timeout) {
+    bool hsu_channel::send_raw(const bin_data &data, std::chrono::milliseconds timeout) {
         reduce_timeout rt{timeout};
         // Flush RX buffer
         uart_flush_input(_port);
@@ -50,7 +50,7 @@ namespace pn532 {
         return false;
     }
 
-    bool hsu::receive_raw(bin_data &data, const std::size_t length, std::chrono::milliseconds timeout) {
+    bool hsu_channel::receive_raw(bin_data &data, const std::size_t length, std::chrono::milliseconds timeout) {
         data.resize(length);
         reduce_timeout rt{timeout};
         std::size_t read_length = 0;

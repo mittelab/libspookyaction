@@ -14,12 +14,12 @@
 #include <unity.h>
 
 #define TEST_TAG "UT"
-#define TX_PIN (GPIO_NUM_17)
-#define RX_PIN (GPIO_NUM_16)
+#define TX_OR_SCL_PIN (GPIO_NUM_17)
+#define RX_OR_SDA_PIN (GPIO_NUM_16)
 #define BUF_SIZE (1024)
 
 namespace {
-    std::unique_ptr<pn532::hsu_channel> serial = nullptr;
+    std::unique_ptr<pn532::channel> channel = nullptr;
     std::unique_ptr<pn532::nfc> tag_reader = nullptr;
     std::unique_ptr<pn532::desfire_pcd> pcd = nullptr;
     std::unique_ptr<desfire::tag> mifare = nullptr;
@@ -73,14 +73,14 @@ void setup_uart_pn532() {
             .stop_bits = UART_STOP_BITS_1,
             .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
             .rx_flow_ctrl_thresh = 122,
-            .use_ref_tick = true};
-    uart_param_config(UART_NUM_1, &uart_config);
-    uart_driver_install(UART_NUM_1, BUF_SIZE, BUF_SIZE, 0, nullptr, 0);
-    uart_set_pin(UART_NUM_1, TX_PIN, RX_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
+            .source_clk = UART_SCLK_REF_TICK};
+    TEST_ASSERT_EQUAL(ESP_OK, uart_param_config(UART_NUM_1, &uart_config));
+    TEST_ASSERT_EQUAL(ESP_OK, uart_driver_install(UART_NUM_1, BUF_SIZE, BUF_SIZE, 0, nullptr, 0));
+    TEST_ASSERT_EQUAL(ESP_OK, uart_set_pin(UART_NUM_1, TX_OR_SCL_PIN, RX_OR_SDA_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
 
-    serial = make_unique<pn532::hsu_channel>(UART_NUM_1);
-    tag_reader = make_unique<pn532::nfc>(*serial);
-    serial->wake();
+    channel = make_unique<pn532::hsu_channel>(UART_NUM_1);
+    tag_reader = make_unique<pn532::nfc>(*channel);
+    TEST_ASSERT(channel->wake());
     const auto r_sam = tag_reader->sam_configuration(pn532::sam_mode::normal, pn532::one_sec);
     TEST_ASSERT(r_sam);
 }

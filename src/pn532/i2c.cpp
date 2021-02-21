@@ -129,7 +129,13 @@ namespace pn532 {
         i2c::command cmd;
         cmd.write_byte(slave_address_to_write(), true);
         cmd.stop();
-        return bool(cmd(_port, rt.remaining()));
+
+        const auto res_cmd = cmd(_port, rt.remaining());
+        if (not res_cmd) {
+            ESP_LOGE(PN532_I2C_TAG, "Wake failed: %s", i2c::to_string(res_cmd.error()));
+            return false;
+        }
+        return true;
     }
 
     bool i2c_channel::prepare_receive(std::chrono::milliseconds timeout) {
@@ -142,9 +148,9 @@ namespace pn532 {
         cmd.stop();
 
         while (rt) {
-            const auto res_resp = cmd(_port, rt.remaining());
-            if (not res_resp) {
-                ESP_LOGE(PN532_I2C_TAG, "Await receive failed: %s", i2c::to_string(res_resp.error()));
+            const auto res_cmd = cmd(_port, rt.remaining());
+            if (not res_cmd) {
+                ESP_LOGE(PN532_I2C_TAG, "Prepare receive failed: %s", i2c::to_string(res_cmd.error()));
                 return false;
             } else if (status != 0x00) {
                 return true;
@@ -161,7 +167,13 @@ namespace pn532 {
         cmd.write_byte(slave_address_to_write(), true);
         cmd.write(data, true);
         cmd.stop();
-        return bool(cmd(_port, rt.remaining()));
+
+        const auto res_cmd = cmd(_port, rt.remaining());
+        if (not res_cmd) {
+            ESP_LOGE(PN532_I2C_TAG, "Send failed: %s", i2c::to_string(res_cmd.error()));
+            return false;
+        }
+        return true;
     }
 
     bool i2c_channel::receive_raw(bin_data &data, const std::size_t length, std::chrono::milliseconds timeout) {
@@ -172,6 +184,12 @@ namespace pn532 {
         i2c::command cmd;
         cmd.read_into(data, I2C_MASTER_ACK);
         cmd.stop();
-        return bool(cmd(_port, rt.remaining()));
+
+        const auto res_cmd = cmd(_port, rt.remaining());
+        if (not res_cmd) {
+            ESP_LOGE(PN532_I2C_TAG, "Receive failed: %s", i2c::to_string(res_cmd.error()));
+            return false;
+        }
+        return true;
     }
 }// namespace pn532

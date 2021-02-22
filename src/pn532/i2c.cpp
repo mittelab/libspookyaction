@@ -127,7 +127,9 @@ namespace pn532 {
         reduce_timeout rt{ms{100}};
         // pn532 should be waken up when it hears its address on the I2C bus
         i2c::command cmd;
-        cmd.write_byte(slave_address_to_write(), true);
+        std::uint8_t status = 0xff;
+        cmd.write_byte(slave_address_to_read(), true);
+        cmd.read_into(status, I2C_MASTER_LAST_NACK);
         cmd.stop();
 
         const auto res_cmd = cmd(_port, rt.remaining());
@@ -182,6 +184,7 @@ namespace pn532 {
         data.resize(length);
 
         i2c::command cmd;
+        cmd.write_byte(slave_address_to_read(), true);
         cmd.read_into(data, I2C_MASTER_ACK);
         cmd.stop();
 

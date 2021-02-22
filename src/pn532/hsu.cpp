@@ -14,7 +14,7 @@ namespace pn532 {
 
     namespace {
         TickType_t duration_cast(std::chrono::milliseconds ms) {
-            return ms.count() / portTICK_PERIOD_MS;
+            return pdMS_TO_TICKS(ms.count());
         }
     }// namespace
 

@@ -98,6 +98,7 @@ void setup_i2c_pn532() {
             .master = {.clk_speed = 400000}};
     TEST_ASSERT_EQUAL(ESP_OK, i2c_param_config(I2C_NUM_0, &i2c_config));
     TEST_ASSERT_EQUAL(ESP_OK, i2c_driver_install(I2C_NUM_0, I2C_MODE_MASTER, BUF_SIZE, BUF_SIZE, 0));
+    TEST_ASSERT_EQUAL(ESP_OK, i2c_set_timeout(I2C_NUM_0, 100000 /* 1.25 ms */));
 
     channel = make_unique<pn532::i2c_channel>(I2C_NUM_0);
     tag_reader = make_unique<pn532::nfc>(*channel);

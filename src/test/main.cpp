@@ -4,8 +4,8 @@
 #include <desfire/msg.hpp>
 #include <desfire/tag.hpp>
 #include <driver/gpio.h>
-#include <driver/uart.h>
 #include <driver/i2c.h>
+#include <driver/uart.h>
 #include <esp_log.h>
 #include <numeric>
 #include <pn532/desfire_pcd.hpp>
@@ -78,6 +78,7 @@ void setup_uart_pn532() {
             .source_clk = UART_SCLK_REF_TICK};
     TEST_ASSERT_EQUAL(ESP_OK, uart_param_config(UART_NUM_1, &uart_config));
     TEST_ASSERT_EQUAL(ESP_OK, uart_driver_install(UART_NUM_1, BUF_SIZE, BUF_SIZE, 0, nullptr, 0));
+    /// @todo Is this redundant?
     TEST_ASSERT_EQUAL(ESP_OK, uart_set_pin(UART_NUM_1, TX_OR_SCL_PIN, RX_OR_SDA_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
 
     channel = make_unique<pn532::hsu_channel>(UART_NUM_1);
@@ -97,7 +98,6 @@ void setup_i2c_pn532() {
             .master = {.clk_speed = 400000}};
     TEST_ASSERT_EQUAL(ESP_OK, i2c_param_config(I2C_NUM_0, &i2c_config));
     TEST_ASSERT_EQUAL(ESP_OK, i2c_driver_install(I2C_NUM_0, I2C_MODE_MASTER, BUF_SIZE, BUF_SIZE, 0));
-    TEST_ASSERT_EQUAL(ESP_OK, i2c_set_pin(I2C_NUM_0, RX_OR_SDA_PIN, TX_OR_SCL_PIN, true, true, I2C_MODE_MASTER));
 
     channel = make_unique<pn532::i2c_channel>(I2C_NUM_0);
     tag_reader = make_unique<pn532::nfc>(*channel);

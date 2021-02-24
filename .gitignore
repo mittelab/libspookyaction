@@ -10,3 +10,4 @@ compile_commands.json
 sdkconfig
 sdkconfig.h
 docs/_build
+compile_commands.json.bak

@@ -41,11 +41,9 @@ test examples:
     - >
       for file in examples/*; do
         pio ci \
+          --project-conf .platformio-ci.ini
           --lib="." \
-          --board="m5stack-core-esp32" \
-          -O "framework=espidf" \
-          -O "platform=espressif32" \
-          -O "test_build_project_src=yes" $file
+          $file
       done
 
 

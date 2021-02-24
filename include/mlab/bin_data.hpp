@@ -23,24 +23,24 @@ namespace mlab {
 
         inline range(Iterator b, Iterator e) : it_begin{b}, it_end{e} {}
 
-        template <class Jterator, class = typename std::enable_if<std::is_convertible<Jterator, Iterator>::value>::type>
+        template <class Jterator, class = typename std::enable_if<std::is_convertible_v<Jterator, Iterator>>::type>
         range(range<Jterator> const &other) : it_begin{other.it_begin}, it_end{other.it_end} {}
 
-        inline typename std::iterator_traits<Iterator>::difference_type size() const {
+        [[nodiscard]] inline typename std::iterator_traits<Iterator>::difference_type size() const {
             return std::distance(it_begin, it_end);
         }
 
-        inline typename std::add_const<typename std::iterator_traits<Iterator>::pointer>::type data() const {
+        [[nodiscard]] inline typename std::add_const<typename std::iterator_traits<Iterator>::pointer>::type data() const {
             return &*it_begin;
         }
 
-        inline typename std::iterator_traits<Iterator>::pointer data() {
+        [[nodiscard]] inline typename std::iterator_traits<Iterator>::pointer data() {
             return &*it_begin;
         }
 
-        inline Iterator begin() const { return it_begin; }
+        [[nodiscard]] inline Iterator begin() const { return it_begin; }
 
-        inline Iterator end() const { return it_end; }
+        [[nodiscard]] inline Iterator end() const { return it_end; }
     };
 
     template <class Iterator>
@@ -55,7 +55,7 @@ namespace mlab {
 
         inline bit_ref &operator=(bool v);
 
-        inline operator bool() const;
+        inline explicit operator bool() const;
     };
 
     struct prealloc {
@@ -119,9 +119,9 @@ namespace mlab {
 
         inline void seek(std::intptr_t offset, stream_ref ref = stream_ref::beg);
 
-        inline std::size_t tell(stream_ref ref = stream_ref::beg) const;
+        [[nodiscard]] inline std::size_t tell(stream_ref ref = stream_ref::beg) const;
 
-        inline std::size_t remaining() const;
+        [[nodiscard]] inline std::size_t remaining() const;
 
         template <class OutputIterator>
         std::size_t read(OutputIterator it, std::size_t n);
@@ -130,13 +130,13 @@ namespace mlab {
 
         inline std::uint8_t pop();
 
-        inline range<bin_data::const_iterator> peek();
+        [[nodiscard]] inline range<bin_data::const_iterator> peek() const;
 
-        inline bool good() const;
+        [[nodiscard]] inline bool good() const;
 
-        inline bool eof() const;
+        [[nodiscard]] inline bool eof() const;
 
-        inline bool bad() const;
+        [[nodiscard]] inline bool bad() const;
 
         inline void set_bad();
 
@@ -379,7 +379,7 @@ namespace mlab {
         return std::numeric_limits<std::size_t>::max();
     }
 
-    range<bin_data::const_iterator> bin_stream::peek() {
+    range<bin_data::const_iterator> bin_stream::peek() const {
         if (good()) {
             return _data->view(_pos);
         }
@@ -641,7 +641,7 @@ namespace mlab {
     }
 
     template <class Num, unsigned BitSize, byte_order Order,
-              class = typename std::enable_if<(std::is_unsigned<Num>::value or std::is_signed<Num>::value) and sizeof(Num) * 8 >= BitSize>::type>
+              class = typename std::enable_if<(std::is_unsigned_v<Num> or std::is_signed_v<Num>) and sizeof(Num) * 8 >= BitSize>::type>
     bin_stream &operator>>(ordered_extractor<BitSize, Order> e, Num &n) {
         std::array<std::uint8_t, BitSize / 8> b{};
         e.s >> b;

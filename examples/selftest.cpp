@@ -10,7 +10,7 @@
 #define BUF_SIZE (1024)
 #define UART_DUT UART_NUM_1
 
-auto serialDriver = pn532::hsu(UART_DUT);
+auto serialDriver = pn532::hsu_channel(UART_DUT);
 auto tagReader = pn532::nfc(serialDriver);
 
 void initialize_PN532() {

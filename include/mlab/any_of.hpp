@@ -82,8 +82,9 @@ namespace mlab {
          * constructors or destructors in such a case) and it has a less strict align requirement.
          */
         template <enum_type E>
-        using can_be_stored_in_place = std::integral_constant<bool,
-                                                              sizeof(T<E>) <= sizeof(std::uintptr_t) and alignof(T<E>) <= alignof(std::uintptr_t) and std::is_trivial_v<T<E>>>;
+        using can_be_stored_in_place = std::integral_constant<
+                bool,
+                sizeof(T<E>) <= sizeof(std::uintptr_t) and alignof(T<E>) <= alignof(std::uintptr_t) and std::is_trivial_v<T<E>>>;
 
         /**
          * @addtogroup MemberVariables

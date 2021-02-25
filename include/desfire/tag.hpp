@@ -66,20 +66,20 @@ namespace desfire {
          */
         r<bin_data> command_response(command_code cmd, bin_data const &payload, comm_cfg const &cfg, bool rx_fetch_additional_frames = true, cipher *override_cipher = nullptr);
 
-        template <class Data, class = typename std::enable_if<bin_stream::is_extractable<Data>::value or std::is_integral<Data>::value>::type>
+        template <class Data, class = typename std::enable_if<bin_stream::is_extractable<Data>::value or std::is_integral_v<Data>>::type>
         r<Data> command_parse_response(command_code cmd, bin_data const &payload, comm_cfg const &cfg);
 
         /**
          * @return @ref root_app if no app was selected, otherwise the app id.
          */
-        inline app_id const &active_app() const;
+        [[nodiscard]] inline app_id const &active_app() const;
 
-        inline cipher_type active_key_type() const;
+        [[nodiscard]] inline cipher_type active_key_type() const;
 
         /**
          * @return ''std::numeric_limits<std::uint8_t>::max'' when no authentication has took place, the the key number.
          */
-        inline std::uint8_t active_key_no() const;
+        [[nodiscard]] inline std::uint8_t active_key_no() const;
 
         template <cipher_type Type>
         r<> authenticate(key<Type> const &k);
@@ -283,13 +283,13 @@ namespace desfire {
         template <cipher_type Cipher>
         void ut_init_session(desfire::key<Cipher> const &session_key, desfire::app_id app, std::uint8_t key_no);
 
-        r<file_security> determine_file_security(file_id fid, file_access access);
-        file_security determine_file_security(file_access access, any_file_settings const &settings) const;
+        [[nodiscard]] r<file_security> determine_file_security(file_id fid, file_access access);
+        [[nodiscard]] file_security determine_file_security(file_access access, any_file_settings const &settings) const;
 
-        static r<> safe_drop_payload(command_code cmd, tag::r<bin_data> const &result);
+        [[nodiscard]] static r<> safe_drop_payload(command_code cmd, tag::r<bin_data> const &result);
         static void log_not_empty(command_code cmd, range<bin_data::const_iterator> const &data);
 
-        inline controller &ctrl();
+        [[nodiscard]] inline controller &ctrl();
 
         r<> change_key_internal(any_key const *current_key, std::uint8_t key_no_to_change, any_key const &new_key);
 
@@ -306,7 +306,7 @@ namespace desfire {
          */
         void logout(bool due_to_error);
 
-        comm_cfg const &default_comm_cfg() const;
+        [[nodiscard]] comm_cfg const &default_comm_cfg() const;
 
         struct auto_logout;
 
@@ -337,7 +337,7 @@ namespace desfire {
     }
 
     tag::tag(controller &controller) : _controller{&controller},
-                                       _active_cipher{new cipher_dummy{}},
+                                       _active_cipher{std::make_unique<cipher_dummy>()},
                                        _active_cipher_type{cipher_type::none},
                                        _active_key_number{std::numeric_limits<std::uint8_t>::max()},
                                        _active_app{root_app} {}
@@ -375,23 +375,6 @@ namespace desfire {
                                                                                         rx{rx},
                                                                                         tx_secure_data_offset{sec_data_ofs} {}
 
-    namespace impl {
-        template <class T, bool /* IsIntegral */>
-        struct tag_data_extractor {
-            bin_stream &operator()(bin_stream &s, T &output) const {
-                return s >> output;
-            }
-        };
-
-        template <class Integral>
-        struct tag_data_extractor<Integral, true> {
-            bin_stream &operator()(bin_stream &s, Integral &output) const {
-                return s >> lsb_t<sizeof(Integral) * 8>{} >> output;
-            }
-        };
-
-    }// namespace impl
-
     template <class Data, class>
     tag::r<Data> tag::command_parse_response(command_code cmd, bin_data const &payload, comm_cfg const &cfg) {
         const auto res_cmd = command_response(cmd, payload, cfg);
@@ -399,9 +382,13 @@ namespace desfire {
             return res_cmd.error();
         }
         bin_stream s{*res_cmd};
-        Data data{};
+        auto data = Data();
         // Automatically add the ability to parse integral types with at least 16 bits as LSB.
-        impl::tag_data_extractor<Data, std::is_integral<Data>::value and 1 < sizeof(Data)>{}(s, data);
+        if constexpr (std::is_integral_v<Data> and sizeof(Data) > 1) {
+            s >> lsb_t<sizeof(Data) * 8>{} >> data;
+        } else {
+            s >> data;
+        }
         if (s.bad()) {
             DESFIRE_LOGE("%s: could not parse result from response data.", to_string(cmd));
             return error::malformed;
@@ -422,15 +409,15 @@ namespace desfire {
 
     template <file_type Type>
     tag::r<file_settings<Type>> tag::get_file_settings(file_id fid) {
-        auto res_cmd = get_file_settings(fid);
-        if (res_cmd) {
+        if (auto res_cmd = get_file_settings(fid); res_cmd) {
             // Assert the file type is correct
             if (res_cmd->type() != Type) {
                 return error::malformed;
             }
             return std::move(res_cmd->template get<Type>());
+        } else {
+            return res_cmd.error();
         }
-        return res_cmd.error();
     }
 
 

@@ -142,7 +142,7 @@ namespace desfire {
                 DESFIRE_LOGE("cipher_type::none cannot be converted to app_crypto!.");
                 return app_crypto::legacy_des_2k3des;
             case cipher_type::des:
-                // [fallthrough]
+                 [[fallthrough]];
             case cipher_type::des3_2k:
                 return app_crypto::legacy_des_2k3des;
             case cipher_type::des3_3k:
@@ -177,15 +177,6 @@ namespace desfire {
     mlab::bin_data &storage_size::operator<<(mlab::bin_data &s) const {
         return s << _flag;
     }
-
-    namespace {
-        template <std::size_t Size>
-        void xor_with(std::array<std::uint8_t, Size> &data, std::vector<std::uint8_t> const &xor_with) {
-            for (std::size_t i = 0; i < std::min(data.size(), xor_with.size()); ++i) {
-                data[i] |= xor_with[i];
-            }
-        }
-    }// namespace
 
     bool any_key::parity_bits_are_version() const {
         // Extract packed key data from the other key
@@ -285,9 +276,6 @@ namespace desfire {
                 return get<file_type::standard>();
             case file_type::backup:
                 return get<file_type::backup>();
-            case file_type::value:        // [[fallthrough]];
-            case file_type::linear_record:// [[fallthrough]];
-            case file_type::cyclic_record:// [[fallthrough]];
             default:
                 DESFIRE_LOGE("Cannot retrieve data settings from a file of type %s", to_string(type()));
                 break;
@@ -303,9 +291,6 @@ namespace desfire {
                 return get<file_type::linear_record>();
             case file_type::cyclic_record:
                 return get<file_type::cyclic_record>();
-            case file_type::standard:// [[fallthrough]];
-            case file_type::backup:  // [[fallthrough]];
-            case file_type::value:   // [[fallthrough]];
             default:
                 DESFIRE_LOGE("Cannot retrieve record settings from a file of type %s", to_string(type()));
                 break;
@@ -319,10 +304,6 @@ namespace desfire {
         switch (type()) {
             case file_type::value:
                 return get<file_type::value>();
-            case file_type::standard:     // [[fallthrough]];
-            case file_type::backup:       // [[fallthrough]];
-            case file_type::linear_record:// [[fallthrough]];
-            case file_type::cyclic_record:// [[fallthrough]];
             default:
                 DESFIRE_LOGE("Cannot retrieve value settings from a file of type %s", to_string(type()));
                 break;

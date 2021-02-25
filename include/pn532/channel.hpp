@@ -22,7 +22,7 @@ namespace pn532 {
     public:
         inline timer();
 
-        inline ms elapsed() const;
+        [[nodiscard]] inline ms elapsed() const;
     };
 
     class reduce_timeout {
@@ -32,9 +32,9 @@ namespace pn532 {
     public:
         inline explicit reduce_timeout(ms timeout);
 
-        inline ms remaining() const;
+        [[nodiscard]] inline ms remaining() const;
 
-        inline ms elapsed() const;
+        [[nodiscard]] inline ms elapsed() const;
 
         inline explicit operator bool() const;
     };
@@ -43,7 +43,7 @@ namespace pn532 {
         bool _ready_to_receive = false;
 
     protected:
-        inline bool is_ready_to_receive() const;
+        [[nodiscard]] inline bool is_ready_to_receive() const;
 
         inline void set_ready_to_receive(bool v);
 
@@ -138,14 +138,13 @@ namespace pn532 {
         std::size_t seq_length = 0;
         std::array<std::uint8_t, Length> read_seq{};
         while (rt) {
-            const auto byte_success = receive(rt.remaining());
-            if (byte_success.second) {
+            if (const auto [byte, success] = receive(rt.remaining()); success) {
                 if (seq_length < Length) {
-                    read_seq[seq_length++] = byte_success.first;
+                    read_seq[seq_length++] = byte;
                 } else {
                     // Shift and push
                     std::rotate(std::begin(read_seq), std::begin(read_seq) + 1, std::end(read_seq));
-                    read_seq[Length - 1] = byte_success.first;
+                    read_seq[Length - 1] = byte;
                     // Compare
                     if (read_seq == match_seq) {
                         return true;
@@ -158,11 +157,10 @@ namespace pn532 {
 
     template <std::size_t Length>
     bool channel::receive(std::array<std::uint8_t, Length> &buffer, ms timeout) {
-        const auto data_success = receive(Length, timeout);
-        if (data_success.second) {
-            std::copy(std::begin(data_success.first), std::end(data_success.first), std::begin(buffer));
+        if (const auto [data, success] = receive(Length, timeout); success) {
+            std::copy(std::begin(data), std::end(data), std::begin(buffer));
         }
-        return data_success.second;
+        return false;
     }
 
 }// namespace pn532

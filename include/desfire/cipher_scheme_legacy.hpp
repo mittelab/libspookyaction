@@ -16,7 +16,7 @@ namespace desfire {
     class cipher_scheme_legacy : public virtual cipher, public cipher_traits<8, 4, 2> {
         block_t _global_iv;
 
-        block_t &get_iv();
+        [[nodiscard]] block_t &get_iv();
 
     public:
         cipher_scheme_legacy();

@@ -26,17 +26,11 @@ namespace {
     std::unique_ptr<pn532::desfire_pcd> pcd = nullptr;
     std::unique_ptr<desfire::tag> mifare = nullptr;
 
-
-    template <class T, class... Args>
-    std::unique_ptr<T> make_unique(Args &&... args) {
-        return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
-    }
-
-    bool is_ok(pn532::nfc::r<bool> const &r) {
+    [[nodiscard]] bool is_ok(pn532::nfc::r<bool> const &r) {
         return r and *r;
     }
 
-    mlab::bin_data const &heavy_load() {
+    [[nodiscard]] mlab::bin_data const &heavy_load() {
         static mlab::bin_data load;
         if (load.empty()) {
             load.resize(0x100);
@@ -55,7 +49,7 @@ namespace ut {
         desfire::any_key secondary_key;
 
         template <desfire::cipher_type Cipher>
-        static app_with_keys make(desfire::app_id aid_, desfire::key<Cipher> secondary_key_, desfire::key<Cipher> default_key_ = {}) {
+        [[nodiscard]] static app_with_keys make(desfire::app_id aid_, desfire::key<Cipher> secondary_key_, desfire::key<Cipher> default_key_ = {}) {
             return app_with_keys{.aid = aid_, .default_key = desfire::any_key(default_key_), .secondary_key = desfire::any_key(secondary_key_)};
         }
     };
@@ -81,8 +75,8 @@ void setup_uart_pn532() {
     /// @todo Is this redundant?
     TEST_ASSERT_EQUAL(ESP_OK, uart_set_pin(UART_NUM_1, TX_OR_SCL_PIN, RX_OR_SDA_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
 
-    channel = make_unique<pn532::hsu_channel>(UART_NUM_1);
-    tag_reader = make_unique<pn532::nfc>(*channel);
+    channel = std::make_unique<pn532::hsu_channel>(UART_NUM_1);
+    tag_reader = std::make_unique<pn532::nfc>(*channel);
     TEST_ASSERT(channel->wake());
     const auto r_sam = tag_reader->sam_configuration(pn532::sam_mode::normal, pn532::one_sec);
     TEST_ASSERT(r_sam);
@@ -100,8 +94,8 @@ void setup_i2c_pn532() {
     TEST_ASSERT_EQUAL(ESP_OK, i2c_driver_install(I2C_NUM_0, I2C_MODE_MASTER, BUF_SIZE, BUF_SIZE, 0));
     TEST_ASSERT_EQUAL(ESP_OK, i2c_set_timeout(I2C_NUM_0, 100000 /* 1.25 ms */));
 
-    channel = make_unique<pn532::i2c_channel>(I2C_NUM_0);
-    tag_reader = make_unique<pn532::nfc>(*channel);
+    channel = std::make_unique<pn532::i2c_channel>(I2C_NUM_0);
+    tag_reader = std::make_unique<pn532::nfc>(*channel);
     TEST_ASSERT(channel->wake());
     const auto r_sam = tag_reader->sam_configuration(pn532::sam_mode::normal, pn532::one_sec);
     TEST_ASSERT(r_sam);
@@ -469,7 +463,7 @@ void issue_header(std::string const &title) {
     const std::size_t tail_length = std::max(68u, title.length()) - title.length();
     const std::string header = "---------- " + title + " " + std::string(tail_length, '-');
     ESP_LOGI(TEST_TAG, "%s", header.c_str());
-    vTaskDelay(2000 / portTICK_PERIOD_MS);
+    vTaskDelay(pdMS_TO_TICKS(2000));
 }
 
 void issue_format_warning() {
@@ -477,7 +471,7 @@ void issue_format_warning() {
     ESP_LOGW(TEST_TAG, "Remove the tag from RF field if you care for your data.");
     for (unsigned i = 3; i > 0; --i) {
         ESP_LOGW(TEST_TAG, "%d...", i);
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
+        vTaskDelay(pdMS_TO_TICKS(1000));
     }
 }
 
@@ -507,8 +501,8 @@ void setup_mifare() {
     auto const &nfcid = r_scan->front().info.nfcid;
     ESP_LOG_BUFFER_HEX_LEVEL(TEST_TAG, nfcid.data(), nfcid.size(), ESP_LOG_INFO);
 
-    pcd = std::unique_ptr<pn532::desfire_pcd>(new pn532::desfire_pcd(*tag_reader, r_scan->front().logical_index));
-    mifare = std::unique_ptr<desfire::tag>(new desfire::tag(*pcd));
+    pcd = std::make_unique<pn532::desfire_pcd>(*tag_reader, r_scan->front().logical_index);
+    mifare = std::make_unique<desfire::tag>(*pcd);
 }
 
 void test_mifare_base() {
@@ -600,11 +594,11 @@ void test_mifare_root_operations() {
     const desfire::any_key default_k = desfire::key<desfire::cipher_type::des>{};
 
     std::vector<desfire::any_key> keys_to_test;
-    keys_to_test.push_back(default_k);// Default key
+    keys_to_test.emplace_back(default_k);// Default key
     for (ut::app_with_keys const &app : ut::test_apps) {
         // Copy the keys from the test apps
-        keys_to_test.push_back(app.default_key);
-        keys_to_test.push_back(app.secondary_key);
+        keys_to_test.emplace_back(app.default_key);
+        keys_to_test.emplace_back(app.secondary_key);
     }
 
     const auto find_current_key = [&]() -> bool {
@@ -701,7 +695,7 @@ struct file_test {
     desfire::cipher_type cipher = desfire::cipher_type::none;
     desfire::file_type ftype = desfire::file_type::standard;
 
-    const char *mode_description() const {
+    [[nodiscard]] const char *mode_description() const {
         switch (security) {
             case desfire::file_security::none:
                 return "none";
@@ -714,7 +708,7 @@ struct file_test {
         }
     }
 
-    const char *cipher_description() const {
+    [[nodiscard]] const char *cipher_description() const {
         switch (cipher) {
             case desfire::cipher_type::des:
                 return "des";
@@ -729,7 +723,7 @@ struct file_test {
         }
     }
 
-    const char *ftype_description() const {
+    [[nodiscard]] const char *ftype_description() const {
         switch (ftype) {
             case desfire::file_type::standard:
                 return "standard";
@@ -746,9 +740,10 @@ struct file_test {
         }
     }
 
-    const char *description() const {
+    [[nodiscard]] const char *description() const {
         static std::string buffer;
         buffer.reserve(128);
+        // Here the buffer get cleared
         buffer = "test_file(desfire::file_security::";
         buffer.append(mode_description());
         buffer.append(", desfire::cipher_type::");
@@ -776,7 +771,6 @@ struct file_test {
         TEST_ASSERT_EACH_EQUAL_HEX8(0x00, r_read_before_commit->data(), r_read_before_commit->size());
         TEST_ASSERT(mifare->commit_transaction());
         const auto r_read = mifare->read_data(file.fid, 0, heavy_load().size());
-        ;
         TEST_ASSERT(r_read);
         TEST_ASSERT_EQUAL(heavy_load().size(), r_read->size());
         TEST_ASSERT_EQUAL_HEX8_ARRAY(heavy_load().data(), r_read->data(), heavy_load().size());
@@ -860,17 +854,16 @@ struct file_test {
             case desfire::file_type::value:
                 perform_value_file_test(file);
                 break;
-            case desfire::file_type::linear_record:// [[fallthough]];
+            case desfire::file_type::linear_record:
+                [[fallthrough]];
             case desfire::file_type::cyclic_record:
                 perform_record_file_test(file);
-                break;
-            default:
                 break;
         }
         TEST_ASSERT(mifare->delete_file(file.fid));
     }
 
-    static file_test &instance() {
+    [[nodiscard]] static file_test &instance() {
         static file_test _instance{};
         return _instance;
     }

@@ -13,18 +13,15 @@
 namespace pn532 {
 
     namespace {
-        TickType_t duration_cast(std::chrono::milliseconds ms) {
+        [[nodiscard]] TickType_t duration_cast(std::chrono::milliseconds ms) {
             return pdMS_TO_TICKS(ms.count());
         }
     }// namespace
 
     bool hsu_channel::wake() {
-        reduce_timeout rt{ms{100}};
+        static constexpr ms wake_timeout{100};
         // One 0x55 would be enough but I always snooze at least twice, so...
-        if (not send_raw({0x55, 0x55, 0x55}, rt.remaining())) {
-            return false;
-        }
-        return true;// Assume awake
+        return send_raw({0x55, 0x55, 0x55}, wake_timeout);
     }
 
     bool hsu_channel::prepare_receive(std::chrono::milliseconds) {
@@ -51,6 +48,7 @@ namespace pn532 {
     }
 
     bool hsu_channel::receive_raw(bin_data &data, const std::size_t length, std::chrono::milliseconds timeout) {
+        static constexpr ms receive_poll_interval{10};
         data.resize(length);
         reduce_timeout rt{timeout};
         std::size_t read_length = 0;
@@ -61,7 +59,7 @@ namespace pn532 {
             }
             if (buffer_length == 0) {
                 // Wait a bit before retrying
-                vTaskDelay(duration_cast(std::chrono::milliseconds{10}));
+                vTaskDelay(duration_cast(receive_poll_interval));
             } else {
                 buffer_length = std::min(buffer_length, length - read_length);
                 const auto n_bytes = uart_read_bytes(_port,

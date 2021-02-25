@@ -1397,7 +1397,7 @@ namespace pn532 {
                 bin_data const &initiator_data, ms timeout);
     };
 
-    const char *to_string(nfc::error e);
+    [[nodiscard]] const char *to_string(nfc::error e);
 }// namespace pn532
 
 

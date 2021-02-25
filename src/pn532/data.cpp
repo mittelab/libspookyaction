@@ -332,9 +332,6 @@ namespace mlab {
             case target_type::dep_active_424kbps:
                 t = extract_poll_entry<target_type::dep_active_424kbps>(s);
                 break;
-            case target_type::generic_passive_106kbps:
-            case target_type::generic_passive_212kbps:
-            case target_type::generic_passive_424kbps:
             default:
                 PN532_LOGW("Unsupported target type %s", to_string(type));
                 s.set_bad();

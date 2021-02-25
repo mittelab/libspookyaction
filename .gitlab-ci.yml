@@ -41,7 +41,7 @@ test examples:
     - >
       for file in examples/*; do
         pio ci \
-          --project-conf .platformio-ci.ini
+          --project-conf=.platformio-ci.ini \
           --lib="." \
           $file
       done

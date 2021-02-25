@@ -283,6 +283,10 @@ namespace desfire {
         template <cipher_type Cipher>
         void ut_init_session(desfire::key<Cipher> const &session_key, desfire::app_id app, std::uint8_t key_no);
 
+
+        template <class T>
+        [[nodiscard]] static std::vector<T> parse_records(bin_data const &data, std::uint32_t exp_count);
+
         [[nodiscard]] r<file_security> determine_file_security(file_id fid, file_access access);
         [[nodiscard]] file_security determine_file_security(file_access access, any_file_settings const &settings) const;
 
@@ -437,27 +441,25 @@ namespace desfire {
         return write_record(fid, 0, buffer);
     }
 
-    namespace impl {
-        template <class T>
-        std::vector<T> read_records(bin_data const &data, std::uint32_t exp_count) {
-            std::vector<T> records{};
-            records.reserve(exp_count);
-            bin_stream s{data};
-            while (s.good() and (records.size() < exp_count or exp_count == all_records)) {
-                records.template emplace_back();
-                s >> records.back();
-            }
-            if (not s.eof()) {
-                DESFIRE_LOGW("%s: could not parse all records, there are %d stray bytes.",
-                             to_string(command_code::read_records), s.remaining());
-            }
-            if (exp_count != all_records and records.size() != exp_count) {
-                DESFIRE_LOGW("%s: expected to parse %d records, got only %d.",
-                             to_string(command_code::read_records), exp_count, records.size());
-            }
-            return records;
+    template <class T>
+    std::vector<T> tag::parse_records(bin_data const &data, std::uint32_t exp_count) {
+        std::vector<T> records{};
+        records.reserve(exp_count);
+        bin_stream s{data};
+        while (s.good() and (records.size() < exp_count or exp_count == all_records)) {
+            records.template emplace_back();
+            s >> records.back();
         }
-    }// namespace impl
+        if (not s.eof()) {
+            DESFIRE_LOGW("%s: could not parse all records, there are %d stray bytes.",
+                         to_string(command_code::read_records), s.remaining());
+        }
+        if (exp_count != all_records and records.size() != exp_count) {
+            DESFIRE_LOGW("%s: expected to parse %d records, got only %d.",
+                         to_string(command_code::read_records), exp_count, records.size());
+        }
+        return records;
+    }
 
     template <class T>
     tag::r<std::vector<T>> tag::read_records(file_id fid, std::uint32_t index, std::uint32_t count, file_security security) {
@@ -465,7 +467,7 @@ namespace desfire {
         if (not res_read_records) {
             return res_read_records.error();
         }
-        return impl::read_records<T>(*res_read_records, count);
+        return parse_records<T>(*res_read_records, count);
     }
 
     template <class T>
@@ -474,7 +476,7 @@ namespace desfire {
         if (not res_read_records) {
             return res_read_records.error();
         }
-        return impl::read_records<T>(*res_read_records, count);
+        return parse_records<T>(*res_read_records, count);
     }
 
 

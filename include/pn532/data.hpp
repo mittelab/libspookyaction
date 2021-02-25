@@ -392,6 +392,7 @@ namespace pn532 {
             case gpio_loc::i0i1:
                 return _i0i1_mask;
         }
+        return 0x00;
     }
 
     void gpio_status::set_mask(gpio_loc loc, std::uint8_t mask) {

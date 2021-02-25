@@ -40,8 +40,9 @@ namespace desfire {
         using mlab::prealloc;
         using mlab::result_success;
 
-        template <class T, class = typename std::enable_if<std::is_unsigned<T>::value>::type>
-        T saturate_sub(T a, T b) {
+        template <class T>
+        [[nodiscard]] T saturate_sub(T a, T b) {
+            static_assert(std::is_unsigned_v<T>);
             return std::max(a, b) - b;
         }
 
@@ -55,7 +56,7 @@ namespace desfire {
         }// namespace impl
 
         template <class T>
-        T div_round_up(T n, T divisor) {
+        [[nodiscard]] T div_round_up(T n, T divisor) {
             using larger_signed = typename impl::larger_signed<T>::type;
             const auto div_result = std::div(larger_signed(n), larger_signed(divisor));
             return T(div_result.quot) + (div_result.rem == 0 ? 0 : 1);
@@ -103,7 +104,7 @@ namespace desfire {
         if (due_to_error and active_key_type() != cipher_type::none) {
             DESFIRE_LOGE("Authentication will have to be performed again.");
         }
-        _active_cipher = std::unique_ptr<cipher>(new cipher_dummy{});
+        _active_cipher = std::make_unique<cipher_dummy>();
         _active_cipher_type = cipher_type::none;
         _active_key_number = std::numeric_limits<std::uint8_t>::max();
     }
@@ -134,26 +135,25 @@ namespace desfire {
 
             // Actual transmission
             ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " RAW >>", tx_chunk.data(), tx_chunk.size(), ESP_LOG_DEBUG);
-            const auto rx_data_success = ctrl().communicate(tx_chunk);
-            if (not rx_data_success.second) {
+            if (const auto &[rx_chunk, success] = ctrl().communicate(tx_chunk); success) {
+                ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " RAW <<", rx_chunk.data(), rx_chunk.size(), ESP_LOG_DEBUG);
+
+                // Make sure there was an actual response
+                if (rx_chunk.empty()) {
+                    DESFIRE_LOGE("PICC sent an empty answer.");
+                    return error::malformed;
+                }
+
+                // Collect data. The status byte will only be appended later, for now we store it
+                rx_data << prealloc(rx_chunk.size()) << rx_chunk.view(1);
+                last_status = static_cast<status>(rx_chunk.front());
+
+                // If tx_data is done and we do not fetch additional frames, we abort the loop no matter what the status is
+                if (tx_data.eof() and not rx_fetch_additional_frames) {
+                    break;
+                }
+            } else {
                 return error::controller_error;
-            }
-            bin_data const &rx_chunk = rx_data_success.first;
-            ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " RAW <<", rx_chunk.data(), rx_chunk.size(), ESP_LOG_DEBUG);
-
-            // Make sure there was an actual response
-            if (rx_chunk.empty()) {
-                DESFIRE_LOGE("PICC sent an empty answer.");
-                return error::malformed;
-            }
-
-            // Collect data. The status byte will only be appended later, for now we store it
-            rx_data << prealloc(rx_chunk.size()) << rx_chunk.view(1);
-            last_status = static_cast<status>(rx_chunk.front());
-
-            // If tx_data is done and we do not fetch additional frames, we abort the loop no matter what the status is
-            if (tx_data.eof() and not rx_fetch_additional_frames) {
-                break;
             }
         }
 
@@ -226,20 +226,20 @@ namespace desfire {
     tag::r<bin_data> tag::command_response(command_code cmd, const bin_data &payload, const tag::comm_cfg &cfg, bool rx_fetch_additional_frames, cipher *override_cipher) {
         auto_logout logout_on_error{*this, override_cipher != nullptr};
 
-        auto res_status_cmd = command_status_response(cmd, payload, cfg, rx_fetch_additional_frames, override_cipher);
-        if (not res_status_cmd) {
+        if (auto res_status_cmd = command_status_response(cmd, payload, cfg, rx_fetch_additional_frames, override_cipher); res_status_cmd) {
+            auto &[cmd_status, data] = *res_status_cmd;
+
+            // Check the returned status. This is the only error condition handled by this method
+            if (cmd_status != status::ok and cmd_status != status::no_changes) {
+                DESFIRE_LOGE("%s: failed with status %s.", to_string(cmd), to_string(cmd_status));
+                return error_from_status(cmd_status);
+            }
+
+            logout_on_error.assume_success = true;
+            return std::move(data);
+        } else {
             return res_status_cmd.error();
         }
-
-        // Check the returned status. This is the only error condition handled by this method
-        const auto cmd_status = res_status_cmd->first;
-        if (cmd_status != status::ok and cmd_status != status::no_changes) {
-            DESFIRE_LOGE("%s: failed with status %s.", to_string(cmd), to_string(cmd_status));
-            return error_from_status(cmd_status);
-        }
-
-        logout_on_error.assume_success = true;
-        return std::move(res_status_cmd->second);
     }
 
     tag::r<> tag::select_application(app_id const &app) {
@@ -521,19 +521,19 @@ namespace desfire {
     }
 
     tag::r<file_security> tag::determine_file_security(file_id fid, file_access access) {
-        const auto res_get_settings = get_file_settings(fid);
-        if (not res_get_settings) {
+        if (const auto res_get_settings = get_file_settings(fid); res_get_settings) {
+            return determine_file_security(access, *res_get_settings);
+        } else {
             return res_get_settings.error();
         }
-        return determine_file_security(access, *res_get_settings);
     }
 
     tag::r<> tag::change_file_settings(file_id fid, generic_file_settings const &settings) {
-        const auto res_sec = determine_file_security(fid, file_access::change);
-        if (not res_sec) {
+        if (const auto res_sec = determine_file_security(fid, file_access::change); res_sec) {
+            return change_file_settings(fid, settings, *res_sec);
+        } else {
             return res_sec.error();
         }
-        return change_file_settings(fid, settings, *res_sec);
     }
 
     tag::r<> tag::change_file_settings(file_id fid, generic_file_settings const &settings, file_security security) {
@@ -550,11 +550,11 @@ namespace desfire {
     }
 
     tag::r<bin_data> tag::read_data(file_id fid, std::uint32_t offset, std::uint32_t length) {
-        const auto res_sec = determine_file_security(fid, file_access::read);
-        if (not res_sec) {
+        if (const auto res_sec = determine_file_security(fid, file_access::read); res_sec) {
+            return read_data(fid, offset, length, *res_sec);
+        } else {
             return res_sec.error();
         }
-        return read_data(fid, offset, length, *res_sec);
     }
 
     tag::r<bin_data> tag::read_data(file_id fid, std::uint32_t offset, std::uint32_t length, file_security security) {
@@ -580,11 +580,11 @@ namespace desfire {
     }
 
     tag::r<> tag::write_data(file_id fid, std::uint32_t offset, bin_data const &data) {
-        const auto res_sec = determine_file_security(fid, file_access::write);
-        if (not res_sec) {
+        if (const auto res_sec = determine_file_security(fid, file_access::write); res_sec) {
+            return write_data(fid, offset, data, *res_sec);
+        } else {
             return res_sec.error();
         }
-        return write_data(fid, offset, data, *res_sec);
     }
 
     tag::r<> tag::write_data(file_id fid, std::uint32_t offset, bin_data const &data, file_security security) {
@@ -613,11 +613,11 @@ namespace desfire {
 
 
     tag::r<std::int32_t> tag::get_value(file_id fid) {
-        const auto res_sec = determine_file_security(fid, file_access::read);
-        if (not res_sec) {
+        if (const auto res_sec = determine_file_security(fid, file_access::read); res_sec) {
+            return get_value(fid, *res_sec);
+        } else {
             return res_sec.error();
         }
-        return get_value(fid, *res_sec);
     }
 
     tag::r<std::int32_t> tag::get_value(file_id fid, file_security security) {
@@ -652,27 +652,27 @@ namespace desfire {
     }
 
     tag::r<> tag::credit(file_id fid, std::int32_t amount) {
-        const auto res_sec = determine_file_security(fid, file_access::write);
-        if (not res_sec) {
+        if (const auto res_sec = determine_file_security(fid, file_access::write); res_sec) {
+            return write_value(command_code::credit, fid, amount, *res_sec);
+        } else {
             return res_sec.error();
         }
-        return write_value(command_code::credit, fid, amount, *res_sec);
     }
 
     tag::r<> tag::limited_credit(file_id fid, std::int32_t amount) {
-        const auto res_sec = determine_file_security(fid, file_access::write);
-        if (not res_sec) {
+        if (const auto res_sec = determine_file_security(fid, file_access::write); res_sec) {
+            return write_value(command_code::limited_credit, fid, amount, *res_sec);
+        } else {
             return res_sec.error();
         }
-        return write_value(command_code::limited_credit, fid, amount, *res_sec);
     }
 
     tag::r<> tag::debit(file_id fid, std::int32_t amount) {
-        const auto res_sec = determine_file_security(fid, file_access::write);
-        if (not res_sec) {
+        if (const auto res_sec = determine_file_security(fid, file_access::write); res_sec) {
+            return write_value(command_code::debit, fid, amount, *res_sec);
+        } else {
             return res_sec.error();
         }
-        return write_value(command_code::debit, fid, amount, *res_sec);
     }
 
     tag::r<> tag::credit(file_id fid, std::int32_t amount, file_security security) {
@@ -688,11 +688,11 @@ namespace desfire {
     }
 
     tag::r<> tag::write_record(file_id fid, std::uint32_t offset, bin_data const &data) {
-        const auto res_sec = determine_file_security(fid, file_access::write);
-        if (not res_sec) {
+        if (const auto res_sec = determine_file_security(fid, file_access::write); res_sec) {
+            return write_record(fid, offset, data, *res_sec);
+        } else {
             return res_sec.error();
         }
-        return write_record(fid, offset, data, *res_sec);
     }
 
     tag::r<> tag::write_record(file_id fid, std::uint32_t offset, bin_data const &data, file_security security) {
@@ -721,11 +721,11 @@ namespace desfire {
     }
 
     tag::r<bin_data> tag::read_records(file_id fid, std::uint32_t record_index, std::uint32_t record_count) {
-        const auto res_sec = determine_file_security(fid, file_access::write);
-        if (not res_sec) {
+        if (const auto res_sec = determine_file_security(fid, file_access::write); res_sec) {
+            return read_records(fid, record_index, record_count, *res_sec);
+        } else {
             return res_sec.error();
         }
-        return read_records(fid, record_index, record_count, *res_sec);
     }
 
     tag::r<bin_data> tag::read_records(file_id fid, std::uint32_t record_index, std::uint32_t record_count, file_security security) {

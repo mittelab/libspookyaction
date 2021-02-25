@@ -12,9 +12,7 @@
 namespace pn532::bits {
 
     template <std::uint8_t MinIdx, std::uint8_t MaxIdx>
-    struct bitmask_window {
-        static constexpr std::uint8_t value = (0xff >> (7 + MinIdx - MaxIdx)) << MinIdx;
-    };
+    static constexpr std::uint8_t bitmask_window = (0xff >> (7 + MinIdx - MaxIdx)) << MinIdx;
 
     static constexpr std::uint8_t preamble = 0x00;
     static constexpr std::uint8_t postamble = 0x00;
@@ -99,8 +97,8 @@ namespace pn532::bits {
         mA_150 = 0b111 << 1
     };
 
-    static constexpr std::uint8_t reg_andet_control_low_current_mask = bitmask_window<4, 5>::value;
-    static constexpr std::uint8_t reg_andet_control_high_current_mask = bitmask_window<1, 3>::value;
+    static constexpr std::uint8_t reg_andet_control_low_current_mask = bitmask_window<4, 5>;
+    static constexpr std::uint8_t reg_andet_control_high_current_mask = bitmask_window<1, 3>;
 
     static constexpr std::uint8_t reg_andet_control_too_low_power_mask = 1 << 7;
     static constexpr std::uint8_t reg_andet_control_too_high_power_mask = 1 << 6;
@@ -444,11 +442,8 @@ namespace pn532::bits {
     static constexpr std::uint8_t target_type_baudrate_modulation_mask = 0b111;
 
     template <target_type Type>
-    struct baudrate_modulation_of_target {
-        static constexpr baudrate_modulation value =
-                static_cast<baudrate_modulation>(static_cast<std::uint8_t>(Type) &
-                                                 target_type_baudrate_modulation_mask);
-    };
+    static constexpr baudrate_modulation baudrate_modulation_of_target =
+            static_cast<baudrate_modulation>(static_cast<std::uint8_t>(Type) & target_type_baudrate_modulation_mask);
 
     struct atr_res_info {
         std::array<std::uint8_t, 10> nfcid_3t;
@@ -491,8 +486,8 @@ namespace pn532::bits {
 
     static constexpr std::size_t general_info_max_length = 48;
 
-    static constexpr std::uint8_t gpio_p3_pin_mask = bitmask_window<0, 5>::value;
-    static constexpr std::uint8_t gpio_p7_pin_mask = bitmask_window<1, 2>::value;
+    static constexpr std::uint8_t gpio_p3_pin_mask = bitmask_window<0, 5>;
+    static constexpr std::uint8_t gpio_p7_pin_mask = bitmask_window<1, 2>;
     static constexpr std::uint8_t gpio_i0i1_pin_mask = 0x00;// Cannot set i0i1
 
     static constexpr std::uint8_t gpio_write_validate_max = 1 << 7;

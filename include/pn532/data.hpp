@@ -52,7 +52,7 @@ namespace pn532 {
     using target_kbps106_jewel_tag = bits::target<baudrate_modulation::kbps106_innovision_jewel_tag>;
 
     template <target_type Type>
-    struct poll_entry : public bits::target<bits::baudrate_modulation_of_target<Type>::value> {
+    struct poll_entry : public bits::target<bits::baudrate_modulation_of_target<Type>> {
     };
 
     struct infty_t {
@@ -60,8 +60,9 @@ namespace pn532 {
 
     static constexpr infty_t infty = infty_t{};
 
-    template <class Integral, class = typename std::enable_if<std::is_integral<Integral>::value>::type>
+    template <class Integral>
     struct with_inf {
+        static_assert(std::is_integral_v<Integral>);
         Integral v = Integral{};
 
         with_inf() = default;
@@ -94,17 +95,17 @@ namespace pn532 {
 
     template <>
     struct poll_entry<target_type::dep_passive_106kbps> : public poll_entry_dep_passive<
-                                                                  bits::baudrate_modulation_of_target<target_type::dep_passive_106kbps>::value> {
+                                                                  bits::baudrate_modulation_of_target<target_type::dep_passive_106kbps>> {
     };
 
     template <>
     struct poll_entry<target_type::dep_passive_212kbps> : public poll_entry_dep_passive<
-                                                                  bits::baudrate_modulation_of_target<target_type::dep_passive_212kbps>::value> {
+                                                                  bits::baudrate_modulation_of_target<target_type::dep_passive_212kbps>> {
     };
 
     template <>
     struct poll_entry<target_type::dep_passive_424kbps> : public poll_entry_dep_passive<
-                                                                  bits::baudrate_modulation_of_target<target_type::dep_passive_424kbps>::value> {
+                                                                  bits::baudrate_modulation_of_target<target_type::dep_passive_424kbps>> {
     };
 
     template <>
@@ -263,11 +264,11 @@ namespace pn532 {
 
         inline gpio_status(std::uint8_t p3_mask, std::uint8_t p7_mask, std::uint8_t i0i1_mask);
 
-        inline std::uint8_t mask(gpio_loc loc) const;
+        [[nodiscard]] inline std::uint8_t mask(gpio_loc loc) const;
 
         inline void set_mask(gpio_loc loc, std::uint8_t mask);
 
-        inline bool operator[](std::pair<gpio_loc, std::uint8_t> const &gpio_idx) const;
+        [[nodiscard]] inline bool operator[](std::pair<gpio_loc, std::uint8_t> const &gpio_idx) const;
 
         inline bit_ref operator[](std::pair<gpio_loc, std::uint8_t> const &gpio_idx);
     };
@@ -363,8 +364,6 @@ namespace pn532 {
                 return 0 != (_p7_mask & (1 << gpio_idx.second));
             case gpio_loc::i0i1:
                 return 0 != (_i0i1_mask & (1 << gpio_idx.second));
-            default:
-                return false;
         }
     }
 
@@ -392,8 +391,6 @@ namespace pn532 {
                 return _p7_mask;
             case gpio_loc::i0i1:
                 return _i0i1_mask;
-            default:
-                return 0x00;
         }
     }
 
@@ -407,8 +404,6 @@ namespace pn532 {
                 break;
             case gpio_loc::i0i1:
                 _i0i1_mask = mask & bits::gpio_i0i1_pin_mask;
-                break;
-            default:
                 break;
         }
     }
@@ -443,49 +438,16 @@ namespace mlab {
         return s;
     }
 
-    namespace impl {
-        template <bool, bool>
-        struct poll_entry_extractor {
-        };
-
-        template <>
-        struct poll_entry_extractor<false, true> {
-            template <target_type Type>
-            bin_stream &operator()(bin_stream &s, poll_entry<Type> &entry) const {
-                static_assert(std::is_base_of<poll_entry_with_atr, poll_entry<Type>>::value,
-                              "This variant is intended for DEP compatible, active targets.");
-                return s >> static_cast<poll_entry_with_atr &>(entry).atr_info;
-            }
-        };
-
-        template <>
-        struct poll_entry_extractor<true, false> {
-            template <target_type Type>
-            bin_stream &operator()(bin_stream &s, poll_entry<Type> &entry) const {
-                static constexpr baudrate_modulation BrMod = bits::baudrate_modulation_of_target<Type>::value;
-                static_assert(std::is_base_of<bits::target<BrMod>, poll_entry<Type>>::value,
-                              "This variant is not intended for DEP compatible, active targets.");
-                return s >> static_cast<bits::target<BrMod> &>(entry);
-            }
-        };
-
-        template <>
-        struct poll_entry_extractor<true, true> {
-            template <target_type Type>
-            bin_stream &operator()(bin_stream &s, poll_entry<Type> &entry) const {
-                // A bit of both [cit.], in the right order
-                poll_entry_extractor<true, false>{}(s, entry);
-                return poll_entry_extractor<false, true>{}(s, entry);
-            }
-        };
-    }// namespace impl
-
     template <target_type Type>
     bin_stream &operator>>(bin_stream &s, poll_entry<Type> &entry) {
-        static constexpr baudrate_modulation BrMod = bits::baudrate_modulation_of_target<Type>::value;
-        static constexpr bool HasTarget = std::is_base_of<bits::target<BrMod>, poll_entry<Type>>::value;
-        static constexpr bool HasAtr = std::is_base_of<poll_entry_with_atr, poll_entry<Type>>::value;
-        return impl::poll_entry_extractor<HasTarget, HasAtr>{}(s, entry);
+        static constexpr baudrate_modulation BrMod = bits::baudrate_modulation_of_target<Type>;
+        if constexpr (std::is_base_of_v<bits::target<BrMod>, poll_entry<Type>>) {
+            s >> static_cast<bits::target<BrMod> &>(entry);
+        }
+        if constexpr (std::is_base_of_v<poll_entry_with_atr, poll_entry<Type>>) {
+            s >> static_cast<poll_entry_with_atr &>(entry).atr_info;
+        }
+        return s;
     }
 
 }// namespace mlab

@@ -119,10 +119,12 @@ namespace desfire {
 
     bool cipher::is_legacy(bits::cipher_type type) {
         switch (type) {
-            case bits::cipher_type::des: [[fallthrough]];
+            case bits::cipher_type::des:
+                [[fallthrough]];
             case bits::cipher_type::des3_2k:
                 return true;
-            case bits::cipher_type::des3_3k: [[fallthrough]];
+            case bits::cipher_type::des3_3k:
+                [[fallthrough]];
             case bits::cipher_type::aes128:
                 return false;
             default:

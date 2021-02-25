@@ -8,6 +8,7 @@
 #include "cipher.hpp"
 #include "crypto_algo.hpp"
 #include "log.h"
+#include <cassert>
 
 namespace desfire {
 

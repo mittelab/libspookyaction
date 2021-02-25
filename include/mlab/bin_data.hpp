@@ -80,11 +80,11 @@ namespace mlab {
         template <class ByteIterator>
         inline bin_data(ByteIterator begin, ByteIterator end);
 
-        inline range<const_iterator> view(
+        [[nodiscard]] inline range<const_iterator> view(
                 std::size_t start = 0,
                 std::size_t length = std::numeric_limits<std::size_t>::max()) const;
 
-        inline range<iterator> view(
+        [[nodiscard]] inline range<iterator> view(
                 std::size_t start = 0,
                 std::size_t length = std::numeric_limits<std::size_t>::max());
 
@@ -150,12 +150,12 @@ namespace mlab {
     template <unsigned Bits>
     struct msb_t {};
 
-    static constexpr lsb_t<16> lsb16{};
-    static constexpr lsb_t<24> lsb24{};
-    static constexpr lsb_t<32> lsb32{};
-    static constexpr msb_t<16> msb16{};
-    static constexpr msb_t<24> msb24{};
-    static constexpr msb_t<32> msb32{};
+    [[maybe_unused]] static constexpr lsb_t<16> lsb16{};
+    [[maybe_unused]] static constexpr lsb_t<24> lsb24{};
+    [[maybe_unused]] static constexpr lsb_t<32> lsb32{};
+    [[maybe_unused]] static constexpr msb_t<16> msb16{};
+    [[maybe_unused]] static constexpr msb_t<24> msb24{};
+    [[maybe_unused]] static constexpr msb_t<32> msb32{};
 
     template <unsigned BitSize, byte_order Order>
     struct ordered_injector { bin_data &bd; };

@@ -91,8 +91,8 @@ namespace mlab {
          */
 
         enum_type _active;
-        std::uintptr_t _storage;
-        deleter_type _deleter;
+        std::uintptr_t _storage{};
+        deleter_type _deleter{};
 
         /**
          * @}
@@ -126,13 +126,13 @@ namespace mlab {
          * @{
          */
 
-        [[nodiscard]] void const *storage_allocated() const;
+        [[nodiscard]] [[maybe_unused]] void const *storage_allocated() const;
 
         /**
          * @note This method allows overwriting the pointer, which is different from the stack case because there the
          * pointer to the storage is defined by ''this''. Here we allocate that manually.
          */
-        [[nodiscard]] void *&storage_allocated();
+        [[nodiscard]] [[maybe_unused]] void *&storage_allocated();
 
         /**
          * @}
@@ -147,9 +147,9 @@ namespace mlab {
          * @{
          */
 
-        [[nodiscard]] void const *storage_in_place() const;
+        [[nodiscard]] [[maybe_unused]] void const *storage_in_place() const;
 
-        [[nodiscard]] void *storage_in_place();
+        [[nodiscard]] [[maybe_unused]] void *storage_in_place();
 
         /**
          * @}

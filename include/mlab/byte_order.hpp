@@ -21,7 +21,7 @@ namespace mlab {
     using uint_least_t = typename std::tuple_element<Bits / 8 - 1, std::tuple<std::uint8_t, std::uint16_t, std::uint32_t, std::uint32_t>>::type;
 
     template <unsigned Bits>
-    using int_least_t = std::make_signed_t<uint_least_t<Bits>>;
+    using int_least_t [[maybe_unused]] = std::make_signed_t<uint_least_t<Bits>>;
 
     template <byte_order Order, unsigned Bits, class Num>
     std::array<std::uint8_t, Bits / 8> encode(Num n);

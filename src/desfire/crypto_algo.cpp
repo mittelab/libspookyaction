@@ -4,6 +4,7 @@
 
 #include "desfire/crypto_algo.hpp"
 #include <esp32/rom/crc.h>
+#include <esp_system.h>
 
 namespace desfire {
 
@@ -35,3 +36,14 @@ namespace desfire {
         return ~crc32_le(~init, data.data(), data.size());
     }
 }// namespace desfire
+
+namespace mlab {
+
+    bin_data &operator<<(bin_data &bd, desfire::randbytes const &rndb) {
+        const std::size_t old_size = bd.size();
+        bd.resize(bd.size() + rndb.n, 0x00);
+        esp_fill_random(&bd[old_size], rndb.n);
+        return bd;
+    }
+
+}// namespace mlab

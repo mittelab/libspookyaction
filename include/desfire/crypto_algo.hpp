@@ -9,7 +9,6 @@
 #include "mlab/bin_data.hpp"
 #include <algorithm>
 #include <cstdint>
-#include <esp_system.h>
 #include <iterator>
 #include <utility>
 
@@ -17,20 +16,20 @@ namespace desfire {
 
     static constexpr std::array<std::uint8_t, 2> default_padding_bytes = {0x00, 0x80};
 
-    template <class Integral, class = typename std::enable_if<std::is_integral<Integral>::value and std::is_unsigned<Integral>::value>::type>
-    std::pair<unsigned, Integral> log2_remainder(Integral n);
+    template <class Integral>
+    [[nodiscard]] std::pair<unsigned, Integral> log2_remainder(Integral n);
 
     template <class It>
     void lshift_sequence(It begin, It end, unsigned lshift);
 
     template <std::size_t BlockSize>
-    std::size_t padded_length(std::size_t size);
+    [[nodiscard]] std::size_t padded_length(std::size_t size);
 
     template <std::size_t Length>
     void set_key_version(std::array<std::uint8_t, Length> &k, std::uint8_t v);
 
     template <std::size_t Length>
-    std::uint8_t get_key_version(std::array<std::uint8_t, Length> const &k);
+    [[nodiscard]] std::uint8_t get_key_version(std::array<std::uint8_t, Length> const &k);
 
     /**
      *
@@ -71,18 +70,18 @@ namespace desfire {
     static constexpr std::uint16_t crc16_init = 0x6363;
     static constexpr std::uint32_t crc32_init = 0xffffffff;
 
-    std::uint16_t compute_crc16(mlab::range<mlab::bin_data::const_iterator> const &data, std::uint16_t init = crc16_init);
-    std::uint32_t compute_crc32(mlab::range<mlab::bin_data::const_iterator> const &data, std::uint32_t init = crc32_init);
+    [[nodiscard]] std::uint16_t compute_crc16(mlab::range<mlab::bin_data::const_iterator> const &data, std::uint16_t init = crc16_init);
+    [[nodiscard]] std::uint32_t compute_crc32(mlab::range<mlab::bin_data::const_iterator> const &data, std::uint32_t init = crc32_init);
 
-    std::uint16_t compute_crc16(std::uint8_t extra_byte, std::uint16_t init = crc16_init);
-    std::uint32_t compute_crc32(std::uint8_t extra_byte, std::uint32_t init = crc32_init);
+    [[nodiscard]] std::uint16_t compute_crc16(std::uint8_t extra_byte, std::uint16_t init = crc16_init);
+    [[nodiscard]] std::uint32_t compute_crc32(std::uint8_t extra_byte, std::uint32_t init = crc32_init);
 
-    inline std::uint16_t compute_crc16(mlab::bin_data const &data, std::uint16_t init = crc16_init);
-    inline std::uint32_t compute_crc32(mlab::bin_data const &data, std::uint32_t init = crc32_init);
+    [[nodiscard]] inline std::uint16_t compute_crc16(mlab::bin_data const &data, std::uint16_t init = crc16_init);
+    [[nodiscard]] inline std::uint32_t compute_crc32(mlab::bin_data const &data, std::uint32_t init = crc32_init);
 }// namespace desfire
 
 namespace mlab {
-    inline bin_data &operator<<(bin_data &bd, desfire::randbytes const &rndb);
+    bin_data &operator<<(bin_data &bd, desfire::randbytes const &rndb);
 }
 
 namespace desfire {
@@ -145,13 +144,13 @@ namespace desfire {
         return {end, false};
     }
 
-    template <class Integral, class>
+    template <class Integral>
     std::pair<unsigned, Integral> log2_remainder(Integral n) {
-        Integral mask = ~Integral{0};
+        static_assert(std::is_integral_v<Integral> and std::is_unsigned_v<Integral>);
+        Integral mask = ~Integral(0);
         for (unsigned i = 0; i < sizeof(Integral) * 8; ++i) {
             mask >>= 1;
-            const Integral remainder = n & mask;
-            if (remainder != n) {
+            if (const Integral remainder = n & mask; remainder != n) {
                 return {sizeof(Integral) * 8 - i - 1, remainder};
             }
         }
@@ -185,15 +184,5 @@ namespace desfire {
 
 
 }// namespace desfire
-namespace mlab {
-
-    bin_data &operator<<(bin_data &bd, desfire::randbytes const &rndb) {
-        const std::size_t old_size = bd.size();
-        bd.resize(bd.size() + rndb.n, 0x00);
-        esp_fill_random(&bd[old_size], rndb.n);
-        return bd;
-    }
-
-}// namespace mlab
 
 #endif//DESFIRE_CRYPTO_ALGO_HPP

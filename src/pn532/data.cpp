@@ -55,8 +55,8 @@ namespace mlab {
         r.enable_detection = 0 != (bitpack & bits::reg_andet_control_antenna_detect_mask);
         r.detected_low_pwr = 0 != (bitpack & bits::reg_andet_control_too_low_power_mask);
         r.detected_high_pwr = 0 != (bitpack & bits::reg_andet_control_too_high_power_mask);
-        r.low_current_threshold = static_cast<low_current_thr>(bitpack & bits::reg_andet_control_too_low_power_mask);
-        r.high_current_threshold = static_cast<high_current_thr>(bitpack & bits::reg_andet_control_too_high_power_mask);
+        r.low_current_threshold = static_cast<low_current_thr>(bitpack & bits::reg_andet_control_low_current_mask);
+        r.high_current_threshold = static_cast<high_current_thr>(bitpack & bits::reg_andet_control_high_current_mask);
         return s;
     }
 

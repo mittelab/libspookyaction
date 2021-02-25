@@ -24,7 +24,7 @@ namespace ut {
 
     void assert_comm_controller::append(std::initializer_list<std::uint8_t> tx,
                                         std::initializer_list<std::uint8_t> rx) {
-        txrx_fifo.push_back(std::make_pair(mlab::bin_data::chain(tx), mlab::bin_data::chain(rx)));
+        txrx_fifo.emplace_back(tx, rx);
     }
 
     void test_app::ensure_selected_and_primary(desfire::tag &tag) const {
@@ -64,7 +64,7 @@ namespace ut {
         }
     }
 
-    void enable_debug_log(log_options options) {
+    [[maybe_unused]] void enable_debug_log(log_options options) {
         if (options.generic) {
             esp_log_level_set(DESFIRE_TAG, ESP_LOG_DEBUG);
         }

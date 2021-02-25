@@ -31,7 +31,7 @@ namespace mlab {
             return std::distance(it_begin, it_end);
         }
 
-        [[nodiscard]] inline typename std::add_const<typename std::iterator_traits<Iterator>::pointer>::type data() const {
+        [[nodiscard]] inline typename std::add_const_t<typename std::iterator_traits<Iterator>::pointer> data() const {
             return &*it_begin;
         }
 
@@ -227,7 +227,7 @@ namespace mlab {
         template <class T>
         struct safe_underlying_type<T, true> {
             /// Referencing underlying_type without first checking if it's an enum its a failed assertion
-            using type = typename std::underlying_type<T>::type;
+            using type = typename std::underlying_type_t<T>;
         };
 
         template <class T, bool>

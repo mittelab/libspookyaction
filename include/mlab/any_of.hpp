@@ -83,7 +83,7 @@ namespace mlab {
          */
         template <enum_type E>
         static constexpr bool can_be_stored_in_place_v =
-                sizeof(T<E>) <= sizeof(std::uintptr_t) and alignof(T<E>) <= alignof(std::uintptr_t) and std::is_trivial_v<T<E>>;
+                sizeof(T<E>) <= sizeof(std::uintptr_t) and (alignof(std::uintptr_t) % alignof(T<E>)) == 0 and std::is_trivial_v<T<E>>;
 
         /**
          * @addtogroup MemberVariables

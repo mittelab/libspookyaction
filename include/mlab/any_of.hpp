@@ -82,9 +82,8 @@ namespace mlab {
          * constructors or destructors in such a case) and it has a less strict align requirement.
          */
         template <enum_type E>
-        using can_be_stored_in_place = std::integral_constant<
-                bool,
-                sizeof(T<E>) <= sizeof(std::uintptr_t) and alignof(T<E>) <= alignof(std::uintptr_t) and std::is_trivial_v<T<E>>>;
+        static constexpr bool can_be_stored_in_place_v =
+                sizeof(T<E>) <= sizeof(std::uintptr_t) and alignof(T<E>) <= alignof(std::uintptr_t) and std::is_trivial_v<T<E>>;
 
         /**
          * @addtogroup MemberVariables
@@ -201,7 +200,7 @@ namespace mlab {
     template <Enum E>
     T<E> const &any_of<Enum, T, Default>::get() const {
         assert_type_is(E);
-        if constexpr (can_be_stored_in_place<E>::value) {
+        if constexpr (can_be_stored_in_place_v<E>) {
             return *reinterpret_cast<T<E> const *>(storage_in_place());
         } else {
             assert_holds_memory();
@@ -213,7 +212,7 @@ namespace mlab {
     template <Enum E>
     T<E> &any_of<Enum, T, Default>::get() {
         assert_type_is(E);
-        if constexpr (can_be_stored_in_place<E>::value) {
+        if constexpr (can_be_stored_in_place_v<E>) {
             return *reinterpret_cast<T<E> *>(storage_in_place());
         } else {
             assert_holds_memory();
@@ -232,7 +231,7 @@ namespace mlab {
     template <class Enum, template <Enum> class T, Enum Default>
     template <Enum E, class U>
     void any_of<Enum, T, Default>::set(U &&obj) {
-        if constexpr (can_be_stored_in_place<E>::value) {
+        if constexpr (can_be_stored_in_place_v<E>) {
             // Make sure the memory that may have been allocated by other T<E>s is freed, we will use the storage in place
             free();
             // Can call trivial assignment operator

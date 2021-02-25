@@ -64,7 +64,7 @@ namespace mlab {
     template <class Num, std::size_t NBytes, std::size_t I>
     void lsb_unsigned_decode(std::array<std::uint8_t, NBytes> const &b, Num &n) {
         static_assert(std::is_integral_v<Num> and std::is_unsigned_v<Num> and sizeof(Num) >= NBytes, "Use a sufficiently large unsigned integer.");
-        static_assert(I < NBytes, "Template index variable out of range.");
+        static_assert(I < NBytes);
         if constexpr (I > 0) {
             lsb_unsigned_decode<Num, NBytes, I - 1>(b, n);
         } else {
@@ -76,7 +76,7 @@ namespace mlab {
     template <class Num, std::size_t NBytes, std::size_t I>
     void msb_unsigned_decode(std::array<std::uint8_t, NBytes> const &b, Num &n) {
         static_assert(std::is_integral_v<Num> and std::is_unsigned_v<Num> and sizeof(Num) >= NBytes, "Use a sufficiently large unsigned integer.");
-        static_assert(I < NBytes, "Template index variable out of range.");
+        static_assert(I < NBytes);
         if constexpr (I > 0) {
             msb_unsigned_decode<Num, NBytes, I - 1>(b, n);
         } else {
@@ -88,7 +88,7 @@ namespace mlab {
     template <class Num, std::size_t NBytes, std::size_t I>
     void lsb_unsigned_encode(Num n, std::array<std::uint8_t, NBytes> &b) {
         static_assert(std::is_integral_v<Num> and std::is_unsigned_v<Num> and sizeof(Num) >= NBytes, "Use a sufficiently large unsigned integer.");
-        static_assert(I < NBytes, "Template index variable out of range.");
+        static_assert(I < NBytes);
         b[I] = std::uint8_t(n & 0xff);
         if constexpr (I + 1 < NBytes) {
             lsb_unsigned_encode<Num, NBytes, I + 1>(n >> 8, b);
@@ -98,7 +98,7 @@ namespace mlab {
     template <class Num, std::size_t NBytes, std::size_t I>
     void msb_unsigned_encode(Num n, std::array<std::uint8_t, NBytes> &b) {
         static_assert(std::is_integral_v<Num> and std::is_unsigned_v<Num> and sizeof(Num) >= NBytes, "Use a sufficiently large unsigned integer.");
-        static_assert(I < NBytes, "Template index variable out of range.");
+        static_assert(I < NBytes);
         b[NBytes - I - 1] = std::uint8_t(n & 0xff);
         if constexpr (I + 1 < NBytes) {
             msb_unsigned_encode<Num, NBytes, I + 1>(n >> 8, b);

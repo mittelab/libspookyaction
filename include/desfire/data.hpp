@@ -21,14 +21,14 @@ namespace desfire {
     using bits::file_type;
     using bits::status;
 
-    inline cipher_mode cipher_mode_most_secure(cipher_mode l, cipher_mode r);
+    [[nodiscard]] inline cipher_mode cipher_mode_most_secure(cipher_mode l, cipher_mode r);
 
     using app_id = std::array<std::uint8_t, bits::app_id_length>;
     using file_id = std::uint8_t;
 
     static constexpr app_id root_app{0x0, 0x0, 0x0};
 
-    app_crypto app_crypto_from_cipher(cipher_type c);
+    [[nodiscard]] app_crypto app_crypto_from_cipher(cipher_type c);
 
     /**
      * @note Misses @ref status::ok, @ref status::no_changes, @ref status::additional_frame. The first two represent
@@ -62,8 +62,8 @@ namespace desfire {
                               */
     };
 
-    error error_from_status(status s);
-    command_code auth_command(cipher_type t);
+    [[nodiscard]] error error_from_status(status s);
+    [[nodiscard]] command_code auth_command(cipher_type t);
 
     struct same_key_t {};
     static constexpr same_key_t same_key{};
@@ -130,9 +130,9 @@ namespace desfire {
         inline access_rights(rw_actor rw, change_actor chg);
         inline access_rights(rw_actor rw, change_actor chg, r_actor r, w_actor w);
 
-        inline static access_rights from_mask(std::uint16_t mask);
+        [[nodiscard]] inline static access_rights from_mask(std::uint16_t mask);
 
-        bool is_free(file_access access, std::uint8_t active_key_num) const;
+        [[nodiscard]] bool is_free(file_access access, std::uint8_t active_key_num) const;
     };
 
     static_assert(sizeof(access_rights) == sizeof(std::uint16_t), "Must be able to pack 2 bytes structures.");
@@ -229,14 +229,14 @@ namespace desfire {
     public:
         using mlab::any_of<file_type, file_settings, file_type::standard>::any_of;
 
-        generic_file_settings const &generic_settings() const;
-        generic_file_settings &generic_settings();
-        data_file_settings const &data_settings() const;
-        data_file_settings &data_settings();
-        record_file_settings const &record_settings() const;
-        record_file_settings &record_settings();
-        value_file_settings const &value_settings() const;
-        value_file_settings &value_settings();
+        [[nodiscard]] generic_file_settings const &generic_settings() const;
+        [[nodiscard]] generic_file_settings &generic_settings();
+        [[nodiscard]] data_file_settings const &data_settings() const;
+        [[nodiscard]] data_file_settings &data_settings();
+        [[nodiscard]] record_file_settings const &record_settings() const;
+        [[nodiscard]] record_file_settings &record_settings();
+        [[nodiscard]] value_file_settings const &value_settings() const;
+        [[nodiscard]] value_file_settings &value_settings();
     };
 
     struct app_settings {
@@ -256,14 +256,14 @@ namespace desfire {
     class storage_size {
         std::uint8_t _flag;
 
-        inline unsigned exponent() const;
-        inline bool approx() const;
+        [[nodiscard]] inline unsigned exponent() const;
+        [[nodiscard]] inline bool approx() const;
 
     public:
         explicit storage_size(std::size_t nbytes = 0);
 
-        inline std::size_t bytes_lower_bound() const;
-        inline std::size_t bytes_upper_bound() const;
+        [[nodiscard]] inline std::size_t bytes_lower_bound() const;
+        [[nodiscard]] inline std::size_t bytes_upper_bound() const;
 
         mlab::bin_stream &operator>>(mlab::bin_stream &s);
         mlab::bin_data &operator<<(mlab::bin_data &s) const;
@@ -291,13 +291,6 @@ namespace desfire {
 
     template <cipher_type>
     struct key {
-        std::unique_ptr<cipher> make_cipher() const {
-            return std::unique_ptr<cipher>(new cipher_dummy());
-        }
-        inline bin_data &operator<<(bin_data &bd) const {
-            DESFIRE_LOGE("Attempt at writing key of an invalid encrypted type.");
-            return bd;
-        }
     };
 
     class any_key : public mlab::any_of<cipher_type, key, cipher_type::none> {
@@ -307,29 +300,29 @@ namespace desfire {
         any_key(any_key const &other);
         any_key &operator=(any_key const &other);
 
-        std::uint8_t key_number() const;
-        std::uint8_t version() const;
+        [[nodiscard]] std::uint8_t key_number() const;
+        [[nodiscard]] std::uint8_t version() const;
 
         /**
          * Size in bytes of the key. Does not account for the fact that DES key in Desfire cards are stored as 16 bytes,
          * that is, will return 8 for a DES key.
          */
-        std::size_t size() const;
+        [[nodiscard]] std::size_t size() const;
 
-        std::unique_ptr<cipher> make_cipher() const;
+        [[nodiscard]] std::unique_ptr<cipher> make_cipher() const;
 
-        bool parity_bits_are_version() const;
+        [[nodiscard]] bool parity_bits_are_version() const;
 
         /**
          * Does not include version for keys that do not use @ref parity_bits_are_version.
          */
-        bin_data get_packed_key_body() const;
+        [[nodiscard]] bin_data get_packed_key_body() const;
 
         /**
          * @note Assume that keys which do not use parity bits as version will dump the version byte last in a
          * @ref bin_data.
          */
-        bin_data xored_with(any_key const &key_to_xor_with) const;
+        [[nodiscard]] bin_data xored_with(any_key const &key_to_xor_with) const;
 
         bin_data &operator<<(bin_data &bd) const;
     };
@@ -347,7 +340,7 @@ namespace desfire {
         }
         explicit key_storage(key_t k_) : k{k_}, v{0} {}
         explicit key_storage(key_t k_, std::uint8_t v_) : k{k_}, v{v_} {}
-        inline std::uint8_t version() const { return v; }
+        [[nodiscard]] inline std::uint8_t version() const { return v; }
         inline void set_version(std::uint8_t v_) { v = v_; }
     };
 
@@ -365,7 +358,7 @@ namespace desfire {
             set_version(v_);
         }
 
-        inline std::uint8_t version() const { return get_key_version(k); }
+        [[nodiscard]] inline std::uint8_t version() const { return get_key_version(k); }
 
         inline void set_version(std::uint8_t v) { set_key_version(k, v); }
     };
@@ -381,7 +374,12 @@ namespace desfire {
         key_base();
         key_base(std::uint8_t key_no, key_t k_);
         key_base(std::uint8_t key_no, key_t k_, std::uint8_t v_);
-        std::unique_ptr<cipher> make_cipher() const;
+        [[nodiscard]] std::unique_ptr<cipher> make_cipher() const;
+    };
+
+    template <>
+    struct key<cipher_type::none> {
+        [[nodiscard]] inline std::unique_ptr<cipher> make_cipher() const;
     };
 
     template <>
@@ -452,7 +450,11 @@ namespace desfire {
 
     template <std::size_t KeyLength, class Cipher, bool ParityBitsAreVersion>
     std::unique_ptr<cipher> key_base<KeyLength, Cipher, ParityBitsAreVersion>::make_cipher() const {
-        return std::unique_ptr<Cipher>(new Cipher(storage::k));
+        return std::make_unique<Cipher>(storage::k);
+    }
+
+    std::unique_ptr<cipher> key<cipher_type::none>::make_cipher() const {
+        return std::make_unique<cipher_dummy>();
     }
 
     app_settings::app_settings(app_crypto crypto_, key_rights rights_, std::uint8_t max_num_keys_) : rights{rights_}, max_num_keys{max_num_keys_}, crypto{crypto_} {}

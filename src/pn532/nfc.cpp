@@ -366,7 +366,6 @@ namespace pn532 {
             } else {
                 return res_cmd.error();
             }
-
         }
     }// namespace
 
@@ -543,12 +542,12 @@ namespace pn532 {
     }
 
     nfc::r<> nfc::rf_configuration_timings(
-            std::uint8_t rfu, rf_timeout atr_res_timeout, rf_timeout retry_timeout,
+            rf_timeout atr_res_timeout, rf_timeout retry_timeout,
             ms timeout) {
         const bin_data payload = bin_data::chain(
                 prealloc(4),
                 bits::rf_config_item::timings,
-                rfu,
+                std::uint8_t(0x00),
                 atr_res_timeout,
                 retry_timeout);
         return command_response(command_code::rf_configuration, payload, timeout);

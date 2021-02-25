@@ -388,7 +388,6 @@ namespace pn532 {
         /**
          * @brief Set timeout for ATR_RES and non-DEP communications (UM0701-02 §7.3.1)
          * @ingroup RF
-         * @todo remove rfu byte, becouse it is constant (ReserveForFutureUse)
          * @param atr_res_timeout set timeout for ATR request (use when pn532 is the Initiator)
          * @param retry_timeout set timeout for InCommunicateThru @ref nfc::initiator_communicate_through
          * @param timeout maximum time for getting a response
@@ -398,7 +397,7 @@ namespace pn532 {
          *         - @ref error::comm_timeout
          */
         r<> rf_configuration_timings(
-                std::uint8_t rfu, rf_timeout atr_res_timeout = rf_timeout::ms_102_4,
+                rf_timeout atr_res_timeout = rf_timeout::ms_102_4,
                 rf_timeout retry_timeout = rf_timeout::ms_51_2, ms timeout = default_timeout);
 
         /**

@@ -16,7 +16,7 @@ namespace pn532 {
     namespace {
         using mlab::prealloc;
 
-        TickType_t duration_cast(std::chrono::milliseconds ms) {
+        [[nodiscard]] TickType_t duration_cast(std::chrono::milliseconds ms) {
             return pdMS_TO_TICKS(ms.count());
         }
 
@@ -31,7 +31,7 @@ namespace pn532 {
             timeout = ESP_ERR_TIMEOUT
         };
 
-        const char *to_string(error e) {
+        [[nodiscard]] const char *to_string(error e) {
             switch (e) {
                 case error::parameter_error:
                     return "parameter error";
@@ -48,10 +48,9 @@ namespace pn532 {
 
         class command {
             i2c_cmd_handle_t _handle;
-            std::vector<bin_data> _buffers;
             bool _sealed;
 
-            bool assert_not_sealed() const {
+            [[nodiscard]] bool assert_not_sealed() const {
                 if (_sealed) {
                     ESP_LOGE(PN532_I2C_TAG, "This command was already run and cannot be changed.");
                     return false;
@@ -60,7 +59,7 @@ namespace pn532 {
             }
 
         public:
-            command() : _handle{i2c_cmd_link_create()}, _buffers{}, _sealed{false} {
+            command() : _handle{i2c_cmd_link_create()}, _sealed{false} {
                 i2c_master_start(_handle);
             }
 
@@ -114,8 +113,7 @@ namespace pn532 {
 
             mlab::result<error, void> operator()(i2c_port_t port, std::chrono::milliseconds timeout) {
                 _sealed = true;
-                const auto result_code = i2c_master_cmd_begin(port, _handle, duration_cast(timeout));
-                if (result_code != ESP_OK) {
+                if (const auto result_code = i2c_master_cmd_begin(port, _handle, duration_cast(timeout)); result_code != ESP_OK) {
                     return static_cast<error>(result_code);
                 }
                 return mlab::result_success;
@@ -132,8 +130,7 @@ namespace pn532 {
         cmd.read_into(status, I2C_MASTER_LAST_NACK);
         cmd.stop();
 
-        const auto res_cmd = cmd(_port, rt.remaining());
-        if (not res_cmd) {
+        if (const auto res_cmd = cmd(_port, rt.remaining()); not res_cmd) {
             ESP_LOGE(PN532_I2C_TAG, "Wake failed: %s", i2c::to_string(res_cmd.error()));
             return false;
         }
@@ -150,8 +147,7 @@ namespace pn532 {
         cmd.stop();
 
         while (rt) {
-            const auto res_cmd = cmd(_port, rt.remaining());
-            if (not res_cmd) {
+            if (const auto res_cmd = cmd(_port, rt.remaining()); not res_cmd) {
                 ESP_LOGE(PN532_I2C_TAG, "Prepare receive failed: %s", i2c::to_string(res_cmd.error()));
                 return false;
             } else if (status != 0x00) {
@@ -170,8 +166,7 @@ namespace pn532 {
         cmd.write(data, true);
         cmd.stop();
 
-        const auto res_cmd = cmd(_port, rt.remaining());
-        if (not res_cmd) {
+        if (const auto res_cmd = cmd(_port, rt.remaining()); not res_cmd) {
             ESP_LOGE(PN532_I2C_TAG, "Send failed: %s", i2c::to_string(res_cmd.error()));
             return false;
         }
@@ -188,8 +183,7 @@ namespace pn532 {
         cmd.read_into(data, I2C_MASTER_ACK);
         cmd.stop();
 
-        const auto res_cmd = cmd(_port, rt.remaining());
-        if (not res_cmd) {
+        if (const auto res_cmd = cmd(_port, rt.remaining()); not res_cmd) {
             ESP_LOGE(PN532_I2C_TAG, "Receive failed: %s", i2c::to_string(res_cmd.error()));
             return false;
         }

@@ -142,7 +142,7 @@ namespace desfire {
                 DESFIRE_LOGE("cipher_type::none cannot be converted to app_crypto!.");
                 return app_crypto::legacy_des_2k3des;
             case cipher_type::des:
-                 [[fallthrough]];
+                [[fallthrough]];
             case cipher_type::des3_2k:
                 return app_crypto::legacy_des_2k3des;
             case cipher_type::des3_3k:

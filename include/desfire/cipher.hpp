@@ -21,7 +21,7 @@ namespace desfire {
     }// namespace
 
 
-    inline cipher_mode cipher_mode_from_security(file_security security);
+    [[nodiscard]] inline cipher_mode cipher_mode_from_security(file_security security);
 
     enum struct cipher_iv {
         global,
@@ -40,7 +40,7 @@ namespace desfire {
     public:
         inline void set_iv_mode(cipher_iv v);
 
-        inline cipher_iv iv_mode() const;
+        [[nodiscard]] inline cipher_iv iv_mode() const;
 
         virtual void prepare_tx(bin_data &data, std::size_t offset, cipher_mode mode) = 0;
 
@@ -51,7 +51,7 @@ namespace desfire {
 
         virtual void reinit_with_session_key(bin_data const &rndab) = 0;
 
-        inline static bool is_legacy(bits::cipher_type type);
+        [[nodiscard]] inline static bool is_legacy(bits::cipher_type type);
 
         virtual ~cipher() = default;
     };
@@ -83,8 +83,8 @@ namespace desfire {
     /**
      * @todo Fix header includes so that this forward declaration is redundant.
      */
-    const char *to_string(file_security);
-    const char *to_string(cipher_iv);
+    [[nodiscard]] const char *to_string(file_security);
+    [[nodiscard]] const char *to_string(cipher_iv);
 
     iv_session::iv_session(cipher &c, cipher_iv iv_mode) : _c{c}, _old_iv_mode{c.iv_mode()} {
         DESFIRE_LOGD("Switching crypto IV mode to %s (was %s).", to_string(iv_mode), to_string(_c.iv_mode()));
@@ -117,16 +117,12 @@ namespace desfire {
         return _iv_mode;
     }
 
-    /// @note This is C++14 (pre C++-17) nonsense.
-    template <std::size_t BlockSize, std::size_t MACSize, std::size_t CRCSize>
-    constexpr std::size_t cipher_traits<BlockSize, MACSize, CRCSize>::crc_size;
-
     bool cipher::is_legacy(bits::cipher_type type) {
         switch (type) {
-            case bits::cipher_type::des:
+            case bits::cipher_type::des: [[fallthrough]];
             case bits::cipher_type::des3_2k:
                 return true;
-            case bits::cipher_type::des3_3k:
+            case bits::cipher_type::des3_3k: [[fallthrough]];
             case bits::cipher_type::aes128:
                 return false;
             default:

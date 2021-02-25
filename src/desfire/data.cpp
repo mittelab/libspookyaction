@@ -157,9 +157,9 @@ namespace desfire {
 
     storage_size::storage_size(std::size_t nbytes) : _flag{0} {
         if (nbytes > 0) {
-            const auto log_remainder = log2_remainder(nbytes);
-            _flag = (log_remainder.first << bits::storage_size_exponent_shift);
-            if (log_remainder.second != 0) {
+            const auto [log, remainder] = log2_remainder(nbytes);
+            _flag = (log << bits::storage_size_exponent_shift);
+            if (remainder != 0) {
                 _flag |= bits::storage_size_approx_bit;
             }
         }

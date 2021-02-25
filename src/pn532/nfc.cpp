@@ -140,21 +140,22 @@ namespace pn532 {
         if (code_or_length == bits::nack_packet_code) {
             return frame_header{frame_type::nack, 0};
         }
-        std::pair<std::uint16_t, bool> length_checksum_pass;
+        std::uint16_t length = 0;
+        bool checksum_pass = false;
         if (code_or_length == bits::fixed_extended_packet_length) {
             std::array<std::uint8_t, 3> ext_length{};
             if (not chn().receive(ext_length, rt.remaining())) {
                 return error::comm_timeout;
             }
-            length_checksum_pass = bits::check_length_checksum(ext_length);
+            std::tie(length, checksum_pass) = bits::check_length_checksum(ext_length);
         } else {
-            length_checksum_pass = bits::check_length_checksum(code_or_length);
+            std::tie(length, checksum_pass) = bits::check_length_checksum(code_or_length);
         }
-        if (not length_checksum_pass.second) {
+        if (not checksum_pass) {
             PN532_LOGE("Length checksum failed.");
             return error::comm_checksum_fail;
         }
-        return frame_header{frame_type::info, length_checksum_pass.first};
+        return frame_header{frame_type::info, length};
     }
 
     nfc::r<nfc::frame_body> nfc::read_response_body(frame_header const &hdr, ms timeout) {

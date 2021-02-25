@@ -812,7 +812,7 @@ struct file_test {
         TEST_ASSERT(mifare->write_record(file.fid, 4, nibble));
         TEST_ASSERT(mifare->commit_transaction());
         test_get_record_count(1);
-        const auto res_records = mifare->read_records<record_t>(file.fid, 0);
+        const auto res_records = mifare->read_parse_records<record_t>(file.fid, 0);
         TEST_ASSERT(res_records);
         TEST_ASSERT_EQUAL(res_records->size(), 1);
         const record_t expected = {0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x02, 0x03};

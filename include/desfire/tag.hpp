@@ -142,7 +142,7 @@ namespace desfire {
         r<any_file_settings> get_file_settings(file_id fid);
 
         template <file_type Type>
-        r<file_settings<Type>> get_file_settings(file_id fid);
+        r<file_settings<Type>> get_specific_file_settings(file_id fid);
 
         r<> change_file_settings(file_id fid, generic_file_settings const &settings);
 
@@ -248,10 +248,10 @@ namespace desfire {
         r<> write_record(file_id fid, T &&record, file_security security);
 
         template <class T>
-        r<std::vector<T>> read_records(file_id fid, std::uint32_t index = 0, std::uint32_t count = all_records);
+        r<std::vector<T>> read_parse_records(file_id fid, std::uint32_t index = 0, std::uint32_t count = all_records);
 
         template <class T>
-        r<std::vector<T>> read_records(file_id fid, std::uint32_t index, std::uint32_t count, file_security security);
+        r<std::vector<T>> read_parse_records(file_id fid, std::uint32_t index, std::uint32_t count, file_security security);
 
         /**
          * @param fid Max @ref bits::max_record_file_id.
@@ -412,7 +412,7 @@ namespace desfire {
     }
 
     template <file_type Type>
-    tag::r<file_settings<Type>> tag::get_file_settings(file_id fid) {
+    tag::r<file_settings<Type>> tag::get_specific_file_settings(file_id fid) {
         if (auto res_cmd = get_file_settings(fid); res_cmd) {
             // Assert the file type is correct
             if (res_cmd->type() != Type) {
@@ -462,7 +462,7 @@ namespace desfire {
     }
 
     template <class T>
-    tag::r<std::vector<T>> tag::read_records(file_id fid, std::uint32_t index, std::uint32_t count, file_security security) {
+    tag::r<std::vector<T>> tag::read_parse_records(file_id fid, std::uint32_t index, std::uint32_t count, file_security security) {
         const auto res_read_records = read_records(fid, index, count, security);
         if (not res_read_records) {
             return res_read_records.error();
@@ -471,7 +471,7 @@ namespace desfire {
     }
 
     template <class T>
-    tag::r<std::vector<T>> tag::read_records(file_id fid, std::uint32_t index, std::uint32_t count) {
+    tag::r<std::vector<T>> tag::read_parse_records(file_id fid, std::uint32_t index, std::uint32_t count) {
         const auto res_read_records = read_records(fid, index, count);
         if (not res_read_records) {
             return res_read_records.error();

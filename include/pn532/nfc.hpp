@@ -1437,7 +1437,10 @@ namespace pn532 {
 
     template <class T, class>
     nfc::r<rf_status, bin_data> nfc::initiator_data_exchange(std::uint8_t target_logical_index, T &&data, ms timeout) {
-        return initiator_data_exchange(target_logical_index, bin_data::chain(std::forward<T>(data)), timeout);
+        static bin_data buffer{};
+        buffer.clear();
+        buffer << std::forward<T>(data);
+        return initiator_data_exchange(target_logical_index, buffer, timeout);
     }
 
 }// namespace pn532

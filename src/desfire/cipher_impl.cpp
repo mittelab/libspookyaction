@@ -16,7 +16,7 @@ namespace desfire {
                 case crypto_direction::encrypt:
                     [[fallthrough]];
                 case crypto_direction::mac:
-                    [[ fallthrough]];
+                    [[fallthrough]];
                 default:
                     return DESFIRE_TAG " DATA";
             }
@@ -28,7 +28,7 @@ namespace desfire {
                 case crypto_direction::encrypt:
                     [[fallthrough]];
                 case crypto_direction::mac:
-                    [[ fallthrough]];
+                    [[fallthrough]];
                 default:
                     return DESFIRE_TAG " BLOB";
             }

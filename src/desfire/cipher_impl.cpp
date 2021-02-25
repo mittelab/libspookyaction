@@ -9,22 +9,26 @@
 namespace desfire {
 
     namespace {
-        const char *input_tag(crypto_direction dir) {
+        [[nodiscard]] const char *input_tag(crypto_direction dir) {
             switch (dir) {
                 case crypto_direction::decrypt:
                     return DESFIRE_TAG " BLOB";
-                case crypto_direction::encrypt:// [[fallthrough]];
-                case crypto_direction::mac:    // [[ fallthrough]];
+                case crypto_direction::encrypt:
+                    [[fallthrough]];
+                case crypto_direction::mac:
+                    [[ fallthrough]];
                 default:
                     return DESFIRE_TAG " DATA";
             }
         }
-        const char *output_tag(crypto_direction dir) {
+        [[nodiscard]] const char *output_tag(crypto_direction dir) {
             switch (dir) {
                 case crypto_direction::decrypt:
                     return DESFIRE_TAG " DATA";
-                case crypto_direction::encrypt:// [[fallthrough]];
-                case crypto_direction::mac:    // [[ fallthrough]];
+                case crypto_direction::encrypt:
+                    [[fallthrough]];
+                case crypto_direction::mac:
+                    [[ fallthrough]];
                 default:
                     return DESFIRE_TAG " BLOB";
             }
@@ -248,7 +252,8 @@ namespace desfire {
         ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG "   IV", iv.data(), iv.size(), ESP_LOG_DEBUG);
         assert(data.size() % block_size == 0);
         switch (dir) {
-            case crypto_direction::mac:// [[fallthrough]];
+            case crypto_direction::mac:
+                [[fallthrough]];
             case crypto_direction::encrypt:
                 mbedtls_des3_crypt_cbc(&_enc_context, MBEDTLS_DES_ENCRYPT, data.size(), iv.data(), data.data(), data.data());
                 break;
@@ -306,7 +311,8 @@ namespace desfire {
         ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG "   IV", iv.data(), iv.size(), ESP_LOG_DEBUG);
         assert(data.size() % block_size == 0);
         switch (dir) {
-            case crypto_direction::mac:// [[fallthrough]];
+            case crypto_direction::mac:
+                [[fallthrough]];
             case crypto_direction::encrypt:
                 mbedtls_aes_crypt_cbc(&_enc_context, MBEDTLS_AES_ENCRYPT, data.size(), iv.data(), data.data(), data.data());
                 break;

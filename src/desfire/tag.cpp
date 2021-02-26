@@ -3,12 +3,6 @@
 //
 
 #include "desfire/tag.hpp"
-#include "desfire/bits.hpp"
-#include "desfire/cipher.hpp"
-#include "desfire/crypto_algo.hpp"
-#include "desfire/data.hpp"
-#include "desfire/msg.hpp"
-#include <esp_system.h>
 
 #define ESP_LOG_BIN_DATA(tag, bin_data_like, level)                       \
     do {                                                                  \

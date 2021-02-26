@@ -4,7 +4,6 @@
 
 
 #include "pn532/i2c.hpp"
-#include <esp_log.h>
 #include <memory>
 #include <mlab/result.hpp>
 
@@ -41,9 +40,8 @@ namespace pn532 {
                     return "invalid state";
                 case error::timeout:
                     return "timeout";
-                default:
-                    return "UNKNOWN";
             }
+            return "UNKNOWN";
         }
 
         class command {
@@ -111,7 +109,7 @@ namespace pn532 {
                 }
             }
 
-            mlab::result<error, void> operator()(i2c_port_t port, std::chrono::milliseconds timeout) {
+            mlab::result<error> operator()(i2c_port_t port, std::chrono::milliseconds timeout) {
                 _sealed = true;
                 if (const auto result_code = i2c_master_cmd_begin(port, _handle, duration_cast(timeout)); result_code != ESP_OK) {
                     return static_cast<error>(result_code);
@@ -155,7 +153,7 @@ namespace pn532 {
             }
             // Retry after 10 ms
             vTaskDelay(duration_cast(std::chrono::milliseconds{10}));
-        };
+        }
         return false;// Timeout
     }
 

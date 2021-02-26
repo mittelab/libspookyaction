@@ -123,10 +123,9 @@ namespace ut {
             case desfire::cipher_type::none:
                 TEST_FAIL_MESSAGE("No app with cipher none.");
                 return dummy;
-            default:
-                TEST_FAIL_MESSAGE("Unknown cipher!");
-                return dummy;
         }
+        TEST_FAIL_MESSAGE("Unknown cipher!");
+        return dummy;
     }
 
     ut::test_file const &get_test_file(desfire::file_type t) {
@@ -167,10 +166,9 @@ namespace ut {
                 return file_linear_record;
             case desfire::file_type::cyclic_record:
                 return file_cyclic_record;
-            default:
-                TEST_FAIL_MESSAGE("Unknown file type!");
-                return dummy;
         }
+        TEST_FAIL_MESSAGE("Unknown file type!");
+        return dummy;
     }
 
     ut::test_file get_test_file(desfire::file_type t, desfire::file_security security) {
@@ -198,8 +196,6 @@ namespace ut {
             case desfire::file_type::cyclic_record:
                 retval.settings = desfire::file_settings<desfire::file_type::cyclic_record>{};
                 retval.settings.record_settings() = base_file.settings.record_settings();
-                break;
-            default:
                 break;
         }
         // These are in common

@@ -13,9 +13,8 @@ namespace desfire {
                 return "authenticated";
             case file_security::encrypted:
                 return "encrypted";
-            default:
-                return "UNKNOWN";
         }
+        return "UNKNOWN";
     }
 
     const char *to_string(cipher_mode mode) {
@@ -28,9 +27,8 @@ namespace desfire {
                 return "ciphered";
             case cipher_mode::ciphered_no_crc:
                 return "ciphered (no CRC)";
-            default:
-                return "UNKNOWN";
         }
+        return "UNKNOWN";
     }
 
 
@@ -40,9 +38,8 @@ namespace desfire {
                 return "global";
             case cipher_iv::zero:
                 return "zero (local)";
-            default:
-                return "UNKNOWN";
         }
+        return "UNKNOWN";
     }
 
     const char *to_string(crypto_direction mode) {
@@ -53,9 +50,8 @@ namespace desfire {
                 return "decrypt";
             case crypto_direction::mac:
                 return "mac";
-            default:
-                return "UNKNOWN";
         }
+        return "UNKNOWN";
     }
 
     const char *to_string(status s) {
@@ -104,9 +100,8 @@ namespace desfire {
                 return "specified file number does not exist";
             case status::file_integrity_error:
                 return "unrecoverable error within file";
-            default:
-                return "UNKNOWN";
         }
+        return "UNKNOWN";
     }
 
     const char *to_string(error e) {
@@ -134,9 +129,8 @@ namespace desfire {
                 return "3K3DES";
             case cipher_type::aes128:
                 return "AES128";
-            default:
-                return "UNKNOWN";
         }
+        return "UNKNOWN";
     }
 
     const char *to_string(file_type t) {
@@ -151,9 +145,8 @@ namespace desfire {
                 return "linear record file";
             case file_type::cyclic_record:
                 return "cyclic record file";
-            default:
-                return "UNKNOWN";
         }
+        return "UNKNOWN";
     }
 
     const char *to_string(command_code c) {
@@ -236,8 +229,7 @@ namespace desfire {
                 return "get_iso_file_ids";
             case command_code::set_configuration:
                 return "set_configuration";
-            default:
-                return "UNKNOWN";
         }
+        return "UNKNOWN";
     }
 }// namespace desfire

@@ -3,8 +3,6 @@
 //
 #include "pn532/nfc.hpp"
 #include "pn532/bits_algo.hpp"
-#include "pn532/log.h"
-#include <numeric>
 
 namespace pn532 {
 
@@ -31,9 +29,8 @@ namespace pn532 {
                 return "Comm ok, but no response within timeout";
             case nfc::error::nack:
                 return "Controller did not acknowledge.";
-            default:
-                return "UNKNOWN";
         }
+        return "UNKNOWN";
     }
 
     namespace {

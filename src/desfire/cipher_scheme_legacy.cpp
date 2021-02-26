@@ -3,8 +3,6 @@
 //
 
 #include "desfire/cipher_scheme_legacy.hpp"
-#include "desfire/crypto_algo.hpp"
-#include "desfire/log.h"
 
 namespace desfire {
 
@@ -127,7 +125,6 @@ namespace desfire {
                 return true;
             }
         }
-        return true;
     }
 
 

@@ -3,7 +3,6 @@
 //
 
 #include "pn532/data.hpp"
-#include "pn532/msg.hpp"
 
 namespace mlab {
 

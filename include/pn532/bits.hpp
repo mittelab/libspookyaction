@@ -471,6 +471,7 @@ namespace pn532::bits {
     static constexpr std::uint8_t init_as_target_dep_only_bit = 1 << 1;
     static constexpr std::uint8_t init_as_target_passive_only_bit = 1 << 0;
 
+    /// @todo Why unused?
     static constexpr std::uint8_t sel_res_dep_mask = 0x40;
     static constexpr std::uint8_t sel_res_picc_mask = 0x60;
 

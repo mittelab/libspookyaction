@@ -376,9 +376,8 @@ namespace pn532 {
                 return bit_ref{_p7_mask, gpio_idx.second, bits::gpio_p7_pin_mask};
             case gpio_loc::i0i1:
                 return bit_ref{_i0i1_mask, gpio_idx.second, bits::gpio_i0i1_pin_mask};
-            default:
-                return bit_ref{_garbage, gpio_idx.second, 0xff};
         }
+        return bit_ref{_garbage, gpio_idx.second, 0xff};
     }
 
     gpio_status::gpio_status(std::uint8_t p3_mask, std::uint8_t p7_mask, std::uint8_t i0i1_mask) : _p3_mask{p3_mask}, _p7_mask{p7_mask}, _i0i1_mask{i0i1_mask} {}

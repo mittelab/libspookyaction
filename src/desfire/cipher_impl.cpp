@@ -4,33 +4,22 @@
 
 #include "desfire/cipher_impl.hpp"
 #include "desfire/msg.hpp"
-#include <cassert>
 
 namespace desfire {
 
     namespace {
         [[nodiscard]] const char *input_tag(crypto_direction dir) {
-            switch (dir) {
-                case crypto_direction::decrypt:
-                    return DESFIRE_TAG " BLOB";
-                case crypto_direction::encrypt:
-                    [[fallthrough]];
-                case crypto_direction::mac:
-                    [[fallthrough]];
-                default:
-                    return DESFIRE_TAG " DATA";
+            if (dir == crypto_direction::decrypt) {
+                return DESFIRE_TAG " BLOB";
+            } else {
+                return DESFIRE_TAG " DATA";
             }
         }
         [[nodiscard]] const char *output_tag(crypto_direction dir) {
-            switch (dir) {
-                case crypto_direction::decrypt:
-                    return DESFIRE_TAG " DATA";
-                case crypto_direction::encrypt:
-                    [[fallthrough]];
-                case crypto_direction::mac:
-                    [[fallthrough]];
-                default:
-                    return DESFIRE_TAG " BLOB";
+            if (dir == crypto_direction::decrypt) {
+                return DESFIRE_TAG " DATA";
+            } else {
+                return DESFIRE_TAG " BLOB";
             }
         }
     }// namespace
@@ -101,8 +90,6 @@ namespace desfire {
             case crypto_direction::mac:
                 mbedtls_des_crypt_cbc(&_mac_enc_context, MBEDTLS_DES_ENCRYPT, data.size(), iv.data(), data.data(), data.data());
                 break;
-            default:
-                DESFIRE_LOGE("Unknown crypto dir: %s", to_string(dir));
                 break;
         }
         ESP_LOG_BUFFER_HEX_LEVEL(output_tag(dir), data.data(), data.size(), ESP_LOG_DEBUG);
@@ -198,8 +185,6 @@ namespace desfire {
             case crypto_direction::mac:
                 mbedtls_des3_crypt_cbc(&_mac_enc_context, MBEDTLS_DES_ENCRYPT, data.size(), iv.data(), data.data(), data.data());
                 break;
-            default:
-                DESFIRE_LOGE("Unknown crypto dir: %s", to_string(dir));
                 break;
         }
         ESP_LOG_BUFFER_HEX_LEVEL(output_tag(dir), data.data(), data.size(), ESP_LOG_DEBUG);
@@ -260,8 +245,6 @@ namespace desfire {
             case crypto_direction::decrypt:
                 mbedtls_des3_crypt_cbc(&_dec_context, MBEDTLS_DES_DECRYPT, data.size(), iv.data(), data.data(), data.data());
                 break;
-            default:
-                DESFIRE_LOGE("Unknown crypto dir: %s", to_string(dir));
                 break;
         }
         ESP_LOG_BUFFER_HEX_LEVEL(output_tag(dir), data.data(), data.size(), ESP_LOG_DEBUG);
@@ -319,8 +302,6 @@ namespace desfire {
             case crypto_direction::decrypt:
                 mbedtls_aes_crypt_cbc(&_dec_context, MBEDTLS_AES_DECRYPT, data.size(), iv.data(), data.data(), data.data());
                 break;
-            default:
-                DESFIRE_LOGE("Unknown crypto dir: %s", to_string(dir));
                 break;
         }
         ESP_LOG_BUFFER_HEX_LEVEL(output_tag(dir), data.data(), data.size(), ESP_LOG_DEBUG);

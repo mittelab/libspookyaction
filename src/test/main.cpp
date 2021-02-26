@@ -1,18 +1,11 @@
 #include "utils.hpp"
-#include <cstdio>
-#include <desfire/data.hpp>
-#include <desfire/msg.hpp>
-#include <desfire/tag.hpp>
 #include <driver/gpio.h>
 #include <driver/i2c.h>
 #include <driver/uart.h>
-#include <esp_log.h>
 #include <numeric>
 #include <pn532/desfire_pcd.hpp>
 #include <pn532/hsu.hpp>
 #include <pn532/i2c.hpp>
-#include <pn532/nfc.hpp>
-#include <string>
 #include <unity.h>
 
 #define TEST_TAG "UT"
@@ -703,9 +696,8 @@ struct file_test {
                 return "encrypted";
             case desfire::file_security::authenticated:
                 return "maced";
-            default:
-                return nullptr;
         }
+        return nullptr;
     }
 
     [[nodiscard]] const char *cipher_description() const {
@@ -718,9 +710,10 @@ struct file_test {
                 return "des3_3k";
             case desfire::cipher_type::aes128:
                 return "aes128";
-            default:
-                return nullptr;
+            case desfire::bits::cipher_type::none:
+                break;
         }
+        return nullptr;
     }
 
     [[nodiscard]] const char *ftype_description() const {
@@ -735,9 +728,8 @@ struct file_test {
                 return "linear_record";
             case desfire::file_type::cyclic_record:
                 return "cyclic_record";
-            default:
-                return nullptr;
         }
+        return nullptr;
     }
 
     [[nodiscard]] const char *description() const {

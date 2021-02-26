@@ -104,8 +104,6 @@ namespace desfire {
                 return cipher_mode::maced;
             case file_security::encrypted:
                 return cipher_mode::ciphered;
-            default:
-                DESFIRE_LOGE("Unsupported file security %s", to_string(security));
                 break;
         }
         return cipher_mode::plain;

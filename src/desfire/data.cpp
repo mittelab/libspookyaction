@@ -3,7 +3,6 @@
 //
 
 #include "desfire/data.hpp"
-#include "desfire/crypto_algo.hpp"
 #include "desfire/msg.hpp"
 
 namespace desfire {
@@ -33,10 +32,6 @@ namespace desfire {
             case cipher_type::aes128:
                 set<cipher_type::aes128>(other.get<cipher_type::aes128>());
                 break;
-            default:
-                DESFIRE_LOGE("Unhandled cipher type %s", to_string(other.type()));
-                *this = any_key{};
-                break;
         }
         return *this;
     }
@@ -53,10 +48,8 @@ namespace desfire {
                 return get<cipher_type::des3_3k>().key_number;
             case cipher_type::aes128:
                 return get<cipher_type::aes128>().key_number;
-            default:
-                DESFIRE_LOGE("any_key::key_number: unhandled cipher type.");
-                return std::numeric_limits<std::uint8_t>::max();
         }
+        return std::numeric_limits<std::uint8_t>::max();
     }
 
     std::uint8_t any_key::version() const {
@@ -71,10 +64,8 @@ namespace desfire {
                 return get<cipher_type::des3_3k>().version();
             case cipher_type::aes128:
                 return get<cipher_type::aes128>().version();
-            default:
-                DESFIRE_LOGE("any_key::version: unhandled cipher type.");
-                return std::numeric_limits<std::uint8_t>::max();
         }
+        return std::numeric_limits<std::uint8_t>::max();
     }
 
     std::size_t any_key::size() const {
@@ -89,10 +80,8 @@ namespace desfire {
                 return key<cipher_type::des3_3k>::key_length;
             case cipher_type::aes128:
                 return key<cipher_type::aes128>::key_length;
-            default:
-                DESFIRE_LOGE("any_key::size: unhandled cipher type.");
-                return std::numeric_limits<std::uint8_t>::max();
         }
+        return std::numeric_limits<std::uint8_t>::max();
     }
 
     std::unique_ptr<cipher> any_key::make_cipher() const {
@@ -107,10 +96,8 @@ namespace desfire {
                 return get<cipher_type::des3_3k>().make_cipher();
             case cipher_type::aes128:
                 return get<cipher_type::aes128>().make_cipher();
-            default:
-                DESFIRE_LOGE("any_key::make_cipher: unhandled cipher type: %s", to_string(type()));
-                return nullptr;
         }
+        return nullptr;
     }
 
     command_code auth_command(cipher_type t) {
@@ -149,10 +136,8 @@ namespace desfire {
                 return app_crypto::iso_3k3des;
             case cipher_type::aes128:
                 return app_crypto::aes_128;
-            default:
-                DESFIRE_LOGE("desfire::app_crypto_from_cipher: unhandled cipher type: %s", to_string(c));
-                return app_crypto::legacy_des_2k3des;
         }
+        return app_crypto::legacy_des_2k3des;
     }
 
     storage_size::storage_size(std::size_t nbytes) : _flag{0} {
@@ -192,10 +177,8 @@ namespace desfire {
                 return key<cipher_type::des3_3k>::parity_bits_are_version;
             case cipher_type::aes128:
                 return key<cipher_type::aes128>::parity_bits_are_version;
-            default:
-                DESFIRE_LOGE("any_key::parity_bits_are_version: unhandled cipher type: %s", to_string(type()));
-                return false;
         }
+        return false;
     }
 
     bin_data any_key::get_packed_key_body() const {
@@ -222,9 +205,6 @@ namespace desfire {
                 break;
             case cipher_type::aes128:
                 body << get<cipher_type::aes128>().k;
-                break;
-            default:
-                DESFIRE_LOGE("any_key::get_packed_key_body: unhandled cipher type: %s", to_string(type()));
                 break;
         }
         return body;
@@ -260,9 +240,6 @@ namespace desfire {
                 return get<file_type::linear_record>();
             case file_type::cyclic_record:
                 return get<file_type::cyclic_record>();
-            default:
-                DESFIRE_LOGE("any_file_settings::generic_settings: unhandled file type: %s", to_string(type()));
-                break;
         }
         static generic_file_settings _dummy{};
         DESFIRE_LOGE("Cannot retrieve file settings from an empty file settings container.");
@@ -323,10 +300,8 @@ namespace desfire {
                        (write == all_keys or read_write == all_keys);
             case file_access::change:
                 return change == all_keys;
-            default:
-                DESFIRE_LOGE("access_rights::is_free: unhandled access type.");
-                return false;
         }
+        return false;
     }
 
     generic_file_settings &any_file_settings::generic_settings() {
@@ -610,9 +585,6 @@ namespace mlab {
                 break;
             case desfire::file_type::cyclic_record:
                 bd << fs.get<desfire::file_type::cyclic_record>();
-                break;
-            default:
-                DESFIRE_LOGE("operator<<(any_file_settings const &): unhandled file type: %s", desfire::to_string(fs.type()));
                 break;
         }
         return bd;

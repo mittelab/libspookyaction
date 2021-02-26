@@ -5,7 +5,6 @@
 
 #include "pn532/hsu.hpp"
 #include "pn532/log.h"
-#include <esp_log.h>
 
 #define PN532_HSU_SEND_TAG "PN532-HSU >>"
 #define PN532_HSU_RECV_TAG "PN532-HSU <<"

@@ -159,6 +159,7 @@ namespace pn532 {
     bool channel::receive(std::array<std::uint8_t, Length> &buffer, ms timeout) {
         if (const auto &[data, success] = receive(Length, timeout); success) {
             std::copy(std::begin(data), std::end(data), std::begin(buffer));
+            return true;
         }
         return false;
     }

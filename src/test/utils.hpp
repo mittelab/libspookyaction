@@ -37,10 +37,10 @@ namespace ut {
         bool reveal_keys;
     };
 
-    static constexpr log_options log_everything{true, true, true, true, true, true};
-    static constexpr log_options log_debug{true, true, true, true, false, false};
+    [[maybe_unused]] static constexpr log_options log_everything{true, true, true, true, true, true};
+    [[maybe_unused]] static constexpr log_options log_debug{true, true, true, true, false, false};
 
-    void enable_debug_log(log_options options);
+    [[maybe_unused]] void enable_debug_log(log_options options);
 
     struct test_app {
         desfire::app_id aid = {{0xff, 0xff, 0xff}};
@@ -75,9 +75,9 @@ namespace ut {
         void delete_preexisting(desfire::tag &tag) const;
     };
 
-    ut::test_app const &get_test_app(desfire::cipher_type t);
-    ut::test_file const &get_test_file(desfire::file_type t);
-    ut::test_file get_test_file(desfire::file_type t, desfire::file_security security);
+    [[nodiscard]] ut::test_app const &get_test_app(desfire::cipher_type t);
+    [[nodiscard]] ut::test_file const &get_test_file(desfire::file_type t);
+    [[nodiscard]] ut::test_file get_test_file(desfire::file_type t, desfire::file_security security);
 }// namespace ut
 
 namespace ut {

@@ -14,14 +14,13 @@ namespace pn532 {
         std::uint8_t _target;
         nfc::r<rf_status> _last_result;
 
-
-        inline nfc &pcd();
+        [[nodiscard]] inline nfc &pcd();
 
     public:
         inline desfire_pcd(nfc &controller, std::uint8_t target_logical_index);
 
-        inline nfc::r<rf_status> last_result() const;
-        inline std::uint8_t target_logical_index() const;
+        [[nodiscard]] inline nfc::r<rf_status> last_result() const;
+        [[nodiscard]] inline std::uint8_t target_logical_index() const;
 
         std::pair<bin_data, bool> communicate(bin_data const &data) override;
     };

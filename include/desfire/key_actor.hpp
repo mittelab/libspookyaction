@@ -20,13 +20,13 @@ namespace desfire {
         static constexpr UIntT mask = UIntT{0b1111} << LShift;
 
         static_assert(bits::max_keys_per_app == max_key_index + 1, "Implementation uses 0xE and 0xF for special purposes.");
-        static_assert(LShift <= (sizeof(UIntT) * 8 - 4) and std::is_unsigned<UIntT>::value, "Too large LShift or not unsigned");
+        static_assert(LShift <= (sizeof(UIntT) * 8 - 4) and std::is_unsigned_v<UIntT>, "Too large LShift or not unsigned");
 
         UIntT _repr;
 
     protected:
         inline void set(std::uint8_t v);
-        inline std::uint8_t get() const;
+        [[nodiscard]] inline std::uint8_t get() const;
 
     public:
         inline key_actor_base(std::uint8_t key_index = 0);
@@ -82,7 +82,7 @@ namespace desfire {
 
     template <class UIntT, unsigned LShift, class SpecialT, class Subclass>
     Subclass &key_actor_base<UIntT, LShift, SpecialT, Subclass>::operator=(std::uint8_t key_index) {
-        static_assert(std::is_base_of<key_actor_base, Subclass>::value, "Must subclass!");
+        static_assert(std::is_base_of_v<key_actor_base, Subclass>);
         if (key_index > max_key_index) {
             DESFIRE_LOGE("Specified key index %u is not valid, master key (0) assumed.", key_index);
             key_index = 0;
@@ -93,14 +93,14 @@ namespace desfire {
 
     template <class UIntT, unsigned LShift, class SpecialT, class Subclass>
     Subclass &key_actor_base<UIntT, LShift, SpecialT, Subclass>::operator=(SpecialT) {
-        static_assert(std::is_base_of<key_actor_base, Subclass>::value, "Must subclass!");
+        static_assert(std::is_base_of_v<key_actor_base, Subclass>);
         set(special_value);
         return reinterpret_cast<Subclass &>(*this);
     }
 
     template <class UIntT, unsigned LShift, class SpecialT, class Subclass>
     Subclass &key_actor_base<UIntT, LShift, SpecialT, Subclass>::operator=(no_key_t) {
-        static_assert(std::is_base_of<key_actor_base, Subclass>::value, "Must subclass!");
+        static_assert(std::is_base_of_v<key_actor_base, Subclass>);
         set(no_key_value);
         return reinterpret_cast<Subclass &>(*this);
     }

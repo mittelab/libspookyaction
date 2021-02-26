@@ -78,19 +78,19 @@ namespace mlab {
 
         result &operator=(result const &other);
 
-        inline T &operator*();
+        [[nodiscard]] inline T &operator*();
 
-        inline T const &operator*() const;
+        [[nodiscard]] inline T const &operator*() const;
 
-        inline T *operator->();
+        [[nodiscard]] inline T *operator->();
 
-        inline T const *operator->() const;
+        [[nodiscard]] inline T const *operator->() const;
 
         inline explicit operator bool() const;
 
         using base::type;
 
-        inline E error() const;
+        [[nodiscard]] inline E error() const;
     };
 
 
@@ -190,8 +190,6 @@ namespace mlab {
                     break;
                 case result_content::data:
                     base::template set<result_content::data>(content_wrap<result_content::data>{*other});
-                    break;
-                default:
                     break;
             }
         }

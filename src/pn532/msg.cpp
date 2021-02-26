@@ -13,9 +13,8 @@ namespace pn532 {
                 return "212 kbps";
             case bits::baudrate::kbps424:
                 return "424 kbps";
-            default:
-                return "UNKNOWN";
         }
+        return "UNKNOWN";
     }
 
     const char *to_string(bits::command c) {
@@ -84,9 +83,8 @@ namespace pn532 {
                 return "TgResponseToInitiator";
             case bits::command::tg_get_target_status:
                 return "TgGetTargetStatus";
-            default:
-                return "UNKNOWN";
         }
+        return "UNKNOWN";
     }
 
     const char *to_string(bits::test t) {
@@ -105,9 +103,8 @@ namespace pn532 {
                 return "attention request/card presence";
             case bits::test::self_antenna:
                 return "self antenna";
-            default:
-                return "UNKNOWN";
         }
+        return "UNKNOWN";
     }
 
     const char *to_string(bits::baudrate_modulation bm) {
@@ -122,9 +119,8 @@ namespace pn532 {
                 return "106 kbps ISO/IEC 14443-3 TypeB";
             case bits::baudrate_modulation::kbps106_innovision_jewel_tag:
                 return "106 kbps Innovision Jewel Tag";
-            default:
-                return "UNKNOWN";
         }
+        return "UNKNOWN";
     }
 
     const char *to_string(bits::target_type t) {
@@ -161,9 +157,8 @@ namespace pn532 {
                 return "DEP active 212 kbps";
             case bits::target_type::dep_active_424kbps:
                 return "DEP active 424 kbps";
-            default:
-                return "UNKNOWN";
         }
+        return "UNKNOWN";
     }
 
     const char *to_string(bits::error e) {
@@ -222,8 +217,7 @@ namespace pn532 {
                 return "overcurrent";
             case bits::error::nad_missing_in_dep_frame:
                 return "NAD missing in DEP frame";
-            default:
-                return "UNKNOWN";
         }
+        return "UNKNOWN";
     }
 }// namespace pn532

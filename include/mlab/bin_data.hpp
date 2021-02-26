@@ -5,6 +5,7 @@
 #ifndef MLAB_BIN_DATA_HPP
 #define MLAB_BIN_DATA_HPP
 
+#include "byte_order.hpp"
 #include <algorithm>
 #include <array>
 #include <cstdint>
@@ -23,24 +24,24 @@ namespace mlab {
 
         inline range(Iterator b, Iterator e) : it_begin{b}, it_end{e} {}
 
-        template <class Jterator, class = typename std::enable_if<std::is_convertible<Jterator, Iterator>::value>::type>
+        template <class Jterator, class = typename std::enable_if<std::is_convertible_v<Jterator, Iterator>>::type>
         range(range<Jterator> const &other) : it_begin{other.it_begin}, it_end{other.it_end} {}
 
-        inline typename std::iterator_traits<Iterator>::difference_type size() const {
+        [[nodiscard]] inline typename std::iterator_traits<Iterator>::difference_type size() const {
             return std::distance(it_begin, it_end);
         }
 
-        inline typename std::add_const<typename std::iterator_traits<Iterator>::pointer>::type data() const {
+        [[nodiscard]] inline typename std::add_const_t<typename std::iterator_traits<Iterator>::pointer> data() const {
             return &*it_begin;
         }
 
-        inline typename std::iterator_traits<Iterator>::pointer data() {
+        [[nodiscard]] inline typename std::iterator_traits<Iterator>::pointer data() {
             return &*it_begin;
         }
 
-        inline Iterator begin() const { return it_begin; }
+        [[nodiscard]] inline Iterator begin() const { return it_begin; }
 
-        inline Iterator end() const { return it_end; }
+        [[nodiscard]] inline Iterator end() const { return it_end; }
     };
 
     template <class Iterator>
@@ -55,7 +56,7 @@ namespace mlab {
 
         inline bit_ref &operator=(bool v);
 
-        inline operator bool() const;
+        inline explicit operator bool() const;
     };
 
     struct prealloc {
@@ -79,11 +80,11 @@ namespace mlab {
         template <class ByteIterator>
         inline bin_data(ByteIterator begin, ByteIterator end);
 
-        inline range<const_iterator> view(
+        [[nodiscard]] inline range<const_iterator> view(
                 std::size_t start = 0,
                 std::size_t length = std::numeric_limits<std::size_t>::max()) const;
 
-        inline range<iterator> view(
+        [[nodiscard]] inline range<iterator> view(
                 std::size_t start = 0,
                 std::size_t length = std::numeric_limits<std::size_t>::max());
 
@@ -107,7 +108,7 @@ namespace mlab {
         std::size_t _pos = 0;
         bool _bad = false;
 
-        inline std::size_t get_ref(stream_ref ref) const;
+        [[nodiscard]] inline std::size_t get_ref(stream_ref ref) const;
 
     public:
         template <class>
@@ -119,9 +120,9 @@ namespace mlab {
 
         inline void seek(std::intptr_t offset, stream_ref ref = stream_ref::beg);
 
-        inline std::size_t tell(stream_ref ref = stream_ref::beg) const;
+        [[nodiscard]] inline std::size_t tell(stream_ref ref = stream_ref::beg) const;
 
-        inline std::size_t remaining() const;
+        [[nodiscard]] inline std::size_t remaining() const;
 
         template <class OutputIterator>
         std::size_t read(OutputIterator it, std::size_t n);
@@ -130,44 +131,31 @@ namespace mlab {
 
         inline std::uint8_t pop();
 
-        inline range<bin_data::const_iterator> peek();
+        [[nodiscard]] inline range<bin_data::const_iterator> peek() const;
 
-        inline bool good() const;
+        [[nodiscard]] inline bool good() const;
 
-        inline bool eof() const;
+        [[nodiscard]] inline bool eof() const;
 
-        inline bool bad() const;
+        [[nodiscard]] inline bool bad() const;
 
         inline void set_bad();
 
         inline void clear_bad();
     };
 
-    enum struct byte_order {
-        msb_first,
-        lsb_first
-    };
-
-    /**
-     * @note There is apparently no better way to obtain this in C++14
-     */
-#if defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
-    static constexpr byte_order local_byte_order = byte_order::msb_first;
-#elif defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-    static constexpr byte_order local_byte_order = byte_order::lsb_first;
-#endif
-
-    template <unsigned>
+    template <unsigned Bits>
     struct lsb_t {};
-    template <unsigned>
+
+    template <unsigned Bits>
     struct msb_t {};
 
-    static constexpr lsb_t<16> lsb16{};
-    static constexpr lsb_t<24> lsb24{};
-    static constexpr lsb_t<32> lsb32{};
-    static constexpr msb_t<16> msb16{};
-    static constexpr msb_t<24> msb24{};
-    static constexpr msb_t<32> msb32{};
+    [[maybe_unused]] static constexpr lsb_t<16> lsb16{};
+    [[maybe_unused]] static constexpr lsb_t<24> lsb24{};
+    [[maybe_unused]] static constexpr lsb_t<32> lsb32{};
+    [[maybe_unused]] static constexpr msb_t<16> msb16{};
+    [[maybe_unused]] static constexpr msb_t<24> msb24{};
+    [[maybe_unused]] static constexpr msb_t<32> msb32{};
 
     template <unsigned BitSize, byte_order Order>
     struct ordered_injector { bin_data &bd; };
@@ -228,6 +216,9 @@ namespace mlab {
             static constexpr bool value = test_get<T>(int());
         };
 
+        template <class T>
+        static constexpr bool is_range_enumerable_v = is_range_enumerable<T>::value;
+
         template <class T, bool>
         struct safe_underlying_type {
             using type = T;
@@ -236,7 +227,7 @@ namespace mlab {
         template <class T>
         struct safe_underlying_type<T, true> {
             /// Referencing underlying_type without first checking if it's an enum its a failed assertion
-            using type = typename std::underlying_type<T>::type;
+            using type = typename std::underlying_type_t<T>;
         };
 
         template <class T, bool>
@@ -246,25 +237,26 @@ namespace mlab {
 
         template <class T>
         struct safe_value_type<T, true> {
-            using type = typename std::remove_const<
-                    typename std::remove_reference<decltype(*std::begin(std::declval<T const &>()))>::type>::type;
+            using type = typename std::decay_t<decltype(*std::begin(std::declval<T const &>()))>;
         };
 
         template <class T>
-        using is_byte_enum = typename std::integral_constant<bool, std::is_enum<T>::value and std::is_same<typename safe_underlying_type<T, std::is_enum<T>::value>::type, std::uint8_t>::value>;
+        static constexpr bool is_byte_enum_v = std::is_enum_v<T> and std::is_same_v<typename safe_underlying_type<T, std::is_enum_v<T>>::type, std::uint8_t>;
 
         template <class T>
-        using is_byte_enumerable = typename std::integral_constant<bool, is_range_enumerable<T>::value and std::is_same<typename safe_value_type<T, is_range_enumerable<T>::value>::type, std::uint8_t>::value>;
+        static constexpr bool is_byte_enumerable_v = is_range_enumerable_v<T> and std::is_same_v<typename safe_value_type<T, is_range_enumerable_v<T>>::type, std::uint8_t>;
+
         template <class T>
-        using is_byte_enum_enumerable = typename std::integral_constant<bool, is_range_enumerable<T>::value and is_byte_enum<typename safe_value_type<T, is_range_enumerable<T>::value>::type>::value>;
+        static constexpr bool is_byte_enum_enumerable_v = is_range_enumerable_v<T> and is_byte_enum_v<typename safe_value_type<T, is_range_enumerable_v<T>>::type>;
+
     }// namespace impl
 
-    template <class Enum, class = typename std::enable_if<impl::is_byte_enum<Enum>::value>::type>
+    template <class Enum, class = typename std::enable_if<impl::is_byte_enum_v<Enum>>::type>
     bin_stream &operator>>(bin_stream &s, Enum &t);
 
     template <class T, class = typename std::enable_if<
-                               impl::is_byte_enum<T>::value or impl::is_byte_enumerable<T>::value or
-                               impl::is_byte_enum_enumerable<T>::value>::type>
+                               impl::is_byte_enum_v<T> or impl::is_byte_enumerable_v<T> or
+                               impl::is_byte_enum_enumerable_v<T>>::type>
     bin_data &operator<<(bin_data &bd, T const &t);
 }// namespace mlab
 
@@ -379,7 +371,7 @@ namespace mlab {
         return std::numeric_limits<std::size_t>::max();
     }
 
-    range<bin_data::const_iterator> bin_stream::peek() {
+    range<bin_data::const_iterator> bin_stream::peek() const {
         if (good()) {
             return _data->view(_pos);
         }
@@ -458,7 +450,7 @@ namespace mlab {
 
     template <class Enum, class>
     bin_stream &operator>>(bin_stream &s, Enum &t) {
-        using underlying_t = typename std::underlying_type<Enum>::type;
+        using underlying_t = typename std::underlying_type_t<Enum>;
         auto value = static_cast<underlying_t>(Enum{});// A valid enum entry
         s >> value;
         if (not s.bad()) {
@@ -467,156 +459,20 @@ namespace mlab {
         return s;
     }
 
-    namespace impl {
-        template <class, bool, bool, bool>
-        struct inject {
-        };
-
-        template <class ByteEnum>
-        struct inject<ByteEnum, true, false, false> {
-            bin_data &operator()(bin_data &bd, ByteEnum const &e) const {
-                static_assert(std::is_same<std::uint8_t, typename std::underlying_type<ByteEnum>::type>::value,
-                              "SFINAE Error?");
-                return bd << static_cast<std::uint8_t>(e);
-            }
-        };
-
-        template <class ByteContainer>
-        struct inject<ByteContainer, false, true, false> {
-            bin_data &operator()(bin_data &bd, ByteContainer const &a) const {
-                bd.reserve(bd.size() + std::distance(std::begin(a), std::end(a)));
-                std::copy(std::begin(a), std::end(a), std::back_inserter(bd));
-                return bd;
-            }
-        };
-
-        template <class ByteEnumContainer>
-        struct inject<ByteEnumContainer, false, false, true> {
-            bin_data &operator()(bin_data &bd, ByteEnumContainer const &a) const {
-                bd.reserve(bd.size() + std::distance(std::begin(a), std::end(a)));
-                for (auto const be : a) {
-                    bd << static_cast<std::uint8_t>(be);
-                }
-                return bd;
-            }
-        };
-
-        template <byte_order, bool>
-        struct pack {};
-        template <byte_order, std::size_t, bool>
-        struct unpack {};
-
-        template <>
-        struct pack<byte_order::msb_first, false> {
-            inline std::uint16_t operator()(std::array<std::uint8_t, 2> b) {
-                return (std::uint16_t(b[0]) << 8) | std::uint16_t(b[1]);
-            }
-            inline std::uint32_t operator()(std::array<std::uint8_t, 3> b) {
-                return (std::uint32_t(b[0]) << 16) | (std::uint32_t(b[1]) << 8) | std::uint32_t(b[2]);
-            }
-            inline std::uint32_t operator()(std::array<std::uint8_t, 4> b) {
-                return (std::uint32_t(b[0]) << 24) | (std::uint32_t(b[1]) << 16) | (std::uint32_t(b[2]) << 8) | std::uint32_t(b[3]);
-            }
-        };
-
-        template <>
-        struct pack<byte_order::lsb_first, false> {
-            inline std::uint16_t operator()(std::array<std::uint8_t, 2> b) {
-                return (std::uint16_t(b[1]) << 8) | std::uint16_t(b[0]);
-            }
-            inline std::uint32_t operator()(std::array<std::uint8_t, 3> b) {
-                return (std::uint32_t(b[2]) << 16) | (std::uint32_t(b[1]) << 8) | std::uint32_t(b[0]);
-            }
-            inline std::uint32_t operator()(std::array<std::uint8_t, 4> b) {
-                return (std::uint32_t(b[3]) << 24) | (std::uint32_t(b[2]) << 16) | (std::uint32_t(b[1]) << 8) | std::uint32_t(b[0]);
-            }
-        };
-
-        template <>
-        struct unpack<byte_order::msb_first, 2, false> {
-            inline std::array<std::uint8_t, 2> operator()(std::uint_fast16_t n) {
-                return {std::uint8_t((n >> 8) & 0xff), std::uint8_t(n & 0xff)};
-            }
-        };
-
-        template <>
-        struct unpack<byte_order::msb_first, 3, false> {
-            inline std::array<std::uint8_t, 3> operator()(std::uint_fast32_t n) {
-                if ((n & 0xff000000) != 0) {
-                    ESP_LOGE("mlab::unpack<3>", "Number not representable with 24 bits: %d", n);
-                    n = std::min(n, std::uint_fast32_t(0xffffff));
-                }
-                return {std::uint8_t((n >> 16) & 0xff), std::uint8_t((n >> 8) & 0xff), std::uint8_t(n & 0xff)};
-            }
-        };
-
-        template <>
-        struct unpack<byte_order::msb_first, 4, false> {
-            inline std::array<std::uint8_t, 4> operator()(std::uint_fast32_t n) {
-                return {std::uint8_t((n >> 24) & 0xff), std::uint8_t((n >> 16) & 0xff), std::uint8_t((n >> 8) & 0xff), std::uint8_t(n & 0xff)};
-            }
-        };
-
-        template <>
-        struct unpack<byte_order::lsb_first, 2, false> {
-            inline std::array<std::uint8_t, 2> operator()(std::uint_fast16_t n) {
-                return {std::uint8_t(n & 0xff), std::uint8_t((n >> 8) & 0xff)};
-            }
-        };
-
-        template <>
-        struct unpack<byte_order::lsb_first, 3, false> {
-            inline std::array<std::uint8_t, 3> operator()(std::uint_fast32_t n) {
-                if ((n & 0xff000000) != 0) {
-                    ESP_LOGE("mlab::unpack<3>", "Number not representable with 24 bits: %d", n);
-                    n = std::min(n, std::uint_fast32_t(0xffffff));
-                }
-                return {std::uint8_t(n & 0xff), std::uint8_t((n >> 8) & 0xff), std::uint8_t((n >> 16) & 0xff)};
-            }
-        };
-
-        template <>
-        struct unpack<byte_order::lsb_first, 4, false> {
-            inline std::array<std::uint8_t, 4> operator()(std::uint_fast32_t n) {
-                return {std::uint8_t(n & 0xff), std::uint8_t((n >> 8) & 0xff), std::uint8_t((n >> 16) & 0xff), std::uint8_t((n >> 24) & 0xff)};
-            }
-        };
-
-        template <byte_order Order>
-        struct pack<Order, true> {
-            inline std::int16_t operator()(std::array<std::uint8_t, 2> b) {
-                const std::uint16_t packed_unsigned = pack<Order, false>{}(b);
-                return *reinterpret_cast<std::int16_t const *>(&packed_unsigned);
-            }
-
-            inline std::int32_t operator()(std::array<std::uint8_t, 4> b) {
-                const std::uint32_t packed_unsigned = pack<Order, false>{}(b);
-                return *reinterpret_cast<std::int32_t const *>(&packed_unsigned);
-            }
-        };
-
-
-        template <byte_order Order>
-        struct unpack<Order, 2, true> {
-            inline std::array<std::uint8_t, 2> operator()(std::int_fast16_t n) {
-                return unpack<Order, 2, false>{}(*reinterpret_cast<std::uint_fast16_t const *>(&n));
-            }
-        };
-
-        template <byte_order Order>
-        struct unpack<Order, 4, true> {
-            inline std::array<std::uint8_t, 4> operator()(std::int_fast32_t n) {
-                return unpack<Order, 4, false>{}(*reinterpret_cast<std::uint_fast32_t const *>(&n));
-            }
-        };
-
-
-    }// namespace impl
-
     template <class T, class>
     bin_data &operator<<(bin_data &bd, T const &t) {
-        return impl::inject<T, impl::is_byte_enum<T>::value, impl::is_byte_enumerable<T>::value,
-                            impl::is_byte_enum_enumerable<T>::value>{}(bd, t);
+        if constexpr (impl::is_byte_enum_v<T>) {
+            bd << static_cast<std::uint8_t>(t);
+        } else if constexpr (impl::is_byte_enumerable_v<T>) {
+            bd.reserve(bd.size() + std::distance(std::begin(t), std::end(t)));
+            std::copy(std::begin(t), std::end(t), std::back_inserter(bd));
+        } else if constexpr (impl::is_byte_enum_enumerable_v<T>) {
+            bd.reserve(bd.size() + std::distance(std::begin(t), std::end(t)));
+            for (auto const be : t) {
+                bd << static_cast<std::uint8_t>(be);
+            }
+        }
+        return bd;
     }
 
 
@@ -641,19 +497,18 @@ namespace mlab {
     }
 
     template <class Num, unsigned BitSize, byte_order Order,
-              class = typename std::enable_if<(std::is_unsigned<Num>::value or std::is_signed<Num>::value) and sizeof(Num) * 8 >= BitSize>::type>
+              class = typename std::enable_if<(std::is_unsigned_v<Num> or std::is_signed_v<Num>) and sizeof(Num) * 8 >= BitSize>::type>
     bin_stream &operator>>(ordered_extractor<BitSize, Order> e, Num &n) {
         std::array<std::uint8_t, BitSize / 8> b{};
         e.s >> b;
-        n = impl::pack<Order, std::is_signed<Num>::value>{}(b);
+        n = decode<Order, BitSize, Num>(b);
         return e.s;
     }
 
     template <class Num, unsigned BitSize, byte_order Order,
-              class = typename std::enable_if<(std::is_unsigned<Num>::value or std::is_signed<Num>::value) and sizeof(Num) * 8 >= BitSize>::type>
+              class = typename std::enable_if<(std::is_unsigned_v<Num> or std::is_signed_v<Num>) and sizeof(Num) * 8 >= BitSize>::type>
     bin_data &operator<<(ordered_injector<BitSize, Order> i, Num n) {
-        i.bd << impl::unpack<Order, BitSize / 8, std::is_signed<Num>::value>{}(n);
-        return i.bd;
+        return i.bd << encode<Order, BitSize, Num>(n);
     }
 
 

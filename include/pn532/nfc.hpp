@@ -388,7 +388,6 @@ namespace pn532 {
         /**
          * @brief Set timeout for ATR_RES and non-DEP communications (UM0701-02 §7.3.1)
          * @ingroup RF
-         * @todo remove rfu byte, becouse it is constant (ReserveForFutureUse)
          * @param atr_res_timeout set timeout for ATR request (use when pn532 is the Initiator)
          * @param retry_timeout set timeout for InCommunicateThru @ref nfc::initiator_communicate_through
          * @param timeout maximum time for getting a response
@@ -398,7 +397,7 @@ namespace pn532 {
          *         - @ref error::comm_timeout
          */
         r<> rf_configuration_timings(
-                std::uint8_t rfu, rf_timeout atr_res_timeout = rf_timeout::ms_102_4,
+                rf_timeout atr_res_timeout = rf_timeout::ms_102_4,
                 rf_timeout retry_timeout = rf_timeout::ms_51_2, ms timeout = default_timeout);
 
         /**
@@ -497,7 +496,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        template <class T, class = typename std::enable_if<not std::is_same<bin_data, typename std::remove_const<typename std::remove_reference<T>::type>::type>::value>::type>
+        template <class T, class = typename std::enable_if<not std::is_same_v<bin_data, typename std::decay_t<T>::type>>::type>
         r<rf_status, bin_data>
         initiator_data_exchange(std::uint8_t target_logical_index, T &&data, ms timeout = default_timeout);
 
@@ -1375,7 +1374,7 @@ namespace pn532 {
         struct frame_header;
         struct frame_body;
 
-        inline channel &chn() const;
+        [[nodiscard]] inline channel &chn() const;
 
         bool await_frame(ms timeout);
 
@@ -1383,13 +1382,13 @@ namespace pn532 {
 
         r<frame_body> read_response_body(frame_header const &hdr, ms timeout);
 
-        static bin_data get_command_info_frame(command_code cmd, bin_data const &payload);
+        [[nodiscard]] static bin_data get_command_info_frame(command_code cmd, bin_data const &payload);
 
-        static bin_data const &get_ack_frame();
+        [[nodiscard]] static bin_data const &get_ack_frame();
 
-        static bin_data const &get_nack_frame();
+        [[nodiscard]] static bin_data const &get_nack_frame();
 
-        static std::uint8_t get_target(command_code cmd, std::uint8_t target_logical_index, bool expect_more_data);
+        [[nodiscard]] static std::uint8_t get_target(command_code cmd, std::uint8_t target_logical_index, bool expect_more_data);
 
         template <baudrate_modulation BrMd>
         r<std::vector<bits::target<BrMd>>> initiator_list_passive(
@@ -1397,7 +1396,7 @@ namespace pn532 {
                 bin_data const &initiator_data, ms timeout);
     };
 
-    const char *to_string(nfc::error e);
+    [[nodiscard]] const char *to_string(nfc::error e);
 }// namespace pn532
 
 
@@ -1408,11 +1407,11 @@ namespace pn532 {
     channel &nfc::chn() const { return *_channel; }
 
     nfc::r<uint8_t> nfc::read_register(reg_addr const &addr, ms timeout) {
-        const auto res_cmd = read_registers({addr}, timeout);
-        if (res_cmd) {
+        if (const auto res_cmd = read_registers({addr}, timeout); res_cmd) {
             return res_cmd->at(0);
+        } else {
+            return res_cmd.error();
         }
-        return res_cmd.error();
     }
 
     nfc::r<> nfc::write_register(reg_addr const &addr, std::uint8_t val, ms timeout) {
@@ -1421,24 +1420,26 @@ namespace pn532 {
 
     template <class Data, class>
     nfc::r<Data> nfc::command_parse_response(command_code cmd, bin_data const &payload, ms timeout) {
-        const auto res_cmd = command_response(cmd, payload, timeout);
-        if (not res_cmd) {
+        if (const auto res_cmd = command_response(cmd, payload, timeout); res_cmd) {
+            bin_stream s{*res_cmd};
+            auto data = Data();
+            s >> data;
+            if (s.bad()) {
+                PN532_LOGE("%s: could not parse result from response data.", to_string(cmd));
+                return error::comm_malformed;
+            }
+            return data;
+        } else {
             return res_cmd.error();
         }
-        bin_stream s{*res_cmd};
-        Data data{};
-        s >> data;
-        if (s.bad()) {
-            PN532_LOGE("%s: could not parse result from response data.", to_string(cmd));
-            return error::comm_malformed;
-        }
-        return data;
     }
 
     template <class T, class>
     nfc::r<rf_status, bin_data> nfc::initiator_data_exchange(std::uint8_t target_logical_index, T &&data, ms timeout) {
-        const bin_data bd = bin_data::chain(std::forward<T>(data));
-        return initiator_data_exchange(target_logical_index, bd, timeout);
+        static bin_data buffer{};
+        buffer.clear();
+        buffer << std::forward<T>(data);
+        return initiator_data_exchange(target_logical_index, buffer, timeout);
     }
 
 }// namespace pn532

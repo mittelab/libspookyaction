@@ -28,8 +28,8 @@ namespace pn532 {
 
         inline explicit i2c_channel(i2c_port_t port, std::uint8_t slave_address = default_slave_address);
 
-        inline std::uint8_t slave_address_to_write() const;
-        inline std::uint8_t slave_address_to_read() const;
+        [[nodiscard]] inline std::uint8_t slave_address_to_write() const;
+        [[nodiscard]] inline std::uint8_t slave_address_to_read() const;
     };
 }// namespace pn532
 

@@ -8,6 +8,7 @@
 #include "cipher.hpp"
 #include "crypto_algo.hpp"
 #include "log.h"
+#include <cassert>
 
 namespace desfire {
 
@@ -35,7 +36,7 @@ namespace desfire {
         cmac_subkey_t _cmac_subkey_nopad;
         block_t _global_iv;
 
-        block_t &get_iv();
+        [[nodiscard]] block_t &get_iv();
 
     protected:
         cipher_scheme();
@@ -160,9 +161,9 @@ namespace desfire {
             const std::uint32_t crc_full = compute_crc32(range<bin_data::const_iterator>{m, e}, crc_data_status);
             return crc_full;
         };
-        const auto end_payload_did_verify = find_crc_tail<block_size>(std::begin(d), std::end(d), crc_fn, crc32_init, false);
-        if (end_payload_did_verify.second) {
-            const std::size_t payload_length = std::distance(std::begin(d), end_payload_did_verify.first);
+        const auto [end_payload, did_verify] = find_crc_tail<block_size>(std::begin(d), std::end(d), crc_fn, crc32_init, false);
+        if (did_verify) {
+            const std::size_t payload_length = std::distance(std::begin(d), end_payload);
             // In case of error, make sure to not get any weird size/number
             d.resize(std::max(payload_length, crc_size) - crc_size);
             return true;

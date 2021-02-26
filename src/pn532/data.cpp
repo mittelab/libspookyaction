@@ -3,7 +3,6 @@
 //
 
 #include "pn532/data.hpp"
-#include "pn532/msg.hpp"
 
 namespace mlab {
 
@@ -55,8 +54,8 @@ namespace mlab {
         r.enable_detection = 0 != (bitpack & bits::reg_andet_control_antenna_detect_mask);
         r.detected_low_pwr = 0 != (bitpack & bits::reg_andet_control_too_low_power_mask);
         r.detected_high_pwr = 0 != (bitpack & bits::reg_andet_control_too_high_power_mask);
-        r.low_current_threshold = static_cast<low_current_thr>(bitpack & bits::reg_andet_control_too_low_power_mask);
-        r.high_current_threshold = static_cast<high_current_thr>(bitpack & bits::reg_andet_control_too_high_power_mask);
+        r.low_current_threshold = static_cast<low_current_thr>(bitpack & bits::reg_andet_control_low_current_mask);
+        r.high_current_threshold = static_cast<high_current_thr>(bitpack & bits::reg_andet_control_high_current_mask);
         return s;
     }
 
@@ -332,9 +331,6 @@ namespace mlab {
             case target_type::dep_active_424kbps:
                 t = extract_poll_entry<target_type::dep_active_424kbps>(s);
                 break;
-            case target_type::generic_passive_106kbps:
-            case target_type::generic_passive_212kbps:
-            case target_type::generic_passive_424kbps:
             default:
                 PN532_LOGW("Unsupported target type %s", to_string(type));
                 s.set_bad();

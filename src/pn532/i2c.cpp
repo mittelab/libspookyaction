@@ -5,7 +5,6 @@
 
 #include "pn532/i2c.hpp"
 #include <memory>
-#include <mlab/result.hpp>
 
 #define PN532_I2C_TAG "PN532-I2C"
 
@@ -22,14 +21,6 @@ namespace pn532 {
     }// namespace
 
     namespace i2c {
-
-        enum struct error : std::int16_t {
-            parameter_error = ESP_ERR_INVALID_ARG,
-            fail = ESP_FAIL,
-            invalid_state = ESP_ERR_INVALID_STATE,
-            timeout = ESP_ERR_TIMEOUT
-        };
-
         [[nodiscard]] const char *to_string(error e) {
             switch (e) {
                 case error::parameter_error:
@@ -44,79 +35,69 @@ namespace pn532 {
             return "UNKNOWN";
         }
 
-        class command {
-            i2c_cmd_handle_t _handle;
-            bool _sealed;
-
-            [[nodiscard]] bool assert_not_sealed() const {
-                if (_sealed) {
-                    ESP_LOGE(PN532_I2C_TAG, "This command was already run and cannot be changed.");
-                    return false;
-                }
-                return true;
+        bool command::assert_unused() const {
+            if (_used) {
+                ESP_LOGE(PN532_I2C_TAG, "This command was already run and cannot be reused.");
+                return false;
             }
+            return true;
+        }
 
-        public:
-            command() : _handle{i2c_cmd_link_create()}, _sealed{false} {
-                i2c_master_start(_handle);
-            }
+        command::command() : _handle{i2c_cmd_link_create()}, _used{false} {
+            i2c_master_start(_handle);
+        }
 
-            ~command() {
-                i2c_cmd_link_delete(_handle);
-            }
-            command(command const &) = delete;
-            command(command &&) noexcept = default;
-            command &operator=(command const &) = delete;
-            command &operator=(command &&) noexcept = default;
+        command::~command() {
+            i2c_cmd_link_delete(_handle);
+        }
 
-            void write_byte(std::uint8_t b, bool enable_ack_check) {
-                if (assert_not_sealed()) {
-                    if (i2c_master_write_byte(_handle, b, enable_ack_check) != ESP_OK) {
-                        ESP_LOGE(PN532_I2C_TAG, "i2c_master_write_byte failed.");
-                    }
+        void command::write_byte(std::uint8_t b, bool enable_ack_check) {
+            if (assert_unused()) {
+                if (i2c_master_write_byte(_handle, b, enable_ack_check) != ESP_OK) {
+                    ESP_LOGE(PN532_I2C_TAG, "i2c_master_write_byte failed.");
                 }
             }
+        }
 
-            void write(bin_data const &data, bool enable_ack_check) {
-                if (assert_not_sealed()) {
-                    if (i2c_master_write(_handle, const_cast<std::uint8_t *>(data.data()), data.size(), enable_ack_check) != ESP_OK) {
-                        ESP_LOGE(PN532_I2C_TAG, "i2c_master_write failed.");
-                    }
+        void command::write(bin_data const &data, bool enable_ack_check) {
+            if (assert_unused()) {
+                if (i2c_master_write(_handle, const_cast<std::uint8_t *>(data.data()), data.size(), enable_ack_check) != ESP_OK) {
+                    ESP_LOGE(PN532_I2C_TAG, "i2c_master_write failed.");
                 }
             }
+        }
 
-            void read_into(bin_data &bd, i2c_ack_type_t ack) {
-                if (assert_not_sealed()) {
-                    if (i2c_master_read(_handle, bd.data(), bd.size(), ack) != ESP_OK) {
-                        ESP_LOGE(PN532_I2C_TAG, "i2c_master_read failed.");
-                    }
+        void command::read_into(bin_data &bd, i2c_ack_type_t ack) {
+            if (assert_unused()) {
+                if (i2c_master_read(_handle, bd.data(), bd.size(), ack) != ESP_OK) {
+                    ESP_LOGE(PN532_I2C_TAG, "i2c_master_read failed.");
                 }
             }
+        }
 
-            void read_into(std::uint8_t &b, i2c_ack_type_t ack) {
-                if (assert_not_sealed()) {
-                    if (i2c_master_read_byte(_handle, &b, ack) != ESP_OK) {
-                        ESP_LOGE(PN532_I2C_TAG, "i2c_master_read_byte failed.");
-                    }
+        void command::read_into(std::uint8_t &b, i2c_ack_type_t ack) {
+            if (assert_unused()) {
+                if (i2c_master_read_byte(_handle, &b, ack) != ESP_OK) {
+                    ESP_LOGE(PN532_I2C_TAG, "i2c_master_read_byte failed.");
                 }
             }
+        }
 
-            void stop() {
-                if (assert_not_sealed()) {
-                    if (i2c_master_stop(_handle) != ESP_OK) {
-                        ESP_LOGE(PN532_I2C_TAG, "i2c_master_stop failed.");
-                    }
+        void command::stop() {
+            if (assert_unused()) {
+                if (i2c_master_stop(_handle) != ESP_OK) {
+                    ESP_LOGE(PN532_I2C_TAG, "i2c_master_stop failed.");
                 }
             }
+        }
 
-            mlab::result<error> operator()(i2c_port_t port, std::chrono::milliseconds timeout) {
-                _sealed = true;
-                if (const auto result_code = i2c_master_cmd_begin(port, _handle, duration_cast(timeout)); result_code != ESP_OK) {
-                    return static_cast<error>(result_code);
-                }
-                return mlab::result_success;
+        mlab::result<error> command::operator()(i2c_port_t port, std::chrono::milliseconds timeout) {
+            _used = true;
+            if (const auto result_code = i2c_master_cmd_begin(port, _handle, duration_cast(timeout)); result_code != ESP_OK) {
+                return static_cast<error>(result_code);
             }
-        };
+            return mlab::result_success;
+        }
     }// namespace i2c
 
     bool i2c_channel::wake() {

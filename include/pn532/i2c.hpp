@@ -7,6 +7,7 @@
 
 #include "channel.hpp"
 #include <driver/i2c.h>
+#include <mlab/result.hpp>
 
 namespace pn532 {
 
@@ -31,6 +32,47 @@ namespace pn532 {
         [[nodiscard]] inline std::uint8_t slave_address_to_write() const;
         [[nodiscard]] inline std::uint8_t slave_address_to_read() const;
     };
+
+
+    namespace i2c {
+
+        enum struct error : std::int16_t {
+            parameter_error = ESP_ERR_INVALID_ARG,
+            fail = ESP_FAIL,
+            invalid_state = ESP_ERR_INVALID_STATE,
+            timeout = ESP_ERR_TIMEOUT
+        };
+
+        [[nodiscard]] const char *to_string(error e);
+
+        class command {
+            i2c_cmd_handle_t _handle;
+            bool _used;
+
+            [[nodiscard]] bool assert_unused() const;
+
+        public:
+            command();
+            ~command();
+            command(command const &) = delete;
+            command(command &&) noexcept = default;
+            command &operator=(command const &) = delete;
+            command &operator=(command &&) noexcept = default;
+
+            void write_byte(std::uint8_t b, bool enable_ack_check);
+
+            void write(bin_data const &data, bool enable_ack_check);
+
+            void read_into(bin_data &bd, i2c_ack_type_t ack);
+
+            void read_into(std::uint8_t &b, i2c_ack_type_t ack);
+
+            void stop();
+
+            mlab::result<error> operator()(i2c_port_t port, std::chrono::milliseconds timeout);
+        };
+    }// namespace i2c
+
 }// namespace pn532
 
 namespace pn532 {

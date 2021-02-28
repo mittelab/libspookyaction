@@ -87,7 +87,7 @@ void test_raw_i2c_pn532_sam_config_cmd() {
             .master = {.clk_speed = 400000}};
     TEST_ASSERT_EQUAL(ESP_OK, i2c_param_config(I2C_NUM_0, &i2c_config));
     TEST_ASSERT_EQUAL(ESP_OK, i2c_driver_install(I2C_NUM_0, I2C_MODE_MASTER, BUF_SIZE, BUF_SIZE, 0));
-    TEST_ASSERT_EQUAL(ESP_OK, i2c_set_timeout(I2C_NUM_0, 100000 /* 1.25 ms */));
+    TEST_ASSERT_EQUAL(ESP_OK, i2c_set_timeout(I2C_NUM_0, 200000 /* 1.25 ms */));
 
     // Manual SAM configuration: wake
     pn532::i2c::command wake_cmd;
@@ -109,7 +109,7 @@ void test_raw_i2c_pn532_sam_config_cmd() {
             std::uint8_t status = 0x00;
             await_status_cmd.write(pn532::i2c_channel::default_slave_address + 1 /* read */, true);
             await_status_cmd.read(status, I2C_MASTER_ACK);
-            /// @todo Do not send stop; if we send stop, we lose data.
+            // Deliberately avoid sending a stop signal so that we can recover data if status is 1
 
             if (const auto result = await_status_cmd(I2C_NUM_0, 10ms); not result) {
                 TEST_FAIL_MESSAGE(pn532::i2c::to_string(result.error()));
@@ -126,16 +126,15 @@ void test_raw_i2c_pn532_sam_config_cmd() {
     // Receive the ack
     pn532::i2c::command receive_ack_cmd;
     mlab::bin_data ack_buffer;
-    /// @bug After the restart, the ack buffer has one byte extra to read
-    ack_buffer.resize(5);
+    ack_buffer.resize(6);
     receive_ack_cmd.write(pn532::i2c_channel::default_slave_address + 1 /* read */, true);
-    receive_ack_cmd.read(ack_buffer, I2C_MASTER_ACK);
+    receive_ack_cmd.read(ack_buffer, I2C_MASTER_LAST_NACK);
     receive_ack_cmd.stop();
 
     // Receive the answer
     pn532::i2c::command receive_response_cmd;
     mlab::bin_data response_buffer;
-    response_buffer.resize(9);
+    response_buffer.resize(10);
     receive_response_cmd.write(pn532::i2c_channel::default_slave_address + 1 /* read */, true);
     receive_response_cmd.read(response_buffer, I2C_MASTER_LAST_NACK);
     receive_response_cmd.stop();
@@ -154,8 +153,8 @@ void test_raw_i2c_pn532_sam_config_cmd() {
     TEST_ASSERT(receive_response_cmd(I2C_NUM_0, 10ms));
     ESP_LOGI(TEST_TAG, "SAM cycle done.");
 
-    const mlab::bin_data expected_ack = {0x00, 0x00, 0xff, 0x00, 0xff, 0x00};
-    const mlab::bin_data expected_resp = {0x00, 0x00, 0xff, 0x02, 0xfe, 0xd5, 0x15, 0x16, 0x00};
+    const mlab::bin_data expected_ack = {0x01, 0x00, 0x00, 0xff, 0x00, 0xff, 0x00};
+    const mlab::bin_data expected_resp = {0x01, 0x00, 0x00, 0xff, 0x02, 0xfe, 0xd5, 0x15, 0x16, 0x00};
 
     TEST_ASSERT_EQUAL_HEX8_ARRAY(expected_ack.data(), ack_buffer.data(), std::min(ack_buffer.size(), expected_ack.size()));
     TEST_ASSERT_EQUAL_HEX8_ARRAY(expected_resp.data(), response_buffer.data(), std::min(response_buffer.size(), expected_resp.size()));

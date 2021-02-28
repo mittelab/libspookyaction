@@ -109,7 +109,7 @@ void test_raw_i2c_pn532_sam_config_cmd() {
             std::uint8_t status = 0x00;
             await_status_cmd.write(pn532::i2c_channel::default_slave_address + 1 /* read */, true);
             await_status_cmd.read(status, I2C_MASTER_ACK);
-            await_status_cmd.stop();
+            /// @todo Do not send stop; if we send stop, we lose data.
 
             if (const auto result = await_status_cmd(I2C_NUM_0, 10ms); not result) {
                 TEST_FAIL_MESSAGE(pn532::i2c::to_string(result.error()));
@@ -126,6 +126,7 @@ void test_raw_i2c_pn532_sam_config_cmd() {
     // Receive the ack
     pn532::i2c::command receive_ack_cmd;
     mlab::bin_data ack_buffer;
+    /// @bug After the restart, the ack buffer has one byte extra to read
     ack_buffer.resize(5);
     receive_ack_cmd.write(pn532::i2c_channel::default_slave_address + 1 /* read */, true);
     receive_ack_cmd.read(ack_buffer, I2C_MASTER_ACK);

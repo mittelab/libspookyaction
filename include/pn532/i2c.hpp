@@ -7,8 +7,8 @@
 
 #include "channel.hpp"
 #include <driver/i2c.h>
-#include <mlab/result.hpp>
 #include <memory>
+#include <mlab/result.hpp>
 
 namespace pn532 {
 

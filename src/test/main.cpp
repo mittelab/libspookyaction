@@ -136,7 +136,14 @@ void test_raw_i2c_pn532_sam_config_cmd() {
     mlab::bin_data response_buffer;
     response_buffer.resize(10);
     receive_response_cmd.write(pn532::i2c_channel::default_slave_address + 1 /* read */, true);
-    receive_response_cmd.read(response_buffer, I2C_MASTER_LAST_NACK);
+    receive_response_cmd.read(response_buffer, I2C_MASTER_ACK);
+
+    // Attempt a restart read
+    pn532::i2c::command receive_response_restart_cmd;
+    mlab::bin_data response_restart_buffer;
+    response_restart_buffer.resize(10);
+    receive_response_restart_cmd.write(pn532::i2c_channel::default_slave_address + 1 /* read */, true);
+    receive_response_restart_cmd.read(response_restart_buffer, I2C_MASTER_LAST_NACK);
     receive_response_cmd.stop();
 
     // Attempt the sequence
@@ -151,6 +158,8 @@ void test_raw_i2c_pn532_sam_config_cmd() {
     TEST_ASSERT(await_ready());
     ESP_LOGI(TEST_TAG, "Ready to get response.");
     TEST_ASSERT(receive_response_cmd(I2C_NUM_0, 10ms));
+    ESP_LOGI(TEST_TAG, "Attempting restart read.");
+    TEST_ASSERT(receive_response_restart_cmd(I2C_NUM_0, 10ms));
     ESP_LOGI(TEST_TAG, "SAM cycle done.");
 
     const mlab::bin_data expected_ack = {0x01, 0x00, 0x00, 0xff, 0x00, 0xff, 0x00};
@@ -158,6 +167,7 @@ void test_raw_i2c_pn532_sam_config_cmd() {
 
     TEST_ASSERT_EQUAL_HEX8_ARRAY(expected_ack.data(), ack_buffer.data(), std::min(ack_buffer.size(), expected_ack.size()));
     TEST_ASSERT_EQUAL_HEX8_ARRAY(expected_resp.data(), response_buffer.data(), std::min(response_buffer.size(), expected_resp.size()));
+    TEST_ASSERT_EQUAL_HEX8_ARRAY(expected_resp.data(), response_restart_buffer.data(), std::min(response_restart_buffer.size(), expected_resp.size()));
 
     TEST_ASSERT_EQUAL(ESP_OK, i2c_driver_delete(I2C_NUM_0));
 }
@@ -955,7 +965,10 @@ struct file_test {
 void unity_main() {
     UNITY_BEGIN();
     esp_log_level_set("*", ESP_LOG_INFO);
-    // RUN_TEST(test_raw_i2c_pn532_sam_config_cmd);
+#ifdef PN532_TEST_I2C
+    RUN_TEST(test_raw_i2c_pn532_sam_config_cmd);
+    i2c_driver_delete(I2C_NUM_0);
+#else
     issue_header("MIFARE CIPHER TEST (no card)");
     RUN_TEST(test_crc16);
     RUN_TEST(test_crc32);
@@ -1021,6 +1034,7 @@ void unity_main() {
         }
         tag_reader->rf_configuration_field(true, false);
     }
+#endif
     UNITY_END();
 }
 

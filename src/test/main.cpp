@@ -91,14 +91,14 @@ void test_raw_i2c_pn532_sam_config_cmd() {
 
     // Manual SAM configuration: wake
     pn532::i2c::command wake_cmd;
-    wake_cmd.write_byte(pn532::i2c_channel::default_slave_address, true);
+    wake_cmd.write(pn532::i2c_channel::default_slave_address, true);
     wake_cmd.stop();
 
     // Manual SAM configuration: send
     pn532::i2c::command sam_cfg_cmd;
     const mlab::bin_data sam_cfg_payload = {0x00, 0x00, 0xff, 0x05, 0xfb, 0xd4, 0x14, 0x01, 0x14, 0x01, 0x02, 0x00};
-    sam_cfg_cmd.write_byte(pn532::i2c_channel::default_slave_address, true);
-    sam_cfg_cmd.write(sam_cfg_payload, true);
+    sam_cfg_cmd.write(pn532::i2c_channel::default_slave_address, true);
+    sam_cfg_cmd.write(std::cref(sam_cfg_payload), true);
     sam_cfg_cmd.stop();
 
     auto await_ready = [&] {
@@ -107,8 +107,8 @@ void test_raw_i2c_pn532_sam_config_cmd() {
             // Await for a 0x01 status byte
             pn532::i2c::command await_status_cmd;
             std::uint8_t status = 0x00;
-            await_status_cmd.write_byte(pn532::i2c_channel::default_slave_address + 1 /* read */, true);
-            await_status_cmd.read_into(status, I2C_MASTER_ACK);
+            await_status_cmd.write(pn532::i2c_channel::default_slave_address + 1 /* read */, true);
+            await_status_cmd.read(status, I2C_MASTER_ACK);
             await_status_cmd.stop();
 
             if (const auto result = await_status_cmd(I2C_NUM_0, 10ms); not result) {
@@ -127,16 +127,16 @@ void test_raw_i2c_pn532_sam_config_cmd() {
     pn532::i2c::command receive_ack_cmd;
     mlab::bin_data ack_buffer;
     ack_buffer.resize(5);
-    receive_ack_cmd.write_byte(pn532::i2c_channel::default_slave_address + 1 /* read */, true);
-    receive_ack_cmd.read_into(ack_buffer, I2C_MASTER_ACK);
+    receive_ack_cmd.write(pn532::i2c_channel::default_slave_address + 1 /* read */, true);
+    receive_ack_cmd.read(ack_buffer, I2C_MASTER_ACK);
     receive_ack_cmd.stop();
 
     // Receive the answer
     pn532::i2c::command receive_response_cmd;
     mlab::bin_data response_buffer;
     response_buffer.resize(9);
-    receive_response_cmd.write_byte(pn532::i2c_channel::default_slave_address + 1 /* read */, true);
-    receive_response_cmd.read_into(response_buffer, I2C_MASTER_LAST_NACK);
+    receive_response_cmd.write(pn532::i2c_channel::default_slave_address + 1 /* read */, true);
+    receive_response_cmd.read(response_buffer, I2C_MASTER_LAST_NACK);
     receive_response_cmd.stop();
 
     // Attempt the sequence

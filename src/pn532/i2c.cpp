@@ -51,7 +51,7 @@ namespace pn532 {
             i2c_cmd_link_delete(_handle);
         }
 
-        void command::write_byte(std::uint8_t b, bool enable_ack_check) {
+        void command::write(std::uint8_t b, bool enable_ack_check) {
             if (assert_unused()) {
                 if (i2c_master_write_byte(_handle, b, enable_ack_check) != ESP_OK) {
                     ESP_LOGE(PN532_I2C_TAG, "i2c_master_write_byte failed.");
@@ -59,23 +59,24 @@ namespace pn532 {
             }
         }
 
-        void command::write(bin_data const &data, bool enable_ack_check) {
+        void command::write(std::reference_wrapper<const bin_data> data, bool enable_ack_check) {
             if (assert_unused()) {
-                if (i2c_master_write(_handle, const_cast<std::uint8_t *>(data.data()), data.size(), enable_ack_check) != ESP_OK) {
+                if (i2c_master_write(_handle, const_cast<std::uint8_t *>(data.get().data()), data.get().size(), enable_ack_check) != ESP_OK) {
                     ESP_LOGE(PN532_I2C_TAG, "i2c_master_write failed.");
                 }
             }
         }
 
-        void command::read_into(bin_data &bd, i2c_ack_type_t ack) {
+
+        void command::read(bin_data &sized_buffer, i2c_ack_type_t ack) {
             if (assert_unused()) {
-                if (i2c_master_read(_handle, bd.data(), bd.size(), ack) != ESP_OK) {
+                if (i2c_master_read(_handle, sized_buffer.data(), sized_buffer.size(), ack) != ESP_OK) {
                     ESP_LOGE(PN532_I2C_TAG, "i2c_master_read failed.");
                 }
             }
         }
 
-        void command::read_into(std::uint8_t &b, i2c_ack_type_t ack) {
+        void command::read(std::uint8_t &b, i2c_ack_type_t ack) {
             if (assert_unused()) {
                 if (i2c_master_read_byte(_handle, &b, ack) != ESP_OK) {
                     ESP_LOGE(PN532_I2C_TAG, "i2c_master_read_byte failed.");
@@ -105,8 +106,8 @@ namespace pn532 {
         // pn532 should be waken up when it hears its address on the I2C bus
         i2c::command cmd;
         std::uint8_t status = 0xff;
-        cmd.write_byte(slave_address_to_read(), true);
-        cmd.read_into(status, I2C_MASTER_LAST_NACK);
+        cmd.write(slave_address_to_read(), true);
+        cmd.read(status, I2C_MASTER_LAST_NACK);
         cmd.stop();
 
         if (const auto res_cmd = cmd(_port, rt.remaining()); not res_cmd) {
@@ -121,8 +122,8 @@ namespace pn532 {
 
         std::uint8_t status = 0x00;
         i2c::command cmd;
-        cmd.write_byte(slave_address_to_read(), true);
-        cmd.read_into(status, I2C_MASTER_LAST_NACK);
+        cmd.write(slave_address_to_read(), true);
+        cmd.read(status, I2C_MASTER_LAST_NACK);
         cmd.stop();
 
         while (rt) {
@@ -141,7 +142,7 @@ namespace pn532 {
     bool i2c_channel::send_raw(const bin_data &data, std::chrono::milliseconds timeout) {
         reduce_timeout rt{timeout};
         i2c::command cmd;
-        cmd.write_byte(slave_address_to_write(), true);
+        cmd.write(slave_address_to_write(), true);
         cmd.write(data, true);
         cmd.stop();
 
@@ -158,8 +159,8 @@ namespace pn532 {
         data.resize(length);
 
         i2c::command cmd;
-        cmd.write_byte(slave_address_to_read(), true);
-        cmd.read_into(data, I2C_MASTER_ACK);
+        cmd.write(slave_address_to_read(), true);
+        cmd.read(data, I2C_MASTER_ACK);
         cmd.stop();
 
         if (const auto res_cmd = cmd(_port, rt.remaining()); not res_cmd) {

@@ -8,6 +8,7 @@
 #include "channel.hpp"
 #include <driver/i2c.h>
 #include <mlab/result.hpp>
+#include <memory>
 
 namespace pn532 {
 
@@ -59,13 +60,13 @@ namespace pn532 {
             command &operator=(command const &) = delete;
             command &operator=(command &&) noexcept = default;
 
-            void write_byte(std::uint8_t b, bool enable_ack_check);
+            void write(std::uint8_t b, bool enable_ack_check);
 
-            void write(bin_data const &data, bool enable_ack_check);
+            void write(std::reference_wrapper<const bin_data> data, bool enable_ack_check);
 
-            void read_into(bin_data &bd, i2c_ack_type_t ack);
+            void read(bin_data &sized_buffer, i2c_ack_type_t ack);
 
-            void read_into(std::uint8_t &b, i2c_ack_type_t ack);
+            void read(std::uint8_t &b, i2c_ack_type_t ack);
 
             void stop();
 

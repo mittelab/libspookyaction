@@ -96,8 +96,9 @@ void test_raw_i2c_pn532_sam_config_cmd() {
 
     // Manual SAM configuration: send
     pn532::i2c::command sam_cfg_cmd;
+    const mlab::bin_data sam_cfg_payload = {0x00, 0x00, 0xff, 0x05, 0xfb, 0xd4, 0x14, 0x01, 0x14, 0x01, 0x02, 0x00};
     sam_cfg_cmd.write_byte(pn532::i2c_channel::default_slave_address, true);
-    sam_cfg_cmd.write({0x00, 0x00, 0xff, 0x05, 0xfb, 0xd4, 0x14, 0x01, 0x14, 0x01, 0x02, 0x00}, true);
+    sam_cfg_cmd.write(sam_cfg_payload, true);
     sam_cfg_cmd.stop();
 
     auto await_ready = [&] {

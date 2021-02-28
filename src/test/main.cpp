@@ -11,6 +11,7 @@
 #define TEST_TAG "UT"
 #define TX_OR_SCL_PIN (GPIO_NUM_17)
 #define RX_OR_SDA_PIN (GPIO_NUM_16)
+#define P70_IRQ_PIN   (GPIO_NUM_4)
 #define BUF_SIZE (1024)
 
 namespace {
@@ -65,7 +66,6 @@ void setup_uart_pn532() {
             .source_clk = UART_SCLK_REF_TICK};
     TEST_ASSERT_EQUAL(ESP_OK, uart_param_config(UART_NUM_1, &uart_config));
     TEST_ASSERT_EQUAL(ESP_OK, uart_driver_install(UART_NUM_1, BUF_SIZE, BUF_SIZE, 0, nullptr, 0));
-    /// @todo Is this redundant?
     TEST_ASSERT_EQUAL(ESP_OK, uart_set_pin(UART_NUM_1, TX_OR_SCL_PIN, RX_OR_SDA_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
 
     channel = std::make_unique<pn532::hsu_channel>(UART_NUM_1);
@@ -73,6 +73,12 @@ void setup_uart_pn532() {
     TEST_ASSERT(channel->wake());
     const auto r_sam = tag_reader->sam_configuration(pn532::sam_mode::normal, pn532::one_sec);
     TEST_ASSERT(r_sam);
+}
+
+namespace {
+    void IRAM_ATTR _p70_irq_to_semaphore(void *semaphore_hdl) {
+        xSemaphoreGiveFromISR(reinterpret_cast<SemaphoreHandle_t>(semaphore_hdl), nullptr);
+    }
 }
 
 void test_raw_i2c_pn532_sam_config_cmd() {
@@ -84,10 +90,18 @@ void test_raw_i2c_pn532_sam_config_cmd() {
             .scl_io_num = TX_OR_SCL_PIN,
             .sda_pullup_en = GPIO_PULLUP_ENABLE,
             .scl_pullup_en = GPIO_PULLUP_ENABLE,
-            .master = {.clk_speed = 400000}};
+            .master = {.clk_speed = 100000}};
     TEST_ASSERT_EQUAL(ESP_OK, i2c_param_config(I2C_NUM_0, &i2c_config));
     TEST_ASSERT_EQUAL(ESP_OK, i2c_driver_install(I2C_NUM_0, I2C_MODE_MASTER, BUF_SIZE, BUF_SIZE, 0));
     TEST_ASSERT_EQUAL(ESP_OK, i2c_set_timeout(I2C_NUM_0, 200000 /* 1.25 ms */));
+
+    TEST_ASSERT_EQUAL(ESP_OK, gpio_install_isr_service(0));
+    TEST_ASSERT_EQUAL(ESP_OK, gpio_set_intr_type(P70_IRQ_PIN, GPIO_INTR_NEGEDGE));
+
+    SemaphoreHandle_t semaphore = xSemaphoreCreateBinary();
+    TEST_ASSERT_NOT_NULL(semaphore);
+
+    TEST_ASSERT_EQUAL(ESP_OK, gpio_isr_handler_add(P70_IRQ_PIN, &_p70_irq_to_semaphore, semaphore));
 
     // Manual SAM configuration: wake
     pn532::i2c::command wake_cmd;
@@ -102,25 +116,11 @@ void test_raw_i2c_pn532_sam_config_cmd() {
     sam_cfg_cmd.stop();
 
     auto await_ready = [&] {
-        pn532::reduce_timeout rt{1000ms};
-        do {
-            // Await for a 0x01 status byte
-            pn532::i2c::command await_status_cmd;
-            std::uint8_t status = 0x00;
-            await_status_cmd.write(pn532::i2c_channel::default_slave_address + 1 /* read */, true);
-            await_status_cmd.read(status, I2C_MASTER_ACK);
-            // Deliberately avoid sending a stop signal so that we can recover data if status is 1
-
-            if (const auto result = await_status_cmd(I2C_NUM_0, 10ms); not result) {
-                TEST_FAIL_MESSAGE(pn532::i2c::to_string(result.error()));
-            } else if (status == 0x00) {
-                ESP_LOGI(TEST_TAG, "PN532 not yet ready to give an answer.");
-                vTaskDelay(pdMS_TO_TICKS(10));
-            } else {
-                return true;
-            }
-        } while (rt);
-        return false;
+        if (xSemaphoreTake(semaphore, pdMS_TO_TICKS(100)) == pdFALSE) {
+            ESP_LOGE(TEST_TAG, "PN532 not yet ready to give an answer.");
+            return false;
+        }
+        return true;
     };
 
     // Receive the ack
@@ -169,6 +169,7 @@ void test_raw_i2c_pn532_sam_config_cmd() {
     TEST_ASSERT_EQUAL_HEX8_ARRAY(expected_resp.data(), response_buffer.data(), std::min(response_buffer.size(), expected_resp.size()));
     TEST_ASSERT_EQUAL_HEX8_ARRAY(expected_resp.data(), response_restart_buffer.data(), std::min(response_restart_buffer.size(), expected_resp.size()));
 
+    TEST_ASSERT_EQUAL(ESP_OK, gpio_isr_handler_remove(P70_IRQ_PIN));
     TEST_ASSERT_EQUAL(ESP_OK, i2c_driver_delete(I2C_NUM_0));
 }
 
@@ -967,6 +968,7 @@ void unity_main() {
     esp_log_level_set("*", ESP_LOG_INFO);
 #ifdef PN532_TEST_I2C
     RUN_TEST(test_raw_i2c_pn532_sam_config_cmd);
+    gpio_isr_handler_remove(P70_IRQ_PIN);
     i2c_driver_delete(I2C_NUM_0);
 #else
     issue_header("MIFARE CIPHER TEST (no card)");

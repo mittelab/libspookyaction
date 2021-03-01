@@ -30,9 +30,9 @@ namespace pn532::bits {
 
     static constexpr std::size_t max_firmware_data_length = 263;
 
-    static constexpr std::uint8_t firmware_iso_18092_mask = 0x1 << 2;
-    static constexpr std::uint8_t firmware_iso_iec_14443_typea_mask = 0x1 << 2;
-    static constexpr std::uint8_t firmware_iso_iec_14443_typeb_mask = 0x1 << 2;
+    static constexpr std::uint8_t firmware_iso_iec_14443_typea_mask = 0b0001;
+    static constexpr std::uint8_t firmware_iso_iec_14443_typeb_mask = 0b0010;
+    static constexpr std::uint8_t firmware_iso_18092_mask = 0b0100;
 
     static constexpr unsigned echo_back_reply_delay_steps_per_ms = 2;
 

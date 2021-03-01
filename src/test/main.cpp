@@ -153,22 +153,7 @@ void test_raw_i2c_pn532_sam_config_cmd() {
     ESP_LOGI(TEST_TAG, "Got ACK (or NACK).");
     TEST_ASSERT(await_ready());
     ESP_LOGI(TEST_TAG, "Ready to get response.");
-#if 0
     {
-        // Receive the answer
-        pn532::i2c::command receive_response_cmd;
-        mlab::bin_data response_buffer;
-        response_buffer.resize(10);
-        receive_response_cmd.write(pn532::i2c_channel::default_slave_address + 1 /* read */, true);
-        receive_response_cmd.read(response_buffer, I2C_MASTER_NACK);
-
-        TEST_ASSERT(receive_response_cmd(I2C_NUM_0, 10ms));
-        TEST_ASSERT_EQUAL_HEX8_ARRAY(expected_resp.data(), response_buffer.data(), std::min(response_buffer.size(), expected_resp.size()));
-    }
-    ESP_LOGI(TEST_TAG, "Attempting restart read.");
-#endif
-    {
-        // Attempt restart read
         pn532::i2c::command receive_response_cmd;
         mlab::bin_data response_buffer;
         response_buffer.resize(10);

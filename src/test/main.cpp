@@ -103,18 +103,6 @@ void test_raw_i2c_pn532_sam_config_cmd() {
 
     TEST_ASSERT_EQUAL(ESP_OK, gpio_isr_handler_add(P70_IRQ_PIN, &_p70_irq_to_semaphore, semaphore));
 
-    // Manual SAM configuration: wake
-    pn532::i2c::command wake_cmd;
-    wake_cmd.write(pn532::i2c_channel::default_slave_address, true);
-    wake_cmd.stop();
-
-    // Manual SAM configuration: send
-    pn532::i2c::command sam_cfg_cmd;
-    const mlab::bin_data sam_cfg_payload = {0x00, 0x00, 0xff, 0x05, 0xfb, 0xd4, 0x14, 0x01, 0x14, 0x01, 0x02, 0x00};
-    sam_cfg_cmd.write(pn532::i2c_channel::default_slave_address, true);
-    sam_cfg_cmd.write(std::cref(sam_cfg_payload), true);
-    sam_cfg_cmd.stop();
-
     auto await_ready = [&] {
         if (xSemaphoreTake(semaphore, pdMS_TO_TICKS(100)) == pdFALSE) {
             ESP_LOGE(TEST_TAG, "PN532 not yet ready to give an answer.");
@@ -123,51 +111,75 @@ void test_raw_i2c_pn532_sam_config_cmd() {
         return true;
     };
 
-    // Receive the ack
-    pn532::i2c::command receive_ack_cmd;
-    mlab::bin_data ack_buffer;
-    ack_buffer.resize(6);
-    receive_ack_cmd.write(pn532::i2c_channel::default_slave_address + 1 /* read */, true);
-    receive_ack_cmd.read(ack_buffer, I2C_MASTER_LAST_NACK);
-    receive_ack_cmd.stop();
-
-    // Receive the answer
-    pn532::i2c::command receive_response_cmd;
-    mlab::bin_data response_buffer;
-    response_buffer.resize(10);
-    receive_response_cmd.write(pn532::i2c_channel::default_slave_address + 1 /* read */, true);
-    receive_response_cmd.read(response_buffer, I2C_MASTER_NACK);
-
-    // Attempt a restart read
-    pn532::i2c::command receive_response_restart_cmd;
-    mlab::bin_data response_restart_buffer;
-    response_restart_buffer.resize(10);
-    receive_response_restart_cmd.write(pn532::i2c_channel::default_slave_address + 1 /* read */, true);
-    receive_response_restart_cmd.read(response_restart_buffer, I2C_MASTER_LAST_NACK);
-    receive_response_restart_cmd.stop();
-
-    // Attempt the sequence
-    TEST_ASSERT(wake_cmd(I2C_NUM_0, 10ms));
-    ESP_LOGI(TEST_TAG, "Wake up, Neo.");
-    TEST_ASSERT(sam_cfg_cmd(I2C_NUM_0, 10ms));
-    ESP_LOGI(TEST_TAG, "Configure your SAM, Neo.");
-    TEST_ASSERT(await_ready());
-    ESP_LOGI(TEST_TAG, "Ready to get ACK.");
-    TEST_ASSERT(receive_ack_cmd(I2C_NUM_0, 10ms));
-    ESP_LOGI(TEST_TAG, "Got ACK (or NACK).");
-    TEST_ASSERT(await_ready());
-    ESP_LOGI(TEST_TAG, "Ready to get response.");
-    TEST_ASSERT(receive_response_cmd(I2C_NUM_0, 10ms));
-    ESP_LOGI(TEST_TAG, "Attempting restart read.");
-    TEST_ASSERT(receive_response_restart_cmd(I2C_NUM_0, 10ms));
-    ESP_LOGI(TEST_TAG, "SAM cycle done.");
-
     const mlab::bin_data expected_ack = {0x01, 0x00, 0x00, 0xff, 0x00, 0xff, 0x00};
     const mlab::bin_data expected_resp = {0x01, 0x00, 0x00, 0xff, 0x02, 0xfe, 0xd5, 0x15, 0x16, 0x00};
 
-    TEST_ASSERT_EQUAL_HEX8_ARRAY(expected_ack.data(), ack_buffer.data(), std::min(ack_buffer.size(), expected_ack.size()));
-    TEST_ASSERT_EQUAL_HEX8_ARRAY(expected_resp.data(), response_buffer.data(), std::min(response_buffer.size(), expected_resp.size()));
-    TEST_ASSERT_EQUAL_HEX8_ARRAY(expected_resp.data(), response_restart_buffer.data(), std::min(response_restart_buffer.size(), expected_resp.size()));
+    // Attempt the sequence
+    {
+        // Manual SAM configuration: wake
+        pn532::i2c::command wake_cmd;
+        wake_cmd.write(pn532::i2c_channel::default_slave_address, true);
+        wake_cmd.stop();
+
+        TEST_ASSERT(wake_cmd(I2C_NUM_0, 10ms));
+    }
+    ESP_LOGI(TEST_TAG, "Wake up, Neo.");
+    {
+        // Manual SAM configuration: send
+        pn532::i2c::command sam_cfg_cmd;
+        const mlab::bin_data sam_cfg_payload = {0x00, 0x00, 0xff, 0x05, 0xfb, 0xd4, 0x14, 0x01, 0x14, 0x01, 0x02, 0x00};
+        sam_cfg_cmd.write(pn532::i2c_channel::default_slave_address, true);
+        sam_cfg_cmd.write(std::cref(sam_cfg_payload), true);
+        sam_cfg_cmd.stop();
+
+        TEST_ASSERT(sam_cfg_cmd(I2C_NUM_0, 10ms));
+    }
+    ESP_LOGI(TEST_TAG, "Configure your SAM, Neo.");
+    TEST_ASSERT(await_ready());
+    ESP_LOGI(TEST_TAG, "Ready to get ACK.");
+    {
+        // Receive the ack
+        pn532::i2c::command receive_ack_cmd;
+        mlab::bin_data ack_buffer;
+        ack_buffer.resize(6);
+        receive_ack_cmd.write(pn532::i2c_channel::default_slave_address + 1 /* read */, true);
+        receive_ack_cmd.read(ack_buffer, I2C_MASTER_LAST_NACK);
+        receive_ack_cmd.stop();
+
+        TEST_ASSERT(receive_ack_cmd(I2C_NUM_0, 10ms));
+        TEST_ASSERT_EQUAL_HEX8_ARRAY(expected_ack.data(), ack_buffer.data(), std::min(ack_buffer.size(), expected_ack.size()));
+
+    }
+    ESP_LOGI(TEST_TAG, "Got ACK (or NACK).");
+    TEST_ASSERT(await_ready());
+    ESP_LOGI(TEST_TAG, "Ready to get response.");
+#if 0
+    {
+        // Receive the answer
+        pn532::i2c::command receive_response_cmd;
+        mlab::bin_data response_buffer;
+        response_buffer.resize(10);
+        receive_response_cmd.write(pn532::i2c_channel::default_slave_address + 1 /* read */, true);
+        receive_response_cmd.read(response_buffer, I2C_MASTER_NACK);
+
+        TEST_ASSERT(receive_response_cmd(I2C_NUM_0, 10ms));
+        TEST_ASSERT_EQUAL_HEX8_ARRAY(expected_resp.data(), response_buffer.data(), std::min(response_buffer.size(), expected_resp.size()));
+    }
+    ESP_LOGI(TEST_TAG, "Attempting restart read.");
+#endif
+    {
+        // Attempt restart read
+        pn532::i2c::command receive_response_cmd;
+        mlab::bin_data response_buffer;
+        response_buffer.resize(10);
+        receive_response_cmd.write(pn532::i2c_channel::default_slave_address + 1 /* read */, true);
+        receive_response_cmd.read(response_buffer, I2C_MASTER_LAST_NACK);
+        receive_response_cmd.stop();
+
+        TEST_ASSERT(receive_response_cmd(I2C_NUM_0, 10ms));
+        TEST_ASSERT_EQUAL_HEX8_ARRAY(expected_resp.data(), response_buffer.data(), std::min(response_buffer.size(), expected_resp.size()));
+    }
+    ESP_LOGI(TEST_TAG, "SAM cycle done.");
 
     TEST_ASSERT_EQUAL(ESP_OK, gpio_isr_handler_remove(P70_IRQ_PIN));
     TEST_ASSERT_EQUAL(ESP_OK, i2c_driver_delete(I2C_NUM_0));

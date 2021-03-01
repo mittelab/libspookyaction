@@ -104,7 +104,6 @@ namespace desfire {
                 return cipher_mode::maced;
             case file_security::encrypted:
                 return cipher_mode::ciphered;
-                break;
         }
         return cipher_mode::plain;
     }

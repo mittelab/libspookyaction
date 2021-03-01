@@ -136,7 +136,7 @@ void test_raw_i2c_pn532_sam_config_cmd() {
     mlab::bin_data response_buffer;
     response_buffer.resize(10);
     receive_response_cmd.write(pn532::i2c_channel::default_slave_address + 1 /* read */, true);
-    receive_response_cmd.read(response_buffer, I2C_MASTER_ACK);
+    receive_response_cmd.read(response_buffer, I2C_MASTER_NACK);
 
     // Attempt a restart read
     pn532::i2c::command receive_response_restart_cmd;
@@ -144,7 +144,7 @@ void test_raw_i2c_pn532_sam_config_cmd() {
     response_restart_buffer.resize(10);
     receive_response_restart_cmd.write(pn532::i2c_channel::default_slave_address + 1 /* read */, true);
     receive_response_restart_cmd.read(response_restart_buffer, I2C_MASTER_LAST_NACK);
-    receive_response_cmd.stop();
+    receive_response_restart_cmd.stop();
 
     // Attempt the sequence
     TEST_ASSERT(wake_cmd(I2C_NUM_0, 10ms));

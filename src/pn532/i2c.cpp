@@ -154,10 +154,17 @@ namespace pn532 {
             ESP_LOGE(PN532_I2C_TAG, "Attempting I2C receive without having set the mode, use comm_operation.");
             return error::comm_error;
         }
+        std::uint8_t ready_byte = 0x00;
         auto cmd = raw_prepare_command();
-        /// @bug Must also read the status byte
-        cmd.read(buffer, I2C_MASTER_LAST_NACK);
+        if (buffer.size() > 0) {
+            cmd.read(ready_byte, I2C_MASTER_ACK);
+            cmd.read(buffer, I2C_MASTER_LAST_NACK);
+        } else {
+            // Read the ready byte only
+            cmd.read(ready_byte, I2C_MASTER_LAST_NACK);
+        }
         cmd.stop();
+        /// @todo Decide how you want to handle the status byte, probably polling until timeout runs out
         if (const auto res_cmd = cmd(_port, timeout); not res_cmd) {
             ESP_LOGE(PN532_I2C_TAG, "Receive failed: %s", i2c::to_string(res_cmd.error()));
             return error_from_i2c_error(res_cmd.error());
@@ -167,9 +174,7 @@ namespace pn532 {
 
     bool i2c_channel_repl::wake() {
         if (comm_operation op{*this, comm_mode::receive, 100ms}; op.ok()) {
-            static bin_data one_byte_shameful_buffer = {0x00};
-            assert(one_byte_shameful_buffer.size() == 1);
-            return bool(op.update(raw_receive(one_byte_shameful_buffer.view(), 10ms)));
+            return bool(op.update(raw_receive({}, 10ms)));
         } else {
             return false;
         }

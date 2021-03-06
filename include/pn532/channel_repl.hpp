@@ -195,7 +195,6 @@ namespace pn532::repl {
         r<Data> command_parse_response(bits::command cmd, bin_data data, ms timeout);
 
     private:
-
         /**
          * Receives the frame one piece at a time.
          */

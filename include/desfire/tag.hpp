@@ -15,6 +15,23 @@
 /**
  * @defgroup data Data storage
  * Commands to create and read/write files on the card
+ * @{
+ */
+
+/**
+ * @defgroup standardFile Standard file
+ */
+
+/**
+ * @defgroup recordFile Cyclic or linear record file
+ */
+
+/**
+ * @defgroup valueFile Value file
+ */
+
+/**
+ * @}
  */
 
 /**
@@ -61,6 +78,12 @@ namespace desfire {
 
         tag &operator=(tag &&) = default;
 
+        /**
+         * @internal
+         * @return bin_data, or the following errors:
+         * - @ref error::malformed
+         * - @ref error::controller_error
+         */
         r<bin_data> raw_command_response(bin_stream &tx_data, bool rx_fetch_additional_frames);
 
         /**
@@ -76,15 +99,33 @@ namespace desfire {
          * @ref command_parse_response. This is a lower level command.
          * @see command_response
          * @see command_parse_response
+         * @ingroup data
+         * @internal
+         * @return @ref bits::status and @ref mlab::bin_data, or the following errors:
+         * - @ref error::malformed
+         * - @ref error::crypto_error
+         * - @ref error::controller_error
          */
         r<status, bin_data> command_status_response(command_code cmd, bin_data const &data, comm_cfg const &cfg, bool rx_fetch_additional_frames = true, cipher *override_cipher = nullptr);
 
         /**
          * Will automatically fetch all additional frames if requested to do so by @p cfg, and at the end will parse the
          * status byte to decide whether the command was successful (@ref status::ok or @ref status::no_changes).
+         * @ingroup data
+         * @return @ref mlab::bin_data, or the following errors:
+         * - @ref error::malformed
+         * - @ref error::crypto_error
+         * - @ref error::controller_error
          */
         r<bin_data> command_response(command_code cmd, bin_data const &payload, comm_cfg const &cfg, bool rx_fetch_additional_frames = true, cipher *override_cipher = nullptr);
 
+        /**
+         * @ingroup data
+         * @return @ref mlab::bin_data, or the following errors:
+         * - @ref error::malformed
+         * - @ref error::crypto_error
+         * - @ref error::controller_error
+         */
         template <class Data, class = typename std::enable_if<bin_stream::is_extractable<Data>::value or std::is_integral_v<Data>>::type>
         r<Data> command_parse_response(command_code cmd, bin_data const &payload, comm_cfg const &cfg);
 
@@ -109,6 +150,10 @@ namespace desfire {
          * @ingroup application
          * @param app The id of the app to be selected
          * @note After selecting a new application, the controller is logged out and a new authentication is necessary.
+         * @return None, or the following errors:
+         * - @ref error::malformed
+         * - @ref error::crypto_error
+         * - @ref error::controller_error
          */
         r<> select_application(app_id const &app = root_app);
 
@@ -118,6 +163,10 @@ namespace desfire {
          * @param new_app_id the id of the new app to be created
          * @param settings configuration of tha app (mainly: number of keys and witch cipher to use)
          * @note Must be on the @ref root_app for this to succeed.
+         * @return None, or the following errors:
+         * - @ref error::malformed
+         * - @ref error::crypto_error
+         * - @ref error::controller_error
          */
         r<> create_application(app_id const &new_app_id, app_settings settings);
 
@@ -126,6 +175,10 @@ namespace desfire {
          * @ingroup application
          * @param new_rights the new app settings
          * @note Need to be autenticated to the app (with @ref authenticate) for this to succeed.
+         * @return None, or the following errors:
+         * - @ref error::malformed
+         * - @ref error::crypto_error
+         * - @ref error::controller_error
          */
         r<> change_app_settings(key_rights new_rights);
 
@@ -133,12 +186,21 @@ namespace desfire {
          * @brief Get the configuration of the selected app
          * @ingroup application
          * @note The app need to be selected first (with @ref select_application) for this to succeed.
+         * @return @ref app_settings, or the following errors:
+         * - @ref error::malformed
+         * - @ref error::crypto_error
+         * - @ref error::controller_error
          */
         r<app_settings> get_app_settings();
 
         /**
          * @brief Get the version of the key (in the selected application)
-         *
+         * @ingroup application
+         * @return integer rappresenting the key version, or the following errors:
+         * - @ref error::malformed
+         * - @ref error::crypto_error
+         * - @ref error::parameter_error
+         * - @ref error::controller_error
          */
         r<std::uint8_t> get_key_version(std::uint8_t key_num);
 
@@ -146,6 +208,10 @@ namespace desfire {
          * @brief Get a list of all application in the card
          * @ingroup application
          * @note Must be on the @ref root_app, possibly authenticated.
+         * @return vector of @ref app_id, or the following errors:
+         * - @ref error::malformed
+         * - @ref error::crypto_error
+         * - @ref error::controller_error
          */
         r<std::vector<app_id>> get_application_ids();
 
@@ -154,10 +220,21 @@ namespace desfire {
          * @ingroup application
          * @param app_id The app ID of the application to be deleted
          * @note Must authenticated on the @ref root_app or in @p app, with the appropriate master key.
+         * @return None, or the following errors:
+         * - @ref error::malformed
+         * - @ref error::crypto_error
+         * - @ref error::controller_error
          */
         r<> delete_application(app_id const &app);
 
-
+        /**
+         * @brief Read tag information
+         * @ingroup application
+         * @return @ref manufacturing_info containing tag information, or the following errors:
+         * - @ref error::malformed
+         * - @ref error::crypto_error
+         * - @ref error::controller_error
+         */
         r<manufacturing_info> get_info();
 
 
@@ -166,11 +243,22 @@ namespace desfire {
          * @ingroup application
          * @note Must be on the @ref root_app for this to succeed, and authenticated with the master key. After
          * formatting the controller will be logged out and on the @ref root_app.
+         * @return None, or the following errors:
+         * - @ref error::malformed
+         * - @ref error::crypto_error
+         * - @ref error::controller_error
          */
         r<> format_picc();
 
         /**
          * @note Assumes authentication has happened and the key settings allow the change.
+         * @ingroup application
+         * @return None, or the following errors:
+         * - @ref error::malformed
+         * - @ref error::crypto_error
+         * - @ref error::parameter_error
+         * - @ref error::controller_error
+         * - @ref error::authentication_error
          */
         template <cipher_type Type>
         r<> change_key(key<Type> const &new_key);
@@ -185,9 +273,13 @@ namespace desfire {
         r<> change_key(key<Type1> const &current_key, std::uint8_t key_no_to_change, key<Type2> const &new_key);
         r<> change_key(any_key const &current_key, std::uint8_t key_no_to_change, any_key const &new_key);
 
-        /** 
+        /**
          * @brief get a list of files in the selected application
          * @ingroup data
+         * @return vector of @ref file_id, or the following errors:
+         * - @ref error::malformed
+         * - @ref error::crypto_error
+         * - @ref error::controller_error
          */
         r<std::vector<file_id>> get_file_ids();
 
@@ -195,6 +287,10 @@ namespace desfire {
          * @brief Read the file settings
          * @ingroup data
          * @param fid The file ID, Max @ref bits::max_standard_data_file_id.
+         * @return @ref any_file_settings cointaining the file settings, or the following errors:
+         * - @ref error::malformed
+         * - @ref error::crypto_error
+         * - @ref error::controller_error
          */
         r<any_file_settings> get_file_settings(file_id fid);
 
@@ -212,6 +308,10 @@ namespace desfire {
          * @param fid The file ID, Max @ref bits::max_standard_data_file_id.
          * @param settings The new file settings
          * @note will read the file configuration to check witch comunication mode (@ref file_security) should use
+         * @return None, or the following errors:
+         * - @ref error::malformed
+         * - @ref error::crypto_error
+         * - @ref error::controller_error
          */
         r<> change_file_settings(file_id fid, generic_file_settings const &settings);
 
@@ -221,6 +321,10 @@ namespace desfire {
          * @param fid The file ID, Max @ref bits::max_standard_data_file_id.
          * @param settings The new file settings
          * @param security The comunication mode to use
+         * @return None, or the following errors:
+         * - @ref error::malformed
+         * - @ref error::crypto_error
+         * - @ref error::controller_error
          */
         r<> change_file_settings(file_id fid, generic_file_settings const &settings, file_security security);
 
@@ -229,6 +333,10 @@ namespace desfire {
          * @ingroup data
          * @param fid file ID, Max @ref bits::max_standard_data_file_id.
          * @param settings The new file settings
+         * @return None, or the following errors:
+         * - @ref error::malformed
+         * - @ref error::crypto_error
+         * - @ref error::controller_error
          */
         r<> create_file(file_id fid, file_settings<file_type::standard> const &settings);
 
@@ -237,6 +345,10 @@ namespace desfire {
          * @ingroup data
          * @param fid file ID, Max @ref bits::max_standard_data_file_id.
          * @param settings The file settings of the created file
+         * @return None, or the following errors:
+         * - @ref error::malformed
+         * - @ref error::crypto_error
+         * - @ref error::controller_error
          */
         r<> create_file(file_id fid, any_file_settings const &settings);
 
@@ -246,33 +358,49 @@ namespace desfire {
          * @ingroup data
          * @param fid Max @ref bits::max_backup_data_file_id.
          * @param settings The file settings of the created file
+         * @return None, or the following errors:
+         * - @ref error::malformed
+         * - @ref error::crypto_error
+         * - @ref error::controller_error
          */
         r<> create_file(file_id fid, file_settings<file_type::backup> const &settings);
 
         /**
          * @brief Create a new file in the selected application
-         * @ingroup data
+         * @ingroup valueFile
          * @param fid Max @ref bits::max_value_file_id.
          * @param settings Must have @ref value_file_settings::upper_limit greater than or equal to
          *  @ref value_file_settings::lower_limit.
+         * @return None, or the following errors:
+         * - @ref error::malformed
+         * - @ref error::crypto_error
+         * - @ref error::controller_error
          */
         r<> create_file(file_id fid, file_settings<file_type::value> const &settings);
 
         /**
          * @brief Create a new file in the selected application
-         * @ingroup data
+         * @ingroup recordFile
          * @param fid Max @ref bits::max_record_file_id.
          * @param settings Must have @ref record_file_settings::record_size > 0 and
          *  @ref record_file_settings::max_record_count > 0.
+         * @return None, or the following errors:
+         * - @ref error::malformed
+         * - @ref error::crypto_error
+         * - @ref error::controller_error
          */
         r<> create_file(file_id fid, file_settings<file_type::linear_record> const &settings);
 
         /**
          * @brief Create a new file in the selected application
-         * @ingroup data
+         * @ingroup recordFile
          * @param fid Max @ref bits::max_record_file_id.
          * @param settings Must have @ref record_file_settings::record_size > 0 and
          *  @ref record_file_settings::max_record_count > 1 (at least 2).
+         * @return None, or the following errors:
+         * - @ref error::malformed
+         * - @ref error::crypto_error
+         * - @ref error::controller_error
          */
         r<> create_file(file_id fid, file_settings<file_type::cyclic_record> const &settings);
 
@@ -280,68 +408,225 @@ namespace desfire {
          * @brief Delete file
          * @ingroup data
          * @param fid The file id to be removed, Max @ref bits::max_record_file_id.
+         * @return None, or the following errors:
+         * - @ref error::malformed
+         * - @ref error::crypto_error
+         * - @ref error::controller_error
          */
         r<> delete_file(file_id fid);
 
         /**
          * @brief clear the linear records from the file
-         * @ingroup data
+         * @ingroup recordFile
          * @param fid The file id of the record, Max @ref bits::max_record_file_id.
+         * @return None, or the following errors:
+         * - @ref error::malformed
+         * - @ref error::crypto_error
+         * - @ref error::controller_error
          */
         r<> clear_record_file(file_id fid);
 
+        /**
+         * @brief commit data to file, abort on error
+         * @ingroup data
+         * @return None, or the following errors:
+         * - @ref error::malformed
+         * - @ref error::crypto_error
+         * - @ref error::controller_error
+         */
         r<> commit_transaction();
+
+        /**
+         * @brief abort data write to file
+         * @ingroup data
+         * @return None, or the following errors:
+         * - @ref error::malformed
+         * - @ref error::crypto_error
+         * - @ref error::controller_error
+         */
         r<> abort_transaction();
 
         /**
+         * @brief read data from file
+         * @ingroup data
          * @param fid Max @ref bits::max_standard_data_file_id or @ref bits::max_backup_data_file_id
          * @param offset Limited to 24 bits, i.e. must be below 0xFFFFFF.
          * @param length Limited to 24 bits, i.e. must be below 0xFFFFFF.
+         * @return @ref bin_data containing requested data, or the following errors:
+         * - @ref error::malformed
+         * - @ref error::crypto_error
+         * - @ref error::controller_error
          */
         r<bin_data> read_data(file_id fid, std::uint32_t offset, std::uint32_t length);
+
+        /**
+         * @brief read data from file
+         * @ingroup data
+         * @param fid Max @ref bits::max_standard_data_file_id or @ref bits::max_backup_data_file_id
+         * @param offset Limited to 24 bits, i.e. must be below 0xFFFFFF.
+         * @param length Limited to 24 bits, i.e. must be below 0xFFFFFF.
+         * @param security Force the comunication mode, and do not auto-detect
+         * @return @ref bin_data containing requested data, or the following errors:
+         * - @ref error::malformed
+         * - @ref error::crypto_error
+         * - @ref error::controller_error
+         */
         r<bin_data> read_data(file_id fid, std::uint32_t offset, std::uint32_t length, file_security security);
 
         /**
+         * @brief write data to file
          * @param fid Max @ref bits::max_standard_data_file_id or @ref bits::max_backup_data_file_id
          * @param offset Limited to 24 bits, i.e. must be below 0xFFFFFF.
          * @param data Limited to 24 bits, i.e. must be below 0xFFFFFF.
+         * @return None, or the following errors:
+         * - @ref error::malformed
+         * - @ref error::crypto_error
+         * - @ref error::parameter_error
+         * - @ref error::controller_error
          */
         r<> write_data(file_id fid, std::uint32_t offset, bin_data const &data);
+
+        /**
+         * @brief write data to file
+         * @param fid Max @ref bits::max_standard_data_file_id or @ref bits::max_backup_data_file_id
+         * @param offset Limited to 24 bits, i.e. must be below 0xFFFFFF.
+         * @param data Limited to 24 bits, i.e. must be below 0xFFFFFF.
+         * @param security Force the comunication mode, and do not auto-detect
+         * @return None, or the following errors:
+         * - @ref error::malformed
+         * - @ref error::crypto_error
+         * - @ref error::parameter_error
+         * - @ref error::controller_error
+         */
         r<> write_data(file_id fid, std::uint32_t offset, bin_data const &data, file_security security);
 
         /**
+         * @brief read value of a credit/debit file
+         * @ingroup valueFile
          * @param fid Max @ref bits::max_value_file_id.
+         * @return the value in the file, or the following errors:
+         * - @ref error::malformed
+         * - @ref error::crypto_error
+         * - @ref error::controller_error
          */
         r<std::int32_t> get_value(file_id fid);
+
+        /**
+         * @brief read value of a credit/debit file
+         * @ingroup valueFile
+         * @param fid Max @ref bits::max_value_file_id.
+         * @param security Force the comunication mode, and do not auto-detect
+         * @return the value in the file, or the following errors:
+         * - @ref error::malformed
+         * - @ref error::crypto_error
+         * - @ref error::controller_error
+         */
         r<std::int32_t> get_value(file_id fid, file_security security);
 
         /**
+         * @brief Increment a value file
+         * @ingroup valueFile
          * @param fid Max @ref bits::max_value_file_id.
          * @param amount Must be nonnegative.
+         * @return None, or the following errors:
+         * - @ref error::malformed
+         * - @ref error::crypto_error
+         * - @ref error::controller_error
          */
         r<> credit(file_id fid, std::int32_t amount);
+
+        /**
+         * @brief Increment a value file
+         * @ingroup valueFile
+         * @param fid Max @ref bits::max_value_file_id.
+         * @param amount Must be nonnegative.
+         * @param security Force the comunication mode, and do not auto-detect
+         * @return None, or the following errors:
+         * - @ref error::malformed
+         * - @ref error::crypto_error
+         * - @ref error::controller_error
+         */
         r<> credit(file_id fid, std::int32_t amount, file_security security);
 
         /**
+         * @brief Increment, limited by past debits transaction, the value file
+         * @ingroup valueFile
          * @param fid Max @ref bits::max_value_file_id.
          * @param amount Must be nonnegative.
+         * @note This can be used without full write/read permission. It can be use to refound a transaction in a safe way.
+         * @return None, or the following errors:
+         * - @ref error::malformed
+         * - @ref error::crypto_error
+         * - @ref error::controller_error
          */
         r<> limited_credit(file_id fid, std::int32_t amount);
+
+        /**
+         * @brief Increment, limited by past debits transaction, the value file
+         * @ingroup valueFile
+         * @param fid Max @ref bits::max_value_file_id.
+         * @param amount Must be nonnegative.
+         * @param security Force the comunication mode, and do not auto-detect
+         * @note This can be used without full write/read permission. It can be use to refound a transaction in a safe way.
+         * @return None, or the following errors:
+         * - @ref error::malformed
+         * - @ref error::crypto_error
+         * - @ref error::controller_error
+         */
         r<> limited_credit(file_id fid, std::int32_t amount, file_security security);
 
         /**
+         * @brief Drecement a value file
+         * @ingroup valueFile
          * @param fid Max @ref bits::max_value_file_id.
          * @param amount Must be nonnegative.
+         * @return None, or the following errors:
+         * - @ref error::malformed
+         * - @ref error::crypto_error
+         * - @ref error::controller_error
          */
         r<> debit(file_id fid, std::int32_t amount);
+
+        /**
+         * @brief Drecement a value file
+         * @ingroup valueFile
+         * @param fid Max @ref bits::max_value_file_id.
+         * @param amount Must be nonnegative.
+         * @param security Force the comunication mode, and do not auto-detect
+         * @return None, or the following errors:
+         * - @ref error::malformed
+         * - @ref error::crypto_error
+         * - @ref error::controller_error
+         */
         r<> debit(file_id fid, std::int32_t amount, file_security security);
 
         /**
+         * @brief Write to a linear or cyclic file
+         * @ingroup recordFile
          * @param fid Max @ref bits::max_record_file_id.
          * @param offset Limited to 24 bits, i.e. must be below 0xFFFFFF.
          * @param data Limited to 24 bits, i.e. must be below 0xFFFFFF.
+         * @return None, or the following errors:
+         * - @ref error::malformed
+         * - @ref error::crypto_error
+         * - @ref error::parameter_error
+         * - @ref error::controller_error
          */
         r<> write_record(file_id fid, std::uint32_t offset, bin_data const &data);
+
+        /**
+         * @brief Write to a linear or cyclic file
+         * @ingroup recordFile
+         * @param fid Max @ref bits::max_record_file_id.
+         * @param offset Limited to 24 bits, i.e. must be below 0xFFFFFF.
+         * @param data Limited to 24 bits, i.e. must be below 0xFFFFFF.
+         * @param security Force the comunication mode, and do not auto-detect
+         * @return None, or the following errors:
+         * - @ref error::malformed
+         * - @ref error::crypto_error
+         * - @ref error::parameter_error
+         * - @ref error::controller_error
+         */
         r<> write_record(file_id fid, std::uint32_t offset, bin_data const &data, file_security security);
 
         template <class T>
@@ -356,20 +641,63 @@ namespace desfire {
         r<std::vector<T>> read_parse_records(file_id fid, std::uint32_t index, std::uint32_t count, file_security security);
 
         /**
+         * @brief Read records from a linear or cyclic file
          * @param fid Max @ref bits::max_record_file_id.
          * @param record_index Limited to 24 bits, i.e. must be below 0xFFFFFF.
          * @param record_count Limited to 24 bits, i.e. must be below 0xFFFFFF.
+         * @return @ref bin_data cointaining the record/s, or the following errors:
+         * - @ref error::malformed
+         * - @ref error::crypto_error
+         * - @ref error::parameter_error
+         * - @ref error::controller_error
          */
         r<bin_data> read_records(file_id fid, std::uint32_t record_index = 0, std::uint32_t record_count = all_records);
+
+        /**
+         * @brief Read records from a linear or cyclic file
+         * @param fid Max @ref bits::max_record_file_id.
+         * @param record_index Limited to 24 bits, i.e. must be below 0xFFFFFF.
+         * @param record_count Limited to 24 bits, i.e. must be below 0xFFFFFF.
+         * @param security Force the comunication mode, and do not auto-detect
+         * @return @ref bin_data cointaining the record/s, or the following errors:
+         * - @ref error::malformed
+         * - @ref error::crypto_error
+         * - @ref error::parameter_error
+         * - @ref error::controller_error
+         */
         r<bin_data> read_records(file_id fid, std::uint32_t record_index, std::uint32_t record_count, file_security security);
 
-
+        /**
+         * @brief Get the card UID
+         * @ingroup card
+         * @note need to be authenticated, this will fetch the "real" uid in case "uid randomization" is enabled
+         * @return @ref bin_data cointaining the record/s, or the following errors:
+         * - @ref error::malformed
+         * - @ref error::crypto_error
+         * - @ref error::controller_error
+         */
         r<std::array<std::uint8_t, 7>> get_card_uid();
 
+        /**
+         * @brief Read the amount of free flash memory
+         * @ingroup card
+         * @return the amount of free memory, or the following errors:
+         * - @ref error::malformed
+         * - @ref error::crypto_error
+         * - @ref error::controller_error
+         */
         r<std::uint32_t> get_free_mem();
 
         /**
+         * @brief Configure if the card can be formatted, or if will show the real UID
+         * @ingroup card
+         * @param allow_format Allow clearing all the card
+         * @param enable_random_id Enable if UID should be randomized (the real UID can be read with @ref get_card_uid)
          * @warning Watch out when using this function! It is not clear whether any of this is reversible.
+         * @return None, or the following errors:
+         * - @ref error::malformed
+         * - @ref error::crypto_error
+         * - @ref error::controller_error
          */
         r<> set_configuration(bool allow_format = true, bool enable_random_id = false);
 

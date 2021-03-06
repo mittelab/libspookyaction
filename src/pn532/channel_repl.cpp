@@ -130,11 +130,11 @@ namespace pn532::repl {
         }
 
         // Info or error frame.
+        id.type = frame_type::info;
         bool checksum_pass = true;
         std::size_t info_frame_data_size = 0;
 
         if (code_or_length == bits::fixed_extended_packet_length) {
-            id.type = frame_type::info;
             id.frame_total_length += 3;
             if (s.remaining() < 3) {
                 PN532_LOGE("Unable to parse ext info frame length, not enough data.");

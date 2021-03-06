@@ -131,6 +131,8 @@ namespace mlab {
 
         inline std::uint8_t pop();
 
+        [[nodiscard]] inline std::uint8_t peek_one();
+
         [[nodiscard]] inline range<bin_data::const_iterator> peek() const;
 
         [[nodiscard]] inline bool good() const;
@@ -420,6 +422,14 @@ namespace mlab {
     std::uint8_t bin_stream::pop() {
         if (good()) {
             return (*_data)[_pos++];
+        }
+        set_bad();
+        return 0x00;
+    }
+
+    std::uint8_t bin_stream::peek_one() {
+        if (good()) {
+            return (*_data)[_pos];
         }
         set_bad();
         return 0x00;

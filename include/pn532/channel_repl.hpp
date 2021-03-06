@@ -94,7 +94,7 @@ namespace pn532::repl {
 
         class comm_operation;
 
-        virtual bool raw_send(mlab::range<bin_data::const_iterator> const &buffer, ms timeout) = 0;
+        virtual r<> raw_send(mlab::range<bin_data::const_iterator> const &buffer, ms timeout) = 0;
         virtual r<> raw_receive(mlab::range<bin_data::iterator> const &buffer, ms timeout) = 0;
 
         /**

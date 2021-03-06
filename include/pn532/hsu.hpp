@@ -31,7 +31,7 @@ namespace pn532 {
         uart_port_t _port;
 
     protected:
-        bool raw_send(mlab::range<bin_data::const_iterator> const &buffer, ms timeout) override;
+        r<> raw_send(mlab::range<bin_data::const_iterator> const &buffer, ms timeout) override;
         r<> raw_receive(mlab::range<bin_data::iterator> const &buffer, ms timeout) override;
 
         [[nodiscard]] inline bool supports_multiple_raw_receive() const override;

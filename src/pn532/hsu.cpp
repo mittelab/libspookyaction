@@ -34,23 +34,24 @@ namespace pn532 {
         return uart_flush_input(_port) == ESP_OK;
     }
 
-    bool hsu_channel_repl::raw_send(mlab::range<bin_data::const_iterator> const &buffer, ms timeout) {
+    repl::channel::r<> hsu_channel_repl::raw_send(mlab::range<bin_data::const_iterator> const &buffer, ms timeout) {
         reduce_timeout rt{timeout};
         // Send and block until transmission is finished (or timeout time expired)
         if (ESP_OK != uart_write_bytes(_port, reinterpret_cast<const char *>(buffer.data()), buffer.size())) {
-            return false;
+            return error::comm_error;
         }
         ESP_LOG_BUFFER_HEX_LEVEL(PN532_HSU_SEND_TAG, buffer.data(), buffer.size(), ESP_LOG_VERBOSE);
         const auto result = uart_wait_tx_done(_port, duration_cast(rt.remaining()));
         if (result == ESP_OK) {
-            return true;
+            return mlab::result_success;
         } else if (result == ESP_FAIL) {
             PN532_LOGE("Failure to send data via HSU, parameter error (port = %d).", static_cast<int>(_port));
         } else if (result != ESP_ERR_TIMEOUT) {
             PN532_LOGE("Unexpected result from uart_wait_tx_done: %d.", static_cast<int>(result));
+        } else {
+            return error::comm_timeout;
         }
-        // Timeout or error
-        return false;
+        return error::comm_error;
     }
 
     repl::channel::r<> hsu_channel_repl::raw_receive(mlab::range<bin_data::iterator> const &buffer, ms timeout) {

@@ -11,7 +11,7 @@
 #define TEST_TAG "UT"
 #define TX_OR_SCL_PIN (GPIO_NUM_17)
 #define RX_OR_SDA_PIN (GPIO_NUM_16)
-#define P70_IRQ_PIN   (GPIO_NUM_4)
+#define P70_IRQ_PIN (GPIO_NUM_4)
 #define BUF_SIZE (1024)
 
 namespace {
@@ -79,7 +79,7 @@ namespace {
     void IRAM_ATTR _p70_irq_to_semaphore(void *semaphore_hdl) {
         xSemaphoreGiveFromISR(reinterpret_cast<SemaphoreHandle_t>(semaphore_hdl), nullptr);
     }
-}
+}// namespace
 
 void test_raw_i2c_pn532_sam_config_cmd() {
     using namespace std::chrono_literals;
@@ -148,7 +148,6 @@ void test_raw_i2c_pn532_sam_config_cmd() {
 
         TEST_ASSERT(receive_ack_cmd(I2C_NUM_0, 10ms));
         TEST_ASSERT_EQUAL_HEX8_ARRAY(expected_ack.data(), ack_buffer.data(), std::min(ack_buffer.size(), expected_ack.size()));
-
     }
     ESP_LOGI(TEST_TAG, "Got ACK (or NACK).");
     TEST_ASSERT(await_ready());

@@ -87,7 +87,13 @@ namespace pn532::repl {
         using r = mlab::result<error, Tn...>;
 
     protected:
-        virtual bool raw_wake() = 0;
+        enum struct comm_mode {
+            send,
+            receive
+        };
+
+        class comm_operation;
+
         virtual bool raw_send(mlab::range<bin_data::const_iterator> const &buffer, ms timeout) = 0;
         virtual r<> raw_receive(mlab::range<bin_data::iterator> const &buffer, ms timeout) = 0;
 
@@ -120,6 +126,8 @@ namespace pn532::repl {
         r<any_frame> receive(ms timeout);
 
     public:
+        virtual bool wake() = 0;
+
         /**
          * @brief send_ack ACK or NACK frame
          * @internal
@@ -187,12 +195,6 @@ namespace pn532::repl {
         r<Data> command_parse_response(bits::command cmd, bin_data data, ms timeout);
 
     private:
-        enum struct comm_mode {
-            send,
-            receive
-        };
-
-        class comm_operation;
 
         /**
          * Receives the frame one piece at a time.
@@ -211,6 +213,30 @@ namespace pn532::repl {
          * @return The @ref frame_id object and the offset in @p buffer at which the reading stopped
          */
         r<frame_id, std::size_t> raw_receive_identify(bin_data &buffer, ms timeout);
+
+        bool _has_operation = false;
+    };
+
+
+    class channel::comm_operation {
+        channel &_owner;
+        comm_mode _event;
+        r<> _result;
+
+    public:
+        comm_operation(channel &owner, comm_mode event, ms timeout);
+        ~comm_operation();
+
+        [[nodiscard]] inline bool ok() const;
+
+        [[nodiscard]] inline decltype(auto) error() const;
+
+        [[nodiscard]] inline enum error update(enum error e);
+
+        [[nodiscard]] inline r<> update(bool operation_result);
+
+        template <class... Tn, class... Args>
+        [[nodiscard]] inline r<Tn...> update(Args &&... args);
     };
 
 }// namespace pn532::repl
@@ -249,6 +275,39 @@ namespace pn532::repl {
         } else {
             return res_cmd.error();
         }
+    }
+
+    bool channel::comm_operation::ok() const {
+        return bool(_result);
+    }
+
+    decltype(auto) channel::comm_operation::error() const {
+        return _result.error();
+    }
+
+    channel::error channel::comm_operation::update(enum error e) {
+        _result = e;
+        return e;
+    }
+
+    channel::r<> channel::comm_operation::update(bool operation_result) {
+        if (operation_result) {
+            _result = mlab::result_success;
+        } else {
+            _result = error::comm_timeout;
+        }
+        return _result;
+    }
+
+    template <class... Tn, class... Args>
+    channel::r<Tn...> channel::comm_operation::update(Args &&... args) {
+        r<Tn...> retval{std::forward<Args>(args)...};
+        if (retval) {
+            _result = mlab::result_success;
+        } else {
+            _result = retval.error();
+        }
+        return std::move(retval);
     }
 }// namespace pn532::repl
 #endif//PN532_CHANNEL_REPL_HPP

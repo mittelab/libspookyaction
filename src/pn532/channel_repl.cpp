@@ -214,71 +214,36 @@ namespace pn532::repl {
     }
 
 
-    class channel::comm_operation {
-        channel &_owner;
-        comm_mode _event;
-        r<> _result;
-
-    public:
-        [[nodiscard]] inline bool ok() const {
-            return bool(_result);
+    channel::comm_operation::comm_operation(channel &owner, comm_mode event, ms timeout) : _owner{owner}, _event{event}, _result{result_success} {
+        if (_owner._has_operation) {
+            PN532_LOGE("Nested comm_operation instantiated: a channel can only run one at a time.");
         }
-
-        [[nodiscard]] inline decltype(auto) error() const {
-            return _result.error();
+        _owner._has_operation = true;
+        bool prepare_success = true;
+        switch (_event) {
+            case comm_mode::send:
+                prepare_success = _owner.on_send_prepare(timeout);
+                break;
+            case comm_mode::receive:
+                prepare_success = _owner.on_receive_prepare(timeout);
+                break;
         }
-
-        [[nodiscard]] inline enum error update(enum error e) {
-            _result = e;
-            return e;
+        if (not prepare_success) {
+            _result = error::comm_timeout;
         }
+    }
 
-        [[nodiscard]] inline r<> update(bool operation_result) {
-            if (operation_result) {
-                _result = result_success;
-            } else {
-                _result = error::comm_timeout;
-            }
-            return _result;
+    channel::comm_operation::~comm_operation() {
+        switch (_event) {
+            case comm_mode::send:
+                _owner.on_send_complete(_result);
+                break;
+            case comm_mode::receive:
+                _owner.on_receive_complete(_result);
+                break;
         }
-
-        template <class... Tn, class... Args>
-        [[nodiscard]] inline r<Tn...> update(Args &&... args) {
-            r<Tn...> retval{std::forward<Args>(args)...};
-            if (retval) {
-                _result = result_success;
-            } else {
-                _result = retval.error();
-            }
-            return std::move(retval);
-        }
-
-        comm_operation(channel &owner, comm_mode event, ms timeout) : _owner{owner}, _event{event}, _result{result_success} {
-            bool prepare_success = true;
-            switch (_event) {
-                case comm_mode::send:
-                    prepare_success = _owner.on_send_prepare(timeout);
-                    break;
-                case comm_mode::receive:
-                    prepare_success = _owner.on_receive_prepare(timeout);
-                    break;
-            }
-            if (not prepare_success) {
-                _result = error::comm_timeout;
-            }
-        }
-
-        ~comm_operation() {
-            switch (_event) {
-                case comm_mode::send:
-                    _owner.on_send_complete(_result);
-                    break;
-                case comm_mode::receive:
-                    _owner.on_receive_complete(_result);
-                    break;
-            }
-        }
-    };
+        _owner._has_operation = false;
+    }
 
     channel::r<any_frame> channel::receive(ms timeout) {
         if (supports_multiple_raw_receive()) {

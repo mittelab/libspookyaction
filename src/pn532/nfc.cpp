@@ -3,8 +3,11 @@
 //
 #include "pn532/nfc.hpp"
 #include "pn532/bits_algo.hpp"
+#include <mlab/time.hpp>
 
 namespace pn532 {
+    using mlab::ms;
+    using mlab::reduce_timeout;
 
     const std::vector<bits::target_type> nfc::poll_all_targets = {
             target_type::generic_passive_106kbps,
@@ -12,309 +15,6 @@ namespace pn532 {
             target_type::generic_passive_424kbps,
             target_type::passive_106kbps_iso_iec_14443_4_typeb,
             target_type::innovision_jewel_tag};
-
-    const char *to_string(nfc::error e) {
-        switch (e) {
-            case nfc::error::comm_checksum_fail:
-                return "Checksum (length or data) failed";
-            case nfc::error::comm_malformed:
-                return "Malformed or unexpected response";
-            case nfc::error::comm_error:
-                return "Controller returned error instead of ACK";
-            case nfc::error::failure:
-                return "Controller acknowledged but returned error";
-            case nfc::error::comm_timeout:
-                return "Communication reached timeout";
-            case nfc::error::canceled:
-                return "Comm ok, but no response within timeout";
-            case nfc::error::nack:
-                return "Controller did not acknowledge.";
-        }
-        return "UNKNOWN";
-    }
-
-    namespace {
-        enum struct frame_type {
-            ack,
-            nack,
-            info
-        };
-    }
-
-    struct nfc::frame_header {
-        frame_type type;
-        std::size_t length;
-    };
-
-    struct nfc::frame_body {
-        bits::transport transport = bits::transport::host_to_pn532;
-        command_code command = command_code::diagnose;
-        bin_data info;
-    };
-
-    /* -----------------------------------------------------------------------------------------------------------------
-     * RAW COMMUNICATION -----------------------------------------------------------------------------------------------
-     */
-
-    bin_data nfc::get_command_info_frame(command_code cmd, bin_data const &payload) {
-        const auto cmd_byte = bits::host_to_pn532_command(cmd);
-        const auto transport_byte = static_cast<std::uint8_t>(bits::transport::host_to_pn532);
-        // "2" because must count transport info and command_code
-        const bool use_extended_format = (payload.size() > 0xff - 2);
-        if (payload.size() > bits::max_firmware_data_length) {
-            PN532_LOGE("%s: payload too long for an info frame, truncating %u bytes to %u:",
-                       to_string(cmd),
-                       payload.size(),
-                       bits::max_firmware_data_length);
-            ESP_LOG_BUFFER_HEX_LEVEL(PN532_TAG, payload.data(), payload.size(), ESP_LOG_WARN);
-        }
-        const std::uint8_t length = std::min(payload.size(), bits::max_firmware_data_length);
-        // Make sure data gets truncated and nothing too weird happens
-        const auto truncated_data = payload.view(0, length);
-        // Precompute transport info + cmd byte + info compute_checksum
-        const auto checksum = bits::compute_checksum(
-                transport_byte + cmd_byte,
-                std::begin(truncated_data),
-                std::end(truncated_data));
-        bin_data frame{prealloc(length + 12)};
-        frame << bits::preamble << bits::start_of_packet_code;
-        if (use_extended_format) {
-            frame << bits::fixed_extended_packet_length << bits::length_and_checksum_long(length + 2);
-        } else {
-            frame << bits::length_and_checksum_short(length + 2);
-        }
-        return frame << transport_byte << cmd_byte << truncated_data << checksum << bits::postamble;
-    }
-
-    bin_data const &nfc::get_ack_frame() {
-        static const bin_data ack_frame = bin_data::chain(
-                prealloc(6),
-                bits::preamble,
-                bits::start_of_packet_code,
-                bits::ack_packet_code,
-                bits::postamble);
-        return ack_frame;
-    }
-
-    bin_data const &nfc::get_nack_frame() {
-        static const bin_data nack_frame = bin_data::chain(
-                prealloc(6),
-                bits::preamble,
-                bits::start_of_packet_code,
-                bits::nack_packet_code,
-                bits::postamble);
-        return nack_frame;
-    }
-
-
-    nfc::r<> nfc::raw_send_ack(bool ack, ms timeout) {
-        if (chn().send(ack ? get_ack_frame() : get_nack_frame(), timeout)) {
-            return result_success;
-        }
-        return error::comm_timeout;
-    }
-
-    nfc::r<> nfc::raw_send_command(command_code cmd, bin_data const &payload, ms timeout) {
-        if (chn().send(get_command_info_frame(cmd, payload), timeout)) {
-            return result_success;
-        }
-        return error::comm_timeout;
-    }
-
-    bool nfc::await_frame(ms timeout) {
-        return chn().await_sequence(bits::start_of_packet_code, timeout);
-    }
-
-    nfc::r<nfc::frame_header> nfc::read_header(ms timeout) {
-        reduce_timeout rt{timeout};
-        std::array<std::uint8_t, 2> code_or_length{};
-        if (not chn().receive(code_or_length, rt.remaining())) {
-            return error::comm_timeout;
-        }
-        if (code_or_length == bits::ack_packet_code) {
-            return frame_header{frame_type::ack, 0};
-        }
-        if (code_or_length == bits::nack_packet_code) {
-            return frame_header{frame_type::nack, 0};
-        }
-        std::uint16_t length = 0;
-        bool checksum_pass = false;
-        if (code_or_length == bits::fixed_extended_packet_length) {
-            std::array<std::uint8_t, 3> ext_length{};
-            if (not chn().receive(ext_length, rt.remaining())) {
-                return error::comm_timeout;
-            }
-            std::tie(length, checksum_pass) = bits::check_length_checksum(ext_length);
-        } else {
-            std::tie(length, checksum_pass) = bits::check_length_checksum(code_or_length);
-        }
-        if (not checksum_pass) {
-            PN532_LOGE("Length checksum failed.");
-            return error::comm_checksum_fail;
-        }
-        return frame_header{frame_type::info, length};
-    }
-
-    nfc::r<nfc::frame_body> nfc::read_response_body(frame_header const &hdr, ms timeout) {
-        if (hdr.type != frame_type::info) {
-            PN532_LOGE("Ack and nack frames do not have body.");
-            return error::comm_malformed;
-        }
-        if (const auto &[data, success] = chn().receive(hdr.length + 1, timeout); success) {
-            // Data includes checksum
-            if (data.size() != hdr.length + 1) {
-                PN532_LOGE("Cannot parse frame body if expected frame length differs from actual data.");
-                return error::comm_malformed;
-            }
-            if (not bits::checksum(std::begin(data), std::end(data))) {
-                PN532_LOGE("Frame body checksum failed.");
-                return error::comm_checksum_fail;
-            }
-            // This could be a special error frame
-            if (hdr.length == 1 and data[0] == bits::specific_app_level_err_code) {
-                PN532_LOGW("Received error from controller.");
-                return error::failure;
-            }
-            // All info known frames must have the transport and the command
-            if (hdr.length < 2) {
-                PN532_LOGE("Cannot parse frame body if frame length %u is less than 2.", hdr.length);
-                return error::comm_malformed;
-            }
-            // Can output
-            return frame_body{
-                    static_cast<bits::transport>(data[0]),
-                    bits::pn532_to_host_command(data[1]),
-                    // Copy the body
-                    bin_data{std::begin(data) + 2, std::end(data) - 1}};
-        }
-        return error::comm_timeout;
-    }
-
-
-    nfc::r<bool> nfc::raw_await_ack(ms timeout) {
-        reduce_timeout rt{timeout};
-        if (not await_frame(rt.remaining())) {
-            return error::comm_timeout;
-        }
-        if (const auto res_hdr = read_header(rt.remaining()); res_hdr) {
-            if (res_hdr->type != frame_type::info) {
-                // Either ack or nack
-                return res_hdr->type == frame_type::ack;
-            }
-            // Make sure to consume the command_code
-            PN532_LOGE("Expected ack/nack, got a standard info response instead; will consume the data now.");
-            const auto res_body = read_response_body(*res_hdr, rt.remaining());
-            if (res_body) {
-                PN532_LOGE("%s: dropped response.", to_string(res_body->command));
-                ESP_LOG_BUFFER_HEX_LEVEL(PN532_TAG, res_body->info.data(), res_body->info.size(), ESP_LOG_ERROR);
-            } else if (res_body.error() == error::failure) {
-                PN532_LOGE("Received an error instead of an ack");
-                return error::comm_error;
-            }
-            return error::comm_malformed;
-        } else {
-            return res_hdr.error();
-        }
-    }
-
-    nfc::r<bin_data> nfc::raw_await_response(command_code cmd, ms timeout) {
-        /**
-         * @note The handling of a channel error in @ref command_response relies on this function producing only these
-         * three errors: ''comm_malformed'', ''comm_timeout'', ''comm_checksum_fail''. If this changes, update the code
-         * in @ref command_response.
-         */
-        reduce_timeout rt{timeout};
-        if (not await_frame(rt.remaining())) {
-            return error::comm_timeout;
-        }
-        if (const auto res_hdr = read_header(rt.remaining()); res_hdr) {
-            if (res_hdr->type != frame_type::info) {
-                PN532_LOGE("Expected info command, got ack/nack.");
-                return error::comm_malformed;
-            }
-            if (auto res_body = read_response_body(*res_hdr, rt.remaining()); res_body) {
-                if (res_body->command != cmd) {
-                    PN532_LOGW("%s: got a reply to command %s instead.",
-                               to_string(res_body->command), to_string(cmd));
-                    return error::comm_malformed;
-                }
-                if (res_body->transport != bits::transport::pn532_to_host) {
-                    PN532_LOGE("Received a message from the host instead of pn532.");
-                    return error::comm_malformed;
-                }
-                return std::move(res_body->info);
-            } else {
-                return res_body.error();
-            }
-        } else {
-            return res_hdr.error();
-        }
-    }
-
-    nfc::r<> nfc::command(command_code cmd, bin_data const &payload, ms timeout) {
-        reduce_timeout rt{timeout};
-        if (const auto res_cmd = raw_send_command(cmd, payload, rt.remaining()); res_cmd) {
-            PN532_LOGD("%s: command sent.", to_string(cmd));
-            if (const auto res_ack = raw_await_ack(rt.remaining()); res_ack) {
-                if (*res_ack) {
-                    PN532_LOGD("%s: acknowledged.", to_string(cmd));
-                    return result_success;
-                }
-                PN532_LOGD("%s: NOT acknowledged.", to_string(cmd));
-                return error::nack;
-            } else {
-                PN532_LOGW("%s: ACK/NACK not received: %s.", to_string(cmd), to_string(res_ack.error()));
-                return res_ack.error();
-            }
-        } else {
-            PN532_LOGW("%s: unable to send command: %s.", to_string(cmd), to_string(res_cmd.error()));
-            return res_cmd.error();
-        }
-    }
-
-    nfc::r<bin_data> nfc::command_response(command_code cmd, bin_data const &payload, ms timeout) {
-        reduce_timeout rt{timeout};
-        if (const auto res_cmd = command(cmd, payload, rt.remaining()); res_cmd) {
-            nfc::r<bin_data> res_response = error::comm_malformed;
-            do {
-                // As long as we have channel errors and still time left, request the response
-                res_response = raw_await_response(cmd, rt.remaining());
-                if (not res_response) {
-                    // Send a nack only if the error is malformed communication
-                    if (res_response.error() == error::comm_malformed or
-                        res_response.error() == error::comm_checksum_fail) {
-                        PN532_LOGW("%s: requesting response again (%s).", to_string(cmd), to_string(res_response.error()));
-                        // Retry command response
-                        raw_send_ack(false, rt.remaining());
-                    } else if (res_response.error() != error::comm_timeout) {
-                        // Assert that this is the only other return code possible, aka timeout, but then break because we
-                        // do not know what we should be doing
-                        PN532_LOGE("Implementation error unexpected error code from pn532::nfc::raw_await_response: %s",
-                                   to_string(res_response.error()));
-                        break;
-                    }
-                }
-            } while (not res_response and res_response.error() != error::comm_timeout);
-            if (not res_response) {
-                PN532_LOGW("%s: canceling command after %lld ms.", to_string(cmd), rt.elapsed().count());
-                raw_send_ack(true, one_sec);// Abort command, allow large timeout time for this
-                if (res_response.error() == error::comm_timeout) {
-                    return error::canceled;
-                }
-                return res_response.error();
-            } else {
-                PN532_LOGD("%s: success, command took %lld ms.", to_string(cmd), rt.elapsed().count());
-                raw_send_ack(true, one_sec);// Confirm response, allow large timeout time for this
-                return std::move(*res_response);
-            }
-        } else {
-            return res_cmd.error();
-        }
-    }
-
-    /* -----------------------------------------------------------------------------------------------------------------
-     * COMMAND IMPLEMENTATION ------------------------------------------------------------------------------------------
-     */
 
     nfc::r<bool> nfc::diagnose_comm_line(ms timeout) {
         PN532_LOGI("%s: running %s...", to_string(command_code::diagnose), to_string(bits::test::comm_line));
@@ -324,7 +24,7 @@ namespace pn532 {
         std::iota(std::begin(payload), std::end(payload), 0x00);
         // Set the first byte to be the test number
         payload[0] = static_cast<std::uint8_t>(bits::test::comm_line);
-        if (const auto res_cmd = command_response(command_code::diagnose, payload, timeout); res_cmd) {
+        if (const auto res_cmd = chn().command_response(command_code::diagnose, payload, timeout); res_cmd) {
             // Test that the reurned data coincides
             if (payload.size() == res_cmd->size() and
                 std::equal(std::begin(payload), std::end(payload), std::begin(*res_cmd))) {
@@ -342,17 +42,17 @@ namespace pn532 {
     namespace {
         template <class... Args>
         nfc::r<bool> nfc_diagnose_simple(
-                nfc &controller, bits::test test, std::uint8_t expected, ms timeout,
+                channel &chn, bits::test test, std::uint8_t expected, ms timeout,
                 std::size_t expected_body_size = 0, Args &&... append_to_body) {
             PN532_LOGI("%s: running %s...", to_string(command_code::diagnose), to_string(test));
             const bin_data payload = bin_data::chain(prealloc(expected_body_size + 1), test,
                                                      std::forward<Args>(append_to_body)...);
-            if (const auto res_cmd = controller.command_response(command_code::diagnose, payload, timeout); res_cmd) {
+            if (const auto res_cmd = chn.command_response(command_code::diagnose, payload, timeout); res_cmd) {
                 // Test that the reurned data coincides
                 if (res_cmd->size() != 1) {
                     PN532_LOGW("%s: %s test received %u bytes instead of 1.",
                                to_string(command_code::diagnose), to_string(test), res_cmd->size());
-                    return nfc::error::comm_malformed;
+                    return channel::error::comm_malformed;
                 }
                 if (res_cmd->at(0) == expected) {
                     PN532_LOGI("%s: %s test succeeded.", to_string(command_code::diagnose), to_string(test));
@@ -372,7 +72,7 @@ namespace pn532 {
             if (not do_test) {
                 return std::numeric_limits<unsigned>::max();
             }
-            const auto res_cmd = command_response(
+            const auto res_cmd = chn().command_response(
                     command_code::diagnose,
                     bin_data::chain(prealloc(2), bits::test::poll_target, speed),
                     timeout);
@@ -408,19 +108,19 @@ namespace pn532 {
                 std::uint8_t(reply_delay.count() * bits::echo_back_reply_delay_steps_per_ms),
                 tx_mode,
                 rx_mode);
-        return command(command_code::diagnose, payload, timeout);
+        return chn().command(command_code::diagnose, payload, timeout);
     }
 
     nfc::r<bool> nfc::diagnose_rom(ms timeout) {
-        return nfc_diagnose_simple(*this, bits::test::rom, 0x00, timeout);
+        return nfc_diagnose_simple(chn(), bits::test::rom, 0x00, timeout);
     }
 
     nfc::r<bool> nfc::diagnose_ram(ms timeout) {
-        return nfc_diagnose_simple(*this, bits::test::ram, 0x00, timeout);
+        return nfc_diagnose_simple(chn(), bits::test::ram, 0x00, timeout);
     }
 
     nfc::r<bool> nfc::diagnose_attention_req_or_card_presence(ms timeout) {
-        return nfc_diagnose_simple(*this, bits::test::attention_req_or_card_presence, 0x00, timeout);
+        return nfc_diagnose_simple(chn(), bits::test::attention_req_or_card_presence, 0x00, timeout);
     }
 
     nfc::r<bool> nfc::diagnose_self_antenna(
@@ -431,15 +131,15 @@ namespace pn532 {
                 .low_current_threshold = low_threshold,
                 .high_current_threshold = high_threshold,
                 .enable_detection = true};
-        return nfc_diagnose_simple(*this, bits::test::self_antenna, 0x00, timeout, 1, r);
+        return nfc_diagnose_simple(chn(), bits::test::self_antenna, 0x00, timeout, 1, r);
     }
 
     nfc::r<firmware_version> nfc::get_firmware_version(ms timeout) {
-        return command_parse_response<firmware_version>(command_code::get_firmware_version, bin_data{}, timeout);
+        return chn().command_parse_response<firmware_version>(command_code::get_firmware_version, bin_data{}, timeout);
     }
 
     nfc::r<general_status> nfc::get_general_status(ms timeout) {
-        return command_parse_response<general_status>(command_code::get_general_status, bin_data{}, timeout);
+        return chn().command_parse_response<general_status>(command_code::get_general_status, bin_data{}, timeout);
     }
 
 
@@ -454,7 +154,7 @@ namespace pn532 {
         for (std::size_t i = 0; i < effective_length; ++i) {
             payload << addresses[i];
         }
-        if (auto res_cmd = command_response(command_code::read_register, payload, timeout); res_cmd) {
+        if (auto res_cmd = chn().command_response(command_code::read_register, payload, timeout); res_cmd) {
             if (res_cmd->size() != effective_length) {
                 PN532_LOGE("%s: requested %u registers, got %u instead.", to_string(command_code::read_register),
                            addresses.size(), res_cmd->size());
@@ -476,11 +176,11 @@ namespace pn532 {
         for (std::size_t i = 0; i < effective_length; ++i) {
             payload << addr_value_pairs[i].first << addr_value_pairs[i].second;
         }
-        return command_response(command_code::write_register, payload, timeout);
+        return chn().command_response(command_code::write_register, payload, timeout);
     }
 
     nfc::r<gpio_status> nfc::read_gpio(ms timeout) {
-        return command_parse_response<gpio_status>(command_code::read_gpio, bin_data{}, timeout);
+        return chn().command_parse_response<gpio_status>(command_code::read_gpio, bin_data{}, timeout);
     }
 
     nfc::r<> nfc::write_gpio(gpio_status const &status, bool write_p3, bool write_p7, ms timeout) {
@@ -499,7 +199,7 @@ namespace pn532 {
         } else {
             payload << std::uint8_t{0x00};
         }
-        return command_response(command_code::write_gpio, payload, timeout);
+        return chn().command_response(command_code::write_gpio, payload, timeout);
     }
 
     nfc::r<> nfc::set_gpio_pin(gpio_loc loc, std::uint8_t pin_idx, bool value, ms timeout) {
@@ -515,7 +215,7 @@ namespace pn532 {
     }
 
     nfc::r<> nfc::set_serial_baud_rate(serial_baudrate br, ms timeout) {
-        return command_response(command_code::set_serial_baudrate, bin_data::chain(br), timeout);
+        return chn().command_response(command_code::set_serial_baudrate, bin_data::chain(br), timeout);
     }
 
     nfc::r<> nfc::sam_configuration(sam_mode mode, ms sam_timeout, bool controller_drives_irq, ms timeout) {
@@ -525,7 +225,7 @@ namespace pn532 {
                 mode,
                 sam_timeout_byte,
                 controller_drives_irq);
-        return command_response(command_code::sam_configuration, payload, timeout);
+        return chn().command_response(command_code::sam_configuration, payload, timeout);
     }
 
     nfc::r<> nfc::rf_configuration_field(bool auto_rfca, bool rf_on, ms timeout) {
@@ -536,7 +236,7 @@ namespace pn532 {
                 prealloc(2),
                 bits::rf_config_item::rf_field,
                 config_data);
-        return command_response(command_code::rf_configuration, payload, timeout);
+        return chn().command_response(command_code::rf_configuration, payload, timeout);
     }
 
     nfc::r<> nfc::rf_configuration_timings(
@@ -548,7 +248,7 @@ namespace pn532 {
                 std::uint8_t(0x00),
                 atr_res_timeout,
                 retry_timeout);
-        return command_response(command_code::rf_configuration, payload, timeout);
+        return chn().command_response(command_code::rf_configuration, payload, timeout);
     }
 
     nfc::r<> nfc::rf_configuration_retries(infbyte comm_retries, ms timeout) {
@@ -556,7 +256,7 @@ namespace pn532 {
                 prealloc(2),
                 bits::rf_config_item::max_rty_com,
                 comm_retries);
-        return command_response(command_code::rf_configuration, payload, timeout);
+        return chn().command_response(command_code::rf_configuration, payload, timeout);
     }
 
     nfc::r<> nfc::rf_configuration_retries(
@@ -568,7 +268,7 @@ namespace pn532 {
                 atr_retries,
                 psl_retries,
                 passive_activation_retries);
-        return command_response(command_code::rf_configuration, payload, timeout);
+        return chn().command_response(command_code::rf_configuration, payload, timeout);
     }
 
     nfc::r<> nfc::rf_configuration_analog_106kbps_typea(ciu_reg_106kbps_typea const &config, ms timeout) {
@@ -576,7 +276,7 @@ namespace pn532 {
                 prealloc(1 + sizeof(ciu_reg_106kbps_typea)),
                 bits::rf_config_item::analog_106kbps_typea,
                 config);
-        return command_response(command_code::rf_configuration, payload, timeout);
+        return chn().command_response(command_code::rf_configuration, payload, timeout);
     }
 
     nfc::r<> nfc::rf_configuration_analog_212_424kbps(ciu_reg_212_424kbps const &config, ms timeout) {
@@ -584,7 +284,7 @@ namespace pn532 {
                 prealloc(1 + sizeof(ciu_reg_212_424kbps)),
                 bits::rf_config_item::analog_212_424kbps,
                 config);
-        return command_response(command_code::rf_configuration, payload, timeout);
+        return chn().command_response(command_code::rf_configuration, payload, timeout);
     }
 
     nfc::r<> nfc::rf_configuration_analog_typeb(ciu_reg_typeb const &config, ms timeout) {
@@ -592,7 +292,7 @@ namespace pn532 {
                 prealloc(1 + sizeof(ciu_reg_typeb)),
                 bits::rf_config_item::analog_typeb,
                 config);
-        return command_response(command_code::rf_configuration, payload, timeout);
+        return chn().command_response(command_code::rf_configuration, payload, timeout);
     }
 
     nfc::r<> nfc::rf_configuration_analog_iso_iec_14443_4(ciu_reg_iso_iec_14443_4 const &config, ms timeout) {
@@ -600,7 +300,7 @@ namespace pn532 {
                 prealloc(1 + sizeof(ciu_reg_iso_iec_14443_4)),
                 bits::rf_config_item::analog_iso_iec_14443_4,
                 config);
-        return command_response(command_code::rf_configuration, payload, timeout);
+        return chn().command_response(command_code::rf_configuration, payload, timeout);
     }
 
     std::uint8_t nfc::get_target(command_code cmd, std::uint8_t target_logical_index, bool expect_more_data) {
@@ -614,17 +314,17 @@ namespace pn532 {
 
     nfc::r<rf_status> nfc::initiator_select(std::uint8_t target_logical_index, ms timeout) {
         const std::uint8_t target_byte = get_target(command_code::in_select, target_logical_index, false);
-        return command_parse_response<rf_status>(command_code::in_select, bin_data{target_byte}, timeout);
+        return chn().command_parse_response<rf_status>(command_code::in_select, bin_data{target_byte}, timeout);
     }
 
     nfc::r<rf_status> nfc::initiator_deselect(std::uint8_t target_logical_index, ms timeout) {
         const std::uint8_t target_byte = get_target(command_code::in_deselect, target_logical_index, false);
-        return command_parse_response<rf_status>(command_code::in_deselect, bin_data{target_byte}, timeout);
+        return chn().command_parse_response<rf_status>(command_code::in_deselect, bin_data{target_byte}, timeout);
     }
 
     nfc::r<rf_status> nfc::initiator_release(std::uint8_t target_logical_index, ms timeout) {
         const std::uint8_t target_byte = get_target(command_code::in_release, target_logical_index, false);
-        return command_parse_response<rf_status>(command_code::in_release, bin_data{target_byte}, timeout);
+        return chn().command_parse_response<rf_status>(command_code::in_release, bin_data{target_byte}, timeout);
     }
 
     nfc::r<rf_status> nfc::initiator_psl(
@@ -632,7 +332,7 @@ namespace pn532 {
             ms timeout) {
         const std::uint8_t target_byte = get_target(command_code::in_psl, target_logical_index, false);
         const bin_data payload = bin_data::chain(prealloc(3), target_byte, in_to_trg, trg_to_in);
-        return command_parse_response<rf_status>(command_code::in_psl, payload, timeout);
+        return chn().command_parse_response<rf_status>(command_code::in_psl, payload, timeout);
     }
 
     namespace {
@@ -706,9 +406,9 @@ namespace pn532 {
                 max_targets,
                 BrMd,
                 initiator_data);
-        auto res_cmd = command_parse_response<std::vector<bits::target<BrMd>>>(
+        auto res_cmd = chn().command_parse_response<std::vector<bits::target<BrMd>>>(
                 command_code::in_list_passive_target, payload, timeout);
-        if (not res_cmd and res_cmd.error() == error::canceled) {
+        if (not res_cmd and res_cmd.error() == channel::error::comm_timeout) {
             // Canceled commands means no target was found, return thus an empty array as technically it's correct
             return std::vector<bits::target<BrMd>>{};
         }
@@ -750,7 +450,7 @@ namespace pn532 {
 
     nfc::r<rf_status, atr_res_info> nfc::initiator_activate_target(std::uint8_t target_logical_index, ms timeout) {
         const auto next_byte = get_in_atr_next(false, false);
-        return command_parse_response<std::pair<rf_status, atr_res_info>>(
+        return chn().command_parse_response<std::pair<rf_status, atr_res_info>>(
                 command_code::in_atr,
                 bin_data::chain(target_logical_index, next_byte),
                 timeout);
@@ -761,7 +461,7 @@ namespace pn532 {
             std::array<std::uint8_t, 10> const &nfcid_3t,
             ms timeout) {
         const auto next_byte = get_in_atr_next(true, false);
-        return command_parse_response<std::pair<rf_status, atr_res_info>>(
+        return chn().command_parse_response<std::pair<rf_status, atr_res_info>>(
                 command_code::in_atr,
                 bin_data::chain(target_logical_index, next_byte, nfcid_3t),
                 timeout);
@@ -773,7 +473,7 @@ namespace pn532 {
             ms timeout) {
         const auto next_byte = get_in_atr_next(false, true);
         const auto gi_view = sanitize_initiator_general_info(command_code::in_atr, general_info);
-        return command_parse_response<std::pair<rf_status, atr_res_info>>(
+        return chn().command_parse_response<std::pair<rf_status, atr_res_info>>(
                 command_code::in_atr,
                 bin_data::chain(target_logical_index, next_byte, gi_view),
                 timeout);
@@ -786,7 +486,7 @@ namespace pn532 {
             ms timeout) {
         const auto next_byte = get_in_atr_next(true, true);
         const auto gi_view = sanitize_initiator_general_info(command_code::in_atr, general_info);
-        return command_parse_response<std::pair<rf_status, atr_res_info>>(
+        return chn().command_parse_response<std::pair<rf_status, atr_res_info>>(
                 command_code::in_atr,
                 bin_data::chain(target_logical_index, next_byte, nfcid_3t, gi_view),
                 timeout);
@@ -811,8 +511,8 @@ namespace pn532 {
                 polls_per_type,
                 period,
                 target_view);
-        auto res_cmd = command_parse_response<std::vector<any_target>>(command_code::in_autopoll, payload, timeout);
-        if (not res_cmd and res_cmd.error() == error::canceled) {
+        auto res_cmd = chn().command_parse_response<std::vector<any_target>>(command_code::in_autopoll, payload, timeout);
+        if (not res_cmd and res_cmd.error() == channel::error::comm_timeout) {
             // Canceled commands means no target was found, return thus an empty array as technically it's correct
             return std::vector<any_target>{};
         }
@@ -842,7 +542,7 @@ namespace pn532 {
                 PN532_LOGI("%s: sending chunk %u/%u...", to_string(command_code::in_data_exchange), chunk_idx + 1, n_chunks);
             }
             const bin_data payload = bin_data::chain(prealloc(1u + data_view.size()), target_byte, data_view);
-            auto res_cmd = command_parse_response<std::pair<rf_status, bin_data>>(
+            auto res_cmd = chn().command_parse_response<std::pair<rf_status, bin_data>>(
                     command_code::in_data_exchange, payload, rt.remaining());
             if (not res_cmd) {
                 return res_cmd.error();
@@ -852,7 +552,7 @@ namespace pn532 {
                     PN532_LOGE("%s: aborting multiple chunks transfer because controller returned error %s.",
                                to_string(command_code::in_data_exchange), to_string(res_cmd->first.error));
                     // Send an ack to abort whatever is left in the controller.
-                    raw_send_ack(true, one_sec);
+                    chn().send_ack(true, 1s);
                 }
                 return res_cmd;
             }
@@ -865,8 +565,8 @@ namespace pn532 {
 
 
     nfc::r<rf_status, bin_data> nfc::initiator_communicate_through(bin_data const &raw_data, ms timeout) {
-        return command_parse_response<std::pair<rf_status, bin_data>>(command_code::in_communicate_thru, raw_data,
-                                                                      timeout);
+        return chn().command_parse_response<std::pair<rf_status, bin_data>>(command_code::in_communicate_thru, raw_data,
+                                                                            timeout);
     }
 
     namespace {
@@ -880,7 +580,7 @@ namespace pn532 {
 
     nfc::r<jump_dep_psl> nfc::initiator_jump_for_dep_active(baudrate speed, ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(false, false, false);
-        return command_parse_response<jump_dep_psl>(
+        return chn().command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_dep,
                 bin_data::chain(true /* active */, speed, next_byte),
                 timeout);
@@ -889,7 +589,7 @@ namespace pn532 {
     nfc::r<jump_dep_psl> nfc::initiator_jump_for_dep_active(
             baudrate speed, std::array<std::uint8_t, 10> const &nfcid_3t, ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(false, true, false);
-        return command_parse_response<jump_dep_psl>(
+        return chn().command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_dep,
                 bin_data::chain(true /* active */, speed, next_byte, nfcid_3t),
                 timeout);
@@ -897,7 +597,7 @@ namespace pn532 {
 
     nfc::r<jump_dep_psl> nfc::initiator_jump_for_dep_passive_106kbps(ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(false, false, false);
-        return command_parse_response<jump_dep_psl>(
+        return chn().command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_dep,
                 bin_data::chain(false /* passive */, baudrate::kbps106, next_byte),
                 timeout);
@@ -906,7 +606,7 @@ namespace pn532 {
     nfc::r<jump_dep_psl> nfc::initiator_jump_for_dep_passive_106kbps(
             std::array<std::uint8_t, 10> const &nfcid_3t, ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(false, true, false);
-        return command_parse_response<jump_dep_psl>(
+        return chn().command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_dep,
                 bin_data::chain(false /* passive */, baudrate::kbps106, next_byte, nfcid_3t),
                 timeout);
@@ -915,7 +615,7 @@ namespace pn532 {
     nfc::r<jump_dep_psl> nfc::initiator_jump_for_dep_passive_106kbps(
             std::array<std::uint8_t, 4> const &target_id, ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(true, false, false);
-        return command_parse_response<jump_dep_psl>(
+        return chn().command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_dep,
                 bin_data::chain(false /* passive */, baudrate::kbps106, next_byte, target_id),
                 timeout);
@@ -924,7 +624,7 @@ namespace pn532 {
     nfc::r<jump_dep_psl> nfc::initiator_jump_for_dep_passive_106kbps(
             std::array<std::uint8_t, 4> const &target_id, std::array<std::uint8_t, 10> const &nfcid_3t, ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(true, true, false);
-        return command_parse_response<jump_dep_psl>(
+        return chn().command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_dep,
                 bin_data::chain(false /* passive */, baudrate::kbps106, next_byte, target_id, nfcid_3t),
                 timeout);
@@ -933,7 +633,7 @@ namespace pn532 {
     nfc::r<jump_dep_psl> nfc::initiator_jump_for_dep_passive_212kbps(
             std::array<std::uint8_t, 5> const &target_id, ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(true, false, false);
-        return command_parse_response<jump_dep_psl>(
+        return chn().command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_dep,
                 bin_data::chain(false /* passive */, baudrate::kbps212, next_byte, target_id, target_id),
                 timeout);
@@ -942,7 +642,7 @@ namespace pn532 {
     nfc::r<jump_dep_psl> nfc::initiator_jump_for_dep_passive_424kbps(
             std::array<std::uint8_t, 5> const &target_id, ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(true, false, false);
-        return command_parse_response<jump_dep_psl>(
+        return chn().command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_dep,
                 bin_data::chain(false /* passive */, baudrate::kbps424, next_byte, target_id, target_id),
                 timeout);
@@ -954,7 +654,7 @@ namespace pn532 {
             std::vector<std::uint8_t> const &general_info, ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(false, false, true);
         const auto gi_view = sanitize_initiator_general_info(command_code::in_jump_for_dep, general_info);
-        return command_parse_response<jump_dep_psl>(
+        return chn().command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_dep,
                 bin_data::chain(true /* active */, speed, next_byte, gi_view),
                 timeout);
@@ -965,7 +665,7 @@ namespace pn532 {
             std::vector<std::uint8_t> const &general_info, ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(false, true, true);
         const auto gi_view = sanitize_initiator_general_info(command_code::in_jump_for_dep, general_info);
-        return command_parse_response<jump_dep_psl>(
+        return chn().command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_dep,
                 bin_data::chain(true /* active */, speed, next_byte, nfcid_3t, gi_view),
                 timeout);
@@ -975,7 +675,7 @@ namespace pn532 {
             std::vector<std::uint8_t> const &general_info, ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(false, false, true);
         const auto gi_view = sanitize_initiator_general_info(command_code::in_jump_for_dep, general_info);
-        return command_parse_response<jump_dep_psl>(
+        return chn().command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_dep,
                 bin_data::chain(false /* passive */, baudrate::kbps106, next_byte, gi_view),
                 timeout);
@@ -986,7 +686,7 @@ namespace pn532 {
             std::vector<std::uint8_t> const &general_info, ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(false, true, true);
         const auto gi_view = sanitize_initiator_general_info(command_code::in_jump_for_dep, general_info);
-        return command_parse_response<jump_dep_psl>(
+        return chn().command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_dep,
                 bin_data::chain(false /* passive */, baudrate::kbps106, next_byte, nfcid_3t, gi_view),
                 timeout);
@@ -997,7 +697,7 @@ namespace pn532 {
             std::vector<std::uint8_t> const &general_info, ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(true, false, true);
         const auto gi_view = sanitize_initiator_general_info(command_code::in_jump_for_dep, general_info);
-        return command_parse_response<jump_dep_psl>(
+        return chn().command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_dep,
                 bin_data::chain(false /* passive */, baudrate::kbps106, next_byte, target_id, gi_view),
                 timeout);
@@ -1008,7 +708,7 @@ namespace pn532 {
             std::vector<std::uint8_t> const &general_info, ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(true, true, true);
         const auto gi_view = sanitize_initiator_general_info(command_code::in_jump_for_dep, general_info);
-        return command_parse_response<jump_dep_psl>(
+        return chn().command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_dep,
                 bin_data::chain(false /* passive */, baudrate::kbps106, next_byte, target_id, nfcid_3t, gi_view),
                 timeout);
@@ -1019,7 +719,7 @@ namespace pn532 {
             std::vector<std::uint8_t> const &general_info, ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(true, false, true);
         const auto gi_view = sanitize_initiator_general_info(command_code::in_jump_for_dep, general_info);
-        return command_parse_response<jump_dep_psl>(
+        return chn().command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_dep,
                 bin_data::chain(false /* passive */, baudrate::kbps212, next_byte, target_id, target_id, gi_view),
                 timeout);
@@ -1030,7 +730,7 @@ namespace pn532 {
             std::vector<std::uint8_t> const &general_info, ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(true, false, true);
         const auto gi_view = sanitize_initiator_general_info(command_code::in_jump_for_dep, general_info);
-        return command_parse_response<jump_dep_psl>(
+        return chn().command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_dep,
                 bin_data::chain(false /* passive */, baudrate::kbps424, next_byte, target_id, target_id, gi_view),
                 timeout);
@@ -1039,7 +739,7 @@ namespace pn532 {
 
     nfc::r<jump_dep_psl> nfc::initiator_jump_for_psl_active(baudrate speed, ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(false, false, false);
-        return command_parse_response<jump_dep_psl>(
+        return chn().command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_psl,
                 bin_data::chain(true /* active */, speed, next_byte),
                 timeout);
@@ -1048,7 +748,7 @@ namespace pn532 {
     nfc::r<jump_dep_psl> nfc::initiator_jump_for_psl_active(
             baudrate speed, std::array<std::uint8_t, 10> const &nfcid_3t, ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(false, true, false);
-        return command_parse_response<jump_dep_psl>(
+        return chn().command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_psl,
                 bin_data::chain(true /* active */, speed, next_byte, nfcid_3t),
                 timeout);
@@ -1056,7 +756,7 @@ namespace pn532 {
 
     nfc::r<jump_dep_psl> nfc::initiator_jump_for_psl_passive_106kbps(ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(false, false, false);
-        return command_parse_response<jump_dep_psl>(
+        return chn().command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_psl,
                 bin_data::chain(false /* passive */, baudrate::kbps106, next_byte),
                 timeout);
@@ -1065,7 +765,7 @@ namespace pn532 {
     nfc::r<jump_dep_psl> nfc::initiator_jump_for_psl_passive_106kbps(
             std::array<std::uint8_t, 10> const &nfcid_3t, ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(false, true, false);
-        return command_parse_response<jump_dep_psl>(
+        return chn().command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_psl,
                 bin_data::chain(false /* passive */, baudrate::kbps106, next_byte, nfcid_3t),
                 timeout);
@@ -1074,7 +774,7 @@ namespace pn532 {
     nfc::r<jump_dep_psl> nfc::initiator_jump_for_psl_passive_106kbps(
             std::array<std::uint8_t, 4> const &target_id, ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(true, false, false);
-        return command_parse_response<jump_dep_psl>(
+        return chn().command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_psl,
                 bin_data::chain(false /* passive */, baudrate::kbps106, next_byte, target_id),
                 timeout);
@@ -1083,7 +783,7 @@ namespace pn532 {
     nfc::r<jump_dep_psl> nfc::initiator_jump_for_psl_passive_106kbps(
             std::array<std::uint8_t, 4> const &target_id, std::array<std::uint8_t, 10> const &nfcid_3t, ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(true, true, false);
-        return command_parse_response<jump_dep_psl>(
+        return chn().command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_psl,
                 bin_data::chain(false /* passive */, baudrate::kbps106, next_byte, target_id, nfcid_3t),
                 timeout);
@@ -1092,7 +792,7 @@ namespace pn532 {
     nfc::r<jump_dep_psl> nfc::initiator_jump_for_psl_passive_212kbps(
             std::array<std::uint8_t, 5> const &target_id, ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(true, false, false);
-        return command_parse_response<jump_dep_psl>(
+        return chn().command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_psl,
                 bin_data::chain(false /* passive */, baudrate::kbps212, next_byte, target_id, target_id),
                 timeout);
@@ -1101,7 +801,7 @@ namespace pn532 {
     nfc::r<jump_dep_psl> nfc::initiator_jump_for_psl_passive_424kbps(
             std::array<std::uint8_t, 5> const &target_id, ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(true, false, false);
-        return command_parse_response<jump_dep_psl>(
+        return chn().command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_psl,
                 bin_data::chain(false /* passive */, baudrate::kbps424, next_byte, target_id, target_id),
                 timeout);
@@ -1113,7 +813,7 @@ namespace pn532 {
             std::vector<std::uint8_t> const &general_info, ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(false, false, true);
         const auto gi_view = sanitize_initiator_general_info(command_code::in_jump_for_psl, general_info);
-        return command_parse_response<jump_dep_psl>(
+        return chn().command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_psl,
                 bin_data::chain(true /* active */, speed, next_byte, gi_view),
                 timeout);
@@ -1124,7 +824,7 @@ namespace pn532 {
             std::vector<std::uint8_t> const &general_info, ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(false, true, true);
         const auto gi_view = sanitize_initiator_general_info(command_code::in_jump_for_psl, general_info);
-        return command_parse_response<jump_dep_psl>(
+        return chn().command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_psl,
                 bin_data::chain(true /* active */, speed, next_byte, nfcid_3t, gi_view),
                 timeout);
@@ -1134,7 +834,7 @@ namespace pn532 {
             std::vector<std::uint8_t> const &general_info, ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(false, false, true);
         const auto gi_view = sanitize_initiator_general_info(command_code::in_jump_for_psl, general_info);
-        return command_parse_response<jump_dep_psl>(
+        return chn().command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_psl,
                 bin_data::chain(false /* passive */, baudrate::kbps106, next_byte, gi_view),
                 timeout);
@@ -1145,7 +845,7 @@ namespace pn532 {
             std::vector<std::uint8_t> const &general_info, ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(false, true, true);
         const auto gi_view = sanitize_initiator_general_info(command_code::in_jump_for_psl, general_info);
-        return command_parse_response<jump_dep_psl>(
+        return chn().command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_psl,
                 bin_data::chain(false /* passive */, baudrate::kbps106, next_byte, nfcid_3t, gi_view),
                 timeout);
@@ -1156,7 +856,7 @@ namespace pn532 {
             std::vector<std::uint8_t> const &general_info, ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(true, false, true);
         const auto gi_view = sanitize_initiator_general_info(command_code::in_jump_for_psl, general_info);
-        return command_parse_response<jump_dep_psl>(
+        return chn().command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_psl,
                 bin_data::chain(false /* passive */, baudrate::kbps106, next_byte, target_id, gi_view),
                 timeout);
@@ -1167,7 +867,7 @@ namespace pn532 {
             std::vector<std::uint8_t> const &general_info, ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(true, true, true);
         const auto gi_view = sanitize_initiator_general_info(command_code::in_jump_for_psl, general_info);
-        return command_parse_response<jump_dep_psl>(
+        return chn().command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_psl,
                 bin_data::chain(false /* passive */, baudrate::kbps106, next_byte, target_id, nfcid_3t, gi_view),
                 timeout);
@@ -1178,7 +878,7 @@ namespace pn532 {
             std::vector<std::uint8_t> const &general_info, ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(true, false, true);
         const auto gi_view = sanitize_initiator_general_info(command_code::in_jump_for_psl, general_info);
-        return command_parse_response<jump_dep_psl>(
+        return chn().command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_psl,
                 bin_data::chain(false /* passive */, baudrate::kbps212, next_byte, target_id, target_id, gi_view),
                 timeout);
@@ -1189,32 +889,32 @@ namespace pn532 {
             std::vector<std::uint8_t> const &general_info, ms timeout) {
         const auto next_byte = get_in_jump_for_dep_psl_next(true, false, true);
         const auto gi_view = sanitize_initiator_general_info(command_code::in_jump_for_psl, general_info);
-        return command_parse_response<jump_dep_psl>(
+        return chn().command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_psl,
                 bin_data::chain(false /* passive */, baudrate::kbps424, next_byte, target_id, target_id, gi_view),
                 timeout);
     }
 
     nfc::r<> nfc::set_parameters(parameters const &parms, ms timeout) {
-        return command_response(command_code::set_parameters, bin_data::chain(parms), timeout);
+        return chn().command_response(command_code::set_parameters, bin_data::chain(parms), timeout);
     }
 
     nfc::r<rf_status> nfc::power_down(std::vector<wakeup_source> const &wakeup_sources, ms timeout) {
-        return command_parse_response<rf_status>(command_code::power_down, bin_data::chain(wakeup_sources), timeout);
+        return chn().command_parse_response<rf_status>(command_code::power_down, bin_data::chain(wakeup_sources), timeout);
     }
 
     nfc::r<rf_status> nfc::power_down(std::vector<wakeup_source> const &wakeup_sources, bool generate_irq, ms timeout) {
-        return command_parse_response<rf_status>(command_code::power_down,
-                                                 bin_data::chain(prealloc(2), wakeup_sources, generate_irq),
-                                                 timeout);
+        return chn().command_parse_response<rf_status>(command_code::power_down,
+                                                       bin_data::chain(prealloc(2), wakeup_sources, generate_irq),
+                                                       timeout);
     }
 
     nfc::r<> nfc::rf_regulation_test(tx_mode mode, ms timeout) {
-        return command(command_code::rf_regulation_test, bin_data::chain(mode), timeout);
+        return chn().command(command_code::rf_regulation_test, bin_data::chain(mode), timeout);
     }
 
     nfc::r<status_as_target> nfc::target_get_target_status(ms timeout) {
-        return command_parse_response<status_as_target>(command_code::tg_get_target_status, bin_data{}, timeout);
+        return chn().command_parse_response<status_as_target>(command_code::tg_get_target_status, bin_data{}, timeout);
     }
 
     nfc::r<init_as_target_res> nfc::target_init_as_target(
@@ -1237,40 +937,40 @@ namespace pn532 {
                 gi_view,
                 std::uint8_t(tk_view.size()),
                 tk_view);
-        return command_parse_response<init_as_target_res>(command_code::tg_init_as_target, payload, timeout);
+        return chn().command_parse_response<init_as_target_res>(command_code::tg_init_as_target, payload, timeout);
     }
 
     nfc::r<rf_status> nfc::target_set_general_bytes(std::vector<std::uint8_t> const &general_info, ms timeout) {
         const auto gi_view = sanitize_target_general_info(command_code::tg_set_general_bytes, general_info);
-        return command_parse_response<rf_status>(command_code::tg_set_general_bytes, bin_data::chain(gi_view),
-                                                 timeout);
+        return chn().command_parse_response<rf_status>(command_code::tg_set_general_bytes, bin_data::chain(gi_view),
+                                                       timeout);
     }
 
     nfc::r<rf_status, bin_data> nfc::target_get_data(ms timeout) {
-        return command_parse_response<std::pair<rf_status, bin_data>>(command_code::tg_get_data, bin_data{}, timeout);
+        return chn().command_parse_response<std::pair<rf_status, bin_data>>(command_code::tg_get_data, bin_data{}, timeout);
     }
 
     nfc::r<rf_status> nfc::target_set_data(std::vector<std::uint8_t> const &data, ms timeout) {
         const auto view = sanitize_vector(command_code::tg_set_data, "data", data, bits::max_firmware_data_length - 1);
-        return command_parse_response<rf_status>(command_code::tg_set_data, bin_data::chain(view), timeout);
+        return chn().command_parse_response<rf_status>(command_code::tg_set_data, bin_data::chain(view), timeout);
     }
 
     nfc::r<rf_status> nfc::target_set_metadata(std::vector<std::uint8_t> const &data, ms timeout) {
         const auto view = sanitize_vector(command_code::tg_set_metadata, "metadata", data,
                                           bits::max_firmware_data_length - 1);
-        return command_parse_response<rf_status>(command_code::tg_set_metadata, bin_data::chain(view), timeout);
+        return chn().command_parse_response<rf_status>(command_code::tg_set_metadata, bin_data::chain(view), timeout);
     }
 
     nfc::r<rf_status, bin_data> nfc::target_get_initiator_command(ms timeout) {
-        return command_parse_response<std::pair<rf_status, bin_data>>(command_code::tg_get_initiator_command,
-                                                                      bin_data{}, timeout);
+        return chn().command_parse_response<std::pair<rf_status, bin_data>>(command_code::tg_get_initiator_command,
+                                                                            bin_data{}, timeout);
     }
 
     nfc::r<rf_status> nfc::target_response_to_initiator(std::vector<std::uint8_t> const &data, ms timeout) {
         const auto view = sanitize_vector(command_code::tg_response_to_initiator, "response", data,
                                           bits::max_firmware_data_length - 1);
-        return command_parse_response<rf_status>(command_code::tg_response_to_initiator, bin_data::chain(view),
-                                                 timeout);
+        return chn().command_parse_response<rf_status>(command_code::tg_response_to_initiator, bin_data::chain(view),
+                                                       timeout);
     }
 
 

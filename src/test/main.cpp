@@ -70,6 +70,8 @@ namespace {
         vTaskDelay(500 / portTICK_PERIOD_MS);
     }
 
+    using namespace std::chrono_literals;
+
 }// namespace
 
 namespace ut {
@@ -109,7 +111,7 @@ void setup_uart_pn532() {
     channel = std::make_unique<pn532::hsu_channel>(UART_NUM_1);
     tag_reader = std::make_unique<pn532::nfc>(*channel);
     TEST_ASSERT(channel->wake());
-    const auto r_sam = tag_reader->sam_configuration(pn532::sam_mode::normal, pn532::one_sec);
+    const auto r_sam = tag_reader->sam_configuration(pn532::sam_mode::normal, 1s);
     TEST_ASSERT(r_sam);
 }
 
@@ -224,7 +226,7 @@ void setup_i2c_pn532() {
     channel = std::make_unique<pn532::i2c_channel>(I2C_NUM_0);
     tag_reader = std::make_unique<pn532::nfc>(*channel);
     TEST_ASSERT(channel->wake());
-    const auto r_sam = tag_reader->sam_configuration(pn532::sam_mode::normal, pn532::one_sec);
+    const auto r_sam = tag_reader->sam_configuration(pn532::sam_mode::normal, 1s);
     TEST_ASSERT(r_sam);
 }
 
@@ -287,7 +289,7 @@ void test_pn532_cycle_rf() {
 void test_data_exchange() {
     TEST_ASSERT_NOT_EQUAL(tag_reader, nullptr);
     ESP_LOGI(TEST_TAG, "Please bring card close now (searching for one passive 106 kbps target)...");
-    const auto r_scan = tag_reader->initiator_list_passive_kbps106_typea(1, 10 * pn532::one_sec);
+    const auto r_scan = tag_reader->initiator_list_passive_kbps106_typea(1, 10s);
     if (not r_scan or r_scan->empty()) {
         TEST_FAIL_MESSAGE("Could not find a suitable card for testing.");
         return;
@@ -619,7 +621,7 @@ void setup_mifare() {
     TEST_ASSERT_NOT_EQUAL(tag_reader, nullptr);
 
     ESP_LOGI(TEST_TAG, "Please bring card close now (searching for one passive 106 kbps target)...");
-    const auto r_scan = tag_reader->initiator_list_passive_kbps106_typea(1, 10 * pn532::one_sec);
+    const auto r_scan = tag_reader->initiator_list_passive_kbps106_typea(1, 10s);
     if (not r_scan or r_scan->empty()) {
         TEST_FAIL_MESSAGE("Could not find a suitable card for testing.");
         return;

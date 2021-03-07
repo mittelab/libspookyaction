@@ -119,7 +119,7 @@ namespace pn532 {
     }// namespace i2c
 
 
-    i2c::command i2c_channel_repl::raw_prepare_command() const {
+    i2c::command i2c_channel::raw_prepare_command() const {
         i2c::command cmd;
         switch (_mode) {
             case comm_mode::receive:
@@ -134,7 +134,7 @@ namespace pn532 {
         return cmd;
     }
 
-    repl::channel::r<> i2c_channel_repl::raw_send(mlab::range<bin_data::const_iterator> const &buffer, ms timeout) {
+    channel::r<> i2c_channel::raw_send(mlab::range<bin_data::const_iterator> const &buffer, ms timeout) {
         if (_mode != comm_mode::send) {
             ESP_LOGE(PN532_I2C_TAG, "Attempting I2C send without having set the mode, use comm_operation.");
             return error::comm_error;
@@ -149,7 +149,7 @@ namespace pn532 {
         return mlab::result_success;
     }
 
-    repl::channel::r<> i2c_channel_repl::raw_receive(mlab::range<bin_data::iterator> const &buffer, ms timeout) {
+    channel::r<> i2c_channel::raw_receive(mlab::range<bin_data::iterator> const &buffer, ms timeout) {
         if (_mode != comm_mode::receive) {
             ESP_LOGE(PN532_I2C_TAG, "Attempting I2C receive without having set the mode, use comm_operation.");
             return error::comm_error;
@@ -172,7 +172,7 @@ namespace pn532 {
         return mlab::result_success;
     }
 
-    bool i2c_channel_repl::wake() {
+    bool i2c_channel::wake() {
         if (comm_operation op{*this, comm_mode::receive, 100ms}; op.ok()) {
             return bool(op.update(raw_receive({}, 10ms)));
         } else {
@@ -181,83 +181,15 @@ namespace pn532 {
     }
 
 
-    bool i2c_channel_repl::on_receive_prepare(ms timeout) {
+    bool i2c_channel::on_receive_prepare(ms timeout) {
         _mode = comm_mode::receive;
         /// @todo Assert IRQ line or poll
         return true;
     }
 
-    bool i2c_channel_repl::on_send_prepare(ms timeout) {
+    bool i2c_channel::on_send_prepare(ms timeout) {
         _mode = comm_mode::send;
         return true;
     }
 
-    bool i2c_channel::wake() {
-        reduce_timeout rt{ms{100}};
-        // pn532 should be waken up when it hears its address on the I2C bus
-        i2c::command cmd;
-        std::uint8_t status = 0xff;
-        cmd.write(slave_address_to_read(), true);
-        cmd.read(status, I2C_MASTER_LAST_NACK);
-        cmd.stop();
-
-        if (const auto res_cmd = cmd(_port, rt.remaining()); not res_cmd) {
-            ESP_LOGE(PN532_I2C_TAG, "Wake failed: %s", i2c::to_string(res_cmd.error()));
-            return false;
-        }
-        return true;
-    }
-
-    bool i2c_channel::prepare_receive(std::chrono::milliseconds timeout) {
-        reduce_timeout rt{timeout};
-
-        std::uint8_t status = 0x00;
-        i2c::command cmd;
-        cmd.write(slave_address_to_read(), true);
-        cmd.read(status, I2C_MASTER_LAST_NACK);
-        cmd.stop();
-
-        while (rt) {
-            if (const auto res_cmd = cmd(_port, rt.remaining()); not res_cmd) {
-                ESP_LOGE(PN532_I2C_TAG, "Prepare receive failed: %s", i2c::to_string(res_cmd.error()));
-                return false;
-            } else if (status != 0x00) {
-                return true;
-            }
-            // Retry after 10 ms
-            vTaskDelay(duration_cast(std::chrono::milliseconds{10}));
-        }
-        return false;// Timeout
-    }
-
-    bool i2c_channel::send_raw(const bin_data &data, std::chrono::milliseconds timeout) {
-        reduce_timeout rt{timeout};
-        i2c::command cmd;
-        cmd.write(slave_address_to_write(), true);
-        cmd.write(data.view(), true);
-        cmd.stop();
-
-        if (const auto res_cmd = cmd(_port, rt.remaining()); not res_cmd) {
-            ESP_LOGE(PN532_I2C_TAG, "Send failed: %s", i2c::to_string(res_cmd.error()));
-            return false;
-        }
-        return true;
-    }
-
-    bool i2c_channel::receive_raw(bin_data &data, const std::size_t length, std::chrono::milliseconds timeout) {
-        reduce_timeout rt{timeout};
-        data.clear();
-        data.resize(length);
-
-        i2c::command cmd;
-        cmd.write(slave_address_to_read(), true);
-        cmd.read(data.view(), I2C_MASTER_ACK);
-        cmd.stop();
-
-        if (const auto res_cmd = cmd(_port, rt.remaining()); not res_cmd) {
-            ESP_LOGE(PN532_I2C_TAG, "Receive failed: %s", i2c::to_string(res_cmd.error()));
-            return false;
-        }
-        return true;
-    }
 }// namespace pn532

@@ -3,6 +3,7 @@
 //
 
 #include "pn532/msg.hpp"
+#include "pn532/channel.hpp"
 
 namespace pn532 {
     const char *to_string(bits::baudrate s) {
@@ -217,6 +218,35 @@ namespace pn532 {
                 return "overcurrent";
             case bits::error::nad_missing_in_dep_frame:
                 return "NAD missing in DEP frame";
+        }
+        return "UNKNOWN";
+    }
+
+    const char *to_string(frame_type type) {
+        switch (type) {
+            case frame_type::ack:
+                return "ack";
+            case frame_type::nack:
+                return "nack";
+            case frame_type::error:
+                return "error";
+            case frame_type::info:
+                return "info";
+            default:
+                return "UNKNOWN";
+        }
+    }
+
+    const char *to_string(channel::error e) {
+        switch (e) {
+            case channel::error::comm_malformed:
+                return "Malformed or unexpected response";
+            case channel::error::comm_error:
+                return "Controller returned error instead of ACK";
+            case channel::error::failure:
+                return "Controller acknowledged but returned error";
+            case channel::error::comm_timeout:
+                return "Communication reached timeout";
         }
         return "UNKNOWN";
     }

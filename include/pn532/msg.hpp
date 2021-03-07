@@ -20,6 +20,7 @@ namespace pn532 {
     [[nodiscard]] const char *to_string(bits::target_type t);
 
     [[nodiscard]] const char *to_string(bits::error e);
+
 }// namespace pn532
 
 #endif//PN532_MSG_HPP

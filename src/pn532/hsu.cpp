@@ -36,20 +36,23 @@ namespace pn532 {
 
     channel::r<> hsu_channel::raw_send(mlab::range<bin_data::const_iterator> const &buffer, ms timeout) {
         reduce_timeout rt{timeout};
+        ESP_LOG_BUFFER_HEX_LEVEL(PN532_HSU_SEND_TAG, buffer.data(), buffer.size(), ESP_LOG_DEBUG);
         // Send and block until transmission is finished (or timeout time expired)
-        if (ESP_OK != uart_write_bytes(_port, reinterpret_cast<const char *>(buffer.data()), buffer.size())) {
+        if (uart_write_bytes(_port, reinterpret_cast<const char *>(buffer.data()), buffer.size()) != buffer.size()) {
+            PN532_LOGE("Failure to send data via HSU, parameter error at at uart_write_bytes (port = %d).", static_cast<int>(_port));
             return error::comm_error;
         }
-        ESP_LOG_BUFFER_HEX_LEVEL(PN532_HSU_SEND_TAG, buffer.data(), buffer.size(), ESP_LOG_VERBOSE);
         const auto result = uart_wait_tx_done(_port, duration_cast(rt.remaining()));
         if (result == ESP_OK) {
             return mlab::result_success;
-        } else if (result == ESP_FAIL) {
-            PN532_LOGE("Failure to send data via HSU, parameter error (port = %d).", static_cast<int>(_port));
-        } else if (result != ESP_ERR_TIMEOUT) {
-            PN532_LOGE("Unexpected result from uart_wait_tx_done: %d.", static_cast<int>(result));
-        } else {
+        } else if (result == ESP_ERR_TIMEOUT) {
+            PN532_LOGE("Failure to send data via HSU, timeout at uart_wait_tx_done (port = %d).", static_cast<int>(_port));
             return error::comm_timeout;
+        }
+        if (result == ESP_FAIL) {
+            PN532_LOGE("Failure to send data via HSU, parameter error (port = %d).", static_cast<int>(_port));
+        } else {
+            PN532_LOGE("Unexpected result from uart_wait_tx_done: %d.", static_cast<int>(result));
         }
         return error::comm_error;
     }
@@ -81,7 +84,7 @@ namespace pn532 {
                 }
             }
         }
-        ESP_LOG_BUFFER_HEX_LEVEL(PN532_HSU_RECV_TAG, buffer.data(), read_length, ESP_LOG_VERBOSE);
+        ESP_LOG_BUFFER_HEX_LEVEL(PN532_HSU_RECV_TAG, buffer.data(), read_length, ESP_LOG_DEBUG);
         if (read_length >= buffer.size()) {
             return mlab::result_success;
         }

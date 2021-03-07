@@ -39,11 +39,7 @@ namespace pn532 {
 
             void write(std::uint8_t b, bool enable_ack_check);
 
-            [[deprecated]] void write(std::reference_wrapper<const bin_data> data, bool enable_ack_check);
-
             void write(mlab::range<bin_data::const_iterator> const &data, bool enable_ack_check);
-
-            [[deprecated]] void read(bin_data &sized_buffer, i2c_ack_type_t ack);
 
             void read(mlab::range<bin_data::iterator> const &buffer, i2c_ack_type_t ack);
 

@@ -60,22 +60,6 @@ namespace pn532 {
             }
         }
 
-        void command::write(std::reference_wrapper<const bin_data> data, bool enable_ack_check) {
-            if (assert_unused()) {
-                if (i2c_master_write(_handle, const_cast<std::uint8_t *>(data.get().data()), data.get().size(), enable_ack_check) != ESP_OK) {
-                    ESP_LOGE(PN532_I2C_TAG, "i2c_master_write failed.");
-                }
-            }
-        }
-
-
-        void command::read(bin_data &sized_buffer, i2c_ack_type_t ack) {
-            if (assert_unused()) {
-                if (i2c_master_read(_handle, sized_buffer.data(), sized_buffer.size(), ack) != ESP_OK) {
-                    ESP_LOGE(PN532_I2C_TAG, "i2c_master_read failed.");
-                }
-            }
-        }
 
         void command::write(mlab::range<bin_data::const_iterator> const &data, bool enable_ack_check) {
             if (assert_unused()) {

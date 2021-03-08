@@ -44,13 +44,20 @@ namespace pn532 {
     };
 
     struct frame_id {
-        frame_type type = frame_type::error;
-        bool complete = false;
-        std::size_t frame_total_length = std::numeric_limits<std::size_t>::max();
-        std::size_t info_frame_data_size = std::numeric_limits<std::size_t>::max();
+        /**
+         * This is the absolute minimum frame length, that is just the start of packet code and the frame code.
+         */
+        static constexpr std::size_t min_frame_length =
+                bits::start_of_packet_code.size() + std::max(std::max(bits::ack_packet_code.size(), bits::nack_packet_code.size()), bits::fixed_extended_packet_length.size());
+        /**
+         * Same as above, but including preamble and postamble
+         */
+        static constexpr std::size_t min_frame_length_pre_postamble = 2 + min_frame_length;
 
-        [[nodiscard]] inline bool operator==(frame_id const &other) const;
-        [[nodiscard]] inline bool operator!=(frame_id const &other) const;
+        frame_type type = frame_type::error;
+        bool has_preamble = false;
+        std::size_t frame_total_length = min_frame_length;
+        std::size_t info_frame_data_size = 0;
     };
 
     bin_data &operator<<(bin_data &bd, any_frame const &f);
@@ -75,6 +82,10 @@ namespace pn532 {
      */
     bin_stream &operator>>(bin_stream &s, frame_id &id);
 
+    /**
+     * @todo Add a switch `bool assume_preamble()` that reads 6 bytes instead of 4 to skip one restart
+     * @todo Change stream and restart in three enums (stream_like, restart_read_past_end, restart_always)
+     */
     class channel {
     public:
         enum struct error {
@@ -101,13 +112,15 @@ namespace pn532 {
         /**
          * Determines whether multiple calls to @ref raw_receive can be performed as part of a single
          * receive operation (in-between @ref on_receive_prepare and @ref on_receive_complete).
+         * Returning false from this method will cause subsequent restarts (up to three times) in order
+         * to entirely read a single frame.
          */
-        [[nodiscard]] virtual bool supports_multiple_raw_receive() const = 0;
+        [[nodiscard]] virtual bool supports_streaming() const = 0;
 
         /**
          * @addtogroup Events
          * Guaranteed to always be called in pairs; each `prepare` is followed by one `complete`.
-         * If @ref supports_multiple_raw_receive is true, multiple @ref raw_receive calls may be performed subsequently
+         * If @ref supports_streaming is true, multiple @ref raw_receive calls may be performed subsequently
          * in-between a @ref on_receive_prepare and a @ref on_receive_complete; otherwise, at most one call is
          * performed.
          * For sending data, there is always a single call to @ref raw_send in-between @ref on_send_prepare and its
@@ -206,14 +219,6 @@ namespace pn532 {
          */
         r<any_frame> receive_restart(ms timeout);
 
-        /**
-         * Receives just enough to identify the frame. Does not kick off a @ref comm_operation.
-         * @param buffer Gets overwritten
-         * @param timeout
-         * @return The @ref frame_id object and the offset in @p buffer at which the reading stopped
-         */
-        r<frame_id, std::size_t> raw_receive_identify(bin_data &buffer, ms timeout);
-
         bool _has_operation = false;
     };
 
@@ -245,20 +250,6 @@ namespace pn532 {
 }// namespace pn532
 
 namespace pn532 {
-
-    bool frame_id::operator==(frame_id const &other) const {
-        return type == other.type and
-               complete == other.complete and
-               frame_total_length == other.frame_total_length and
-               info_frame_data_size == other.info_frame_data_size;
-    }
-
-    bool frame_id::operator!=(frame_id const &other) const {
-        return type != other.type or
-               complete != other.complete or
-               frame_total_length != other.frame_total_length or
-               info_frame_data_size != other.info_frame_data_size;
-    }
 
     template <class Data, class>
     channel::r<Data> channel::command_parse_response(bits::command cmd, bin_data data, ms timeout) {

@@ -100,32 +100,35 @@ namespace pn532 {
 
     bin_stream &operator>>(bin_stream &s, frame_id &id) {
         id.type = frame_type::error;
-        id.complete = false;
         id.info_frame_data_size = 0;
-        id.frame_total_length = advance_past_start_of_packet_code(s);
 
-        if (not s.good()) {
+        // Identify the start of packet
+        const auto begin_of_frame_code = advance_past_start_of_packet_code(s);
+        // Preamble is anything that precedes that packet.
+        id.has_preamble = begin_of_frame_code > bits::start_of_packet_code.size();
+        id.frame_total_length = begin_of_frame_code + 2 /* size of frame code */;
+
+        if (id.has_preamble) {
+            // If it has a preamble, it will have a postamble (of 1 byte)
+            ++id.frame_total_length;
+        }
+
+        // Check if it has enough space to read the code.
+        if (not s.good() or s.remaining() < 2) {
             return s;
         }
-        if (s.remaining() < 2) {
-            PN532_LOGE("Unable to parse frame header, not enough data.");
-            s.set_bad();
-            return s;
-        }
 
+        // Read the code or length
         std::array<std::uint8_t, 2> code_or_length{0x00, 0x00};
-        id.frame_total_length += code_or_length.size();
         s >> code_or_length;
 
         // Check for special packet codes
         if (code_or_length == bits::ack_packet_code) {
             id.type = frame_type::ack;
-            id.complete = true;
             return s;
         }
         if (code_or_length == bits::nack_packet_code) {
             id.type = frame_type::ack;
-            id.complete = true;
             return s;
         }
 
@@ -137,8 +140,6 @@ namespace pn532 {
         if (code_or_length == bits::fixed_extended_packet_length) {
             id.frame_total_length += 3;
             if (s.remaining() < 3) {
-                PN532_LOGE("Unable to parse ext info frame length, not enough data.");
-                s.set_bad();
                 return s;
             }
             // Parse the length from the following bytes
@@ -156,7 +157,6 @@ namespace pn532 {
         // Ok now we know the length
         id.frame_total_length += info_frame_data_size + 1 /* checksum */;
         id.info_frame_data_size = info_frame_data_size;
-        id.complete = s.remaining() >= info_frame_data_size + 1;
         return s;
     }
 
@@ -164,46 +164,59 @@ namespace pn532 {
         // Unpack stream and frame id from tuple
         bin_stream &s = std::get<bin_stream &>(s_id);
         frame_id const &id = std::get<frame_id const &>(s_id);
-        // Knowing the frame id, parse now the frame body
         if (not s.good()) {
             return s;
-        } else if (not id.complete) {
-            PN532_LOGE("Unable to parse frame, need at least %d bytes.", id.frame_total_length);
-            s.set_bad();
-            return s;
         }
+        // Knowing the frame id, parse now the frame body
         if (id.type == frame_type::ack) {
             f = frame<frame_type::ack>{};
-            return s;
         } else if (id.type == frame_type::nack) {
             f = frame<frame_type::nack>{};
-            return s;
+        } else {
+            // Check checksum of the remaining data
+            if (s.remaining() < id.info_frame_data_size + 1 /* checksum */) {
+                PN532_LOGE("Unable to parse info frame body, need at least %d bytes.", id.frame_total_length);
+                s.set_bad();
+                return s;
+            }
+            if (auto const &view = s.peek(); not bits::checksum(std::begin(view), std::begin(view) + id.info_frame_data_size + 1)) {
+                PN532_LOGE("Frame body checksum failed.");
+                s.set_bad();
+                return s;
+            }
+            // This could be a special error frame
+            if (id.info_frame_data_size == 1 and s.peek_one() == bits::specific_app_level_err_code) {
+                PN532_LOGW("Received failure from controller.");
+                f = frame<frame_type::error>{};
+            } else {
+                // All info known frames must have the transport and the command
+                if (id.info_frame_data_size < 2) {
+                    PN532_LOGE("Cannot parse frame body if frame length %u is less than 2.", id.info_frame_data_size);
+                    s.set_bad();
+                    return s;
+                }
+                // Finally, parse the body
+                frame<frame_type::info> info_frame{};
+                s >> info_frame.transport;
+                if (info_frame.transport == bits::transport::pn532_to_host) {
+                    info_frame.command = bits::pn532_to_host_command(s.pop());
+                } else {
+                    s >> info_frame.command;
+                }
+                info_frame.data << prealloc(id.info_frame_data_size - 2) << s.read(id.info_frame_data_size - 2);
+                f = std::move(info_frame);
+            }
+            // Remove checksum
+            s.pop();
         }
-        // Check checksum of the remaining data
-        if (auto const &view = s.peek(); not bits::checksum(std::begin(view), std::begin(view) + id.info_frame_data_size + 1)) {
-            PN532_LOGE("Frame body checksum failed.");
-            s.set_bad();
-            return s;
+        if (id.has_preamble) {
+            // Remove postamble
+            if (not s.good()) {
+                PN532_LOGW("Could not read postamble.");
+            } else if (const auto postamble = s.pop(); postamble != bits::postamble) {
+                PN532_LOGW("Invalid postamble: %02x.", postamble);
+            }
         }
-        // This could be a special error frame
-        if (id.info_frame_data_size == 1 and s.peek_one() == bits::specific_app_level_err_code) {
-            PN532_LOGW("Received error from controller.");
-            f = frame<frame_type::error>{};
-            return s;
-        }
-        // All info known frames must have the transport and the command
-        if (id.info_frame_data_size < 2) {
-            PN532_LOGE("Cannot parse frame body if frame length %u is less than 2.", id.info_frame_data_size);
-            s.set_bad();
-            return s;
-        }
-        // Finally, parse the body
-        frame<frame_type::info> info_frame{};
-        s >> info_frame.transport >> info_frame.command;
-        info_frame.data << prealloc(id.info_frame_data_size - 2) << s.read(id.info_frame_data_size - 2);
-        // Remove checksum
-        s.pop();
-        f = std::move(info_frame);
         return s;
     }
 
@@ -246,7 +259,7 @@ namespace pn532 {
     }
 
     channel::r<any_frame> channel::receive(ms timeout) {
-        if (supports_multiple_raw_receive()) {
+        if (supports_streaming()) {
             return receive_stream(timeout);
         } else {
             return receive_restart(timeout);
@@ -290,58 +303,48 @@ namespace pn532 {
     channel::r<any_frame> channel::receive_restart(ms timeout) {
         reduce_timeout rt{timeout};
         static bin_data buffer;
-        std::size_t offset = 0;
+        buffer.clear();
+        bin_stream s{buffer};
+        // Repeatedly fetch the data until you have determined the frame length
         frame_id id{};
 
-        // First comm operation: receive X bytes and try to identify frame
-        if (comm_operation op{*this, comm_mode::receive, rt.remaining()}; op.ok()) {
-            buffer.clear();
-            if (auto res_id_ofs = raw_receive_identify(buffer, rt.remaining()); res_id_ofs) {
-                std::tie(id, offset) = *res_id_ofs;
-            } else {
-                return op.update(res_id_ofs.error());
-            }
-        } else {
-            return op.error();
-        }
-
-        // Is the body complete?
-        if (not id.complete) {
-            // Request the answer again by sending a NACK
-            if (auto const res_nack = send_ack(false, rt.remaining()); not res_nack) {
-                return res_nack.error();
-            }
-            // Now read the whole thing again.
+        while (buffer.size() < id.frame_total_length) {
+            // Prepare the buffer and receive the whole frame
+            buffer.resize(id.frame_total_length);
             if (comm_operation op{*this, comm_mode::receive, rt.remaining()}; op.ok()) {
-                // This time allocate all the buffer requested
-                buffer.resize(id.frame_total_length);
-                if (auto res_recv = raw_receive(buffer.view(), rt.remaining()); not res_recv) {
+                if (auto const res_recv = raw_receive(buffer.view(), rt.remaining()); res_recv) {
+                    // Attempt to reparse the frame
+                    s.seek(0);
+                    s >> id;
+                    if (not s.good()) {
+                        PN532_LOGE("Could not identify frame from received data.");
+                        return op.update(error::comm_malformed);
+                    }
+                    // Do we finally have enough?
+                    if (buffer.size() >= id.frame_total_length) {
+                        // Now we have enough data to read the command entirely.
+                        any_frame f{};
+                        std::tie(s, id) >> f;
+                        if (s.bad()) {
+                            PN532_LOGE("Could not parse frame from data.");
+                            ESP_LOG_BUFFER_HEX_LEVEL(PN532_TAG, buffer.data(), buffer.size(), ESP_LOG_DEBUG);
+                            return op.update(error::comm_malformed);
+                        } else if (not s.eof()) {
+                            PN532_LOGW("Stray data in frame (%d bytes)", s.remaining());
+                            auto const view = s.peek();
+                            ESP_LOG_BUFFER_HEX_LEVEL(PN532_TAG, view.data(), view.size(), ESP_LOG_WARN);
+                        }
+                        return op.update<any_frame>(std::move(f));
+                    }
+                } else {
                     return op.update(res_recv.error());
                 }
             } else {
                 return op.error();
             }
         }
-
-        // Now we have enough data in the buffer
-        bin_stream s{buffer};
-#ifndef NDEBUG
-        {
-            // In debug mode, assert that we get the same info
-            frame_id test_id{};
-            s >> test_id;
-            assert(test_id == id);
-        }
-#endif
-        s.seek(offset);
-        // Extract the frame
-        any_frame f{};
-        std::tie(s, id) >> f;
-        if (s.good()) {
-            return std::move(f);
-        } else {
-            return error::comm_malformed;
-        }
+        PN532_LOGE("Control reached impossible location.");
+        return error::comm_error;
     }
 
     channel::r<any_frame> channel::receive_stream(ms timeout) {
@@ -349,54 +352,42 @@ namespace pn532 {
         if (comm_operation op{*this, comm_mode::receive, rt.remaining()}; op.ok()) {
             static bin_data buffer;
             buffer.clear();
-            if (auto res_id_ofs = raw_receive_identify(buffer, rt.remaining()); res_id_ofs) {
-                auto const &[id, offset] = *res_id_ofs;
-                if (not id.complete) {
-                    // Retrieve the remaining data
-                    const std::size_t new_data_offset = buffer.size();
-                    buffer.resize(id.frame_total_length);
-                    if (auto res_body = raw_receive(buffer.view(new_data_offset), rt.remaining()); not res_body) {
-                        PN532_LOGE("Could not parse frame body.");
-                        return op.update(res_body.error());
-                    }
+            bin_stream s{buffer};
+            // Repeatedly fetch the data until you have determined the frame length
+            frame_id id{};
+            while (rt and buffer.size() < id.frame_total_length) {
+                // Repeatedly request more bytes
+                const std::size_t old_size = buffer.size();
+                buffer.resize(id.frame_total_length);
+                if (auto res_recv = raw_receive(buffer.view(old_size), rt.remaining()); not res_recv) {
+                    return op.update(res_recv.error());
                 }
-                // Now we have enough data to read the command entirely.
-                any_frame f{};
-                bin_stream s{buffer};
-                s.seek(offset);
-                std::tie(s, id) >> f;
-                if (s.good()) {
-                    return op.update<any_frame>(std::move(f));
-                } else {
+                // Attempt to reparse the frame
+                s.seek(0);
+                s >> id;
+                if (not s.good()) {
+                    PN532_LOGE("Could not identify frame from received data.");
                     return op.update(error::comm_malformed);
                 }
-            } else {
-                return op.update(res_id_ofs.error());
             }
+            // Now we have enough data to read the command entirely.
+            any_frame f{};
+            std::tie(s, id) >> f;
+            if (s.bad()) {
+                PN532_LOGE("Could not parse frame from data.");
+                ESP_LOG_BUFFER_HEX_LEVEL(PN532_TAG, buffer.data(), buffer.size(), ESP_LOG_DEBUG);
+                return op.update(error::comm_malformed);
+            } else if (not s.eof()) {
+                PN532_LOGW("Stray data in frame (%d bytes)", s.remaining());
+                auto const view = s.peek();
+                ESP_LOG_BUFFER_HEX_LEVEL(PN532_TAG, view.data(), view.size(), ESP_LOG_WARN);
+            }
+            return op.update<any_frame>(std::move(f));
         } else {
             return op.error();
         }
     }
 
-
-    channel::r<frame_id, std::size_t> channel::raw_receive_identify(bin_data &buffer, ms timeout) {
-        static constexpr std::size_t min_length = 8;
-        buffer.clear();
-        buffer.resize(min_length);
-        // Receive first the data necessary to identify frame length
-        if (auto res_header = raw_receive(buffer.view(), timeout); not res_header) {
-            return res_header.error();
-        }
-        // Attempt at identifying the frame
-        bin_stream s{buffer};
-        frame_id id{};
-        s >> id;
-        if (not s.good()) {
-            PN532_LOGE("Could not identify frame from received data.");
-            return error::comm_malformed;
-        }
-        return {id, s.tell()};
-    }
 
     channel::r<> channel::command(bits::command cmd, bin_data data, ms timeout) {
         reduce_timeout rt{timeout};
@@ -437,7 +428,7 @@ namespace pn532 {
                 retval = std::move(f.data);
                 break;
             }
-            PN532_LOGW("Receive incorrect response, retrying...");
+            PN532_LOGW("Received incorrect response, retrying...");
             if (not send_ack(false, rt.remaining())) {
                 PN532_LOGE("Could not send nack, giving up on this one.");
                 retval = error::comm_error;

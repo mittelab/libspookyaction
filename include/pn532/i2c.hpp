@@ -67,7 +67,7 @@ namespace pn532 {
         r<> raw_send(mlab::range<bin_data::const_iterator> const &buffer, ms timeout) override;
         r<> raw_receive(mlab::range<bin_data::iterator> const &buffer, ms timeout) override;
 
-        [[nodiscard]] inline bool supports_multiple_raw_receive() const override;
+        [[nodiscard]] inline bool supports_streaming() const override;
 
         bool on_receive_prepare(ms timeout) override;
         bool on_send_prepare(ms timeout) override;
@@ -114,7 +114,7 @@ namespace pn532 {
         return _slave_addr + 1;
     }
 
-    bool i2c_channel::supports_multiple_raw_receive() const {
+    bool i2c_channel::supports_streaming() const {
         return false;
     }
 

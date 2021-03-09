@@ -402,41 +402,34 @@ namespace pn532 {
     channel::r<bin_data> channel::response(bits::command cmd, ms timeout) {
         reduce_timeout rt{timeout};
         r<bin_data> retval = error::comm_timeout;
-        while (rt) {
-            if (auto res_recv = receive(rt.remaining()); res_recv) {
-                if (res_recv->type() == frame_type::error) {
-                    PN532_LOGW("Received application error from the controller.");
-                    retval = error::failure;
-                    break;
-                }
-                if (res_recv->type() != frame_type::info) {
-                    PN532_LOGE("Received ack/nack instead of info/error frame?");
-                    retval = error::comm_malformed;
-                    break;
-                }
+        if (auto res_recv = receive(rt.remaining()); res_recv) {
+            if (res_recv->type() == frame_type::error) {
+                PN532_LOGW("Command %s failed.", to_string(cmd));
+                retval = error::failure;
+            } else if (res_recv->type() != frame_type::info) {
+                PN532_LOGE("Received ack/nack instead of info/error frame to %s?", to_string(cmd));
+                retval = error::comm_malformed;
+            } else {
                 frame<frame_type::info> f = std::move(res_recv->get<frame_type::info>());
                 // Check that f matches
                 if (f.command != cmd) {
                     PN532_LOGE("Mismatch command, sent %s, received %s.", to_string(cmd), to_string(f.command));
                     retval = error::comm_malformed;
-                    break;
+                } else {
+                    if (f.transport != bits::transport::pn532_to_host) {
+                        PN532_LOGW("Incorrect transport in response, ignoring...");
+                    }
+                    // Finally we got the right conditions
+                    retval = std::move(f.data);
                 }
-                if (f.transport != bits::transport::pn532_to_host) {
-                    PN532_LOGW("Incorrect transport in response, ignoring...");
-                }
-                // Finally we got the right conditions
-                retval = std::move(f.data);
-                break;
             }
-            PN532_LOGW("Received incorrect response, retrying...");
-            if (not send_ack(false, rt.remaining())) {
-                PN532_LOGE("Could not send nack, giving up on this one.");
-                retval = error::comm_error;
-                break;
+        } else {
+            if (res_recv.error() == error::comm_timeout) {
+                PN532_LOGW("Command %s timed out.", to_string(cmd));
+            } else {
+                PN532_LOGE("Command %s: %s", to_string(cmd), to_string(res_recv.error()));
             }
-        }
-        if (not retval and not rt) {
-            PN532_LOGE("Timeout before receiving valid response.");
+            retval = res_recv.error();
         }
         // Make sure to send a final ACK to clear the PN532
         send_ack(true, 1s /* allow large timeout here */);

@@ -50,9 +50,9 @@ namespace pn532 {
         static constexpr std::size_t min_frame_length =
                 bits::start_of_packet_code.size() + std::max(std::max(bits::ack_packet_code.size(), bits::nack_packet_code.size()), bits::fixed_extended_packet_length.size());
         /**
-         * Same as above, but including preamble and postamble
+         * Minimum frame length that in all cases allows to determine the frame length.
          */
-        static constexpr std::size_t min_frame_length_pre_postamble = 2 + min_frame_length;
+        static constexpr std::size_t max_min_info_frame_header_length = min_frame_length + 1 /* preamble */ + 3 /* extended info frame length */;
 
         frame_type type = frame_type::error;
         bool has_preamble = false;
@@ -82,10 +82,7 @@ namespace pn532 {
      */
     bin_stream &operator>>(bin_stream &s, frame_id &id);
 
-    /**
-     * @todo Add a switch `bool assume_preamble()` that reads 6 bytes instead of 4 to skip one restart
-     * @todo Change stream and restart in three enums (stream_like, restart_read_past_end, restart_always)
-     */
+
     class channel {
     public:
         enum struct error {
@@ -106,16 +103,37 @@ namespace pn532 {
 
         class comm_operation;
 
+        /**
+         * Mode in which @ref raw_receive is used to handle variable-length frames.
+         *   - @ref receive_mode::stream Multiple @ref raw_receive calls of short length are performed
+         *     within @ref on_receive_prepare and @ref on_receive_complete. These are used to progressively
+         *     read the parts of the received frame. Each byte is read only once thus, and no reading beyond
+         *     the frame boundary is performed. This is the typical scenario for e.g. High Speed UART on ESP32.
+         *   - @ref receive_mode::buffered At most a single call to @ref raw_receive can be performed
+         *     in-between @ref on_receive_prepare and @ref on_receive_complete. No reading past the frame
+         *     boundary is allowed, therefore the frame has to be requested multiple times (by interleaving
+         *     the reading operations with a NACK), as many as needed in order to determine its full length.
+         *     This is the least efficient receive mode.
+         *   - @ref receive_mode::buffered_unbounded As in @ref receive_mode::buffered, but it is
+         *     allowed to read past the frame boundary. This means that a sufficiently large buffer can be
+         *     read to reduce the amount of NACKs that are needed.
+         */
+        enum struct receive_mode {
+            stream,    ///< Data in the RX stream is progressively consumed by each @ref raw_receive
+            buffered,  ///< Only one @ref raw_receive can be performed on a frame;
+            buffered_unbounded ///< Same as @ref buffered, but the channel allows reading beyond the frame boundaries
+        };
+
+
         virtual r<> raw_send(mlab::range<bin_data::const_iterator> const &buffer, ms timeout) = 0;
         virtual r<> raw_receive(mlab::range<bin_data::iterator> const &buffer, ms timeout) = 0;
 
         /**
          * Determines whether multiple calls to @ref raw_receive can be performed as part of a single
-         * receive operation (in-between @ref on_receive_prepare and @ref on_receive_complete).
-         * Returning false from this method will cause subsequent restarts (up to three times) in order
-         * to entirely read a single frame.
+         * receive operation (in-between @ref on_receive_prepare and @ref on_receive_complete) and whether
+         * it is possible to read past the frame boundary.
          */
-        [[nodiscard]] virtual bool supports_streaming() const = 0;
+        [[nodiscard]] virtual receive_mode raw_receive_mode() const = 0;
 
         /**
          * @addtogroup Events
@@ -217,7 +235,7 @@ namespace pn532 {
         /**
          * Receives the frame but restarts every time it needs to read a new chunk.
          */
-        r<any_frame> receive_restart(ms timeout);
+        r<any_frame> receive_restart(ms timeout, bool allow_read_past_frame_boundary);
 
         bool _has_operation = false;
     };

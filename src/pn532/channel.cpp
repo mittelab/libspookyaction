@@ -259,11 +259,15 @@ namespace pn532 {
     }
 
     channel::r<any_frame> channel::receive(ms timeout) {
-        if (supports_streaming()) {
-            return receive_stream(timeout);
-        } else {
-            return receive_restart(timeout);
+        switch (raw_receive_mode()) {
+            case receive_mode::stream:
+                return receive_stream(timeout);
+            case receive_mode::buffered_unbounded:
+                return receive_restart(timeout, true);
+            case receive_mode::buffered:
+                return receive_restart(timeout, false);
         }
+        return error::comm_error;
     }
 
 
@@ -300,7 +304,7 @@ namespace pn532 {
         }
     }
 
-    channel::r<any_frame> channel::receive_restart(ms timeout) {
+    channel::r<any_frame> channel::receive_restart(ms timeout, bool allow_read_past_frame_boundary) {
         reduce_timeout rt{timeout};
         static bin_data buffer;
         buffer.clear();
@@ -310,7 +314,12 @@ namespace pn532 {
 
         while (buffer.size() < id.frame_total_length) {
             // Prepare the buffer and receive the whole frame
-            buffer.resize(id.frame_total_length);
+            if (buffer.empty() and allow_read_past_frame_boundary) {
+                // Read more than the minimum frame length, we will exploit this to reuce the number of nacks
+                buffer.resize(frame_id::max_min_info_frame_header_length);
+            } else {
+                buffer.resize(id.frame_total_length);
+            }
             if (comm_operation op{*this, comm_mode::receive, rt.remaining()}; op.ok()) {
                 if (auto const res_recv = raw_receive(buffer.view(), rt.remaining()); res_recv) {
                     // Attempt to reparse the frame
@@ -322,6 +331,10 @@ namespace pn532 {
                     }
                     // Do we finally have enough?
                     if (buffer.size() >= id.frame_total_length) {
+                        if (allow_read_past_frame_boundary) {
+                            // Truncate any leftover data we may have read extra
+                            buffer.resize(id.frame_total_length);
+                        }
                         // Now we have enough data to read the command entirely.
                         any_frame f{};
                         std::tie(s, id) >> f;

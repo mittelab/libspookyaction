@@ -17,7 +17,7 @@ namespace pn532 {
         r<> raw_send(mlab::range<bin_data::const_iterator> const &buffer, ms timeout) override;
         r<> raw_receive(mlab::range<bin_data::iterator> const &buffer, ms timeout) override;
 
-        [[nodiscard]] inline bool supports_streaming() const override;
+        [[nodiscard]] inline receive_mode raw_receive_mode() const override;
 
         bool on_send_prepare(ms timeout) override;
 
@@ -32,8 +32,8 @@ namespace pn532 {
     hsu_channel::hsu_channel(uart_port_t port) : _port{port} {}
 
 
-    bool hsu_channel::supports_streaming() const {
-        return true;
+    channel::receive_mode hsu_channel::raw_receive_mode() const {
+        return receive_mode::stream;
     }
 }// namespace pn532
 

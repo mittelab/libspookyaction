@@ -24,7 +24,7 @@ namespace pn532 {
         std::iota(std::begin(payload), std::end(payload), 0x00);
         // Set the first byte to be the test number
         payload[0] = static_cast<std::uint8_t>(bits::test::comm_line);
-        if (const auto res_cmd = chn().command_response(command_code::diagnose, payload, timeout); res_cmd) {
+        if (const auto res_cmd = chn().command_response(command_code::diagnose, /* copy */ payload, timeout); res_cmd) {
             // Test that the reurned data coincides
             if (payload.size() == res_cmd->size() and
                 std::equal(std::begin(payload), std::end(payload), std::begin(*res_cmd))) {
@@ -45,9 +45,9 @@ namespace pn532 {
                 channel &chn, bits::test test, std::uint8_t expected, ms timeout,
                 std::size_t expected_body_size = 0, Args &&... append_to_body) {
             PN532_LOGI("%s: running %s...", to_string(command_code::diagnose), to_string(test));
-            const bin_data payload = bin_data::chain(prealloc(expected_body_size + 1), test,
+            bin_data payload = bin_data::chain(prealloc(expected_body_size + 1), test,
                                                      std::forward<Args>(append_to_body)...);
-            if (const auto res_cmd = chn.command_response(command_code::diagnose, payload, timeout); res_cmd) {
+            if (const auto res_cmd = chn.command_response(command_code::diagnose, std::move(payload), timeout); res_cmd) {
                 // Test that the reurned data coincides
                 if (res_cmd->size() != 1) {
                     PN532_LOGW("%s: %s test received %u bytes instead of 1.",
@@ -102,13 +102,13 @@ namespace pn532 {
 
     nfc::r<> nfc::diagnose_echo_back(ms reply_delay, std::uint8_t tx_mode, std::uint8_t rx_mode, ms timeout) {
         PN532_LOGI("%s: running %s...", to_string(command_code::diagnose), to_string(bits::test::echo_back));
-        const bin_data payload = bin_data::chain(
+        bin_data payload = bin_data::chain(
                 prealloc(4),
                 bits::test::echo_back,
                 std::uint8_t(reply_delay.count() * bits::echo_back_reply_delay_steps_per_ms),
                 tx_mode,
                 rx_mode);
-        return chn().command(command_code::diagnose, payload, timeout);
+        return chn().command(command_code::diagnose, std::move(payload), timeout);
     }
 
     nfc::r<bool> nfc::diagnose_rom(ms timeout) {
@@ -154,7 +154,7 @@ namespace pn532 {
         for (std::size_t i = 0; i < effective_length; ++i) {
             payload << addresses[i];
         }
-        if (auto res_cmd = chn().command_response(command_code::read_register, payload, timeout); res_cmd) {
+        if (auto res_cmd = chn().command_response(command_code::read_register, std::move(payload), timeout); res_cmd) {
             if (res_cmd->size() != effective_length) {
                 PN532_LOGE("%s: requested %u registers, got %u instead.", to_string(command_code::read_register),
                            addresses.size(), res_cmd->size());
@@ -176,7 +176,7 @@ namespace pn532 {
         for (std::size_t i = 0; i < effective_length; ++i) {
             payload << addr_value_pairs[i].first << addr_value_pairs[i].second;
         }
-        return chn().command_response(command_code::write_register, payload, timeout);
+        return chn().command_response(command_code::write_register, std::move(payload), timeout);
     }
 
     nfc::r<gpio_status> nfc::read_gpio(ms timeout) {
@@ -199,7 +199,7 @@ namespace pn532 {
         } else {
             payload << std::uint8_t{0x00};
         }
-        return chn().command_response(command_code::write_gpio, payload, timeout);
+        return chn().command_response(command_code::write_gpio, std::move(payload), timeout);
     }
 
     nfc::r<> nfc::set_gpio_pin(gpio_loc loc, std::uint8_t pin_idx, bool value, ms timeout) {
@@ -220,87 +220,87 @@ namespace pn532 {
 
     nfc::r<> nfc::sam_configuration(sam_mode mode, ms sam_timeout, bool controller_drives_irq, ms timeout) {
         const std::uint8_t sam_timeout_byte = std::min(0xffll, sam_timeout.count() / bits::sam_timeout_unit_ms);
-        const bin_data payload = bin_data::chain(
+        bin_data payload = bin_data::chain(
                 prealloc(3),
                 mode,
                 sam_timeout_byte,
                 controller_drives_irq);
-        return chn().command_response(command_code::sam_configuration, payload, timeout);
+        return chn().command_response(command_code::sam_configuration, std::move(payload), timeout);
     }
 
     nfc::r<> nfc::rf_configuration_field(bool auto_rfca, bool rf_on, ms timeout) {
         const std::uint8_t config_data =
                 (auto_rfca ? bits::rf_configuration_field_auto_rfca_mask : 0x00) |
                 (rf_on ? bits::rf_configuration_field_auto_rf_on_mask : 0x00);
-        const bin_data payload = bin_data::chain(
+        bin_data payload = bin_data::chain(
                 prealloc(2),
                 bits::rf_config_item::rf_field,
                 config_data);
-        return chn().command_response(command_code::rf_configuration, payload, timeout);
+        return chn().command_response(command_code::rf_configuration, std::move(payload), timeout);
     }
 
     nfc::r<> nfc::rf_configuration_timings(
             rf_timeout atr_res_timeout, rf_timeout retry_timeout,
             ms timeout) {
-        const bin_data payload = bin_data::chain(
+        bin_data payload = bin_data::chain(
                 prealloc(4),
                 bits::rf_config_item::timings,
                 std::uint8_t(0x00),
                 atr_res_timeout,
                 retry_timeout);
-        return chn().command_response(command_code::rf_configuration, payload, timeout);
+        return chn().command_response(command_code::rf_configuration, std::move(payload), timeout);
     }
 
     nfc::r<> nfc::rf_configuration_retries(infbyte comm_retries, ms timeout) {
-        const bin_data payload = bin_data::chain(
+        bin_data payload = bin_data::chain(
                 prealloc(2),
                 bits::rf_config_item::max_rty_com,
                 comm_retries);
-        return chn().command_response(command_code::rf_configuration, payload, timeout);
+        return chn().command_response(command_code::rf_configuration, std::move(payload), timeout);
     }
 
     nfc::r<> nfc::rf_configuration_retries(
             infbyte atr_retries, infbyte psl_retries,
             infbyte passive_activation_retries, ms timeout) {
-        const bin_data payload = bin_data::chain(
+        bin_data payload = bin_data::chain(
                 prealloc(4),
                 bits::rf_config_item::max_retries,
                 atr_retries,
                 psl_retries,
                 passive_activation_retries);
-        return chn().command_response(command_code::rf_configuration, payload, timeout);
+        return chn().command_response(command_code::rf_configuration, std::move(payload), timeout);
     }
 
     nfc::r<> nfc::rf_configuration_analog_106kbps_typea(ciu_reg_106kbps_typea const &config, ms timeout) {
-        const bin_data payload = bin_data::chain(
+        bin_data payload = bin_data::chain(
                 prealloc(1 + sizeof(ciu_reg_106kbps_typea)),
                 bits::rf_config_item::analog_106kbps_typea,
                 config);
-        return chn().command_response(command_code::rf_configuration, payload, timeout);
+        return chn().command_response(command_code::rf_configuration, std::move(payload), timeout);
     }
 
     nfc::r<> nfc::rf_configuration_analog_212_424kbps(ciu_reg_212_424kbps const &config, ms timeout) {
-        const bin_data payload = bin_data::chain(
+        bin_data payload = bin_data::chain(
                 prealloc(1 + sizeof(ciu_reg_212_424kbps)),
                 bits::rf_config_item::analog_212_424kbps,
                 config);
-        return chn().command_response(command_code::rf_configuration, payload, timeout);
+        return chn().command_response(command_code::rf_configuration, std::move(payload), timeout);
     }
 
     nfc::r<> nfc::rf_configuration_analog_typeb(ciu_reg_typeb const &config, ms timeout) {
-        const bin_data payload = bin_data::chain(
+        bin_data payload = bin_data::chain(
                 prealloc(1 + sizeof(ciu_reg_typeb)),
                 bits::rf_config_item::analog_typeb,
                 config);
-        return chn().command_response(command_code::rf_configuration, payload, timeout);
+        return chn().command_response(command_code::rf_configuration, std::move(payload), timeout);
     }
 
     nfc::r<> nfc::rf_configuration_analog_iso_iec_14443_4(ciu_reg_iso_iec_14443_4 const &config, ms timeout) {
-        const bin_data payload = bin_data::chain(
+        bin_data payload = bin_data::chain(
                 prealloc(1 + sizeof(ciu_reg_iso_iec_14443_4)),
                 bits::rf_config_item::analog_iso_iec_14443_4,
                 config);
-        return chn().command_response(command_code::rf_configuration, payload, timeout);
+        return chn().command_response(command_code::rf_configuration, std::move(payload), timeout);
     }
 
     std::uint8_t nfc::get_target(command_code cmd, std::uint8_t target_logical_index, bool expect_more_data) {
@@ -331,8 +331,8 @@ namespace pn532 {
             std::uint8_t target_logical_index, baudrate in_to_trg, baudrate trg_to_in,
             ms timeout) {
         const std::uint8_t target_byte = get_target(command_code::in_psl, target_logical_index, false);
-        const bin_data payload = bin_data::chain(prealloc(3), target_byte, in_to_trg, trg_to_in);
-        return chn().command_parse_response<rf_status>(command_code::in_psl, payload, timeout);
+        bin_data payload = bin_data::chain(prealloc(3), target_byte, in_to_trg, trg_to_in);
+        return chn().command_parse_response<rf_status>(command_code::in_psl, std::move(payload), timeout);
     }
 
     namespace {
@@ -401,13 +401,13 @@ namespace pn532 {
     template <baudrate_modulation BrMd>
     nfc::r<std::vector<bits::target<BrMd>>> nfc::initiator_list_passive(
             std::uint8_t max_targets, bin_data const &initiator_data, ms timeout) {
-        const bin_data payload = bin_data::chain(
+        bin_data payload = bin_data::chain(
                 prealloc(2 + initiator_data.size()),
                 max_targets,
                 BrMd,
                 initiator_data);
         auto res_cmd = chn().command_parse_response<std::vector<bits::target<BrMd>>>(
-                command_code::in_list_passive_target, payload, timeout);
+                command_code::in_list_passive_target, std::move(payload), timeout);
         if (not res_cmd and res_cmd.error() == channel::error::comm_timeout) {
             // Canceled commands means no target was found, return thus an empty array as technically it's correct
             return std::vector<bits::target<BrMd>>{};
@@ -506,12 +506,12 @@ namespace pn532 {
         }
         const auto num_types = std::min(bits::autopoll_max_types, types_to_poll.size());
         const auto target_view = make_range(std::begin(types_to_poll), std::begin(types_to_poll) + num_types);
-        const bin_data payload = bin_data::chain(
+        bin_data payload = bin_data::chain(
                 prealloc(2 + num_types),
                 polls_per_type,
                 period,
                 target_view);
-        auto res_cmd = chn().command_parse_response<std::vector<any_target>>(command_code::in_autopoll, payload, timeout);
+        auto res_cmd = chn().command_parse_response<std::vector<any_target>>(command_code::in_autopoll, std::move(payload), timeout);
         if (not res_cmd and res_cmd.error() == channel::error::comm_timeout) {
             // Canceled commands means no target was found, return thus an empty array as technically it's correct
             return std::vector<any_target>{};
@@ -541,9 +541,9 @@ namespace pn532 {
             if (n_chunks > 1) {
                 PN532_LOGI("%s: sending chunk %u/%u...", to_string(command_code::in_data_exchange), chunk_idx + 1, n_chunks);
             }
-            const bin_data payload = bin_data::chain(prealloc(1u + data_view.size()), target_byte, data_view);
+            bin_data payload = bin_data::chain(prealloc(1u + data_view.size()), target_byte, data_view);
             auto res_cmd = chn().command_parse_response<std::pair<rf_status, bin_data>>(
-                    command_code::in_data_exchange, payload, rt.remaining());
+                    command_code::in_data_exchange, std::move(payload), rt.remaining());
             if (not res_cmd) {
                 return res_cmd.error();
             }
@@ -564,8 +564,8 @@ namespace pn532 {
     }
 
 
-    nfc::r<rf_status, bin_data> nfc::initiator_communicate_through(bin_data const &raw_data, ms timeout) {
-        return chn().command_parse_response<std::pair<rf_status, bin_data>>(command_code::in_communicate_thru, raw_data,
+    nfc::r<rf_status, bin_data> nfc::initiator_communicate_through(bin_data raw_data, ms timeout) {
+        return chn().command_parse_response<std::pair<rf_status, bin_data>>(command_code::in_communicate_thru, std::move(raw_data),
                                                                             timeout);
     }
 
@@ -927,7 +927,7 @@ namespace pn532 {
                                        (passive_only ? bits::init_as_target_passive_only_bit : 0x00);
         const auto gi_view = sanitize_target_general_info(command_code::tg_init_as_target, general_info);
         const auto tk_view = sanitize_target_historical_bytes(command_code::tg_init_as_target, historical_bytes);
-        const bin_data payload = bin_data::chain(
+        bin_data payload = bin_data::chain(
                 prealloc(37u + gi_view.size() + tk_view.size()),
                 mode_byte,
                 mifare,
@@ -937,7 +937,7 @@ namespace pn532 {
                 gi_view,
                 std::uint8_t(tk_view.size()),
                 tk_view);
-        return chn().command_parse_response<init_as_target_res>(command_code::tg_init_as_target, payload, timeout);
+        return chn().command_parse_response<init_as_target_res>(command_code::tg_init_as_target, std::move(payload), timeout);
     }
 
     nfc::r<rf_status> nfc::target_set_general_bytes(std::vector<std::uint8_t> const &general_info, ms timeout) {

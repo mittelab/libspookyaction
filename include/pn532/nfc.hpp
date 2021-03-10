@@ -677,7 +677,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<rf_status, bin_data> initiator_communicate_through(bin_data const &raw_data, ms timeout = default_timeout);
+        r<rf_status, bin_data> initiator_communicate_through(bin_data raw_data, ms timeout = default_timeout);
 
         /**
          * @brief activate the target with active or passive comunication (UM0701-02 §7.3.3)

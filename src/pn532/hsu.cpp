@@ -36,7 +36,7 @@ namespace pn532 {
 
     channel::r<> hsu_channel::raw_send(mlab::range<bin_data::const_iterator> const &buffer, ms timeout) {
         reduce_timeout rt{timeout};
-        ESP_LOG_BUFFER_HEX_LEVEL(PN532_HSU_SEND_TAG, buffer.data(), buffer.size(), ESP_LOG_DEBUG);
+        ESP_LOG_BUFFER_HEX_LEVEL(PN532_HSU_SEND_TAG, buffer.data(), buffer.size(), ESP_LOG_VERBOSE);
         // Send and block until transmission is finished (or timeout time expired)
         if (uart_write_bytes(_port, reinterpret_cast<const char *>(buffer.data()), buffer.size()) != buffer.size()) {
             PN532_LOGE("Failure to send data via HSU, parameter error at at uart_write_bytes (port = %d).", static_cast<int>(_port));
@@ -84,7 +84,7 @@ namespace pn532 {
                 }
             }
         }
-        ESP_LOG_BUFFER_HEX_LEVEL(PN532_HSU_RECV_TAG, buffer.data(), read_length, ESP_LOG_DEBUG);
+        ESP_LOG_BUFFER_HEX_LEVEL(PN532_HSU_RECV_TAG, buffer.data(), read_length, ESP_LOG_VERBOSE);
         if (read_length >= buffer.size()) {
             return mlab::result_success;
         }

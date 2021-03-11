@@ -146,6 +146,14 @@ namespace desfire {
         r<> authenticate(any_key const &k);
 
         /**
+         * ~~~~
+         * 0      1                   4     0        1    0       1
+         * +------+-------------------+     +--------+    +-------+
+         * | 0x5A |        AID        | --> |  0x00  | OR | CODE  |
+         * +------+-------------------+     +--------+    +-------+
+         * | cmd  |LSB             MSB|     | Status |    | Error |
+         * ~~~~
+         *
          * @brief Selects the application to use for sucessive operations
          * @ingroup application
          * @param app The id of the app to be selected
@@ -158,6 +166,14 @@ namespace desfire {
         r<> select_application(app_id const &app = root_app);
 
         /**
+         * ~~~~
+         * 0      1                   4              5           6     0        1    0       1
+         * +------+-------------------+--------------+-----------+     +--------+    +-------+
+         * | 0xCA |        AID        | key settings | # of Keys | --> |  0x00  | OR | CODE  |
+         * +------+-------------------+--------------+-----------+     +--------+    +-------+
+         * | cmd  |LSB             MSB|              |           |     | Status |    | Error |
+         * ~~~~
+         *
          * @brief Add a new application to the card
          * @ingroup application
          * @param new_app_id the id of the new app to be created
@@ -171,6 +187,14 @@ namespace desfire {
         r<> create_application(app_id const &new_app_id, app_settings settings);
 
         /**
+         * ~~~~
+         * 0      1                    2     0        1    0       1
+         * +------+--------------------+     +--------+    +-------+
+         * | 0x54 | ###key settings### | --> |  0x00  | OR | CODE  |
+         * +------+--------------------+     +--------+    +-------+
+         * | cmd  |     enchipered     |     | Status |    | Error |
+         * ~~~~
+         *
          * @brief Change the setting of the selected app
          * @ingroup application
          * @param new_rights the new app settings
@@ -183,6 +207,14 @@ namespace desfire {
         r<> change_app_settings(key_rights new_rights);
 
         /**
+         * ~~~~
+         * 0      1     0        1              2           3    0       1
+         * +------+     +--------+--------------+-----------+    +-------+
+         * | 0x45 | --> |  0x00  | key settings | # of Keys | OR | CODE  |
+         * +------+     +--------+--------------+-----------+    +-------+
+         * | cmd  |     | Status |              |           |    | Error |
+         * ~~~~
+         *
          * @brief Get the configuration of the selected app
          * @ingroup application
          * @note The app need to be selected first (with @ref select_application) for this to succeed.
@@ -194,6 +226,14 @@ namespace desfire {
         r<app_settings> get_app_settings();
 
         /**
+         * ~~~~
+         * 0      1       2     0        1             2    0       1
+         * +------+-------+     +--------+-------------+    +-------+
+         * | 0x64 | Key # | --> |  0x00  | key version | OR | CODE  |
+         * +------+-------+     +--------+-------------+    +-------+
+         * | cmd  |       |     | Status |             |    | Error |
+         * ~~~~
+         *
          * @brief Get the version of the key (in the selected application)
          * @ingroup application
          * @return integer rappresenting the key version, or the following errors:
@@ -205,6 +245,20 @@ namespace desfire {
         r<std::uint8_t> get_key_version(std::uint8_t key_num);
 
         /**
+         * ~~~~
+         * 0      1     0        1             4             N    0       1
+         * +------+     +--------+-------------+ - - - - - - +    +-------+
+         * | 0x6A | --> |  0xAF  |     AID     |     AID     | OR | CODE  |
+         * +------+     +--------+-------------+ - - - - - - +    +-------+
+         * | cmd  |     | Status |         0-19 AIDs         |    | Error |
+         *
+         * 0      1     0        1             4             N    0       1
+         * +------+     +--------+-------------+ - - - - - - +    +-------+
+         * | 0xAF | --> |  0x00  |     AID     |     AID     | OR | CODE  |
+         * +------+     +--------+-------------+ - - - - - - +    +-------+
+         * | cmd  |     | Status |          1-7 AIDs         |    | Error |
+         * ~~~~
+         *
          * @brief Get a list of all application in the card
          * @ingroup application
          * @note Must be on the @ref root_app, possibly authenticated.
@@ -216,6 +270,14 @@ namespace desfire {
         r<std::vector<app_id>> get_application_ids();
 
         /**
+         * ~~~~
+         * 0      1                   4     0        1    0       1
+         * +------+-------------------+     +--------+    +-------+
+         * | 0xCA |        AID        | --> |  0x00  | OR | CODE  |
+         * +------+-------------------+     +--------+    +-------+
+         * | cmd  |LSB             MSB|     | Status |    | Error |
+         * ~~~~
+         *
          * @brief Delete the application, and all data stored in it
          * @ingroup application
          * @param app_id The app ID of the application to be deleted
@@ -228,6 +290,26 @@ namespace desfire {
         r<> delete_application(app_id const &app);
 
         /**
+         * ~~~~
+         * 0      1     0        1           2      3          4       5       6          7          8
+         * +------+     +--------+-----------+------+----------+-------+-------+----------+----------+
+         * | 0x60 | --> |  0xAF  | vendor ID | type | Sub-type | mayor | minor | tag size | protocol |
+         * +------+     +--------+-----------+------+----------+-------+-------+----------+----------+
+         * | cmd  |     | Status |           |      |          |    Version    | Storage  |          |
+         *
+         * 0      1     0        1           2      3          4       5       6          7          8
+         * +------+     +--------+-----------+------+----------+-------+-------+----------+----------+
+         * | 0xAF | --> |  0xAF  | vendor ID | type | Sub-type | mayor | minor | tag size | protocol |
+         * +------+     +--------+-----------+------+----------+-------+-------+----------+----------+
+         * | cmd  |     | Status |           |      |          |    Version    | Storage  |          |
+         *
+         * 0      1     0        1           8         13     14     15
+         * +------+     +--------+-----------+---------+------+------+
+         * | 0xAF | --> |  0x00  |    UID    | Batch # | week | year |
+         * +------+     +--------+-----------+---------+------+------+
+         * | cmd  |     | Status |           |         | Production  |
+         * ~~~~
+         *
          * @brief Read tag information
          * @ingroup application
          * @return @ref manufacturing_info containing tag information, or the following errors:
@@ -239,6 +321,14 @@ namespace desfire {
 
 
         /**
+         * ~~~~
+         * 0      1     0        1    0       1
+         * +------+     +--------+    +-------+
+         * | 0xFC | --> |  0x00  | OR | CODE  |
+         * +------+     +--------+    +-------+
+         * | cmd  |     | Status |    | Error |
+         * ~~~~
+         *
          * @brief Delete all the application, and keys on the card
          * @ingroup application
          * @note Must be on the @ref root_app for this to succeed, and authenticated with the master key. After
@@ -251,6 +341,14 @@ namespace desfire {
         r<> format_picc();
 
         /**
+         * ~~~~
+         * 0      1       2                    26    0        1    0       1
+         * +------+-------+--------------------+     +--------+    +-------+
+         * | 0x54 | Key # |   ###key data###   | --> |  0x00  | OR | CODE  |
+         * +------+-------+--------------------+     +--------+    +-------+
+         * | cmd  |       |     enchipered     |     | Status |    | Error |
+         * ~~~~
+         *
          * @note Assumes authentication has happened and the key settings allow the change.
          * @ingroup application
          * @return None, or the following errors:
@@ -274,6 +372,14 @@ namespace desfire {
         r<> change_key(any_key const &current_key, std::uint8_t key_no_to_change, any_key const &new_key);
 
         /**
+         * ~~~~
+         * 0      1     0        1       2       N    0       1
+         * +------+     +--------+-------+ - - - +    +-------+
+         * | 0x6F | --> |  0x00  |  FID  |  FID  | OR | CODE  |
+         * +------+     +--------+-------+ - - - +    +-------+
+         * | cmd  |     | Status |   0-16 FIDs   |    | Error |
+         * ~~~~
+         *
          * @brief get a list of files in the selected application
          * @ingroup data
          * @return vector of @ref file_id, or the following errors:

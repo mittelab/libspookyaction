@@ -560,7 +560,7 @@ namespace pn532 {
             s = res_cmd->first;
             data_in << res_cmd->second;
         }
-        return {s, data_in};
+        return {s, std::move(data_in)};
     }
 
 

@@ -14,7 +14,6 @@ namespace mlab {
     }
 
     struct mem_monitor {
-        std::size_t expected_leak = 0;
         inline mem_monitor();
         inline ~mem_monitor();
         mem_monitor(mem_monitor &&) noexcept = delete;
@@ -28,7 +27,7 @@ namespace mlab {
 
 namespace mlab {
 
-    mem_monitor::mem_monitor() : expected_leak{0} {
+    mem_monitor::mem_monitor() {
         ESP_LOGI("MEM", "Begin heap monitoring");
         ESP_ERROR_CHECK(heap_trace_init_standalone(trace::records, trace::num_records));
         ESP_ERROR_CHECK(heap_trace_start(HEAP_TRACE_LEAKS));
@@ -36,11 +35,11 @@ namespace mlab {
 
     mem_monitor::~mem_monitor() {
         ESP_ERROR_CHECK(heap_trace_stop());
-        if (const auto leaked = count_leaked_memory(); leaked != expected_leak) {
-            ESP_LOGW("MEM", "End heap monitoring, expected leak: %d, actual leak: %d", expected_leak, leaked);
+        if (const auto leaked = count_leaked_memory(); leaked > 0) {
+            ESP_LOGW("MEM", "End heap monitoring, leak: %d", leaked);
             heap_trace_dump();
         } else {
-            ESP_LOGI("MEM", "End heap monitoring, no unexpected leak.");
+            ESP_LOGI("MEM", "End heap monitoring, no leak.");
         }
         ESP_ERROR_CHECK(heap_trace_init_standalone(nullptr, 0));
     }

@@ -14,6 +14,13 @@ namespace pn532 {
     using namespace std::chrono_literals;
 
     namespace {
+
+        [[nodiscard]] bin_data &get_clean_buffer() {
+            static bin_data _buffer{prealloc(384)};
+            _buffer.clear();
+            return _buffer;
+        }
+
         bin_data &operator<<(bin_data &bd, frame<frame_type::ack> const &) {
             return bd << prealloc(6)
                       << bits::preamble
@@ -273,8 +280,7 @@ namespace pn532 {
 
     channel::r<> channel::send(any_frame const &frame, ms timeout) {
         reduce_timeout rt{timeout};
-        static bin_data buffer;
-        buffer.clear();
+        bin_data &buffer = get_clean_buffer();
         buffer << frame;
         if (comm_operation op{*this, comm_mode::send, rt.remaining()}; op.ok()) {
             return op.update(raw_send(buffer.view(), rt.remaining()));
@@ -306,8 +312,7 @@ namespace pn532 {
 
     channel::r<any_frame> channel::receive_restart(ms timeout, bool allow_read_past_frame_boundary) {
         reduce_timeout rt{timeout};
-        static bin_data buffer;
-        buffer.clear();
+        bin_data &buffer = get_clean_buffer();
         bin_stream s{buffer};
         // Repeatedly fetch the data until you have determined the frame length
         frame_id id{};
@@ -363,8 +368,7 @@ namespace pn532 {
     channel::r<any_frame> channel::receive_stream(ms timeout) {
         reduce_timeout rt{timeout};
         if (comm_operation op{*this, comm_mode::receive, rt.remaining()}; op.ok()) {
-            static bin_data buffer;
-            buffer.clear();
+            bin_data &buffer = get_clean_buffer();
             bin_stream s{buffer};
             // Repeatedly fetch the data until you have determined the frame length
             frame_id id{};

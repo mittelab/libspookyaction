@@ -9,10 +9,25 @@
 #include <unity.h>
 
 #define TEST_TAG "UT"
-#define TX_OR_SCL_PIN (GPIO_NUM_17)
-#define RX_OR_SDA_PIN (GPIO_NUM_16)
-#define P70_IRQ_PIN (GPIO_NUM_4)
 #define BUF_SIZE (1024)
+
+#define PN532_SERIAL_TX (GPIO_NUM_16)
+#define PN532_SERIAL_RX (GPIO_NUM_17)
+
+#define PN532_I2C_SDA (GPIO_NUM_16)
+#define PN532_I2C_SCL (GPIO_NUM_17)
+
+#define PN532_SPI_MISO (GPIO_NUM_27)
+#define PN532_SPI_MOSI (GPIO_NUM_25)
+#define PN532_SPI_SCK (GPIO_NUM_14)
+#define PN532_SPI_SS (GPIO_NUM_26)
+
+#define PN532_I0 (GPIO_NUM_18)
+#define PN532_I1 (GPIO_NUM_19)
+#define PN532_RSTN (GPIO_NUM_21)
+
+#define PN532_IRQ (GPIO_NUM_13)
+
 
 namespace {
     std::unique_ptr<pn532::channel> channel = nullptr;
@@ -31,6 +46,28 @@ namespace {
             std::iota(std::begin(load), std::end(load), 0x00);
         }
         return load;
+    }
+    enum channelMode {
+        HSU = 0,
+        SPI = 1,
+        I2C = 2,
+    };
+
+    void channelInit() {
+        gpio_set_direction(PN532_RSTN, GPIO_MODE_OUTPUT);
+        gpio_set_direction(PN532_I0, GPIO_MODE_OUTPUT);
+        gpio_set_direction(PN532_I1, GPIO_MODE_OUTPUT);
+        gpio_set_level(PN532_RSTN, 1);
+    }
+
+    void switchChannel(channelMode mode) {
+        gpio_set_level(PN532_I0, mode & 0x01);// configure I0/I1 for the selected mode
+        gpio_set_level(PN532_I1, mode & 0x02);
+        gpio_set_level(PN532_RSTN, 0);// reset the PN532
+
+        vTaskDelay(500 / portTICK_PERIOD_MS);
+        gpio_set_level(PN532_RSTN, 1);// release reset line
+        vTaskDelay(500 / portTICK_PERIOD_MS);
     }
 
 }// namespace
@@ -66,8 +103,9 @@ void setup_uart_pn532() {
             .source_clk = UART_SCLK_REF_TICK};
     TEST_ASSERT_EQUAL(ESP_OK, uart_param_config(UART_NUM_1, &uart_config));
     TEST_ASSERT_EQUAL(ESP_OK, uart_driver_install(UART_NUM_1, BUF_SIZE, BUF_SIZE, 0, nullptr, 0));
-    TEST_ASSERT_EQUAL(ESP_OK, uart_set_pin(UART_NUM_1, TX_OR_SCL_PIN, RX_OR_SDA_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
+    TEST_ASSERT_EQUAL(ESP_OK, uart_set_pin(UART_NUM_1, PN532_SERIAL_TX, PN532_SERIAL_RX, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
 
+    switchChannel(channelMode::HSU);
     channel = std::make_unique<pn532::hsu_channel>(UART_NUM_1);
     tag_reader = std::make_unique<pn532::nfc>(*channel);
     TEST_ASSERT(channel->wake());
@@ -86,22 +124,22 @@ void test_raw_i2c_pn532_sam_config_cmd() {
 
     i2c_config_t i2c_config = {
             .mode = I2C_MODE_MASTER,
-            .sda_io_num = RX_OR_SDA_PIN,
-            .scl_io_num = TX_OR_SCL_PIN,
+            .sda_io_num = PN532_I2C_SDA,
+            .scl_io_num = PN532_I2C_SCL,
             .sda_pullup_en = GPIO_PULLUP_ENABLE,
             .scl_pullup_en = GPIO_PULLUP_ENABLE,
             .master = {.clk_speed = 100000}};
     TEST_ASSERT_EQUAL(ESP_OK, i2c_param_config(I2C_NUM_0, &i2c_config));
     TEST_ASSERT_EQUAL(ESP_OK, i2c_driver_install(I2C_NUM_0, I2C_MODE_MASTER, BUF_SIZE, BUF_SIZE, 0));
     TEST_ASSERT_EQUAL(ESP_OK, i2c_set_timeout(I2C_NUM_0, 200000 /* 1.25 ms */));
-
+    switchChannel(channelMode::I2C);
     TEST_ASSERT_EQUAL(ESP_OK, gpio_install_isr_service(0));
-    TEST_ASSERT_EQUAL(ESP_OK, gpio_set_intr_type(P70_IRQ_PIN, GPIO_INTR_NEGEDGE));
+    TEST_ASSERT_EQUAL(ESP_OK, gpio_set_intr_type(PN532_IRQ, GPIO_INTR_NEGEDGE));
 
     SemaphoreHandle_t semaphore = xSemaphoreCreateBinary();
     TEST_ASSERT_NOT_NULL(semaphore);
 
-    TEST_ASSERT_EQUAL(ESP_OK, gpio_isr_handler_add(P70_IRQ_PIN, &_p70_irq_to_semaphore, semaphore));
+    TEST_ASSERT_EQUAL(ESP_OK, gpio_isr_handler_add(PN532_IRQ, &_p70_irq_to_semaphore, semaphore));
 
     auto await_ready = [&] {
         if (xSemaphoreTake(semaphore, pdMS_TO_TICKS(100)) == pdFALSE) {
@@ -165,21 +203,23 @@ void test_raw_i2c_pn532_sam_config_cmd() {
     }
     ESP_LOGI(TEST_TAG, "SAM cycle done.");
 
-    TEST_ASSERT_EQUAL(ESP_OK, gpio_isr_handler_remove(P70_IRQ_PIN));
+    TEST_ASSERT_EQUAL(ESP_OK, gpio_isr_handler_remove(PN532_IRQ));
     TEST_ASSERT_EQUAL(ESP_OK, i2c_driver_delete(I2C_NUM_0));
 }
 
 void setup_i2c_pn532() {
     i2c_config_t i2c_config = {
             .mode = I2C_MODE_MASTER,
-            .sda_io_num = RX_OR_SDA_PIN,
-            .scl_io_num = TX_OR_SCL_PIN,
+            .sda_io_num = PN532_I2C_SDA,
+            .scl_io_num = PN532_I2C_SCL,
             .sda_pullup_en = GPIO_PULLUP_ENABLE,
             .scl_pullup_en = GPIO_PULLUP_ENABLE,
             .master = {.clk_speed = 400000}};
     TEST_ASSERT_EQUAL(ESP_OK, i2c_param_config(I2C_NUM_0, &i2c_config));
     TEST_ASSERT_EQUAL(ESP_OK, i2c_driver_install(I2C_NUM_0, I2C_MODE_MASTER, BUF_SIZE, BUF_SIZE, 0));
     TEST_ASSERT_EQUAL(ESP_OK, i2c_set_timeout(I2C_NUM_0, 100000 /* 1.25 ms */));
+
+    switchChannel(channelMode::I2C);
 
     channel = std::make_unique<pn532::i2c_channel>(I2C_NUM_0);
     tag_reader = std::make_unique<pn532::nfc>(*channel);
@@ -962,9 +1002,10 @@ struct file_test {
 void unity_main() {
     UNITY_BEGIN();
     esp_log_level_set("*", ESP_LOG_INFO);
+    channelInit();
 #ifdef PN532_TEST_I2C
     RUN_TEST(test_raw_i2c_pn532_sam_config_cmd);
-    gpio_isr_handler_remove(P70_IRQ_PIN);
+    gpio_isr_handler_remove(PN532_IRQ);
     i2c_driver_delete(I2C_NUM_0);
 #else
     issue_header("MIFARE CIPHER TEST (no card)");

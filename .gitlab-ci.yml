@@ -54,6 +54,7 @@ test hardware:
     - cp .platformio-ci.ini platformio.ini
   script:
     - pio project init
+    - pio run
     - pio remote --agent testinator test --upload-port /dev/ttyUSB0 --test-port /dev/ttyUSB0
   rules:
     - if: "$PLATFORMIO_AUTH_TOKEN"

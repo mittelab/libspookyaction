@@ -170,7 +170,7 @@ namespace pn532 {
         // Unpack stream and frame id from tuple
         bin_stream &s = std::get<bin_stream &>(s_id);
         frame_id const &id = std::get<frame_id const &>(s_id);
-        if (not s.good()) {
+        if (s.bad()) {
             return s;
         }
         // Knowing the frame id, parse now the frame body
@@ -327,7 +327,7 @@ namespace pn532 {
                     // Attempt to reparse the frame
                     s.seek(0);
                     s >> id;
-                    if (not s.good()) {
+                    if (s.bad()) {
                         PN532_LOGE("Could not identify frame from received data.");
                         return op.update(error::comm_malformed);
                     }
@@ -381,7 +381,7 @@ namespace pn532 {
                 // Attempt to reparse the frame
                 s.seek(0);
                 s >> id;
-                if (not s.good()) {
+                if (s.bad()) {
                     PN532_LOGE("Could not identify frame from received data.");
                     return op.update(error::comm_malformed);
                 }

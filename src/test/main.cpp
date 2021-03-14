@@ -95,7 +95,7 @@ namespace ut {
 }// namespace ut
 
 void setup_uart_pn532() {
-    uart_config_t uart_config = {
+    const uart_config_t uart_config = {
             .baud_rate = 115200,
             .data_bits = UART_DATA_8_BITS,
             .parity = UART_PARITY_DISABLE,
@@ -103,12 +103,8 @@ void setup_uart_pn532() {
             .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
             .rx_flow_ctrl_thresh = 122,
             .source_clk = UART_SCLK_REF_TICK};
-    TEST_ASSERT_EQUAL(ESP_OK, uart_param_config(UART_NUM_1, &uart_config));
-    TEST_ASSERT_EQUAL(ESP_OK, uart_driver_install(UART_NUM_1, BUF_SIZE, BUF_SIZE, 0, nullptr, 0));
-    TEST_ASSERT_EQUAL(ESP_OK, uart_set_pin(UART_NUM_1, PN532_SERIAL_TX, PN532_SERIAL_RX, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
-
     switchChannel(channelMode::HSU);
-    channel = std::make_unique<pn532::hsu_channel>(UART_NUM_1);
+    channel = std::make_unique<pn532::hsu_channel>(UART_NUM_1, uart_config, TX_OR_SCL_PIN, RX_OR_SDA_PIN);
     tag_reader = std::make_unique<pn532::nfc>(*channel);
     TEST_ASSERT(channel->wake());
     const auto r_sam = tag_reader->sam_configuration(pn532::sam_mode::normal, 1s);

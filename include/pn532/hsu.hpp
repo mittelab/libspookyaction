@@ -23,15 +23,12 @@ namespace pn532 {
 
     public:
         bool wake() override;
-        inline explicit hsu_channel(uart_port_t port);
+        hsu_channel(uart_port_t port, uart_config_t config, int tx_pin, int rx_pin);
+        ~hsu_channel();
     };
 }// namespace pn532
 
 namespace pn532 {
-
-    hsu_channel::hsu_channel(uart_port_t port) : _port{port} {}
-
-
     channel::receive_mode hsu_channel::raw_receive_mode() const {
         return receive_mode::stream;
     }

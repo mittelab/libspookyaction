@@ -120,7 +120,9 @@ namespace pn532 {
 
     channel::r<> i2c_channel::raw_send(mlab::range<bin_data::const_iterator> const &buffer, ms timeout) {
         auto cmd = raw_prepare_command(comm_mode::send);
-        cmd.write(buffer, true);
+        if (buffer.size() > 0) {
+            cmd.write(buffer, true);
+        }
         cmd.stop();
         if (const auto res_cmd = cmd(_port, timeout); not res_cmd) {
             ESP_LOGE(PN532_I2C_TAG, "Send failed: %s", i2c::to_string(res_cmd.error()));

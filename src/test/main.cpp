@@ -122,7 +122,7 @@ void setup_i2c_pn532() {
 
     switchChannel(channelMode::I2C);
 
-    channel = std::make_unique<pn532::i2c_channel>(I2C_NUM_0, i2c_config);
+    channel = std::make_unique<pn532::i2c_channel>(I2C_NUM_0, i2c_config, P70_IRQ_PIN, true);
     tag_reader = std::make_unique<pn532::nfc>(*channel);
     TEST_ASSERT(channel->wake());
     const auto r_sam = tag_reader->sam_configuration(pn532::sam_mode::normal, 1s);

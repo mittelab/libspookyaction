@@ -166,7 +166,7 @@ namespace pn532 {
     }
 
 
-    i2c_channel::i2c_channel(i2c_port_t port, i2c_config_t config, std::uint8_t slave_address) : _port{port}, _slave_addr{slave_address} {
+    i2c_channel::i2c_channel(i2c_port_t port, i2c_config_t config, std::uint8_t slave_address) : _port{port}, _slave_addr{slave_address}, _irq_assert{} {
         if (const auto res = i2c_param_config(port, &config); res != ESP_OK) {
             ESP_LOGE(PN532_I2C_TAG, "i2c_param_config failed, return code %d (%s).", res, esp_err_to_name(res));
             _port = I2C_NUM_MAX;
@@ -180,6 +180,12 @@ namespace pn532 {
         if (const auto res = i2c_set_timeout(port, i2c_driver_timeout); res != ESP_OK) {
             ESP_LOGW(PN532_I2C_TAG, "i2c_set_timeout failed, return code %d (%s). Proceeding anyway.", res, esp_err_to_name(res));
         }
+    }
+    i2c_channel::i2c_channel(i2c_port_t port, i2c_config_t config, gpio_num_t response_irq_line, bool manage_isr_service, std::uint8_t slave_address) :
+        i2c_channel{port, config, slave_address}
+    {
+        // Prepare the IRQ assertion too
+        _irq_assert = mlab::irq_assert{manage_isr_service, response_irq_line, GPIO_INTR_NEGEDGE};
     }
 
     i2c_channel::~i2c_channel() {
@@ -200,8 +206,7 @@ namespace pn532 {
 
 
     bool i2c_channel::on_receive_prepare(ms timeout) {
-        /// @todo Assert IRQ if requested
-        return true;
+        return _irq_assert(timeout);
     }
 
 }// namespace pn532

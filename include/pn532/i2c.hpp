@@ -9,6 +9,7 @@
 #include <driver/i2c.h>
 #include <memory>
 #include <mlab/result.hpp>
+#include <mlab/irq_assert.hpp>
 
 namespace pn532 {
 
@@ -55,7 +56,7 @@ namespace pn532 {
     class i2c_channel final : public channel {
         i2c_port_t _port;
         std::uint8_t _slave_addr;
-
+        mlab::irq_assert _irq_assert;
     protected:
         /**
          * Prepares a command with the correct mode (write, read) depending on @ref _mode;
@@ -78,6 +79,7 @@ namespace pn532 {
         bool wake() override;
 
         i2c_channel(i2c_port_t port, i2c_config_t config, std::uint8_t slave_address = default_slave_address);
+        i2c_channel(i2c_port_t port, i2c_config_t config, gpio_num_t response_irq_line, bool manage_isr_service, std::uint8_t slave_address = default_slave_address);
         ~i2c_channel();
 
         [[nodiscard]] inline std::uint8_t slave_address_to_write() const;

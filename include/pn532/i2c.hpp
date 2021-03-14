@@ -77,7 +77,8 @@ namespace pn532 {
 
         bool wake() override;
 
-        inline explicit i2c_channel(i2c_port_t port, std::uint8_t slave_address = default_slave_address);
+        i2c_channel(i2c_port_t port, i2c_config_t config, std::uint8_t slave_address = default_slave_address);
+        ~i2c_channel();
 
         [[nodiscard]] inline std::uint8_t slave_address_to_write() const;
         [[nodiscard]] inline std::uint8_t slave_address_to_read() const;
@@ -87,9 +88,6 @@ namespace pn532 {
 }// namespace pn532
 
 namespace pn532 {
-
-    i2c_channel::i2c_channel(i2c_port_t port, std::uint8_t slave_addr) : _port{port}, _slave_addr{slave_addr} {}
-
 
     channel::error i2c_channel::error_from_i2c_error(i2c::error e) {
         switch (e) {

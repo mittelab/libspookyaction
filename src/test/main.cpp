@@ -228,20 +228,17 @@ namespace {
 }
 
 void setup_i2c_pn532() {
-    i2c_config_t i2c_config = {
+    const i2c_config_t i2c_config = {
             .mode = I2C_MODE_MASTER,
             .sda_io_num = PN532_I2C_SDA,
             .scl_io_num = PN532_I2C_SCL,
             .sda_pullup_en = GPIO_PULLUP_ENABLE,
             .scl_pullup_en = GPIO_PULLUP_ENABLE,
             .master = {.clk_speed = 400000}};
-    TEST_ASSERT_EQUAL(ESP_OK, i2c_param_config(I2C_NUM_0, &i2c_config));
-    TEST_ASSERT_EQUAL(ESP_OK, i2c_driver_install(I2C_NUM_0, I2C_MODE_MASTER, BUF_SIZE, BUF_SIZE, 0));
-    TEST_ASSERT_EQUAL(ESP_OK, i2c_set_timeout(I2C_NUM_0, 200000 /* 2.5 ms */));
 
     switchChannel(channelMode::I2C);
 
-    channel = std::make_unique<pn532::i2c_channel>(I2C_NUM_0);
+    channel = std::make_unique<pn532::i2c_channel>(I2C_NUM_0, i2c_config);
     tag_reader = std::make_unique<pn532::nfc>(*channel);
     TEST_ASSERT(channel->wake());
     const auto r_sam = tag_reader->sam_configuration(pn532::sam_mode::normal, 1s);
@@ -1093,7 +1090,7 @@ void unity_main() {
         tag_reader->rf_configuration_field(true, false);
     }
     /**
-     * @bug UART and I2C drivers are not uninstalled at the end.
+     * @bug UART drivers are not uninstalled at the end.
      */
     UNITY_END();
 }

@@ -19,6 +19,8 @@ namespace pn532 {
             return pdMS_TO_TICKS(ms.count());
         }
 
+        constexpr std::size_t i2c_driver_buffer_size = 384;
+        constexpr std::size_t i2c_driver_timeout = 200000 /* apx 2.5ms */;
     }// namespace
 
     namespace i2c {
@@ -119,6 +121,9 @@ namespace pn532 {
     }
 
     channel::r<> i2c_channel::raw_send(mlab::range<bin_data::const_iterator> const &buffer, ms timeout) {
+        if (_port == I2C_NUM_MAX) {
+            return error::comm_error;
+        }
         auto cmd = raw_prepare_command(comm_mode::send);
         if (buffer.size() > 0) {
             cmd.write(buffer, true);
@@ -132,6 +137,9 @@ namespace pn532 {
     }
 
     channel::r<> i2c_channel::raw_receive(mlab::range<bin_data::iterator> const &buffer, ms timeout) {
+        if (_port == I2C_NUM_MAX) {
+            return error::comm_error;
+        }
         reduce_timeout rt{timeout};
         std::uint8_t ready_byte = 0x00;
         while (rt and ready_byte == 0x00) {
@@ -155,6 +163,32 @@ namespace pn532 {
             vTaskDelay(duration_cast(10ms));
         }
         return error::comm_timeout;
+    }
+
+
+    i2c_channel::i2c_channel(i2c_port_t port, i2c_config_t config, std::uint8_t slave_address) : _port{port}, _slave_addr{slave_address}
+    {
+        if (const auto res = i2c_param_config(port, &config); res != ESP_OK) {
+            ESP_LOGE(PN532_I2C_TAG, "i2c_param_config failed, return code %d (%s).", res, esp_err_to_name(res));
+            _port = I2C_NUM_MAX;
+            return;
+        }
+        if (const auto res = i2c_driver_install(port, I2C_MODE_MASTER, i2c_driver_buffer_size, i2c_driver_buffer_size, 0); res != ESP_OK) {
+            ESP_LOGE(PN532_I2C_TAG, "i2c_driver_install failed, return code %d (%s).", res, esp_err_to_name(res));
+            _port = I2C_NUM_MAX;
+            return;
+        }
+        if (const auto res = i2c_set_timeout(port, i2c_driver_timeout); res != ESP_OK) {
+            ESP_LOGW(PN532_I2C_TAG, "i2c_set_timeout failed, return code %d (%s). Proceeding anyway.", res, esp_err_to_name(res));
+        }
+    }
+
+    i2c_channel::~i2c_channel() {
+        if (_port != I2C_NUM_MAX) {
+            if (const auto res = i2c_driver_delete(_port); res != ESP_OK) {
+                ESP_LOGW(PN532_I2C_TAG, "i2c_driver_delete failed, return code %d (%s).", res, esp_err_to_name(res));
+            }
+        }
     }
 
     bool i2c_channel::wake() {

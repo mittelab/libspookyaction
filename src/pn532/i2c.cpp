@@ -166,8 +166,7 @@ namespace pn532 {
     }
 
 
-    i2c_channel::i2c_channel(i2c_port_t port, i2c_config_t config, std::uint8_t slave_address) : _port{port}, _slave_addr{slave_address}
-    {
+    i2c_channel::i2c_channel(i2c_port_t port, i2c_config_t config, std::uint8_t slave_address) : _port{port}, _slave_addr{slave_address} {
         if (const auto res = i2c_param_config(port, &config); res != ESP_OK) {
             ESP_LOGE(PN532_I2C_TAG, "i2c_param_config failed, return code %d (%s).", res, esp_err_to_name(res));
             _port = I2C_NUM_MAX;

@@ -112,7 +112,7 @@ namespace pn532 {
                     read_length += n_bytes;
                     if (n_bytes != buffer_length) {
                         ESP_LOGW(PN532_HSU_TAG, "Read only %u bytes out of %u in uart %d.", n_bytes, buffer_length,
-                                   static_cast<int>(_port));
+                                 static_cast<int>(_port));
                     }
                 }
             }

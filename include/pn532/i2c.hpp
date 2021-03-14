@@ -112,7 +112,7 @@ namespace pn532 {
     }
 
     channel::receive_mode i2c_channel::raw_receive_mode() const {
-        return receive_mode::buffered_unbounded;
+        return receive_mode::buffered;
     }
 
 }// namespace pn532

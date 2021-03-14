@@ -268,10 +268,8 @@ namespace pn532 {
         switch (raw_receive_mode()) {
             case receive_mode::stream:
                 return receive_stream(timeout);
-            case receive_mode::buffered_unbounded:
-                return receive_restart(timeout, true);
             case receive_mode::buffered:
-                return receive_restart(timeout, false);
+                return receive_restart(timeout);
         }
         return error::comm_error;
     }
@@ -309,7 +307,7 @@ namespace pn532 {
         }
     }
 
-    channel::r<any_frame> channel::receive_restart(ms timeout, bool allow_read_past_frame_boundary) {
+    channel::r<any_frame> channel::receive_restart(ms timeout) {
         reduce_timeout rt{timeout};
         bin_data &buffer = get_clean_buffer();
         bin_stream s{buffer};
@@ -318,7 +316,7 @@ namespace pn532 {
 
         while (buffer.size() < id.frame_total_length) {
             // Prepare the buffer and receive the whole frame
-            if (buffer.empty() and allow_read_past_frame_boundary) {
+            if (buffer.empty()) {
                 // Read more than the minimum frame length, we will exploit this to reuce the number of nacks
                 buffer.resize(frame_id::max_min_info_frame_header_length);
             } else {
@@ -335,10 +333,8 @@ namespace pn532 {
                     }
                     // Do we finally have enough?
                     if (buffer.size() >= id.frame_total_length) {
-                        if (allow_read_past_frame_boundary) {
-                            // Truncate any leftover data we may have read extra
-                            buffer.resize(id.frame_total_length);
-                        }
+                        // Truncate any leftover data we may have read extra
+                        buffer.resize(id.frame_total_length);
                         // Now we have enough data to read the command entirely.
                         any_frame f{};
                         std::tie(s, id) >> f;

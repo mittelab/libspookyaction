@@ -115,22 +115,31 @@ namespace pn532 {
          *     read the parts of the received frame. Each byte is read only once thus, and no reading beyond
          *     the frame boundary is performed. This is the typical scenario for e.g. High Speed UART on ESP32.
          *   - @ref receive_mode::buffered At most a single call to @ref raw_receive can be performed
-         *     in-between @ref on_receive_prepare and @ref on_receive_complete. No reading past the frame
-         *     boundary is allowed, therefore the frame has to be requested multiple times (by interleaving
-         *     the reading operations with a NACK), as many as needed in order to determine its full length.
-         *     This is the least efficient receive mode.
-         *   - @ref receive_mode::buffered_unbounded As in @ref receive_mode::buffered, but it is
-         *     allowed to read past the frame boundary. This means that a sufficiently large buffer can be
-         *     read to reduce the amount of NACKs that are needed.
+         *     in-between @ref on_receive_prepare and @ref on_receive_complete. In order to determine the full
+         *     length of a response info frame, an INFO frame is requested multiple times, by sending an
+         *     application-level NACK. Since this technique only works for INFO frames (the PN532 would not
+         *     resend an ACK/NACK/ERROR frame), every @ref raw_receive call will request at least as many bytes
+         *     as necessary to parse an ACK/NACK/ERROR frame (i.e. @ref frame_id::max_min_info_frame_header_length).
+         * @see raw_receive
          */
         enum struct receive_mode {
             stream,    ///< Data in the RX stream is progressively consumed by each @ref raw_receive
             buffered,  ///< Only one @ref raw_receive can be performed on a frame;
-            buffered_unbounded ///< Same as @ref buffered, but the channel allows reading beyond the frame boundaries
         };
 
 
         virtual r<> raw_send(mlab::range<bin_data::const_iterator> const &buffer, ms timeout) = 0;
+
+        /**
+         * @param buffer
+         * @param timeout
+         * @note in @ref receive_mode::buffered, the caller may request to fill a @p buffer that is larger than
+         *  the frame payload data. Subclasses must be prepared for this and not crash. It is not relevant what
+         *  the buffer contains past the frame boundary (i.e. it could be garbage data), however we suggest setting
+         *  that to something deterministic; note that the buffer will come prefilled with zeroes.
+         * @return
+         * @see receive_mode
+         */
         virtual r<> raw_receive(mlab::range<bin_data::iterator> const &buffer, ms timeout) = 0;
 
         /**
@@ -240,7 +249,7 @@ namespace pn532 {
         /**
          * Receives the frame but restarts every time it needs to read a new chunk.
          */
-        r<any_frame> receive_restart(ms timeout, bool allow_read_past_frame_boundary);
+        r<any_frame> receive_restart(ms timeout);
 
         bool _has_operation = false;
     };

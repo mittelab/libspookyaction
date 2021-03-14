@@ -154,8 +154,8 @@ namespace pn532 {
     }
 
     bool i2c_channel::wake() {
-        if (comm_operation op{*this, comm_mode::receive, 100ms}; op.ok()) {
-            return bool(op.update(raw_receive({}, 10ms)));
+        if (comm_operation op{*this, comm_mode::send, 100ms}; op.ok()) {
+            return bool(op.update(raw_send({}, 10ms)));
         } else {
             return false;
         }

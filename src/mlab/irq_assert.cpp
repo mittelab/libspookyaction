@@ -14,7 +14,7 @@ namespace mlab {
         void IRAM_ATTR _irq_to_semaphore(void *semaphore_hdl) {
             xSemaphoreGiveFromISR(reinterpret_cast<SemaphoreHandle_t>(semaphore_hdl), nullptr);
         }
-    }
+    }// namespace
 
     struct irq_assert::impl {
         SemaphoreHandle_t semaphore = nullptr;
@@ -95,4 +95,4 @@ namespace mlab {
             }
         }
     }
-}
+}// namespace mlab

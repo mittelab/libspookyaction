@@ -181,9 +181,7 @@ namespace pn532 {
             ESP_LOGW(PN532_I2C_TAG, "i2c_set_timeout failed, return code %d (%s). Proceeding anyway.", res, esp_err_to_name(res));
         }
     }
-    i2c_channel::i2c_channel(i2c_port_t port, i2c_config_t config, gpio_num_t response_irq_line, bool manage_isr_service, std::uint8_t slave_address) :
-        i2c_channel{port, config, slave_address}
-    {
+    i2c_channel::i2c_channel(i2c_port_t port, i2c_config_t config, gpio_num_t response_irq_line, bool manage_isr_service, std::uint8_t slave_address) : i2c_channel{port, config, slave_address} {
         // Prepare the IRQ assertion too
         _irq_assert = mlab::irq_assert{manage_isr_service, response_irq_line, GPIO_INTR_NEGEDGE};
     }

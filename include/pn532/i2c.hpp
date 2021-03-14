@@ -8,8 +8,8 @@
 #include "channel.hpp"
 #include <driver/i2c.h>
 #include <memory>
-#include <mlab/result.hpp>
 #include <mlab/irq_assert.hpp>
+#include <mlab/result.hpp>
 
 namespace pn532 {
 
@@ -57,6 +57,7 @@ namespace pn532 {
         i2c_port_t _port;
         std::uint8_t _slave_addr;
         mlab::irq_assert _irq_assert;
+
     protected:
         /**
          * Prepares a command with the correct mode (write, read) depending on @ref _mode;

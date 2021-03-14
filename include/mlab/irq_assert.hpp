@@ -5,14 +5,15 @@
 #ifndef MLAB_IRQ_ASSERT_HPP
 #define MLAB_IRQ_ASSERT_HPP
 
+#include "time.hpp"
 #include <driver/gpio.h>
 #include <memory>
-#include "time.hpp"
 
 namespace mlab {
     class irq_assert {
         struct impl;
         std::unique_ptr<impl> _pimpl;
+
     public:
         /**
          * Default constructor: always asserts `true` at @ref ::operator()
@@ -39,6 +40,6 @@ namespace mlab {
         ~irq_assert();
     };
 
-}
+}// namespace mlab
 
 #endif//MLAB_IRQ_ASSERT_HPP

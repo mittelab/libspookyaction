@@ -1079,15 +1079,17 @@ void unity_main() {
     /**
      * Teardown.
      */
+    mifare = nullptr;
     if (tag_reader != nullptr) {
         if (pcd != nullptr) {
             tag_reader->initiator_deselect(pcd->target_logical_index());
+            pcd = nullptr;
         }
         tag_reader->rf_configuration_field(true, false);
+        tag_reader = nullptr;
     }
-    /**
-     * @bug UART drivers are not uninstalled at the end.
-     */
+    channel = nullptr;
+
     UNITY_END();
 }
 

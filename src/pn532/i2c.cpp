@@ -103,9 +103,9 @@ namespace pn532 {
     }// namespace i2c
 
 
-    i2c::command i2c_channel::raw_prepare_command() const {
+    i2c::command i2c_channel::raw_prepare_command(comm_mode mode) const {
         i2c::command cmd;
-        switch (_mode) {
+        switch (mode) {
             case comm_mode::receive:
                 cmd.write(slave_address_to_read(), true);
                 break;
@@ -119,11 +119,7 @@ namespace pn532 {
     }
 
     channel::r<> i2c_channel::raw_send(mlab::range<bin_data::const_iterator> const &buffer, ms timeout) {
-        if (_mode != comm_mode::send) {
-            ESP_LOGE(PN532_I2C_TAG, "Attempting I2C send without having set the mode, use comm_operation.");
-            return error::comm_error;
-        }
-        auto cmd = raw_prepare_command();
+        auto cmd = raw_prepare_command(comm_mode::send);
         cmd.write(buffer, true);
         cmd.stop();
         if (const auto res_cmd = cmd(_port, timeout); not res_cmd) {
@@ -134,12 +130,8 @@ namespace pn532 {
     }
 
     channel::r<> i2c_channel::raw_receive(mlab::range<bin_data::iterator> const &buffer, ms timeout) {
-        if (_mode != comm_mode::receive) {
-            ESP_LOGE(PN532_I2C_TAG, "Attempting I2C receive without having set the mode, use comm_operation.");
-            return error::comm_error;
-        }
         std::uint8_t ready_byte = 0x00;
-        auto cmd = raw_prepare_command();
+        auto cmd = raw_prepare_command(comm_mode::receive);
         if (buffer.size() > 0) {
             cmd.read(ready_byte, I2C_MASTER_ACK);
             cmd.read(buffer, I2C_MASTER_LAST_NACK);
@@ -148,10 +140,13 @@ namespace pn532 {
             cmd.read(ready_byte, I2C_MASTER_LAST_NACK);
         }
         cmd.stop();
-        /// @todo Decide how you want to handle the status byte, probably polling until timeout runs out
         if (const auto res_cmd = cmd(_port, timeout); not res_cmd) {
             ESP_LOGE(PN532_I2C_TAG, "Receive failed: %s", i2c::to_string(res_cmd.error()));
             return error_from_i2c_error(res_cmd.error());
+        } else if (ready_byte == 0x00) {
+            // The command is not yet ready
+            ESP_LOGE(PN532_I2C_TAG, "Response not yet ready.");
+            return error::comm_error;
         }
         return mlab::result_success;
     }
@@ -166,14 +161,39 @@ namespace pn532 {
 
 
     bool i2c_channel::on_receive_prepare(ms timeout) {
-        _mode = comm_mode::receive;
-        /// @todo Assert IRQ line or poll
-        return true;
-    }
-
-    bool i2c_channel::on_send_prepare(ms timeout) {
-        _mode = comm_mode::send;
-        return true;
+        // Poll the status byte
+        reduce_timeout rt{timeout};
+        std::uint8_t ready_byte = 0x00;
+        // Poll the ready byte only, once it's ready, send a application-level nack to request resending
+        while (rt and ready_byte == 0x00) {
+            auto poll_cmd = raw_prepare_command(comm_mode::receive);
+            // Read the ready byte only
+            poll_cmd.read(ready_byte, I2C_MASTER_LAST_NACK);
+            poll_cmd.stop();
+            if (const auto res_poll = poll_cmd(_port, rt.remaining()); not res_poll) {
+                ESP_LOGE(PN532_I2C_TAG, "Poll status failed: %s", i2c::to_string(res_poll.error()));
+                return false;
+            } else if (ready_byte == 0x00) {
+                // Wait a bit before retrying
+                vTaskDelay(duration_cast(10ms));
+            }
+        }
+        if (ready_byte != 0x00) {
+            // It's ready now, send an application level NACK to have the PN532 repeat the response
+            static const bin_data nack_data = bin_data::chain(frame<frame_type::nack>{});
+            auto nack_cmd = raw_prepare_command(comm_mode::send);
+            nack_cmd.write(nack_data.view(), true);
+            nack_cmd.stop();
+            if (const auto res_nack = nack_cmd(_port, rt.remaining()); not res_nack) {
+                ESP_LOGE(PN532_I2C_TAG, "Application-level NACK failed: %s", i2c::to_string(res_nack.error()));
+                return false;
+            }
+            // Wait a bit
+            vTaskDelay(duration_cast(10ms));
+            // Ready to go
+            return true;
+        }
+        return false;
     }
 
 }// namespace pn532

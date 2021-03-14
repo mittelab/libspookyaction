@@ -55,14 +55,12 @@ namespace pn532 {
     class i2c_channel final : public channel {
         i2c_port_t _port;
         std::uint8_t _slave_addr;
-        comm_mode _mode;
-
     protected:
         /**
          * Prepares a command with the correct mode (write, read) depending on @ref _mode;
          * @return
          */
-        [[nodiscard]] i2c::command raw_prepare_command() const;
+        [[nodiscard]] i2c::command raw_prepare_command(comm_mode mode) const;
 
         r<> raw_send(mlab::range<bin_data::const_iterator> const &buffer, ms timeout) override;
         r<> raw_receive(mlab::range<bin_data::iterator> const &buffer, ms timeout) override;
@@ -70,7 +68,6 @@ namespace pn532 {
         [[nodiscard]] inline receive_mode raw_receive_mode() const override;
 
         bool on_receive_prepare(ms timeout) override;
-        bool on_send_prepare(ms timeout) override;
 
     public:
         static constexpr std::uint8_t default_slave_address = 0x48;
@@ -90,7 +87,7 @@ namespace pn532 {
 
 namespace pn532 {
 
-    i2c_channel::i2c_channel(i2c_port_t port, std::uint8_t slave_addr) : _port{port}, _slave_addr{slave_addr}, _mode{comm_mode::send} {}
+    i2c_channel::i2c_channel(i2c_port_t port, std::uint8_t slave_addr) : _port{port}, _slave_addr{slave_addr} {}
 
 
     channel::error i2c_channel::error_from_i2c_error(i2c::error e) {

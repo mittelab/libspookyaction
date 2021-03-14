@@ -119,6 +119,20 @@ namespace {
     void IRAM_ATTR _p70_irq_to_semaphore(void *semaphore_hdl) {
         xSemaphoreGiveFromISR(reinterpret_cast<SemaphoreHandle_t>(semaphore_hdl), nullptr);
     }
+
+    template <class Fn>
+    struct callback_on_exit {
+        Fn &&fn;
+        explicit callback_on_exit(Fn &&fn_) : fn{std::forward<Fn>(fn_)} {}
+        ~callback_on_exit() {
+            fn();
+        }
+    };
+
+    template <class Fn>
+    decltype(auto) make_callback_on_exit(Fn &&fn) {
+        return callback_on_exit<Fn>{std::forward<Fn>(fn)};
+    }
 }// namespace
 
 void test_raw_i2c_pn532_sam_config_cmd() {
@@ -133,6 +147,10 @@ void test_raw_i2c_pn532_sam_config_cmd() {
             .master = {.clk_speed = 100000}};
     TEST_ASSERT_EQUAL(ESP_OK, i2c_param_config(I2C_NUM_0, &i2c_config));
     TEST_ASSERT_EQUAL(ESP_OK, i2c_driver_install(I2C_NUM_0, I2C_MODE_MASTER, BUF_SIZE, BUF_SIZE, 0));
+
+    // Make sure this gets destroyed on end
+    auto cbk_i2c_driver = make_callback_on_exit([]() { i2c_driver_delete(I2C_NUM_0); });
+
     TEST_ASSERT_EQUAL(ESP_OK, i2c_set_timeout(I2C_NUM_0, 200000 /* 1.25 ms */));
     switchChannel(channelMode::I2C);
     TEST_ASSERT_EQUAL(ESP_OK, gpio_install_isr_service(0));
@@ -142,6 +160,9 @@ void test_raw_i2c_pn532_sam_config_cmd() {
     TEST_ASSERT_NOT_NULL(semaphore);
 
     TEST_ASSERT_EQUAL(ESP_OK, gpio_isr_handler_add(PN532_IRQ, &_p70_irq_to_semaphore, semaphore));
+
+    // Make sure the handler is unregistered on exit
+    auto cbk_handler = make_callback_on_exit([]() { gpio_isr_handler_remove(P70_IRQ_PIN); });
 
     auto await_ready = [&] {
         if (xSemaphoreTake(semaphore, pdMS_TO_TICKS(100)) == pdFALSE) {
@@ -204,9 +225,6 @@ void test_raw_i2c_pn532_sam_config_cmd() {
         TEST_ASSERT_EQUAL_HEX8_ARRAY(expected_resp.data(), response_buffer.data(), std::min(response_buffer.size(), expected_resp.size()));
     }
     ESP_LOGI(TEST_TAG, "SAM cycle done.");
-
-    TEST_ASSERT_EQUAL(ESP_OK, gpio_isr_handler_remove(PN532_IRQ));
-    TEST_ASSERT_EQUAL(ESP_OK, i2c_driver_delete(I2C_NUM_0));
 }
 
 void setup_i2c_pn532() {
@@ -1007,8 +1025,6 @@ void unity_main() {
     channelInit();
 #ifdef PN532_TEST_I2C
     RUN_TEST(test_raw_i2c_pn532_sam_config_cmd);
-    gpio_isr_handler_remove(PN532_IRQ);
-    i2c_driver_delete(I2C_NUM_0);
 #else
     issue_header("MIFARE CIPHER TEST (no card)");
     RUN_TEST(test_crc16);

@@ -359,6 +359,10 @@ namespace pn532 {
             } else {
                 return op.error();
             }
+            // Send NACK
+            if (const auto res_nack = send_ack(false, rt.remaining()); not res_nack) {
+                return res_nack.error();
+            }
         }
         PN532_LOGE("Control reached impossible location.");
         return error::comm_error;

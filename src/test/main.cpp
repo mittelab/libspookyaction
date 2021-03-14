@@ -151,7 +151,7 @@ void test_raw_i2c_pn532_sam_config_cmd() {
     // Make sure this gets destroyed on end
     auto cbk_i2c_driver = make_callback_on_exit([]() { i2c_driver_delete(I2C_NUM_0); });
 
-    TEST_ASSERT_EQUAL(ESP_OK, i2c_set_timeout(I2C_NUM_0, 200000 /* 1.25 ms */));
+    TEST_ASSERT_EQUAL(ESP_OK, i2c_set_timeout(I2C_NUM_0, 200000 /* 2.5 ms */));
     switchChannel(channelMode::I2C);
     TEST_ASSERT_EQUAL(ESP_OK, gpio_install_isr_service(0));
     TEST_ASSERT_EQUAL(ESP_OK, gpio_set_intr_type(PN532_IRQ, GPIO_INTR_NEGEDGE));
@@ -234,10 +234,10 @@ void setup_i2c_pn532() {
             .scl_io_num = PN532_I2C_SCL,
             .sda_pullup_en = GPIO_PULLUP_ENABLE,
             .scl_pullup_en = GPIO_PULLUP_ENABLE,
-            .master = {.clk_speed = 400000}};
+            .master = {.clk_speed = 100000}};
     TEST_ASSERT_EQUAL(ESP_OK, i2c_param_config(I2C_NUM_0, &i2c_config));
     TEST_ASSERT_EQUAL(ESP_OK, i2c_driver_install(I2C_NUM_0, I2C_MODE_MASTER, BUF_SIZE, BUF_SIZE, 0));
-    TEST_ASSERT_EQUAL(ESP_OK, i2c_set_timeout(I2C_NUM_0, 100000 /* 1.25 ms */));
+    TEST_ASSERT_EQUAL(ESP_OK, i2c_set_timeout(I2C_NUM_0, 200000 /* 2.5 ms */));
 
     switchChannel(channelMode::I2C);
 

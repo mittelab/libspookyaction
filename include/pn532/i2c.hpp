@@ -55,6 +55,7 @@ namespace pn532 {
     class i2c_channel final : public channel {
         i2c_port_t _port;
         std::uint8_t _slave_addr;
+
     protected:
         /**
          * Prepares a command with the correct mode (write, read) depending on @ref _mode;

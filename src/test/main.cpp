@@ -1038,7 +1038,7 @@ void unity_main() {
     RUN_TEST(test_write_data_cmac_des);
     issue_header("HARDWARE SETUP (no card)");
 #ifdef PN532_TEST_I2C
-//    RUN_TEST(test_raw_i2c_pn532_sam_config_cmd);
+    //    RUN_TEST(test_raw_i2c_pn532_sam_config_cmd);
     RUN_TEST(setup_i2c_pn532);
 #else
     RUN_TEST(setup_uart_pn532);

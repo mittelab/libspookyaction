@@ -46,7 +46,7 @@ namespace pn532 {
                 std::size_t expected_body_size = 0, Args &&... append_to_body) {
             PN532_LOGI("%s: running %s...", to_string(command_code::diagnose), to_string(test));
             bin_data payload = bin_data::chain(prealloc(expected_body_size + 1), test,
-                                                     std::forward<Args>(append_to_body)...);
+                                               std::forward<Args>(append_to_body)...);
             if (const auto res_cmd = chn.command_response(command_code::diagnose, std::move(payload), timeout); res_cmd) {
                 // Test that the reurned data coincides
                 if (res_cmd->size() != 1) {

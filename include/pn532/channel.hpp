@@ -123,8 +123,8 @@ namespace pn532 {
          * @see raw_receive
          */
         enum struct receive_mode {
-            stream,    ///< Data in the RX stream is progressively consumed by each @ref raw_receive
-            buffered,  ///< Only one @ref raw_receive can be performed on a frame;
+            stream,  ///< Data in the RX stream is progressively consumed by each @ref raw_receive
+            buffered,///< Only one @ref raw_receive can be performed on a frame;
         };
 
 

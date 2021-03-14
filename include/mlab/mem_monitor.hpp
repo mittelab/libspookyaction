@@ -10,20 +10,20 @@
 namespace mlab {
     namespace trace {
         static constexpr std::size_t num_records = 100;
-        static heap_trace_record_t records[num_records]; // This buffer must be in internal RAM
-    }
+        static heap_trace_record_t records[num_records];// This buffer must be in internal RAM
+    }                                                   // namespace trace
 
     struct mem_monitor {
         inline mem_monitor();
         inline ~mem_monitor();
         mem_monitor(mem_monitor &&) noexcept = delete;
         mem_monitor(mem_monitor const &) = delete;
-        mem_monitor & operator=(mem_monitor &&) noexcept = delete;
-        mem_monitor & operator=(mem_monitor const &) = delete;
+        mem_monitor &operator=(mem_monitor &&) noexcept = delete;
+        mem_monitor &operator=(mem_monitor const &) = delete;
         [[nodiscard]] inline std::size_t count_leaked_memory() const;
     };
 
-}
+}// namespace mlab
 
 namespace mlab {
 
@@ -54,6 +54,6 @@ namespace mlab {
         return leaked;
     }
 
-}
+}// namespace mlab
 
 #endif//MLAB_MEM_MONITOR_HPP

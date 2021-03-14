@@ -1023,9 +1023,6 @@ void unity_main() {
     UNITY_BEGIN();
     esp_log_level_set("*", ESP_LOG_INFO);
     channelInit();
-#ifdef PN532_TEST_I2C
-    RUN_TEST(test_raw_i2c_pn532_sam_config_cmd);
-#else
     issue_header("MIFARE CIPHER TEST (no card)");
     RUN_TEST(test_crc16);
     RUN_TEST(test_crc32);
@@ -1040,7 +1037,12 @@ void unity_main() {
     RUN_TEST(test_get_key_version_rx_cmac);
     RUN_TEST(test_write_data_cmac_des);
     issue_header("HARDWARE SETUP (no card)");
+#ifdef PN532_TEST_I2C
+//    RUN_TEST(test_raw_i2c_pn532_sam_config_cmd);
+    RUN_TEST(setup_i2c_pn532);
+#else
     RUN_TEST(setup_uart_pn532);
+#endif
     issue_header("PN532 TEST AND DIAGNOSTICS (no card)");
     RUN_TEST(test_get_fw);
     RUN_TEST(test_diagnostics);
@@ -1091,7 +1093,9 @@ void unity_main() {
         }
         tag_reader->rf_configuration_field(true, false);
     }
-#endif
+    /**
+     * @bug UART and I2C drivers are not uninstalled at the end.
+     */
     UNITY_END();
 }
 

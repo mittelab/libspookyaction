@@ -60,7 +60,12 @@ namespace pn532 {
         std::size_t info_frame_data_size = 0;
     };
 
+    bin_data &operator<<(bin_data &bd, frame<frame_type::ack> const &);
+    bin_data &operator<<(bin_data &bd, frame<frame_type::nack> const &);
+    bin_data &operator<<(bin_data &bd, frame<frame_type::error> const &);
+    bin_data &operator<<(bin_data &bd, frame<frame_type::info> const &f);
     bin_data &operator<<(bin_data &bd, any_frame const &f);
+
     bin_stream &operator>>(bin_stream &s, any_frame &f);
 
     /**

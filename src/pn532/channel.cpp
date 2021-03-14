@@ -21,58 +21,6 @@ namespace pn532 {
             return _buffer;
         }
 
-        bin_data &operator<<(bin_data &bd, frame<frame_type::ack> const &) {
-            return bd << prealloc(6)
-                      << bits::preamble
-                      << bits::start_of_packet_code
-                      << bits::ack_packet_code
-                      << bits::postamble;
-        }
-
-        bin_data &operator<<(bin_data &bd, frame<frame_type::nack> const &) {
-            return bd << prealloc(6)
-                      << bits::preamble
-                      << bits::start_of_packet_code
-                      << bits::nack_packet_code
-                      << bits::postamble;
-        }
-
-        bin_data &operator<<(bin_data &bd, frame<frame_type::error> const &) {
-            return bd << prealloc(6)
-                      << bits::preamble
-                      << bits::start_of_packet_code
-                      << bits::length_and_checksum_short(1)
-                      << bits::specific_app_level_err_code
-                      << bits::compute_checksum(bits::specific_app_level_err_code)
-                      << bits::postamble;
-        }
-
-        bin_data &operator<<(bin_data &bd, frame<frame_type::info> const &f) {
-            const bool use_extended = f.data.size() > (0xff - 2 /* transport info + command code */);
-            const std::uint8_t checksum_init = static_cast<std::uint8_t>(bits::transport::host_to_pn532) + static_cast<std::uint8_t>(f.command);
-            if (use_extended) {
-                auto const truncated_data = f.data.view(0, std::min(f.data.size(), bits::max_firmware_data_length));
-                return bd << prealloc(12 + f.data.size())
-                          << bits::preamble << bits::start_of_packet_code
-                          << bits::fixed_extended_packet_length
-                          << bits::length_and_checksum_long(truncated_data.size() + 2)
-                          << f.transport
-                          << f.command
-                          << truncated_data
-                          << bits::compute_checksum(checksum_init, std::begin(truncated_data), std::end(truncated_data))
-                          << bits::postamble;
-            } else {
-                return bd << prealloc(9 + f.data.size())
-                          << bits::preamble << bits::start_of_packet_code
-                          << bits::length_and_checksum_short(f.data.size() + 2)
-                          << f.transport
-                          << f.command
-                          << f.data
-                          << bits::compute_checksum(checksum_init, std::begin(f.data), std::end(f.data))
-                          << bits::postamble;
-            }
-        }
-
         std::size_t advance_past_start_of_packet_code(bin_stream &s) {
             auto const data = s.peek();
             auto it = std::search(std::begin(data), std::end(data),
@@ -90,6 +38,57 @@ namespace pn532 {
 
     }// namespace
 
+    bin_data &operator<<(bin_data &bd, frame<frame_type::ack> const &) {
+        return bd << prealloc(6)
+                  << bits::preamble
+                  << bits::start_of_packet_code
+                  << bits::ack_packet_code
+                  << bits::postamble;
+    }
+
+    bin_data &operator<<(bin_data &bd, frame<frame_type::nack> const &) {
+        return bd << prealloc(6)
+                  << bits::preamble
+                  << bits::start_of_packet_code
+                  << bits::nack_packet_code
+                  << bits::postamble;
+    }
+
+    bin_data &operator<<(bin_data &bd, frame<frame_type::error> const &) {
+        return bd << prealloc(6)
+                  << bits::preamble
+                  << bits::start_of_packet_code
+                  << bits::length_and_checksum_short(1)
+                  << bits::specific_app_level_err_code
+                  << bits::compute_checksum(bits::specific_app_level_err_code)
+                  << bits::postamble;
+    }
+
+    bin_data &operator<<(bin_data &bd, frame<frame_type::info> const &f) {
+        const bool use_extended = f.data.size() > (0xff - 2 /* transport info + command code */);
+        const std::uint8_t checksum_init = static_cast<std::uint8_t>(bits::transport::host_to_pn532) + static_cast<std::uint8_t>(f.command);
+        if (use_extended) {
+            auto const truncated_data = f.data.view(0, std::min(f.data.size(), bits::max_firmware_data_length));
+            return bd << prealloc(12 + f.data.size())
+                      << bits::preamble << bits::start_of_packet_code
+                      << bits::fixed_extended_packet_length
+                      << bits::length_and_checksum_long(truncated_data.size() + 2)
+                      << f.transport
+                      << f.command
+                      << truncated_data
+                      << bits::compute_checksum(checksum_init, std::begin(truncated_data), std::end(truncated_data))
+                      << bits::postamble;
+        } else {
+            return bd << prealloc(9 + f.data.size())
+                      << bits::preamble << bits::start_of_packet_code
+                      << bits::length_and_checksum_short(f.data.size() + 2)
+                      << f.transport
+                      << f.command
+                      << f.data
+                      << bits::compute_checksum(checksum_init, std::begin(f.data), std::end(f.data))
+                      << bits::postamble;
+        }
+    }
     bin_data &operator<<(bin_data &bd, any_frame const &f) {
         switch (f.type()) {
             case frame_type::ack:

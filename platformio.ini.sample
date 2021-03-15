@@ -4,6 +4,13 @@ framework = espidf
 
 ; CONFIG_MBEDTLS_DES_C: DES is not included by default in Mbedtls, we have to define this.
 ; KEYCARD_UNIT_TEST_MAIN: when defined, compiles a `void app_main()` that kicks off the unit tests.
+; KEYCARD_HSU: define to test over the HSU channel
+; KEYCARD_I2C: define to test over the I2C channel
+; KEYCARD_SPI: define to test over the SPI channel
+; KEYCARD_CI_CD_MACHINE: it is possible to make the PN532 automatically switch channel by controlling the switches and
+;   the reset line with the GPIO pins. We have such machine configured to handle CI/CD jobs. When this macro is defined,
+;   the code will handle correctly the pins used to switch channel and reset the line. Multiple macros KEYCARD_HSU,
+;   KEYCARD_I2C and KEYCARD_SPI can be defined.
 
 build_unflags = -std=gnu++11 -std=gnu++14 -std=c++11 -std=c++14
 build_flags =
@@ -11,6 +18,7 @@ build_flags =
     -Wall -Wextra
 	-D CONFIG_MBEDTLS_DES_C
 	-D KEYCARD_UNIT_TEST_MAIN
+	-D KEYCARD_HSU
 ;    -D LOG_LOCAL_LEVEL=ESP_LOG_DEBUG
 ;    -D CORE_DEBUG_LEVEL=5
 

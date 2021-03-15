@@ -1,7 +1,4 @@
 #include "utils.hpp"
-#include <driver/gpio.h>
-#include <driver/i2c.h>
-#include <driver/uart.h>
 #include <numeric>
 #include <pn532/desfire_pcd.hpp>
 #include <pn532/hsu.hpp>
@@ -9,7 +6,6 @@
 #include <unity.h>
 
 #define TEST_TAG "UT"
-#define BUF_SIZE (1024)
 
 #define PN532_SERIAL_TX (GPIO_NUM_16)
 #define PN532_SERIAL_RX (GPIO_NUM_17)
@@ -30,6 +26,23 @@
 
 
 namespace {
+    constexpr uart_config_t uart_config = {
+            .baud_rate = 115200,
+            .data_bits = UART_DATA_8_BITS,
+            .parity = UART_PARITY_DISABLE,
+            .stop_bits = UART_STOP_BITS_1,
+            .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
+            .rx_flow_ctrl_thresh = 122,
+            .source_clk = UART_SCLK_REF_TICK};
+
+    constexpr i2c_config_t i2c_config = {
+            .mode = I2C_MODE_MASTER,
+            .sda_io_num = PN532_I2C_SDA,
+            .scl_io_num = PN532_I2C_SCL,
+            .sda_pullup_en = GPIO_PULLUP_ENABLE,
+            .scl_pullup_en = GPIO_PULLUP_ENABLE,
+            .master = {.clk_speed = 400000}};
+
     std::unique_ptr<pn532::channel> channel = nullptr;
     std::unique_ptr<pn532::nfc> tag_reader = nullptr;
     std::unique_ptr<pn532::desfire_pcd> pcd = nullptr;
@@ -47,27 +60,78 @@ namespace {
         }
         return load;
     }
-    enum channelMode {
-        HSU = 0,
-        SPI = 1,
-        I2C = 2,
-    };
 
-    void channelInit() {
+    void setup_channel_switch() {
+#ifdef KEYCARD_CI_CD_MACHINE
         gpio_set_direction(PN532_RSTN, GPIO_MODE_OUTPUT);
         gpio_set_direction(PN532_I0, GPIO_MODE_OUTPUT);
         gpio_set_direction(PN532_I1, GPIO_MODE_OUTPUT);
         gpio_set_level(PN532_RSTN, 1);
+#else
+        ESP_LOGW(TEST_TAG, "Not running on multi-channel CI/CD machine. Only the selected channel will be tested.");
+#endif
     }
 
-    void switchChannel(channelMode mode) {
-        gpio_set_level(PN532_I0, mode & 0x01);// configure I0/I1 for the selected mode
-        gpio_set_level(PN532_I1, mode & 0x02);
-        gpio_set_level(PN532_RSTN, 0);// reset the PN532
-
-        vTaskDelay(500 / portTICK_PERIOD_MS);
-        gpio_set_level(PN532_RSTN, 1);// release reset line
-        vTaskDelay(500 / portTICK_PERIOD_MS);
+    bool switch_channel(ut::channel_type type) {
+        // Clear all variables
+        mifare = nullptr;
+        pcd = nullptr;
+        tag_reader = nullptr;
+        channel = nullptr;
+        // Check which channels are allowed
+#ifndef KEYCARD_HSU
+        if (type == ut::channel_type::hsu) {
+            return false;
+        }
+#endif
+#ifndef KEYCARD_I2C
+        if (type == ut::channel_type::i2c) {
+            return false;
+        }
+#endif
+#ifndef KEYCARD_SPI
+        if (type == ut::channel_type::spi) {
+            return false;
+        }
+#endif
+        ESP_LOGI(TEST_TAG, "Activating channel %s...", ut::to_string(type));
+#ifdef KEYCARD_CI_CD_MACHINE
+        // Configure I0/I1 for the selected mode
+        switch (type) {
+            case ut::channel_type::hsu:
+                gpio_set_level(PN532_I0, 0);
+                gpio_set_level(PN532_I1, 0);
+                break;
+            case ut::channel_type::i2c:
+                gpio_set_level(PN532_I0, 1);
+                gpio_set_level(PN532_I1, 0);
+                break;
+            case ut::channel_type::spi:
+                gpio_set_level(PN532_I0, 0);
+                gpio_set_level(PN532_I1, 1);
+                break;
+        }
+        // Power cycle the pn532
+        gpio_set_level(PN532_RSTN, 0);
+        vTaskDelay(pdMS_TO_TICKS(500));
+        // Release reset line
+        gpio_set_level(PN532_RSTN, 1);
+        vTaskDelay(pdMS_TO_TICKS(500));
+#endif
+        switch (type) {
+            case ut::channel_type::hsu:
+                channel = std::make_unique<pn532::hsu_channel>(UART_NUM_1, uart_config, PN532_SERIAL_TX, PN532_SERIAL_RX);
+                break;
+            case ut::channel_type::i2c:
+                channel = std::make_unique<pn532::i2c_channel>(I2C_NUM_0, i2c_config, PN532_IRQ, true);
+                break;
+            case ut::channel_type::spi:
+                ESP_LOGE(TEST_TAG, "SPI is not yet supported.");
+                break;
+        }
+        tag_reader = std::make_unique<pn532::nfc>(*channel);
+        ESP_LOGI(TEST_TAG, "Channel %s ready.", ut::to_string(type));
+        return true;
     }
 
     using namespace std::chrono_literals;
@@ -94,41 +158,14 @@ namespace ut {
 
 }// namespace ut
 
-void setup_uart_pn532() {
-    const uart_config_t uart_config = {
-            .baud_rate = 115200,
-            .data_bits = UART_DATA_8_BITS,
-            .parity = UART_PARITY_DISABLE,
-            .stop_bits = UART_STOP_BITS_1,
-            .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
-            .rx_flow_ctrl_thresh = 122,
-            .source_clk = UART_SCLK_REF_TICK};
-    switchChannel(channelMode::HSU);
-    channel = std::make_unique<pn532::hsu_channel>(UART_NUM_1, uart_config, TX_OR_SCL_PIN, RX_OR_SDA_PIN);
-    tag_reader = std::make_unique<pn532::nfc>(*channel);
+void test_wake_channel() {
+    TEST_ASSERT_NOT_EQUAL(channel, nullptr);
+    TEST_ASSERT_NOT_EQUAL(tag_reader, nullptr);
+
     TEST_ASSERT(channel->wake());
     const auto r_sam = tag_reader->sam_configuration(pn532::sam_mode::normal, 1s);
     TEST_ASSERT(r_sam);
 }
-
-void setup_i2c_pn532() {
-    const i2c_config_t i2c_config = {
-            .mode = I2C_MODE_MASTER,
-            .sda_io_num = PN532_I2C_SDA,
-            .scl_io_num = PN532_I2C_SCL,
-            .sda_pullup_en = GPIO_PULLUP_ENABLE,
-            .scl_pullup_en = GPIO_PULLUP_ENABLE,
-            .master = {.clk_speed = 400000}};
-
-    switchChannel(channelMode::I2C);
-
-    channel = std::make_unique<pn532::i2c_channel>(I2C_NUM_0, i2c_config, P70_IRQ_PIN, true);
-    tag_reader = std::make_unique<pn532::nfc>(*channel);
-    TEST_ASSERT(channel->wake());
-    const auto r_sam = tag_reader->sam_configuration(pn532::sam_mode::normal, 1s);
-    TEST_ASSERT(r_sam);
-}
-
 
 void test_get_fw() {
     TEST_ASSERT_NOT_EQUAL(tag_reader, nullptr);
@@ -900,30 +937,9 @@ struct file_test {
     }
 };
 
-void unity_main() {
-    UNITY_BEGIN();
-    esp_log_level_set("*", ESP_LOG_INFO);
-    channelInit();
-    issue_header("MIFARE CIPHER TEST (no card)");
-    RUN_TEST(test_crc16);
-    RUN_TEST(test_crc32);
-    RUN_TEST(test_cipher_des);
-    RUN_TEST(test_cipher_2k3des);
-    RUN_TEST(test_cipher_3k3des);
-    RUN_TEST(test_cipher_aes);
-    RUN_TEST(test_change_key_aes);
-    RUN_TEST(test_change_key_des);
-    RUN_TEST(test_change_key_2k3des);
-    RUN_TEST(test_create_write_file_rx_cmac);
-    RUN_TEST(test_get_key_version_rx_cmac);
-    RUN_TEST(test_write_data_cmac_des);
-    issue_header("HARDWARE SETUP (no card)");
-#ifdef PN532_TEST_I2C
-    RUN_TEST(setup_i2c_pn532);
-#else
-    RUN_TEST(setup_uart_pn532);
-#endif
+void unity_perform_pn532_mifare_tests() {
     issue_header("PN532 TEST AND DIAGNOSTICS (no card)");
+    RUN_TEST(test_wake_channel);
     RUN_TEST(test_get_fw);
     RUN_TEST(test_diagnostics);
     issue_header("PN532 SCAN TEST (optionally requires card)");
@@ -977,7 +993,35 @@ void unity_main() {
         tag_reader = nullptr;
     }
     channel = nullptr;
+}
 
+void unity_main() {
+    UNITY_BEGIN();
+    esp_log_level_set("*", ESP_LOG_INFO);
+    issue_header("MIFARE CIPHER TEST (no card)");
+    RUN_TEST(test_crc16);
+    RUN_TEST(test_crc32);
+    RUN_TEST(test_cipher_des);
+    RUN_TEST(test_cipher_2k3des);
+    RUN_TEST(test_cipher_3k3des);
+    RUN_TEST(test_cipher_aes);
+    RUN_TEST(test_change_key_aes);
+    RUN_TEST(test_change_key_des);
+    RUN_TEST(test_change_key_2k3des);
+    RUN_TEST(test_create_write_file_rx_cmac);
+    RUN_TEST(test_get_key_version_rx_cmac);
+    RUN_TEST(test_write_data_cmac_des);
+
+    setup_channel_switch();
+    for (ut::channel_type chn : {ut::channel_type::hsu, ut::channel_type::i2c, ut::channel_type::spi}) {
+        if (not switch_channel(chn)) {
+#ifdef KEYCARD_CI_CD_MACHINE
+            ESP_LOGW(TEST_TAG, "Unsupported channel %s, skipping...", ut::to_string(chn));
+#endif
+            continue;
+        }
+        unity_perform_pn532_mifare_tests();
+    }
     UNITY_END();
 }
 

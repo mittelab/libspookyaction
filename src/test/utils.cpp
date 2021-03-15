@@ -14,6 +14,19 @@ namespace ut {
     static constexpr std::array<std::uint8_t, 24> secondary_des3_3k_key = {0x0, 0x2, 0x4, 0x6, 0x8, 0xa, 0xc, 0xe, 0x10, 0x12, 0x14, 0x16, 0x18, 0x1a, 0x1c, 0x1e, 0x20, 0x22, 0x24, 0x26, 0x28, 0x2a, 0x2c, 0x2e};
     static constexpr std::array<std::uint8_t, 16> secondary_aes_key = {0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf};
 
+    const char *to_string(channel_type type) {
+        switch (type) {
+            case channel_type::i2c:
+                return "i2c";
+            case channel_type::hsu:
+                return "hsu";
+            case channel_type::spi:
+                return "spi";
+            default:
+                return "UNKNOWN";
+        }
+    }
+
     std::pair<mlab::bin_data, bool> assert_comm_controller::communicate(const mlab::bin_data &data) {
         auto txrx_pair = std::move(txrx_fifo.front());
         txrx_fifo.pop_front();

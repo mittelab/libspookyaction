@@ -6,11 +6,11 @@ framework = espidf
 ; KEYCARD_UNIT_TEST_MAIN: when defined, compiles a `void app_main()` that kicks off the unit tests.
 ; KEYCARD_HSU: define to test over the HSU channel
 ; KEYCARD_I2C: define to test over the I2C channel
+; KEYCARD_I2C_IRQ: define to test over the I2C channel with the IRQ line instead of polling answer
 ; KEYCARD_SPI: define to test over the SPI channel
 ; KEYCARD_CI_CD_MACHINE: it is possible to make the PN532 automatically switch channel by controlling the switches and
 ;   the reset line with the GPIO pins. We have such machine configured to handle CI/CD jobs. When this macro is defined,
-;   the code will handle correctly the pins used to switch channel and reset the line. Multiple macros KEYCARD_HSU,
-;   KEYCARD_I2C and KEYCARD_SPI can be defined.
+;   the code will handle correctly the pins used to switch channel and reset the line.
 
 build_unflags = -std=gnu++11 -std=gnu++14 -std=c++11 -std=c++14
 build_flags =

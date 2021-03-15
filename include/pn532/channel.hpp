@@ -90,6 +90,8 @@ namespace pn532 {
 
     class channel {
     public:
+        virtual ~channel() = default;
+
         enum struct error {
             comm_timeout,
             comm_error,

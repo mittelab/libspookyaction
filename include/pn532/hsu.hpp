@@ -23,7 +23,14 @@ namespace pn532 {
 
     public:
         bool wake() override;
-        hsu_channel(uart_port_t port, uart_config_t config, int tx_pin, int rx_pin);
+        /**
+         *
+         * @param port
+         * @param config
+         * @param to_device_tx The pin connected to the TX line on the PN532
+         * @param to_device_rx The pin connected to the RX line on the PN532
+         */
+        hsu_channel(uart_port_t port, uart_config_t config, int to_device_tx, int to_device_rx);
         ~hsu_channel() override;
     };
 }// namespace pn532

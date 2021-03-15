@@ -21,7 +21,7 @@ namespace pn532 {
     }// namespace
 
 
-    hsu_channel::hsu_channel(uart_port_t port, uart_config_t config, int tx_pin, int rx_pin) : _port{port} {
+    hsu_channel::hsu_channel(uart_port_t port, uart_config_t config, int to_device_tx, int to_device_rx) : _port{port} {
         if (const auto res = uart_param_config(port, &config); res != ESP_OK) {
             ESP_LOGE(PN532_HSU_TAG, "uart_param_config failed, return code %d (%s).", res, esp_err_to_name(res));
             _port = UART_NUM_MAX;
@@ -32,7 +32,10 @@ namespace pn532 {
             _port = UART_NUM_MAX;
             return;
         }
-        if (const auto res = uart_set_pin(port, tx_pin, rx_pin, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE); res != ESP_OK) {
+        /**
+         * @note Yes, the device RX is the "local" TX.
+         */
+        if (const auto res = uart_set_pin(port, to_device_rx, to_device_tx, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE); res != ESP_OK) {
             ESP_LOGE(PN532_HSU_TAG, "uart_set_pin failed, return code %d (%s).", res, esp_err_to_name(res));
             _port = UART_NUM_MAX;
             return;

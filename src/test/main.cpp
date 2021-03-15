@@ -1,4 +1,5 @@
 #include "utils.hpp"
+#include <map>
 #include <numeric>
 #include <pn532/desfire_pcd.hpp>
 #include <pn532/hsu.hpp>
@@ -148,26 +149,6 @@ namespace {
     using namespace std::chrono_literals;
 
 }// namespace
-
-namespace ut {
-
-    struct app_with_keys {
-        desfire::app_id aid;
-        desfire::any_key default_key;
-        desfire::any_key secondary_key;
-
-        template <desfire::cipher_type Cipher>
-        [[nodiscard]] static app_with_keys make(desfire::app_id aid_, desfire::key<Cipher> secondary_key_, desfire::key<Cipher> default_key_ = {}) {
-            return app_with_keys{.aid = aid_, .default_key = desfire::any_key(default_key_), .secondary_key = desfire::any_key(secondary_key_)};
-        }
-    };
-
-    static const std::array<app_with_keys, 4> test_apps = {{app_with_keys::make<desfire::cipher_type::des>({0x0, 0x0, 0x1}, {0, {0x0, 0x2, 0x4, 0x6, 0x8, 0xa, 0xc, 0xe}, 0x10}),
-                                                            app_with_keys::make<desfire::cipher_type::des3_2k>({0x0, 0x0, 0x2}, {0, {0x0, 0x2, 0x4, 0x6, 0x8, 0xa, 0xc, 0xe, 0x10, 0x12, 0x14, 0x16, 0x18, 0x1a, 0x1c, 0x1e}, 0x10}),
-                                                            app_with_keys::make<desfire::cipher_type::des3_3k>({0x0, 0x0, 0x3}, {0, {0x0, 0x2, 0x4, 0x6, 0x8, 0xa, 0xc, 0xe, 0x10, 0x12, 0x14, 0x16, 0x18, 0x1a, 0x1c, 0x1e, 0x20, 0x22, 0x24, 0x26, 0x28, 0x2a, 0x2c, 0x2e}, 0x10}),
-                                                            app_with_keys::make<desfire::cipher_type::aes128>({0x0, 0x0, 0x4}, {0, {0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf}, 0x10})}};
-
-}// namespace ut
 
 void test_wake_channel() {
     TEST_ASSERT_NOT_EQUAL(channel, nullptr)
@@ -635,34 +616,36 @@ void test_mifare_create_apps() {
     TEST_ASSERT_NOT_EQUAL(pcd, nullptr)
     TEST_ASSERT_NOT_EQUAL(mifare, nullptr)
 
-    for (ut::app_with_keys const &app : ut::test_apps) {
-        const auto ct = app.default_key.type();
-        ESP_LOGI(TEST_TAG, "Creating app with cipher %s.", desfire::to_string(ct));
+    std::map<desfire::app_id, bool> found_ids{};
+
+    for (desfire::cipher_type cipher : {desfire::cipher_type::des, desfire::cipher_type::des3_2k,
+                                        desfire::cipher_type::des3_3k, desfire::cipher_type::aes128}) {
+        ut::test_app const &app = ut::get_test_app(cipher);
+        ESP_LOGI(TEST_TAG, "Creating app with cipher %s.", desfire::to_string(cipher));
         TEST_ASSERT(mifare->select_application(desfire::root_app))
         TEST_ASSERT(mifare->authenticate(desfire::key<desfire::cipher_type::des>{}))
-        TEST_ASSERT(mifare->create_application(app.aid, desfire::app_settings{ct}))
+        TEST_ASSERT(mifare->create_application(app.aid, desfire::app_settings{cipher}))
         TEST_ASSERT(mifare->select_application(app.aid))
-        test_auth_attempt(mifare->authenticate(app.default_key));
+        test_auth_attempt(mifare->authenticate(app.primary_key));
+        // Save this id
+        found_ids[app.aid] = false;
     }
 
     TEST_ASSERT(mifare->select_application(desfire::root_app))
     const auto r_app_ids = mifare->get_application_ids();
     TEST_ASSERT(r_app_ids)
     if (r_app_ids) {
-        std::array<bool, 4> got_all_ids = {false, false, false, false};
         TEST_ASSERT_GREATER_OR_EQUAL(r_app_ids->size(), 4);
         for (std::size_t i = 0; i < r_app_ids->size(); ++i) {
             desfire::app_id const &aid = r_app_ids->at(i);
             ESP_LOGI(TEST_TAG, "  %d. AID %02x %02x %02x", i + 1, aid[0], aid[1], aid[2]);
-            if (aid[0] == aid[1] and aid[0] == 0 and 0 < aid[2] and aid[2] < 5) {
-                TEST_ASSERT_EQUAL_HEX8_ARRAY(ut::test_apps[aid[2] - 1].aid.data(), aid.data(), aid.size());
-                got_all_ids[aid[2] - 1] = true;
+            if (auto it = found_ids.find(aid); it != std::end(found_ids)) {
+                TEST_ASSERT_FALSE(it->second)
+                it->second = true;
             }
         }
-        TEST_ASSERT(got_all_ids[0])
-        TEST_ASSERT(got_all_ids[1])
-        TEST_ASSERT(got_all_ids[2])
-        TEST_ASSERT(got_all_ids[3])
+        const bool got_all_ids = std::all_of(std::begin(found_ids), std::end(found_ids), [](auto kvp) { return kvp.second; });
+        TEST_ASSERT(got_all_ids)
     }
 }
 
@@ -673,9 +656,12 @@ void test_mifare_root_operations() {
 
     std::vector<desfire::any_key> keys_to_test;
     keys_to_test.emplace_back(default_k);// Default key
-    for (ut::app_with_keys const &app : ut::test_apps) {
+
+    for (desfire::cipher_type cipher : {desfire::cipher_type::des, desfire::cipher_type::des3_2k,
+                                        desfire::cipher_type::des3_3k, desfire::cipher_type::aes128}) {
+        ut::test_app const &app = ut::get_test_app(cipher);
         // Copy the keys from the test apps
-        keys_to_test.emplace_back(app.default_key);
+        keys_to_test.emplace_back(app.primary_key);
         keys_to_test.emplace_back(app.secondary_key);
     }
 
@@ -743,15 +729,18 @@ void test_mifare_root_operations() {
 void test_mifare_change_app_key() {
     TEST_ASSERT(pcd != nullptr and mifare != nullptr)
 
-    for (ut::app_with_keys const &app : ut::test_apps) {
-        ESP_LOGI(TEST_TAG, "Changing same key of app with cipher %s.", desfire::to_string(app.default_key.type()));
+
+    for (desfire::cipher_type cipher : {desfire::cipher_type::des, desfire::cipher_type::des3_2k,
+                                        desfire::cipher_type::des3_3k, desfire::cipher_type::aes128}) {
+        ut::test_app const &app = ut::get_test_app(cipher);
+        ESP_LOGI(TEST_TAG, "Changing same key of app with cipher %s.", desfire::to_string(app.primary_key.type()));
         TEST_ASSERT(mifare->select_application(app.aid))
-        if (not mifare->authenticate(app.default_key)) {
+        if (not mifare->authenticate(app.primary_key)) {
             ESP_LOGW(TEST_TAG, "Default key not working, attempting secondary key and reset...");
             TEST_ASSERT(mifare->authenticate(app.secondary_key))
-            TEST_ASSERT(mifare->change_key(app.default_key))
+            TEST_ASSERT(mifare->change_key(app.primary_key))
             ESP_LOGI(TEST_TAG, "Reset app key to default, continuing!");
-            TEST_ASSERT(mifare->authenticate(app.default_key))
+            TEST_ASSERT(mifare->authenticate(app.primary_key))
         }
         TEST_ASSERT(mifare->change_key(app.secondary_key))
         TEST_ASSERT(mifare->authenticate(app.secondary_key))
@@ -764,7 +753,7 @@ void test_mifare_change_app_key() {
         TEST_ASSERT(mifare->change_app_settings(res_key_settings->rights))
         res_key_settings->rights.dir_access_without_auth = false;
         TEST_ASSERT(mifare->change_app_settings(res_key_settings->rights))
-        TEST_ASSERT(mifare->change_key(app.default_key))
+        TEST_ASSERT(mifare->change_key(app.primary_key))
     }
 }
 

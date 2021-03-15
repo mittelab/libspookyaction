@@ -1023,7 +1023,7 @@ void unity_main() {
     RUN_TEST(test_write_data_cmac_des);
 
     setup_channel_switch();
-    for (ut::channel_type chn : {ut::channel_type::hsu, ut::channel_type::i2c, ut::channel_type::spi}) {
+    for (ut::channel_type chn : {ut::channel_type::hsu, ut::channel_type::i2c, ut::channel_type::i2c_irq, ut::channel_type::spi}) {
         if (not switch_channel(chn)) {
 #ifdef KEYCARD_CI_CD_MACHINE
             ESP_LOGW(TEST_TAG, "Unsupported channel %s, skipping...", ut::to_string(chn));

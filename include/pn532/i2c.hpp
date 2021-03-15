@@ -81,7 +81,7 @@ namespace pn532 {
 
         i2c_channel(i2c_port_t port, i2c_config_t config, std::uint8_t slave_address = default_slave_address);
         i2c_channel(i2c_port_t port, i2c_config_t config, gpio_num_t response_irq_line, bool manage_isr_service, std::uint8_t slave_address = default_slave_address);
-        ~i2c_channel();
+        ~i2c_channel() override;
 
         [[nodiscard]] inline std::uint8_t slave_address_to_write() const;
         [[nodiscard]] inline std::uint8_t slave_address_to_read() const;

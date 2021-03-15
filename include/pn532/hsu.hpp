@@ -24,7 +24,7 @@ namespace pn532 {
     public:
         bool wake() override;
         hsu_channel(uart_port_t port, uart_config_t config, int tx_pin, int rx_pin);
-        ~hsu_channel();
+        ~hsu_channel() override;
     };
 }// namespace pn532
 

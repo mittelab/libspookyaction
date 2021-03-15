@@ -47,6 +47,7 @@ namespace {
     std::unique_ptr<pn532::nfc> tag_reader = nullptr;
     std::unique_ptr<pn532::desfire_pcd> pcd = nullptr;
     std::unique_ptr<desfire::tag> mifare = nullptr;
+    bool did_pass_wake_test = false;
 
     [[nodiscard]] bool is_ok(pn532::nfc::r<bool> const &r) {
         return r and *r;
@@ -175,6 +176,8 @@ void test_wake_channel() {
     TEST_ASSERT(channel->wake())
     const auto r_sam = tag_reader->sam_configuration(pn532::sam_mode::normal, 1s);
     TEST_ASSERT(r_sam)
+
+    did_pass_wake_test = bool(r_sam);
 }
 
 void test_get_fw() {
@@ -949,43 +952,48 @@ struct file_test {
 
 void unity_perform_pn532_mifare_tests() {
     issue_header("PN532 TEST AND DIAGNOSTICS (no card)");
+    did_pass_wake_test = false;
     RUN_TEST(test_wake_channel);
-    RUN_TEST(test_get_fw);
-    RUN_TEST(test_diagnostics);
-    issue_header("PN532 SCAN TEST (optionally requires card)");
-    RUN_TEST(test_scan_mifare);
-    RUN_TEST(test_pn532_cycle_rf);
-    RUN_TEST(test_scan_all);
-    RUN_TEST(test_pn532_cycle_rf);
-    issue_header("PN532 MIFARE COMM TEST (requires card)");
-    RUN_TEST(test_data_exchange);
-    RUN_TEST(test_pn532_cycle_rf);
-    issue_header("MIFARE TEST (requires card)");
-    RUN_TEST(setup_mifare);
-    RUN_TEST(test_mifare_base);
-    RUN_TEST(test_mifare_uid);
-    RUN_TEST(test_mifare_create_apps);
-    RUN_TEST(test_mifare_change_app_key);
-    // Note: better to first test apps, before fiddling with the root app.
-    RUN_TEST(test_mifare_root_operations);
+    if (not did_pass_wake_test) {
+        ESP_LOGE(TEST_TAG, "Unable to wake up PN532 via this channel, skipping all tests.");
+    } else {
+        RUN_TEST(test_get_fw);
+        RUN_TEST(test_diagnostics);
+        issue_header("PN532 SCAN TEST (optionally requires card)");
+        RUN_TEST(test_scan_mifare);
+        RUN_TEST(test_pn532_cycle_rf);
+        RUN_TEST(test_scan_all);
+        RUN_TEST(test_pn532_cycle_rf);
+        issue_header("PN532 MIFARE COMM TEST (requires card)");
+        RUN_TEST(test_data_exchange);
+        RUN_TEST(test_pn532_cycle_rf);
+        issue_header("MIFARE TEST (requires card)");
+        RUN_TEST(setup_mifare);
+        RUN_TEST(test_mifare_base);
+        RUN_TEST(test_mifare_uid);
+        RUN_TEST(test_mifare_create_apps);
+        RUN_TEST(test_mifare_change_app_key);
+        // Note: better to first test apps, before fiddling with the root app.
+        RUN_TEST(test_mifare_root_operations);
 
-    /**
+        /**
      * Test file creation, deletion, and read/write cycle.
      *
      * @note Since Unity does not allow parms in RUN_TEST, let's store those into a structure and then use them to call
      * the actual test function. This will generate a separate test entry for each mode.
      */
-    issue_format_warning();
-    for (desfire::file_security sec : {desfire::file_security::none, desfire::file_security::authenticated, desfire::file_security::encrypted}) {
-        for (desfire::cipher_type cipher : {desfire::cipher_type::des, desfire::cipher_type::des3_2k,
-                                            desfire::cipher_type::des3_3k, desfire::cipher_type::aes128}) {
-            for (desfire::file_type ftype : {desfire::file_type::standard, desfire::file_type::backup,
-                                             desfire::file_type::value, desfire::file_type::linear_record,
-                                             desfire::file_type::cyclic_record}) {
-                file_test::instance().security = sec;
-                file_test::instance().cipher = cipher;
-                file_test::instance().ftype = ftype;
-                UnityDefaultTestRun(&file_test::run, file_test::instance().description(), __LINE__);
+        issue_format_warning();
+        for (desfire::file_security sec : {desfire::file_security::none, desfire::file_security::authenticated, desfire::file_security::encrypted}) {
+            for (desfire::cipher_type cipher : {desfire::cipher_type::des, desfire::cipher_type::des3_2k,
+                                                desfire::cipher_type::des3_3k, desfire::cipher_type::aes128}) {
+                for (desfire::file_type ftype : {desfire::file_type::standard, desfire::file_type::backup,
+                                                 desfire::file_type::value, desfire::file_type::linear_record,
+                                                 desfire::file_type::cyclic_record}) {
+                    file_test::instance().security = sec;
+                    file_test::instance().cipher = cipher;
+                    file_test::instance().ftype = ftype;
+                    UnityDefaultTestRun(&file_test::run, file_test::instance().description(), __LINE__);
+                }
             }
         }
     }

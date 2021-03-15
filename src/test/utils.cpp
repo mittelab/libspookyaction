@@ -17,11 +17,13 @@ namespace ut {
     const char *to_string(channel_type type) {
         switch (type) {
             case channel_type::i2c:
-                return "i2c";
+                return "I2C";
+            case channel_type::i2c_irq:
+                return "I2C with IRQ";
             case channel_type::hsu:
-                return "hsu";
+                return "HSU";
             case channel_type::spi:
-                return "spi";
+                return "SPI";
             default:
                 return "UNKNOWN";
         }

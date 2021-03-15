@@ -82,6 +82,7 @@ namespace ut {
     enum struct channel_type {
         hsu,
         i2c,
+        i2c_irq,
         spi
     };
 

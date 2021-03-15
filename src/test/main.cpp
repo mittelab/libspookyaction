@@ -89,6 +89,11 @@ namespace {
             return false;
         }
 #endif
+#ifndef KEYCARD_I2C_IRQ
+        if (type == ut::channel_type::i2c_irq) {
+            return false;
+        }
+#endif
 #ifndef KEYCARD_SPI
         if (type == ut::channel_type::spi) {
             return false;
@@ -103,6 +108,8 @@ namespace {
                 gpio_set_level(PN532_I1, 0);
                 break;
             case ut::channel_type::i2c:
+                [[fallthrough]];
+            case ut::channel_type::i2c_irq:
                 gpio_set_level(PN532_I0, 1);
                 gpio_set_level(PN532_I1, 0);
                 break;
@@ -123,6 +130,9 @@ namespace {
                 channel = std::make_unique<pn532::hsu_channel>(UART_NUM_1, uart_config, PN532_SERIAL_TX, PN532_SERIAL_RX);
                 break;
             case ut::channel_type::i2c:
+                channel = std::make_unique<pn532::i2c_channel>(I2C_NUM_0, i2c_config);
+                break;
+            case ut::channel_type::i2c_irq:
                 channel = std::make_unique<pn532::i2c_channel>(I2C_NUM_0, i2c_config, PN532_IRQ, true);
                 break;
             case ut::channel_type::spi:

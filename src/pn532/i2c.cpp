@@ -56,8 +56,8 @@ namespace pn532 {
 
         void command::write(std::uint8_t b, bool enable_ack_check) {
             if (assert_unused()) {
-                if (i2c_master_write_byte(_handle, b, enable_ack_check) != ESP_OK) {
-                    ESP_LOGE(PN532_I2C_TAG, "i2c_master_write_byte failed.");
+                if (const auto res = i2c_master_write_byte(_handle, b, enable_ack_check); res != ESP_OK) {
+                    ESP_LOGE(PN532_I2C_TAG, "i2c_master_write_byte failed with status %d (%s).", res, esp_err_to_name(res));
                 }
             }
         }
@@ -65,40 +65,41 @@ namespace pn532 {
 
         void command::write(mlab::range<bin_data::const_iterator> const &data, bool enable_ack_check) {
             if (assert_unused()) {
-                if (i2c_master_write(_handle, const_cast<std::uint8_t *>(data.data()), data.size(), enable_ack_check) != ESP_OK) {
-                    ESP_LOGE(PN532_I2C_TAG, "i2c_master_write failed.");
+                if (const auto res = i2c_master_write(_handle, const_cast<std::uint8_t *>(data.data()), data.size(), enable_ack_check); res != ESP_OK) {
+                    ESP_LOGE(PN532_I2C_TAG, "i2c_master_write failed with status %d (%s).", res, esp_err_to_name(res));
                 }
             }
         }
 
         void command::read(mlab::range<bin_data::iterator> const &buffer, i2c_ack_type_t ack) {
             if (assert_unused()) {
-                if (i2c_master_read(_handle, buffer.data(), buffer.size(), ack) != ESP_OK) {
-                    ESP_LOGE(PN532_I2C_TAG, "i2c_master_read failed.");
+                if (const auto res = i2c_master_read(_handle, buffer.data(), buffer.size(), ack); res != ESP_OK) {
+                    ESP_LOGE(PN532_I2C_TAG, "i2c_master_read failed with status %d (%s).", res, esp_err_to_name(res));
                 }
             }
         }
 
         void command::read(std::uint8_t &b, i2c_ack_type_t ack) {
             if (assert_unused()) {
-                if (i2c_master_read_byte(_handle, &b, ack) != ESP_OK) {
-                    ESP_LOGE(PN532_I2C_TAG, "i2c_master_read_byte failed.");
+                if (const auto res = i2c_master_read_byte(_handle, &b, ack); res != ESP_OK) {
+                    ESP_LOGE(PN532_I2C_TAG, "i2c_master_read_byte failed with status %d (%s).", res, esp_err_to_name(res));
                 }
             }
         }
 
         void command::stop() {
             if (assert_unused()) {
-                if (i2c_master_stop(_handle) != ESP_OK) {
-                    ESP_LOGE(PN532_I2C_TAG, "i2c_master_stop failed.");
+                if (const auto res = i2c_master_stop(_handle); res != ESP_OK) {
+                    ESP_LOGE(PN532_I2C_TAG, "i2c_master_stop failed with status %d (%s).", res, esp_err_to_name(res));
                 }
             }
         }
 
         mlab::result<error> command::operator()(i2c_port_t port, std::chrono::milliseconds timeout) {
             _used = true;
-            if (const auto result_code = i2c_master_cmd_begin(port, _handle, duration_cast(timeout)); result_code != ESP_OK) {
-                return static_cast<error>(result_code);
+            if (const auto res = i2c_master_cmd_begin(port, _handle, duration_cast(timeout)); res != ESP_OK) {
+                ESP_LOGE(PN532_I2C_TAG, "i2c_master_cmd_begin failed with status %d (%s).", res, esp_err_to_name(res));
+                return static_cast<error>(res);
             }
             return mlab::result_success;
         }

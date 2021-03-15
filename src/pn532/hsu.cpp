@@ -95,8 +95,8 @@ namespace pn532 {
         std::size_t read_length = 0;
         while (read_length < buffer.size() and rt) {
             std::size_t buffer_length = 0;
-            if (uart_get_buffered_data_len(_port, &buffer_length) != ESP_OK) {
-                ESP_LOGE(PN532_HSU_TAG, "Error when getting buffered data at uart %d.", static_cast<int>(_port));
+            if (const auto res = uart_get_buffered_data_len(_port, &buffer_length); res != ESP_OK) {
+                ESP_LOGE(PN532_HSU_TAG, "uart_get_buffered_data_len failed with status %d (%s).", res, esp_err_to_name(res));
             }
             if (buffer_length == 0) {
                 // Wait a bit before retrying

@@ -154,6 +154,25 @@ namespace desfire {
          * | cmd  |LSB             MSB|     | Status |    | Error |
          * ~~~~
          *
+         * @htmlonly
+         * <div style="display:flex; flex-direction: row;">
+         * <div>
+         * <script type="WaveDrom">
+         * {reg:[
+         *  {bits: 1, name: '0x5A', attr: 'Command code'},
+         *  {bits: 3, name: 'AID', attr: 'app'},
+         * ],
+         * config:{bits: 4, lanes: 1, hflip: true, vflip: true}}
+         * </script></div>
+         * <div>
+         * <script type="WaveDrom">
+         * {reg:[
+         *  {bits: 1, name: '0x00', attr: 'Status'},
+         * ],
+         * config:{bits: 1, lanes: 1, hflip: true, vflip: true}}
+         * </script></div>
+         * </div>
+         * @endhtmlonly
          * @brief Selects the application to use for sucessive operations
          * @ingroup application
          * @param app The id of the app to be selected
@@ -174,6 +193,17 @@ namespace desfire {
          * | cmd  |LSB             MSB|              |           |     | Status |    | Error |
          * ~~~~
          *
+         * @htmlonly
+         * <script type="WaveDrom">
+         * {reg:[
+         *  {bits: 1, name: '0xCA', attr: 'Command code'},
+         *  {bits: 3, name: 'AID', attr: 'new_app_id'},
+         *  {bits: 1, name: 'Key settings', attr: 'settings'},
+         *  {bits: 1, name: '# of Keys', attr: 'settings'},
+         * ],
+         * config:{bits: 6, lanes: 1, hflip: true, vflip: true}}
+         * </script>
+         * @endhtmlonly
          * @brief Add a new application to the card
          * @ingroup application
          * @param new_app_id the id of the new app to be created
@@ -188,13 +218,31 @@ namespace desfire {
 
         /**
          * ~~~~
-         * 0      1                    2     0        1    0       1
+         * 0      1                    9     0        1    0       1
          * +------+--------------------+     +--------+    +-------+
          * | 0x54 | ###key settings### | --> |  0x00  | OR | CODE  |
          * +------+--------------------+     +--------+    +-------+
          * | cmd  |     enchipered     |     | Status |    | Error |
          * ~~~~
-         *
+         * @htmlonly
+         * <div style="display:flex; flex-direction: row;">
+         * <div>
+         * <script type="WaveDrom">
+         * {reg:[
+         *  {bits: 1, name: '0x54', attr: 'Command code'},
+         *  {bits: 8, name: 'key settings[enchipered]', attr: 'new_rights'},
+         * ],
+         * config:{bits: 9, lanes: 1, hflip: true, vflip: true}}
+         * </script></div>
+         * <div>
+         * <script type="WaveDrom">
+         * {reg:[
+         *  {bits: 1, name: '0x00', attr: 'Status'},
+         * ],
+         * config:{bits: 1, lanes: 1, hflip: true, vflip: true}}
+         * </script></div>
+         * </div>
+         * @endhtmlonly
          * @brief Change the setting of the selected app
          * @ingroup application
          * @param new_rights the new app settings
@@ -215,6 +263,27 @@ namespace desfire {
          * | cmd  |     | Status |              |           |    | Error |
          * ~~~~
          *
+         * @htmlonly
+         * <div style="display:flex; flex-direction: row;">
+         * <div>
+         * <script type="WaveDrom">
+         * {reg:[
+         *  {bits: 1, name: '0x45', attr: 'Command code'},
+         * ],
+         * config:{bits: 1, lanes: 1, hflip: true, vflip: true}}
+         * </script></div>
+         * <div>
+         * <script type="WaveDrom">
+         * {reg:[
+         *  {bits: 1, name: '0x00', attr: 'Status'},
+         *  {bits: 1, name: 'key settings', attr: 'app_settings'},
+         *  {bits: 1, name: 'Max # of keys', attr: 'app_settings'},
+         * ],
+         * config:{bits: 3, lanes: 1, hflip: true, vflip: true}}
+         * </script></div>
+         * </div>
+         * @endhtmlonly
+         *
          * @brief Get the configuration of the selected app
          * @ingroup application
          * @note The app need to be selected first (with @ref select_application) for this to succeed.
@@ -233,6 +302,27 @@ namespace desfire {
          * +------+-------+     +--------+-------------+    +-------+
          * | cmd  |       |     | Status |             |    | Error |
          * ~~~~
+         *
+         * @htmlonly
+         * <div style="display:flex; flex-direction: row;">
+         * <div>
+         * <script type="WaveDrom">
+         * {reg:[
+         *  {bits: 1, name: '0x64', attr: 'Command code'},
+         *  {bits: 1, name: 'Key #', attr: 'key_num'},
+         * ],
+         * config:{bits: 2, lanes: 1, hflip: true, vflip: true}}
+         * </script></div>
+         * <div>
+         * <script type="WaveDrom">
+         * {reg:[
+         *  {bits: 1, name: '0x00', attr: 'Status'},
+         *  {bits: 1, name: 'key version', attr: 'version'},
+         * ],
+         * config:{bits: 2, lanes: 1, hflip: true, vflip: true}}
+         * </script></div>
+         * </div>
+         * @endhtmlonly
          *
          * @brief Get the version of the key (in the selected application)
          * @ingroup application
@@ -277,6 +367,26 @@ namespace desfire {
          * +------+-------------------+     +--------+    +-------+
          * | cmd  |LSB             MSB|     | Status |    | Error |
          * ~~~~
+         *
+         * @htmlonly
+         * <div style="display:flex; flex-direction: row;">
+         * <div>
+         * <script type="WaveDrom">
+         * {reg:[
+         *  {bits: 1, name: '0x64', attr: 'Command code'},
+         *  {bits: 3, name: 'AID [LSB first]', attr: 'app'},
+         * ],
+         * config:{bits: 4, lanes: 1, hflip: true, vflip: true}}
+         * </script></div>
+         * <div>
+         * <script type="WaveDrom">
+         * {reg:[
+         *  {bits: 1, name: '0x00', attr: 'Status'},
+         * ],
+         * config:{bits: 1, lanes: 1, hflip: true, vflip: true}}
+         * </script></div>
+         * </div>
+         * @endhtmlonly
          *
          * @brief Delete the application, and all data stored in it
          * @ingroup application
@@ -328,6 +438,25 @@ namespace desfire {
          * +------+     +--------+    +-------+
          * | cmd  |     | Status |    | Error |
          * ~~~~
+         *
+         * @htmlonly
+         * <div style="display:flex; flex-direction: row;">
+         * <div>
+         * <script type="WaveDrom">
+         * {reg:[
+         *  {bits: 1, name: '0xFC', attr: 'Command code'},
+         * ],
+         * config:{bits: 1, lanes: 1, hflip: true, vflip: true}}
+         * </script></div>
+         * <div>
+         * <script type="WaveDrom">
+         * {reg:[
+         *  {bits: 1, name: '0x00', attr: 'Status'},
+         * ],
+         * config:{bits: 1, lanes: 1, hflip: true, vflip: true}}
+         * </script></div>
+         * </div>
+         * @endhtmlonly
          *
          * @brief Delete all the application, and keys on the card
          * @ingroup application
@@ -409,6 +538,22 @@ namespace desfire {
         r<file_settings<Type>> get_specific_file_settings(file_id fid);
 
         /**
+         * ~~~~
+         * 0      1       2                3               5     0        1    0       1
+         * +------+-------+----------------+---------------+     +--------+    +-------+
+         * | 0x5F |  FID  | Comm. settings | Access rights | --> |  0x00  | OR | CODE  |
+         * +------+-------+----------------+---------------+     +--------+    +-------+
+         * | cmd  |       |                |LSB         MSB|     | Status |    | Error |
+         *
+         * OR (based on the communication setings of the file)
+         *
+         * 0      1       2                                10    0        1    0       1
+         * +------+-------+--------------------------------+     +--------+    +-------+
+         * | 0x5F |  FID  |       ###new settings###       | --> |  0x00  | OR | CODE  |
+         * +------+-------+--------------------------------+     +--------+    +-------+
+         * | cmd  |       |           enchipered           |     | Status |    | Error |
+         * ~~~~
+         *
          * @brief Modify the file settings
          * @ingroup data
          * @param fid The file ID, Max @ref bits::max_standard_data_file_id.
@@ -422,6 +567,22 @@ namespace desfire {
         r<> change_file_settings(file_id fid, generic_file_settings const &settings);
 
         /**
+         * ~~~~
+         * 0      1       2                3               5     0        1    0       1
+         * +------+-------+----------------+---------------+     +--------+    +-------+
+         * | 0x5F |  FID  | Comm. settings | Access rights | --> |  0x00  | OR | CODE  |
+         * +------+-------+----------------+---------------+     +--------+    +-------+
+         * | cmd  |       |                |LSB         MSB|     | Status |    | Error |
+         *
+         * OR (based on the communication setings of the file)
+         *
+         * 0      1       2                                10    0        1    0       1
+         * +------+-------+--------------------------------+     +--------+    +-------+
+         * | 0x5F |  FID  |       ###new settings###       | --> |  0x00  | OR | CODE  |
+         * +------+-------+--------------------------------+     +--------+    +-------+
+         * | cmd  |       |           enchipered           |     | Status |    | Error |
+         * ~~~~
+         *
          * @brief Modify the file settings
          * @ingroup data
          * @param fid The file ID, Max @ref bits::max_standard_data_file_id.
@@ -435,6 +596,37 @@ namespace desfire {
         r<> change_file_settings(file_id fid, generic_file_settings const &settings, file_security security);
 
         /**
+         * ~~~~
+         * 0      1       2                3               5               8     0        1    0       1
+         * +------+-------+----------------+---------------+---------------+     +--------+    +-------+
+         * | 0xCD |  FID  | Comm. settings | Access rights |   File size   | --> |  0x00  | OR | CODE  |
+         * +------+-------+----------------+---------------+---------------+     +--------+    +-------+
+         * | cmd  |       |                |LSB         MSB|LSB         MSB|     | Status |    | Error |
+         * ~~~~
+         *
+         * @htmlonly
+         * <div style="display:flex; flex-direction: row;">
+         * <div>
+         * <script type="WaveDrom">
+         * {reg:[
+         *  {bits: 1, name: '0xCD', attr: 'Command code'},
+         *  {bits: 1, name: 'FID', attr: 'fid'},
+         *  {bits: 1, name: 'Comm. sett'},
+         *  {bits: 2, name: 'Access rights [LSB first]'},
+         *  {bits: 3, name: 'File size [LSB first]'},
+         * ],
+         * config:{bits: 8, lanes: 1, hflip: true, vflip: true}}
+         * </script></div>
+         * <div>
+         * <script type="WaveDrom">
+         * {reg:[
+         *  {bits: 1, name: '0x00', attr: 'Status'},
+         * ],
+         * config:{bits: 1, lanes: 1, hflip: true, vflip: true}}
+         * </script></div>
+         * </div>
+         * @endhtmlonly
+         *
          * @brief Create a new file in the selected application
          * @ingroup data
          * @param fid file ID, Max @ref bits::max_standard_data_file_id.
@@ -460,6 +652,37 @@ namespace desfire {
 
 
         /**
+         * ~~~~
+         * 0      1       2                3               5               8     0        1    0       1
+         * +------+-------+----------------+---------------+---------------+     +--------+    +-------+
+         * | 0xCB |  FID  | Comm. settings | Access rights |   File size   | --> |  0x00  | OR | CODE  |
+         * +------+-------+----------------+---------------+---------------+     +--------+    +-------+
+         * | cmd  |       |                |LSB         MSB|LSB         MSB|     | Status |    | Error |
+         * ~~~~
+         *
+         * @htmlonly
+         * <div style="display:flex; flex-direction: row;">
+         * <div>
+         * <script type="WaveDrom">
+         * {reg:[
+         *  {bits: 1, name: '0xCB', attr: 'Command code'},
+         *  {bits: 1, name: 'FID', attr: 'fid'},
+         *  {bits: 1, name: 'Comm. sett'},
+         *  {bits: 2, name: 'Access rights [LSB first]'},
+         *  {bits: 3, name: 'File size [LSB first]'},
+         * ],
+         * config:{bits: 8, lanes: 1, hflip: true, vflip: true}}
+         * </script></div>
+         * <div>
+         * <script type="WaveDrom">
+         * {reg:[
+         *  {bits: 1, name: '0x00', attr: 'Status'},
+         * ],
+         * config:{bits: 1, lanes: 1, hflip: true, vflip: true}}
+         * </script></div>
+         * </div>
+         * @endhtmlonly
+         *
          * @brief Create a new file in the selected application
          * @ingroup data
          * @param fid Max @ref bits::max_backup_data_file_id.
@@ -472,6 +695,40 @@ namespace desfire {
         r<> create_file(file_id fid, file_settings<file_type::backup> const &settings);
 
         /**
+         * ~~~~
+         * 0      1       2                3               5               9               13        17              18    0        1    0       1
+         * +------+-------+----------------+---------------+---------------+---------------+---------+---------------+     +--------+    +-------+
+         * | 0xCD |  FID  | Comm. settings | Access rights |  Lower Limit  |  Upper Limit  |  Value  |  Lim. credit  | --> |  0x00  | OR | CODE  |
+         * +------+-------+----------------+---------------+---------------+---------------+---------+---------------+     +--------+    +-------+
+         * | cmd  |       |                |LSB         MSB|LSB         MSB|LSB         MSB|LSB   MSB|               |     | Status |    | Error |
+         * ~~~~
+         *
+         * @htmlonly
+         * <div style="display:flex; flex-direction: row;">
+         * <div>
+         * <script type="WaveDrom">
+         * {reg:[
+         *  {bits: 1, name: '0xCD', attr: 'Command code'},
+         *  {bits: 1, name: 'FID', attr: 'fid'},
+         *  {bits: 1, name: 'Comm. sett'},
+         *  {bits: 2, name: 'Access rights [LSB first]'},
+         *  {bits: 4, name: 'Lower Limit [LSB first]'},
+         *  {bits: 4, name: 'Upper Limit [LSB first]'},
+         *  {bits: 4, name: 'Value [LSB first]'},
+         *  {bits: 1, name: 'Lim. credit'},
+         * ],
+         * config:{bits: 18, lanes: 1, hflip: true, vflip: true}}
+         * </script></div>
+         * <div>
+         * <script type="WaveDrom">
+         * {reg:[
+         *  {bits: 1, name: '0x00', attr: 'Status'},
+         * ],
+         * config:{bits: 1, lanes: 1, hflip: true, vflip: true}}
+         * </script></div>
+         * </div>
+         * @endhtmlonly
+         *
          * @brief Create a new file in the selected application
          * @ingroup valueFile
          * @param fid Max @ref bits::max_value_file_id.
@@ -485,6 +742,38 @@ namespace desfire {
         r<> create_file(file_id fid, file_settings<file_type::value> const &settings);
 
         /**
+         * ~~~~
+         * 0      1       2                3               5               8                    11    0        1    0       1
+         * +------+-------+----------------+---------------+---------------+--------------------+     +--------+    +-------+
+         * | 0xC1 |  FID  | Comm. settings | Access rights |  Record Size  |  Max # of records  | --> |  0x00  | OR | CODE  |
+         * +------+-------+----------------+---------------+---------------+--------------------+     +--------+    +-------+
+         * | cmd  |       |                |LSB         MSB|LSB         MSB|LSB              MSB|     | Status |    | Error |
+         * ~~~~
+         *
+         * @htmlonly
+         * <div style="display:flex; flex-direction: row;">
+         * <div>
+         * <script type="WaveDrom">
+         * {reg:[
+         *  {bits: 1, name: '0xC1', attr: 'Command code'},
+         *  {bits: 1, name: 'FID', attr: 'fid'},
+         *  {bits: 1, name: 'Comm. sett'},
+         *  {bits: 2, name: 'Access rights [LSB first]'},
+         *  {bits: 3, name: 'Record Size [LSB first]'},
+         *  {bits: 3, name: 'Max # of records [LSB first]'},
+         * ],
+         * config:{bits: 11, lanes: 1, hflip: true, vflip: true}}
+         * </script></div>
+         * <div>
+         * <script type="WaveDrom">
+         * {reg:[
+         *  {bits: 1, name: '0x00', attr: 'Status'},
+         * ],
+         * config:{bits: 1, lanes: 1, hflip: true, vflip: true}}
+         * </script></div>
+         * </div>
+         * @endhtmlonly
+         *
          * @brief Create a new file in the selected application
          * @ingroup recordFile
          * @param fid Max @ref bits::max_record_file_id.
@@ -498,6 +787,38 @@ namespace desfire {
         r<> create_file(file_id fid, file_settings<file_type::linear_record> const &settings);
 
         /**
+         * ~~~~
+         * 0      1       2                3               5               8                    11    0        1    0       1
+         * +------+-------+----------------+---------------+---------------+--------------------+     +--------+    +-------+
+         * | 0xC0 |  FID  | Comm. settings | Access rights |  Record Size  |  Max # of records  | --> |  0x00  | OR | CODE  |
+         * +------+-------+----------------+---------------+---------------+--------------------+     +--------+    +-------+
+         * | cmd  |       |                |LSB         MSB|LSB         MSB|LSB              MSB|     | Status |    | Error |
+         * ~~~~
+         *
+         * @htmlonly
+         * <div style="display:flex; flex-direction: row;">
+         * <div>
+         * <script type="WaveDrom">
+         * {reg:[
+         *  {bits: 1, name: '0xC0', attr: 'Command code'},
+         *  {bits: 1, name: 'FID', attr: 'fid'},
+         *  {bits: 1, name: 'Comm. sett'},
+         *  {bits: 2, name: 'Access rights [LSB first]'},
+         *  {bits: 3, name: 'Record Size [LSB first]'},
+         *  {bits: 3, name: 'Max # of records [LSB first]'},
+         * ],
+         * config:{bits: 11, lanes: 1, hflip: true, vflip: true}}
+         * </script></div>
+         * <div>
+         * <script type="WaveDrom">
+         * {reg:[
+         *  {bits: 1, name: '0x00', attr: 'Status'},
+         * ],
+         * config:{bits: 1, lanes: 1, hflip: true, vflip: true}}
+         * </script></div>
+         * </div>
+         * @endhtmlonly
+         *
          * @brief Create a new file in the selected application
          * @ingroup recordFile
          * @param fid Max @ref bits::max_record_file_id.
@@ -511,6 +832,27 @@ namespace desfire {
         r<> create_file(file_id fid, file_settings<file_type::cyclic_record> const &settings);
 
         /**
+         *
+         * @htmlonly
+         * <div style="display:flex; flex-direction: row;">
+         * <div>
+         * <script type="WaveDrom">
+         * {reg:[
+         *  {bits: 1, name: '0xDF', attr: 'Command code'},
+         *  {bits: 1, name: 'FID', attr: 'fid'},
+         * ],
+         * config:{bits: 2, lanes: 1, hflip: true, vflip: true}}
+         * </script></div>
+         * <div>
+         * <script type="WaveDrom">
+         * {reg:[
+         *  {bits: 1, name: '0x00', attr: 'Status'},
+         * ],
+         * config:{bits: 1, lanes: 1, hflip: true, vflip: true}}
+         * </script></div>
+         * </div>
+         * @endhtmlonly
+         *
          * @brief Delete file
          * @ingroup data
          * @param fid The file id to be removed, Max @ref bits::max_record_file_id.
@@ -522,6 +864,27 @@ namespace desfire {
         r<> delete_file(file_id fid);
 
         /**
+         *
+         * @htmlonly
+         * <div style="display:flex; flex-direction: row;">
+         * <div>
+         * <script type="WaveDrom">
+         * {reg:[
+         *  {bits: 1, name: '0xEB', attr: 'Command code'},
+         *  {bits: 1, name: 'FID', attr: 'fid'},
+         * ],
+         * config:{bits: 2, lanes: 1, hflip: true, vflip: true}}
+         * </script></div>
+         * <div>
+         * <script type="WaveDrom">
+         * {reg:[
+         *  {bits: 1, name: '0x00', attr: 'Status'},
+         * ],
+         * config:{bits: 1, lanes: 1, hflip: true, vflip: true}}
+         * </script></div>
+         * </div>
+         * @endhtmlonly
+         *
          * @brief clear the linear records from the file
          * @ingroup recordFile
          * @param fid The file id of the record, Max @ref bits::max_record_file_id.
@@ -533,6 +896,26 @@ namespace desfire {
         r<> clear_record_file(file_id fid);
 
         /**
+         *
+         * @htmlonly
+         * <div style="display:flex; flex-direction: row;">
+         * <div>
+         * <script type="WaveDrom">
+         * {reg:[
+         *  {bits: 1, name: '0xC7', attr: 'Command code'},
+         * ],
+         * config:{bits: 1, lanes: 1, hflip: true, vflip: true}}
+         * </script></div>
+         * <div>
+         * <script type="WaveDrom">
+         * {reg:[
+         *  {bits: 1, name: '0x00', attr: 'Status'},
+         * ],
+         * config:{bits: 1, lanes: 1, hflip: true, vflip: true}}
+         * </script></div>
+         * </div>
+         * @endhtmlonly
+         *
          * @brief commit data to file, abort on error
          * @ingroup data
          * @return None, or the following errors:
@@ -543,6 +926,26 @@ namespace desfire {
         r<> commit_transaction();
 
         /**
+         *
+         * @htmlonly
+         * <div style="display:flex; flex-direction: row;">
+         * <div>
+         * <script type="WaveDrom">
+         * {reg:[
+         *  {bits: 1, name: '0xA7', attr: 'Command code'},
+         * ],
+         * config:{bits: 1, lanes: 1, hflip: true, vflip: true}}
+         * </script></div>
+         * <div>
+         * <script type="WaveDrom">
+         * {reg:[
+         *  {bits: 1, name: '0x00', attr: 'Status'},
+         * ],
+         * config:{bits: 1, lanes: 1, hflip: true, vflip: true}}
+         * </script></div>
+         * </div>
+         * @endhtmlonly
+         *
          * @brief abort data write to file
          * @ingroup data
          * @return None, or the following errors:
@@ -607,6 +1010,28 @@ namespace desfire {
         r<> write_data(file_id fid, std::uint32_t offset, bin_data const &data, file_security security);
 
         /**
+         *
+         * @htmlonly
+         * <div style="display:flex; flex-direction: row;">
+         * <div>
+         * <script type="WaveDrom">
+         * {reg:[
+         *  {bits: 1, name: '0x6C', attr: 'Command code'},
+         *  {bits: 1, name: 'FID', attr: 'fid'},
+         * ],
+         * config:{bits: 2, lanes: 1, hflip: true, vflip: true}}
+         * </script></div>
+         * <div>
+         * <script type="WaveDrom">
+         * {reg:[
+         *  {bits: 1, name: '0x00', attr: 'Status'},
+         *  {bits: 4, name: 'DATA', attr: 'Plain value'},
+         * ],
+         * config:{bits: 5, lanes: 1, hflip: true, vflip: true}}
+         * </script></div>
+         * </div>
+         * @endhtmlonly
+         *
          * @brief read value of a credit/debit file
          * @ingroup valueFile
          * @param fid Max @ref bits::max_value_file_id.
@@ -630,6 +1055,28 @@ namespace desfire {
         r<std::int32_t> get_value(file_id fid, file_security security);
 
         /**
+         *
+         * @htmlonly
+         * <div style="display:flex; flex-direction: row;">
+         * <div>
+         * <script type="WaveDrom">
+         * {reg:[
+         *  {bits: 1, name: '0x0C', attr: 'Command code'},
+         *  {bits: 1, name: 'FID', attr: 'fid'},
+         *  {bits: 4, name: 'DATA', attr: 'Plain value'},
+         * ],
+         * config:{bits: 6, lanes: 1, hflip: true, vflip: true}}
+         * </script></div>
+         * <div>
+         * <script type="WaveDrom">
+         * {reg:[
+         *  {bits: 1, name: '0x00', attr: 'Status'},
+         * ],
+         * config:{bits: 1, lanes: 1, hflip: true, vflip: true}}
+         * </script></div>
+         * </div>
+         * @endhtmlonly
+         *
          * @brief Increment a value file
          * @ingroup valueFile
          * @param fid Max @ref bits::max_value_file_id.
@@ -655,6 +1102,28 @@ namespace desfire {
         r<> credit(file_id fid, std::int32_t amount, file_security security);
 
         /**
+         *
+         * @htmlonly
+         * <div style="display:flex; flex-direction: row;">
+         * <div>
+         * <script type="WaveDrom">
+         * {reg:[
+         *  {bits: 1, name: '0xDC', attr: 'Command code'},
+         *  {bits: 1, name: 'FID', attr: 'fid'},
+         *  {bits: 4, name: 'DATA', attr: 'Plain value'},
+         * ],
+         * config:{bits: 6, lanes: 1, hflip: true, vflip: true}}
+         * </script></div>
+         * <div>
+         * <script type="WaveDrom">
+         * {reg:[
+         *  {bits: 1, name: '0x00', attr: 'Status'},
+         * ],
+         * config:{bits: 1, lanes: 1, hflip: true, vflip: true}}
+         * </script></div>
+         * </div>
+         * @endhtmlonly
+         *
          * @brief Increment, limited by past debits transaction, the value file
          * @ingroup valueFile
          * @param fid Max @ref bits::max_value_file_id.
@@ -682,6 +1151,28 @@ namespace desfire {
         r<> limited_credit(file_id fid, std::int32_t amount, file_security security);
 
         /**
+         *
+         * @htmlonly
+         * <div style="display:flex; flex-direction: row;">
+         * <div>
+         * <script type="WaveDrom">
+         * {reg:[
+         *  {bits: 1, name: '0xDC', attr: 'Command code'},
+         *  {bits: 1, name: 'FID', attr: 'fid'},
+         *  {bits: 4, name: 'DATA', attr: 'Plain value'},
+         * ],
+         * config:{bits: 6, lanes: 1, hflip: true, vflip: true}}
+         * </script></div>
+         * <div>
+         * <script type="WaveDrom">
+         * {reg:[
+         *  {bits: 1, name: '0x00', attr: 'Status'},
+         * ],
+         * config:{bits: 1, lanes: 1, hflip: true, vflip: true}}
+         * </script></div>
+         * </div>
+         * @endhtmlonly
+         *
          * @brief Drecement a value file
          * @ingroup valueFile
          * @param fid Max @ref bits::max_value_file_id.

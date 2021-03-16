@@ -8,32 +8,10 @@
 #include "channel.hpp"
 #include <driver/i2c.h>
 #include <memory>
+#include <mlab/irq_assert.hpp>
 #include <mlab/result.hpp>
 
 namespace pn532 {
-
-    class i2c_channel final : public channel {
-        i2c_port_t _port;
-        std::uint8_t _slave_addr;
-
-    protected:
-        bool prepare_receive(std::chrono::milliseconds timeout) override;
-
-        bool send_raw(bin_data const &data, std::chrono::milliseconds timeout) override;
-
-        bool receive_raw(bin_data &data, std::size_t length, std::chrono::milliseconds timeout) override;
-
-    public:
-        static constexpr std::uint8_t default_slave_address = 0x48;
-
-        bool wake() override;
-
-        inline explicit i2c_channel(i2c_port_t port, std::uint8_t slave_address = default_slave_address);
-
-        [[nodiscard]] inline std::uint8_t slave_address_to_write() const;
-        [[nodiscard]] inline std::uint8_t slave_address_to_read() const;
-    };
-
 
     namespace i2c {
 
@@ -62,9 +40,9 @@ namespace pn532 {
 
             void write(std::uint8_t b, bool enable_ack_check);
 
-            void write(std::reference_wrapper<const bin_data> data, bool enable_ack_check);
+            void write(mlab::range<bin_data::const_iterator> const &data, bool enable_ack_check);
 
-            void read(bin_data &sized_buffer, i2c_ack_type_t ack);
+            void read(mlab::range<bin_data::iterator> const &buffer, i2c_ack_type_t ack);
 
             void read(std::uint8_t &b, i2c_ack_type_t ack);
 
@@ -74,17 +52,69 @@ namespace pn532 {
         };
     }// namespace i2c
 
+
+    class i2c_channel final : public channel {
+        i2c_port_t _port;
+        std::uint8_t _slave_addr;
+        mlab::irq_assert _irq_assert;
+
+    protected:
+        /**
+         * Prepares a command with the correct mode (write, read) depending on @ref _mode;
+         * @return
+         */
+        [[nodiscard]] i2c::command raw_prepare_command(comm_mode mode) const;
+
+        r<> raw_send(mlab::range<bin_data::const_iterator> const &buffer, ms timeout) override;
+        r<> raw_receive(mlab::range<bin_data::iterator> const &buffer, ms timeout) override;
+
+        [[nodiscard]] inline receive_mode raw_receive_mode() const override;
+
+        bool on_receive_prepare(ms timeout) override;
+
+    public:
+        static constexpr std::uint8_t default_slave_address = 0x48;
+
+        [[nodiscard]] inline static error error_from_i2c_error(i2c::error e);
+
+        bool wake() override;
+
+        i2c_channel(i2c_port_t port, i2c_config_t config, std::uint8_t slave_address = default_slave_address);
+        i2c_channel(i2c_port_t port, i2c_config_t config, gpio_num_t response_irq_line, bool manage_isr_service, std::uint8_t slave_address = default_slave_address);
+        ~i2c_channel() override;
+
+        [[nodiscard]] inline std::uint8_t slave_address_to_write() const;
+        [[nodiscard]] inline std::uint8_t slave_address_to_read() const;
+    };
+
+
 }// namespace pn532
 
 namespace pn532 {
 
-    i2c_channel::i2c_channel(i2c_port_t port, std::uint8_t slave_addr) : _port{port}, _slave_addr{slave_addr} {}
+    channel::error i2c_channel::error_from_i2c_error(i2c::error e) {
+        switch (e) {
+            case i2c::error::parameter_error:
+                return error::comm_malformed;
+            case i2c::error::timeout:
+                return error::comm_timeout;
+            case i2c::error::fail:
+                [[fallthrough]];
+            case i2c::error::invalid_state:
+                return error::comm_error;
+        }
+        return error::comm_error;
+    }
 
     std::uint8_t i2c_channel::slave_address_to_write() const {
         return _slave_addr;
     }
     std::uint8_t i2c_channel::slave_address_to_read() const {
         return _slave_addr + 1;
+    }
+
+    channel::receive_mode i2c_channel::raw_receive_mode() const {
+        return receive_mode::buffered;
     }
 
 }// namespace pn532

@@ -41,26 +41,15 @@
 #include "msg.hpp"
 
 namespace pn532 {
-
-    static constexpr ms default_timeout = one_sec;
-    static constexpr ms long_timeout = 3 * default_timeout;
+    static constexpr ms default_timeout = 1s;
+    static constexpr ms long_timeout = 3s;
 
     class nfc {
     public:
-        enum struct error {
-            canceled,
-            comm_timeout,
-            comm_checksum_fail,
-            comm_error,
-            comm_malformed,
-            nack,
-            failure
-        };
-
         static const std::vector<bits::target_type> poll_all_targets;
 
         template <class... Tn>
-        using r = result<error, Tn...>;
+        using r = channel::r<Tn...>;
 
         inline explicit nfc(channel &chn);
 
@@ -71,82 +60,6 @@ namespace pn532 {
         nfc &operator=(nfc const &) = delete;
 
         nfc &operator=(nfc &&) = default;
-
-        /**
-         * @brief send ACK or NACK frame
-         * @internal
-         * @param ack true for sending ACK, otherwhise sends NACK
-         * @param timeout maximum time for getting a response
-         * @return No data, but can return the following errors: @ref error::comm_timeout.
-         */
-        r<> raw_send_ack(bool ack = true, ms timeout = default_timeout);
-
-        /**
-         * @brief Send command via the channel defined in the cosnstructor @ref pn532::nfc::chn
-         * @internal
-         * @param cmd Command code
-         * @param payload Max 263 bytes, will be truncated
-         * @param timeout maximum time for getting a response
-         * @return No data, but can return the following errors: @ref error::comm_timeout.
-         */
-        r<> raw_send_command(command_code cmd, bin_data const &payload, ms timeout = default_timeout);
-
-        /**
-         * @brief Wait for an ACK or NACK
-         * @internal
-         * @param timeout maximum time for getting a response
-         * @returns true if ACK otherwhise false if NACK or the following errors: @ref error::comm_error,
-         *  @ref error::comm_malformed, @ref error::comm_timeout
-         */
-        r<bool> raw_await_ack(ms timeout = default_timeout);
-
-        /**
-         * @brief Wait for a response frame of a command
-         * @internal
-         * @param cmd Command code
-         * @param timeout maximum time for getting a response
-         * @return Either the received data, or one of the following errors: @ref error::comm_malformed,
-         *  @ref error::comm_checksum_fail, or @ref error::comm_timeout. No other error codes are produced.
-         */
-        r<bin_data> raw_await_response(command_code cmd, ms timeout = default_timeout);
-
-        /**
-         * @brief Command without response
-         * @internal
-         * @param cmd Command code
-         * @param payload Max 263 bytes, will be truncated
-         * @param timeout maximum time for getting a response
-         * @return No data, but can return the following errors: @ref error::comm_timeout, @ref error::nack,
-         *   @ref error::comm_malformed
-         */
-        r<> command(command_code cmd, bin_data const &payload, ms timeout = default_timeout);
-
-        /**
-         * @brief Command with response
-         * @internal
-         * @param cmd Command code
-         * @param payload Max 263 bytes, will be truncated
-         * @param timeout maximum time for getting a response
-         * @return Either the received data, or one of the following errors:
-         *         - @ref error::comm_malformed
-         *         - @ref error::comm_checksum_fail
-         *         - @ref error::comm_timeout
-         */
-        r<bin_data> command_response(command_code cmd, bin_data const &payload, ms timeout = default_timeout);
-
-        /**
-         * @brief Get data from a command response
-         * @internal
-         * @param cmd Command code
-         * @param payload Max 263 bytes, will be truncated
-         * @param timeout maximum time for getting a response
-         * @return Either Data, or one of the following errors:
-         *         - @ref error::comm_malformed,
-         *         - @ref error::comm_checksum_fail
-         *         - @ref error::comm_timeout
-         */
-        template <class Data, class = typename std::enable_if<bin_stream::is_extractable<Data>::value>::type>
-        r<Data> command_parse_response(command_code cmd, bin_data const &payload, ms timeout = default_timeout);
 
         /**
          * @brief Selfcheck PN532 ROM memory (UM0701-02 §7.2.1)
@@ -764,7 +677,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<rf_status, bin_data> initiator_communicate_through(bin_data const &raw_data, ms timeout = default_timeout);
+        r<rf_status, bin_data> initiator_communicate_through(bin_data raw_data, ms timeout = default_timeout);
 
         /**
          * @brief activate the target with active or passive comunication (UM0701-02 §7.3.3)
@@ -1371,22 +1284,7 @@ namespace pn532 {
     private:
         channel *_channel;
 
-        struct frame_header;
-        struct frame_body;
-
         [[nodiscard]] inline channel &chn() const;
-
-        bool await_frame(ms timeout);
-
-        r<frame_header> read_header(ms timeout);
-
-        r<frame_body> read_response_body(frame_header const &hdr, ms timeout);
-
-        [[nodiscard]] static bin_data get_command_info_frame(command_code cmd, bin_data const &payload);
-
-        [[nodiscard]] static bin_data const &get_ack_frame();
-
-        [[nodiscard]] static bin_data const &get_nack_frame();
 
         [[nodiscard]] static std::uint8_t get_target(command_code cmd, std::uint8_t target_logical_index, bool expect_more_data);
 
@@ -1396,7 +1294,6 @@ namespace pn532 {
                 bin_data const &initiator_data, ms timeout);
     };
 
-    [[nodiscard]] const char *to_string(nfc::error e);
 }// namespace pn532
 
 
@@ -1416,22 +1313,6 @@ namespace pn532 {
 
     nfc::r<> nfc::write_register(reg_addr const &addr, std::uint8_t val, ms timeout) {
         return write_registers({{addr, val}}, timeout);
-    }
-
-    template <class Data, class>
-    nfc::r<Data> nfc::command_parse_response(command_code cmd, bin_data const &payload, ms timeout) {
-        if (const auto res_cmd = command_response(cmd, payload, timeout); res_cmd) {
-            bin_stream s{*res_cmd};
-            auto data = Data();
-            s >> data;
-            if (s.bad()) {
-                PN532_LOGE("%s: could not parse result from response data.", to_string(cmd));
-                return error::comm_malformed;
-            }
-            return data;
-        } else {
-            return res_cmd.error();
-        }
     }
 
     template <class T, class>

@@ -9,6 +9,7 @@
 #define PN532_I2C_TAG "PN532-I2C"
 
 namespace pn532 {
+    using namespace std::chrono_literals;
 
 
     namespace {
@@ -18,6 +19,8 @@ namespace pn532 {
             return pdMS_TO_TICKS(ms.count());
         }
 
+        constexpr std::size_t i2c_driver_buffer_size = 384;
+        constexpr std::size_t i2c_driver_timeout = 200000 /* apx 2.5ms */;
     }// namespace
 
     namespace i2c {
@@ -53,120 +56,156 @@ namespace pn532 {
 
         void command::write(std::uint8_t b, bool enable_ack_check) {
             if (assert_unused()) {
-                if (i2c_master_write_byte(_handle, b, enable_ack_check) != ESP_OK) {
-                    ESP_LOGE(PN532_I2C_TAG, "i2c_master_write_byte failed.");
-                }
-            }
-        }
-
-        void command::write(std::reference_wrapper<const bin_data> data, bool enable_ack_check) {
-            if (assert_unused()) {
-                if (i2c_master_write(_handle, const_cast<std::uint8_t *>(data.get().data()), data.get().size(), enable_ack_check) != ESP_OK) {
-                    ESP_LOGE(PN532_I2C_TAG, "i2c_master_write failed.");
+                if (const auto res = i2c_master_write_byte(_handle, b, enable_ack_check); res != ESP_OK) {
+                    ESP_LOGE(PN532_I2C_TAG, "i2c_master_write_byte failed with status %d (%s).", res, esp_err_to_name(res));
                 }
             }
         }
 
 
-        void command::read(bin_data &sized_buffer, i2c_ack_type_t ack) {
+        void command::write(mlab::range<bin_data::const_iterator> const &data, bool enable_ack_check) {
             if (assert_unused()) {
-                if (i2c_master_read(_handle, sized_buffer.data(), sized_buffer.size(), ack) != ESP_OK) {
-                    ESP_LOGE(PN532_I2C_TAG, "i2c_master_read failed.");
+                if (const auto res = i2c_master_write(_handle, const_cast<std::uint8_t *>(data.data()), data.size(), enable_ack_check); res != ESP_OK) {
+                    ESP_LOGE(PN532_I2C_TAG, "i2c_master_write failed with status %d (%s).", res, esp_err_to_name(res));
+                }
+            }
+        }
+
+        void command::read(mlab::range<bin_data::iterator> const &buffer, i2c_ack_type_t ack) {
+            if (assert_unused()) {
+                if (const auto res = i2c_master_read(_handle, buffer.data(), buffer.size(), ack); res != ESP_OK) {
+                    ESP_LOGE(PN532_I2C_TAG, "i2c_master_read failed with status %d (%s).", res, esp_err_to_name(res));
                 }
             }
         }
 
         void command::read(std::uint8_t &b, i2c_ack_type_t ack) {
             if (assert_unused()) {
-                if (i2c_master_read_byte(_handle, &b, ack) != ESP_OK) {
-                    ESP_LOGE(PN532_I2C_TAG, "i2c_master_read_byte failed.");
+                if (const auto res = i2c_master_read_byte(_handle, &b, ack); res != ESP_OK) {
+                    ESP_LOGE(PN532_I2C_TAG, "i2c_master_read_byte failed with status %d (%s).", res, esp_err_to_name(res));
                 }
             }
         }
 
         void command::stop() {
             if (assert_unused()) {
-                if (i2c_master_stop(_handle) != ESP_OK) {
-                    ESP_LOGE(PN532_I2C_TAG, "i2c_master_stop failed.");
+                if (const auto res = i2c_master_stop(_handle); res != ESP_OK) {
+                    ESP_LOGE(PN532_I2C_TAG, "i2c_master_stop failed with status %d (%s).", res, esp_err_to_name(res));
                 }
             }
         }
 
         mlab::result<error> command::operator()(i2c_port_t port, std::chrono::milliseconds timeout) {
             _used = true;
-            if (const auto result_code = i2c_master_cmd_begin(port, _handle, duration_cast(timeout)); result_code != ESP_OK) {
-                return static_cast<error>(result_code);
+            if (const auto res = i2c_master_cmd_begin(port, _handle, duration_cast(timeout)); res != ESP_OK) {
+                ESP_LOGE(PN532_I2C_TAG, "i2c_master_cmd_begin failed with status %d (%s).", res, esp_err_to_name(res));
+                return static_cast<error>(res);
             }
             return mlab::result_success;
         }
     }// namespace i2c
 
-    bool i2c_channel::wake() {
-        reduce_timeout rt{ms{100}};
-        // pn532 should be waken up when it hears its address on the I2C bus
-        i2c::command cmd;
-        std::uint8_t status = 0xff;
-        cmd.write(slave_address_to_read(), true);
-        cmd.read(status, I2C_MASTER_LAST_NACK);
-        cmd.stop();
 
-        if (const auto res_cmd = cmd(_port, rt.remaining()); not res_cmd) {
-            ESP_LOGE(PN532_I2C_TAG, "Wake failed: %s", i2c::to_string(res_cmd.error()));
-            return false;
+    i2c::command i2c_channel::raw_prepare_command(comm_mode mode) const {
+        i2c::command cmd;
+        switch (mode) {
+            case comm_mode::receive:
+                cmd.write(slave_address_to_read(), true);
+                break;
+            case comm_mode::send:
+                cmd.write(slave_address_to_write(), true);
+                break;
+            default:
+                break;
         }
-        return true;
+        return cmd;
     }
 
-    bool i2c_channel::prepare_receive(std::chrono::milliseconds timeout) {
-        reduce_timeout rt{timeout};
-
-        std::uint8_t status = 0x00;
-        i2c::command cmd;
-        cmd.write(slave_address_to_read(), true);
-        cmd.read(status, I2C_MASTER_LAST_NACK);
-        cmd.stop();
-
-        while (rt) {
-            if (const auto res_cmd = cmd(_port, rt.remaining()); not res_cmd) {
-                ESP_LOGE(PN532_I2C_TAG, "Prepare receive failed: %s", i2c::to_string(res_cmd.error()));
-                return false;
-            } else if (status != 0x00) {
-                return true;
-            }
-            // Retry after 10 ms
-            vTaskDelay(duration_cast(std::chrono::milliseconds{10}));
+    channel::r<> i2c_channel::raw_send(mlab::range<bin_data::const_iterator> const &buffer, ms timeout) {
+        if (_port == I2C_NUM_MAX) {
+            return error::comm_error;
         }
-        return false;// Timeout
-    }
-
-    bool i2c_channel::send_raw(const bin_data &data, std::chrono::milliseconds timeout) {
-        reduce_timeout rt{timeout};
-        i2c::command cmd;
-        cmd.write(slave_address_to_write(), true);
-        cmd.write(data, true);
+        auto cmd = raw_prepare_command(comm_mode::send);
+        if (buffer.size() > 0) {
+            cmd.write(buffer, true);
+        }
         cmd.stop();
-
-        if (const auto res_cmd = cmd(_port, rt.remaining()); not res_cmd) {
+        if (const auto res_cmd = cmd(_port, timeout); not res_cmd) {
             ESP_LOGE(PN532_I2C_TAG, "Send failed: %s", i2c::to_string(res_cmd.error()));
-            return false;
+            return error_from_i2c_error(res_cmd.error());
         }
-        return true;
+        return mlab::result_success;
     }
 
-    bool i2c_channel::receive_raw(bin_data &data, const std::size_t length, std::chrono::milliseconds timeout) {
+    channel::r<> i2c_channel::raw_receive(mlab::range<bin_data::iterator> const &buffer, ms timeout) {
+        if (_port == I2C_NUM_MAX) {
+            return error::comm_error;
+        }
         reduce_timeout rt{timeout};
-        data.clear();
-        data.resize(length);
+        std::uint8_t ready_byte = 0x00;
+        while (rt and ready_byte == 0x00) {
+            auto cmd = raw_prepare_command(comm_mode::receive);
+            if (buffer.size() > 0) {
+                cmd.read(ready_byte, I2C_MASTER_ACK);
+                cmd.read(buffer, I2C_MASTER_LAST_NACK);
+            } else {
+                // Read the ready byte only
+                cmd.read(ready_byte, I2C_MASTER_LAST_NACK);
+            }
+            cmd.stop();
+            if (const auto res_cmd = cmd(_port, timeout); not res_cmd) {
+                ESP_LOGE(PN532_I2C_TAG, "Receive failed: %s", i2c::to_string(res_cmd.error()));
+                return error_from_i2c_error(res_cmd.error());
+            } else if (ready_byte != 0x00) {
+                // Everything alright
+                return mlab::result_success;
+            }
+            // Wait a bit
+            vTaskDelay(duration_cast(10ms));
+        }
+        return error::comm_timeout;
+    }
 
-        i2c::command cmd;
-        cmd.write(slave_address_to_read(), true);
-        cmd.read(data, I2C_MASTER_ACK);
-        cmd.stop();
 
-        if (const auto res_cmd = cmd(_port, rt.remaining()); not res_cmd) {
-            ESP_LOGE(PN532_I2C_TAG, "Receive failed: %s", i2c::to_string(res_cmd.error()));
+    i2c_channel::i2c_channel(i2c_port_t port, i2c_config_t config, std::uint8_t slave_address) : _port{port}, _slave_addr{slave_address}, _irq_assert{} {
+        if (const auto res = i2c_param_config(port, &config); res != ESP_OK) {
+            ESP_LOGE(PN532_I2C_TAG, "i2c_param_config failed, return code %d (%s).", res, esp_err_to_name(res));
+            _port = I2C_NUM_MAX;
+            return;
+        }
+        if (const auto res = i2c_driver_install(port, I2C_MODE_MASTER, i2c_driver_buffer_size, i2c_driver_buffer_size, 0); res != ESP_OK) {
+            ESP_LOGE(PN532_I2C_TAG, "i2c_driver_install failed, return code %d (%s).", res, esp_err_to_name(res));
+            _port = I2C_NUM_MAX;
+            return;
+        }
+        if (const auto res = i2c_set_timeout(port, i2c_driver_timeout); res != ESP_OK) {
+            ESP_LOGW(PN532_I2C_TAG, "i2c_set_timeout failed, return code %d (%s). Proceeding anyway.", res, esp_err_to_name(res));
+        }
+    }
+    i2c_channel::i2c_channel(i2c_port_t port, i2c_config_t config, gpio_num_t response_irq_line, bool manage_isr_service, std::uint8_t slave_address) : i2c_channel{port, config, slave_address} {
+        // Prepare the IRQ assertion too
+        _irq_assert = mlab::irq_assert{manage_isr_service, response_irq_line, GPIO_INTR_NEGEDGE};
+    }
+
+    i2c_channel::~i2c_channel() {
+        if (_port != I2C_NUM_MAX) {
+            if (const auto res = i2c_driver_delete(_port); res != ESP_OK) {
+                ESP_LOGW(PN532_I2C_TAG, "i2c_driver_delete failed, return code %d (%s).", res, esp_err_to_name(res));
+            }
+        }
+    }
+
+    bool i2c_channel::wake() {
+        if (comm_operation op{*this, comm_mode::send, 100ms}; op.ok()) {
+            return bool(op.update(raw_send({}, 10ms)));
+        } else {
             return false;
         }
-        return true;
     }
+
+
+    bool i2c_channel::on_receive_prepare(ms timeout) {
+        return _irq_assert(timeout);
+    }
+
 }// namespace pn532

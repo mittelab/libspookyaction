@@ -1,7 +1,5 @@
 #include "utils.hpp"
-#include <driver/gpio.h>
-#include <driver/i2c.h>
-#include <driver/uart.h>
+#include <map>
 #include <numeric>
 #include <pn532/desfire_pcd.hpp>
 #include <pn532/hsu.hpp>
@@ -9,13 +7,12 @@
 #include <unity.h>
 
 #define TEST_TAG "UT"
-#define BUF_SIZE (1024)
 
-#define PN532_SERIAL_TX (GPIO_NUM_16)
-#define PN532_SERIAL_RX (GPIO_NUM_17)
+#define PN532_SERIAL_RX (GPIO_NUM_16)
+#define PN532_SERIAL_TX (GPIO_NUM_17)
 
-#define PN532_I2C_SDA (GPIO_NUM_16)
-#define PN532_I2C_SCL (GPIO_NUM_17)
+#define PN532_I2C_SCL (GPIO_NUM_16)
+#define PN532_I2C_SDA (GPIO_NUM_17)
 
 #define PN532_SPI_MISO (GPIO_NUM_27)
 #define PN532_SPI_MOSI (GPIO_NUM_25)
@@ -30,10 +27,28 @@
 
 
 namespace {
+    constexpr uart_config_t uart_config = {
+            .baud_rate = 115200,
+            .data_bits = UART_DATA_8_BITS,
+            .parity = UART_PARITY_DISABLE,
+            .stop_bits = UART_STOP_BITS_1,
+            .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
+            .rx_flow_ctrl_thresh = 122,
+            .source_clk = UART_SCLK_REF_TICK};
+
+    constexpr i2c_config_t i2c_config = {
+            .mode = I2C_MODE_MASTER,
+            .sda_io_num = PN532_I2C_SDA,
+            .scl_io_num = PN532_I2C_SCL,
+            .sda_pullup_en = GPIO_PULLUP_ENABLE,
+            .scl_pullup_en = GPIO_PULLUP_ENABLE,
+            .master = {.clk_speed = 400000}};
+
     std::unique_ptr<pn532::channel> channel = nullptr;
     std::unique_ptr<pn532::nfc> tag_reader = nullptr;
     std::unique_ptr<pn532::desfire_pcd> pcd = nullptr;
     std::unique_ptr<desfire::tag> mifare = nullptr;
+    bool did_pass_wake_test = false;
 
     [[nodiscard]] bool is_ok(pn532::nfc::r<bool> const &r) {
         return r and *r;
@@ -47,211 +62,128 @@ namespace {
         }
         return load;
     }
-    enum channelMode {
-        HSU = 0,
-        SPI = 1,
-        I2C = 2,
-    };
 
-    void channelInit() {
+    void setup_channel_switch() {
+#ifdef KEYCARD_CI_CD_MACHINE
         gpio_set_direction(PN532_RSTN, GPIO_MODE_OUTPUT);
         gpio_set_direction(PN532_I0, GPIO_MODE_OUTPUT);
         gpio_set_direction(PN532_I1, GPIO_MODE_OUTPUT);
         gpio_set_level(PN532_RSTN, 1);
+#else
+        ESP_LOGW(TEST_TAG, "Not running on multi-channel CI/CD machine. Only the selected channels will be tested.");
+#endif
     }
 
-    void switchChannel(channelMode mode) {
-        gpio_set_level(PN532_I0, mode & 0x01);// configure I0/I1 for the selected mode
-        gpio_set_level(PN532_I1, mode & 0x02);
-        gpio_set_level(PN532_RSTN, 0);// reset the PN532
-
-        vTaskDelay(500 / portTICK_PERIOD_MS);
-        gpio_set_level(PN532_RSTN, 1);// release reset line
-        vTaskDelay(500 / portTICK_PERIOD_MS);
-    }
-
-}// namespace
-
-namespace ut {
-
-    struct app_with_keys {
-        desfire::app_id aid;
-        desfire::any_key default_key;
-        desfire::any_key secondary_key;
-
-        template <desfire::cipher_type Cipher>
-        [[nodiscard]] static app_with_keys make(desfire::app_id aid_, desfire::key<Cipher> secondary_key_, desfire::key<Cipher> default_key_ = {}) {
-            return app_with_keys{.aid = aid_, .default_key = desfire::any_key(default_key_), .secondary_key = desfire::any_key(secondary_key_)};
-        }
-    };
-
-    static const std::array<app_with_keys, 4> test_apps = {{app_with_keys::make<desfire::cipher_type::des>({0x0, 0x0, 0x1}, {0, {0x0, 0x2, 0x4, 0x6, 0x8, 0xa, 0xc, 0xe}, 0x10}),
-                                                            app_with_keys::make<desfire::cipher_type::des3_2k>({0x0, 0x0, 0x2}, {0, {0x0, 0x2, 0x4, 0x6, 0x8, 0xa, 0xc, 0xe, 0x10, 0x12, 0x14, 0x16, 0x18, 0x1a, 0x1c, 0x1e}, 0x10}),
-                                                            app_with_keys::make<desfire::cipher_type::des3_3k>({0x0, 0x0, 0x3}, {0, {0x0, 0x2, 0x4, 0x6, 0x8, 0xa, 0xc, 0xe, 0x10, 0x12, 0x14, 0x16, 0x18, 0x1a, 0x1c, 0x1e, 0x20, 0x22, 0x24, 0x26, 0x28, 0x2a, 0x2c, 0x2e}, 0x10}),
-                                                            app_with_keys::make<desfire::cipher_type::aes128>({0x0, 0x0, 0x4}, {0, {0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf}, 0x10})}};
-
-}// namespace ut
-
-void setup_uart_pn532() {
-    uart_config_t uart_config = {
-            .baud_rate = 115200,
-            .data_bits = UART_DATA_8_BITS,
-            .parity = UART_PARITY_DISABLE,
-            .stop_bits = UART_STOP_BITS_1,
-            .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
-            .rx_flow_ctrl_thresh = 122,
-            .source_clk = UART_SCLK_REF_TICK};
-    TEST_ASSERT_EQUAL(ESP_OK, uart_param_config(UART_NUM_1, &uart_config));
-    TEST_ASSERT_EQUAL(ESP_OK, uart_driver_install(UART_NUM_1, BUF_SIZE, BUF_SIZE, 0, nullptr, 0));
-    TEST_ASSERT_EQUAL(ESP_OK, uart_set_pin(UART_NUM_1, PN532_SERIAL_TX, PN532_SERIAL_RX, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
-
-    switchChannel(channelMode::HSU);
-    channel = std::make_unique<pn532::hsu_channel>(UART_NUM_1);
-    tag_reader = std::make_unique<pn532::nfc>(*channel);
-    TEST_ASSERT(channel->wake());
-    const auto r_sam = tag_reader->sam_configuration(pn532::sam_mode::normal, pn532::one_sec);
-    TEST_ASSERT(r_sam);
-}
-
-namespace {
-    void IRAM_ATTR _p70_irq_to_semaphore(void *semaphore_hdl) {
-        xSemaphoreGiveFromISR(reinterpret_cast<SemaphoreHandle_t>(semaphore_hdl), nullptr);
-    }
-}// namespace
-
-void test_raw_i2c_pn532_sam_config_cmd() {
-    using namespace std::chrono_literals;
-
-    i2c_config_t i2c_config = {
-            .mode = I2C_MODE_MASTER,
-            .sda_io_num = PN532_I2C_SDA,
-            .scl_io_num = PN532_I2C_SCL,
-            .sda_pullup_en = GPIO_PULLUP_ENABLE,
-            .scl_pullup_en = GPIO_PULLUP_ENABLE,
-            .master = {.clk_speed = 100000}};
-    TEST_ASSERT_EQUAL(ESP_OK, i2c_param_config(I2C_NUM_0, &i2c_config));
-    TEST_ASSERT_EQUAL(ESP_OK, i2c_driver_install(I2C_NUM_0, I2C_MODE_MASTER, BUF_SIZE, BUF_SIZE, 0));
-    TEST_ASSERT_EQUAL(ESP_OK, i2c_set_timeout(I2C_NUM_0, 200000 /* 1.25 ms */));
-    switchChannel(channelMode::I2C);
-    TEST_ASSERT_EQUAL(ESP_OK, gpio_install_isr_service(0));
-    TEST_ASSERT_EQUAL(ESP_OK, gpio_set_intr_type(PN532_IRQ, GPIO_INTR_NEGEDGE));
-
-    SemaphoreHandle_t semaphore = xSemaphoreCreateBinary();
-    TEST_ASSERT_NOT_NULL(semaphore);
-
-    TEST_ASSERT_EQUAL(ESP_OK, gpio_isr_handler_add(PN532_IRQ, &_p70_irq_to_semaphore, semaphore));
-
-    auto await_ready = [&] {
-        if (xSemaphoreTake(semaphore, pdMS_TO_TICKS(100)) == pdFALSE) {
-            ESP_LOGE(TEST_TAG, "PN532 not yet ready to give an answer.");
+    bool switch_channel(ut::channel_type type) {
+        // Clear all variables
+        mifare = nullptr;
+        pcd = nullptr;
+        tag_reader = nullptr;
+        channel = nullptr;
+        // Check which channels are allowed
+#ifndef KEYCARD_HSU
+        if (type == ut::channel_type::hsu) {
             return false;
         }
+#endif
+#ifndef KEYCARD_I2C
+        if (type == ut::channel_type::i2c) {
+            return false;
+        }
+#endif
+#ifndef KEYCARD_I2C_IRQ
+        if (type == ut::channel_type::i2c_irq) {
+            return false;
+        }
+#endif
+#ifndef KEYCARD_SPI
+        if (type == ut::channel_type::spi) {
+            return false;
+        }
+#endif
+        ESP_LOGI(TEST_TAG, "Activating channel %s...", ut::to_string(type));
+#ifdef KEYCARD_CI_CD_MACHINE
+        // Configure I0/I1 for the selected mode
+        switch (type) {
+            case ut::channel_type::hsu:
+                gpio_set_level(PN532_I0, 0);
+                gpio_set_level(PN532_I1, 0);
+                break;
+            case ut::channel_type::i2c:
+                [[fallthrough]];
+            case ut::channel_type::i2c_irq:
+                gpio_set_level(PN532_I0, 1);
+                gpio_set_level(PN532_I1, 0);
+                break;
+            case ut::channel_type::spi:
+                gpio_set_level(PN532_I0, 0);
+                gpio_set_level(PN532_I1, 1);
+                break;
+        }
+        // Power cycle the pn532
+        gpio_set_level(PN532_RSTN, 0);
+        vTaskDelay(pdMS_TO_TICKS(500));
+        // Release reset line
+        gpio_set_level(PN532_RSTN, 1);
+        vTaskDelay(pdMS_TO_TICKS(500));
+#endif
+        switch (type) {
+            case ut::channel_type::hsu:
+                channel = std::make_unique<pn532::hsu_channel>(UART_NUM_1, uart_config, PN532_SERIAL_TX, PN532_SERIAL_RX);
+                break;
+            case ut::channel_type::i2c:
+                channel = std::make_unique<pn532::i2c_channel>(I2C_NUM_0, i2c_config);
+                break;
+            case ut::channel_type::i2c_irq:
+                channel = std::make_unique<pn532::i2c_channel>(I2C_NUM_0, i2c_config, PN532_IRQ, true);
+                break;
+            case ut::channel_type::spi:
+                ESP_LOGE(TEST_TAG, "SPI is not yet supported.");
+                break;
+        }
+        tag_reader = std::make_unique<pn532::nfc>(*channel);
+        ESP_LOGI(TEST_TAG, "Channel %s ready.", ut::to_string(type));
         return true;
-    };
-
-    const mlab::bin_data expected_ack = {0x01, 0x00, 0x00, 0xff, 0x00, 0xff, 0x00};
-    const mlab::bin_data expected_resp = {0x01, 0x00, 0x00, 0xff, 0x02, 0xfe, 0xd5, 0x15, 0x16, 0x00};
-
-    // Attempt the sequence
-    {
-        // Manual SAM configuration: wake
-        pn532::i2c::command wake_cmd;
-        wake_cmd.write(pn532::i2c_channel::default_slave_address, true);
-        wake_cmd.stop();
-
-        TEST_ASSERT(wake_cmd(I2C_NUM_0, 10ms));
     }
-    ESP_LOGI(TEST_TAG, "Wake up, Neo.");
-    {
-        // Manual SAM configuration: send
-        pn532::i2c::command sam_cfg_cmd;
-        const mlab::bin_data sam_cfg_payload = {0x00, 0x00, 0xff, 0x05, 0xfb, 0xd4, 0x14, 0x01, 0x14, 0x01, 0x02, 0x00};
-        sam_cfg_cmd.write(pn532::i2c_channel::default_slave_address, true);
-        sam_cfg_cmd.write(std::cref(sam_cfg_payload), true);
-        sam_cfg_cmd.stop();
 
-        TEST_ASSERT(sam_cfg_cmd(I2C_NUM_0, 10ms));
-    }
-    ESP_LOGI(TEST_TAG, "Configure your SAM, Neo.");
-    TEST_ASSERT(await_ready());
-    ESP_LOGI(TEST_TAG, "Ready to get ACK.");
-    {
-        // Receive the ack
-        pn532::i2c::command receive_ack_cmd;
-        mlab::bin_data ack_buffer;
-        ack_buffer.resize(6);
-        receive_ack_cmd.write(pn532::i2c_channel::default_slave_address + 1 /* read */, true);
-        receive_ack_cmd.read(ack_buffer, I2C_MASTER_LAST_NACK);
-        receive_ack_cmd.stop();
+    using namespace std::chrono_literals;
 
-        TEST_ASSERT(receive_ack_cmd(I2C_NUM_0, 10ms));
-        TEST_ASSERT_EQUAL_HEX8_ARRAY(expected_ack.data(), ack_buffer.data(), std::min(ack_buffer.size(), expected_ack.size()));
-    }
-    ESP_LOGI(TEST_TAG, "Got ACK (or NACK).");
-    TEST_ASSERT(await_ready());
-    ESP_LOGI(TEST_TAG, "Ready to get response.");
-    {
-        pn532::i2c::command receive_response_cmd;
-        mlab::bin_data response_buffer;
-        response_buffer.resize(10);
-        receive_response_cmd.write(pn532::i2c_channel::default_slave_address + 1 /* read */, true);
-        receive_response_cmd.read(response_buffer, I2C_MASTER_LAST_NACK);
-        receive_response_cmd.stop();
+}// namespace
 
-        TEST_ASSERT(receive_response_cmd(I2C_NUM_0, 10ms));
-        TEST_ASSERT_EQUAL_HEX8_ARRAY(expected_resp.data(), response_buffer.data(), std::min(response_buffer.size(), expected_resp.size()));
-    }
-    ESP_LOGI(TEST_TAG, "SAM cycle done.");
+void test_wake_channel() {
+    TEST_ASSERT_NOT_EQUAL(channel, nullptr)
+    TEST_ASSERT_NOT_EQUAL(tag_reader, nullptr)
 
-    TEST_ASSERT_EQUAL(ESP_OK, gpio_isr_handler_remove(PN532_IRQ));
-    TEST_ASSERT_EQUAL(ESP_OK, i2c_driver_delete(I2C_NUM_0));
+    TEST_ASSERT(channel->wake())
+    const auto r_sam = tag_reader->sam_configuration(pn532::sam_mode::normal, 1s);
+    TEST_ASSERT(r_sam)
+
+    did_pass_wake_test = bool(r_sam);
 }
-
-void setup_i2c_pn532() {
-    i2c_config_t i2c_config = {
-            .mode = I2C_MODE_MASTER,
-            .sda_io_num = PN532_I2C_SDA,
-            .scl_io_num = PN532_I2C_SCL,
-            .sda_pullup_en = GPIO_PULLUP_ENABLE,
-            .scl_pullup_en = GPIO_PULLUP_ENABLE,
-            .master = {.clk_speed = 400000}};
-    TEST_ASSERT_EQUAL(ESP_OK, i2c_param_config(I2C_NUM_0, &i2c_config));
-    TEST_ASSERT_EQUAL(ESP_OK, i2c_driver_install(I2C_NUM_0, I2C_MODE_MASTER, BUF_SIZE, BUF_SIZE, 0));
-    TEST_ASSERT_EQUAL(ESP_OK, i2c_set_timeout(I2C_NUM_0, 100000 /* 1.25 ms */));
-
-    switchChannel(channelMode::I2C);
-
-    channel = std::make_unique<pn532::i2c_channel>(I2C_NUM_0);
-    tag_reader = std::make_unique<pn532::nfc>(*channel);
-    TEST_ASSERT(channel->wake());
-    const auto r_sam = tag_reader->sam_configuration(pn532::sam_mode::normal, pn532::one_sec);
-    TEST_ASSERT(r_sam);
-}
-
 
 void test_get_fw() {
-    TEST_ASSERT_NOT_EQUAL(tag_reader, nullptr);
+    TEST_ASSERT_NOT_EQUAL(tag_reader, nullptr)
 
     const auto r_fw = tag_reader->get_firmware_version();
-    TEST_ASSERT(r_fw);
+    TEST_ASSERT(r_fw)
     ESP_LOGI(TEST_TAG, "IC version %u, version: %u.%u", r_fw->ic, r_fw->version, r_fw->revision);
 }
 
 void test_diagnostics() {
-    TEST_ASSERT_NOT_EQUAL(tag_reader, nullptr);
+    TEST_ASSERT_NOT_EQUAL(tag_reader, nullptr)
 
-    TEST_ASSERT(is_ok(tag_reader->diagnose_rom()));
-    TEST_ASSERT(is_ok(tag_reader->diagnose_ram()));
-    TEST_ASSERT(is_ok(tag_reader->diagnose_comm_line()));
+    TEST_ASSERT(is_ok(tag_reader->diagnose_rom()))
+    TEST_ASSERT(is_ok(tag_reader->diagnose_ram()))
+    TEST_ASSERT(is_ok(tag_reader->diagnose_comm_line()))
     TEST_ASSERT(
-            is_ok(tag_reader->diagnose_self_antenna(pn532::low_current_thr::mA_25, pn532::high_current_thr::mA_150)));
+            is_ok(tag_reader->diagnose_self_antenna(pn532::low_current_thr::mA_25, pn532::high_current_thr::mA_150)))
 }
 
 void test_scan_mifare() {
-    TEST_ASSERT_NOT_EQUAL(tag_reader, nullptr);
+    TEST_ASSERT_NOT_EQUAL(tag_reader, nullptr)
     ESP_LOGI(TEST_TAG, "Please bring card close now (searching for one passive 106 kbps target)...");
     const auto r_scan = tag_reader->initiator_list_passive_kbps106_typea();
-    TEST_ASSERT(r_scan);
+    TEST_ASSERT(r_scan)
     ESP_LOGI(TEST_TAG, "Found %u targets (passive, 106 kbps, type A).", r_scan->size());
     if (r_scan) {
         for (pn532::target_kbps106_typea const &target : *r_scan) {
@@ -262,10 +194,10 @@ void test_scan_mifare() {
 }
 
 void test_scan_all() {
-    TEST_ASSERT_NOT_EQUAL(tag_reader, nullptr);
+    TEST_ASSERT_NOT_EQUAL(tag_reader, nullptr)
     ESP_LOGI(TEST_TAG, "Please bring card close now (searching for any target)...");
     const auto r_scan = tag_reader->initiator_auto_poll();
-    TEST_ASSERT(r_scan);
+    TEST_ASSERT(r_scan)
     ESP_LOGI(TEST_TAG, "Found %u targets.", r_scan->size());
     if (r_scan) {
         for (std::size_t i = 0; i < r_scan->size(); ++i) {
@@ -275,19 +207,19 @@ void test_scan_all() {
 }
 
 void test_pn532_cycle_rf() {
-    TEST_ASSERT_NOT_EQUAL(tag_reader, nullptr);
+    TEST_ASSERT_NOT_EQUAL(tag_reader, nullptr)
     const auto r_status = tag_reader->get_general_status();
-    TEST_ASSERT(r_status);
+    TEST_ASSERT(r_status)
     for (auto const &target : r_status->targets) {
-        TEST_ASSERT(tag_reader->initiator_deselect(target.logical_index));
+        TEST_ASSERT(tag_reader->initiator_deselect(target.logical_index))
     }
-    TEST_ASSERT(tag_reader->rf_configuration_field(true, false));
+    TEST_ASSERT(tag_reader->rf_configuration_field(true, false))
 }
 
 void test_data_exchange() {
-    TEST_ASSERT_NOT_EQUAL(tag_reader, nullptr);
+    TEST_ASSERT_NOT_EQUAL(tag_reader, nullptr)
     ESP_LOGI(TEST_TAG, "Please bring card close now (searching for one passive 106 kbps target)...");
-    const auto r_scan = tag_reader->initiator_list_passive_kbps106_typea(1, 10 * pn532::one_sec);
+    const auto r_scan = tag_reader->initiator_list_passive_kbps106_typea(1, 10s);
     if (not r_scan or r_scan->empty()) {
         TEST_FAIL_MESSAGE("Could not find a suitable card for testing.");
         return;
@@ -520,11 +452,11 @@ void test_create_write_file_rx_cmac() {
 
     TEST_ASSERT(tag.create_file(5, desfire::file_settings<desfire::file_type::standard>{
                                            desfire::generic_file_settings{desfire::file_security::none, desfire::access_rights::from_mask(0x0011)},
-                                           desfire::data_file_settings{.size = 80}}));
+                                           desfire::data_file_settings{.size = 80}}))
 
-    TEST_ASSERT(tag.get_file_ids());
+    TEST_ASSERT(tag.get_file_ids())
 
-    TEST_ASSERT(tag.write_data(5, 0, data_to_write));
+    TEST_ASSERT(tag.write_data(5, 0, data_to_write))
 }
 
 void test_get_key_version_rx_cmac() {
@@ -536,14 +468,14 @@ void test_get_key_version_rx_cmac() {
 
         ctrl.append({0x64, 0x00}, {0x00, 0x10, 0x8A, 0x8F, 0xA3, 0x6F, 0x55, 0xCD, 0x21, 0x0D});
 
-        TEST_ASSERT(tag.get_key_version(0));
+        TEST_ASSERT(tag.get_key_version(0))
     }
     {
         ut::session session{tag, desfire::key<desfire::cipher_type::des3_3k>{0, {0xD0, 0x54, 0x2A, 0x86, 0x58, 0x14, 0xD2, 0x50, 0x4E, 0x9A, 0x18, 0x7C, 0xC0, 0x66, 0x68, 0xC0, 0x9C, 0x70, 0x56, 0x82, 0x58, 0x22, 0x7A, 0xFC}}, {0x00, 0xde, 0x24}, 0};
 
         ctrl.append({0x64, 0x00}, {0x00, 0x10, 0xAD, 0x4A, 0x52, 0xB1, 0xE3, 0x1C, 0xC7, 0x41});
 
-        TEST_ASSERT(tag.get_key_version(0));
+        TEST_ASSERT(tag.get_key_version(0))
     }
 }
 
@@ -603,7 +535,7 @@ void issue_format_warning() {
 }
 
 void test_auth_attempt(desfire::tag::r<> const &r) {
-    TEST_ASSERT_NOT_EQUAL(tag_reader, nullptr);
+    TEST_ASSERT_NOT_EQUAL(tag_reader, nullptr)
     if (not r) {
         ESP_LOGW(TEST_TAG, "Authentication failed: %s", desfire::to_string(r.error()));
         if (not pcd->last_result()) {
@@ -616,10 +548,10 @@ void test_auth_attempt(desfire::tag::r<> const &r) {
 }
 
 void setup_mifare() {
-    TEST_ASSERT_NOT_EQUAL(tag_reader, nullptr);
+    TEST_ASSERT_NOT_EQUAL(tag_reader, nullptr)
 
     ESP_LOGI(TEST_TAG, "Please bring card close now (searching for one passive 106 kbps target)...");
-    const auto r_scan = tag_reader->initiator_list_passive_kbps106_typea(1, 10 * pn532::one_sec);
+    const auto r_scan = tag_reader->initiator_list_passive_kbps106_typea(1, 10s);
     if (not r_scan or r_scan->empty()) {
         TEST_FAIL_MESSAGE("Could not find a suitable card for testing.");
         return;
@@ -633,17 +565,17 @@ void setup_mifare() {
 }
 
 void test_mifare_base() {
-    TEST_ASSERT_NOT_EQUAL(pcd, nullptr);
-    TEST_ASSERT_NOT_EQUAL(mifare, nullptr);
+    TEST_ASSERT_NOT_EQUAL(pcd, nullptr)
+    TEST_ASSERT_NOT_EQUAL(mifare, nullptr)
 
     issue_format_warning();
 
-    TEST_ASSERT(mifare->select_application(desfire::root_app));
+    TEST_ASSERT(mifare->select_application(desfire::root_app))
     test_auth_attempt(mifare->authenticate(desfire::key<desfire::cipher_type::des>{}));
-    TEST_ASSERT(mifare->format_picc());
+    TEST_ASSERT(mifare->format_picc())
 
     const auto r_info = mifare->get_info();
-    TEST_ASSERT(r_info);
+    TEST_ASSERT(r_info)
     ESP_LOGI(TEST_TAG, "Card info:");
     ESP_LOGI(TEST_TAG, "    vendor id: %02x", r_info->hardware.vendor_id);
     ESP_LOGI(TEST_TAG, "   hw version: %d.%d", r_info->hardware.version_major, r_info->hardware.version_minor);
@@ -660,82 +592,87 @@ void test_mifare_base() {
              r_info->production_year, r_info->production_year, r_info->production_week);
 
     const auto r_mem = mifare->get_free_mem();
-    TEST_ASSERT(r_mem);
+    TEST_ASSERT(r_mem)
     ESP_LOGI(TEST_TAG, " free mem [B]: %d", *r_mem);
 }
 
 void test_mifare_uid() {
-    TEST_ASSERT_NOT_EQUAL(pcd, nullptr);
-    TEST_ASSERT_NOT_EQUAL(mifare, nullptr);
+    TEST_ASSERT_NOT_EQUAL(pcd, nullptr)
+    TEST_ASSERT_NOT_EQUAL(mifare, nullptr)
 
-    TEST_ASSERT(mifare->select_application(desfire::root_app));
+    TEST_ASSERT(mifare->select_application(desfire::root_app))
     test_auth_attempt(mifare->authenticate(desfire::key<desfire::cipher_type::des>{}));
 
     const auto r_info = mifare->get_info();
-    TEST_ASSERT(r_info);
+    TEST_ASSERT(r_info)
     const auto uid = r_info->serial_no;
 
     const auto r_get_uid = mifare->get_card_uid();
-    TEST_ASSERT(r_get_uid);
+    TEST_ASSERT(r_get_uid)
     TEST_ASSERT_EQUAL_HEX8_ARRAY(uid.data(), r_get_uid->data(), uid.size());
 }
 
 void test_mifare_create_apps() {
-    TEST_ASSERT_NOT_EQUAL(pcd, nullptr);
-    TEST_ASSERT_NOT_EQUAL(mifare, nullptr);
+    TEST_ASSERT_NOT_EQUAL(pcd, nullptr)
+    TEST_ASSERT_NOT_EQUAL(mifare, nullptr)
 
-    for (ut::app_with_keys const &app : ut::test_apps) {
-        const auto ct = app.default_key.type();
-        ESP_LOGI(TEST_TAG, "Creating app with cipher %s.", desfire::to_string(ct));
-        TEST_ASSERT(mifare->select_application(desfire::root_app));
-        TEST_ASSERT(mifare->authenticate(desfire::key<desfire::cipher_type::des>{}));
-        TEST_ASSERT(mifare->create_application(app.aid, desfire::app_settings{ct}));
-        TEST_ASSERT(mifare->select_application(app.aid));
-        test_auth_attempt(mifare->authenticate(app.default_key));
+    std::map<desfire::app_id, bool> found_ids{};
+
+    for (desfire::cipher_type cipher : {desfire::cipher_type::des, desfire::cipher_type::des3_2k,
+                                        desfire::cipher_type::des3_3k, desfire::cipher_type::aes128}) {
+        ut::test_app const &app = ut::get_test_app(cipher);
+        ESP_LOGI(TEST_TAG, "Creating app with cipher %s.", desfire::to_string(cipher));
+        TEST_ASSERT(mifare->select_application(desfire::root_app))
+        TEST_ASSERT(mifare->authenticate(desfire::key<desfire::cipher_type::des>{}))
+        TEST_ASSERT(mifare->create_application(app.aid, desfire::app_settings{cipher}))
+        TEST_ASSERT(mifare->select_application(app.aid))
+        test_auth_attempt(mifare->authenticate(app.primary_key));
+        // Save this id
+        found_ids[app.aid] = false;
     }
 
-    TEST_ASSERT(mifare->select_application(desfire::root_app));
+    TEST_ASSERT(mifare->select_application(desfire::root_app))
     const auto r_app_ids = mifare->get_application_ids();
-    TEST_ASSERT(r_app_ids);
+    TEST_ASSERT(r_app_ids)
     if (r_app_ids) {
-        std::array<bool, 4> got_all_ids = {false, false, false, false};
         TEST_ASSERT_GREATER_OR_EQUAL(r_app_ids->size(), 4);
         for (std::size_t i = 0; i < r_app_ids->size(); ++i) {
             desfire::app_id const &aid = r_app_ids->at(i);
             ESP_LOGI(TEST_TAG, "  %d. AID %02x %02x %02x", i + 1, aid[0], aid[1], aid[2]);
-            if (aid[0] == aid[1] and aid[0] == 0 and 0 < aid[2] and aid[2] < 5) {
-                TEST_ASSERT_EQUAL_HEX8_ARRAY(ut::test_apps[aid[2] - 1].aid.data(), aid.data(), aid.size());
-                got_all_ids[aid[2] - 1] = true;
+            if (auto it = found_ids.find(aid); it != std::end(found_ids)) {
+                TEST_ASSERT_FALSE(it->second)
+                it->second = true;
             }
         }
-        TEST_ASSERT(got_all_ids[0]);
-        TEST_ASSERT(got_all_ids[1]);
-        TEST_ASSERT(got_all_ids[2]);
-        TEST_ASSERT(got_all_ids[3]);
+        const bool got_all_ids = std::all_of(std::begin(found_ids), std::end(found_ids), [](auto kvp) { return kvp.second; });
+        TEST_ASSERT(got_all_ids)
     }
 }
 
 void test_mifare_root_operations() {
-    TEST_ASSERT(pcd != nullptr and mifare != nullptr);
+    TEST_ASSERT(pcd != nullptr and mifare != nullptr)
 
     const desfire::any_key default_k = desfire::key<desfire::cipher_type::des>{};
 
     std::vector<desfire::any_key> keys_to_test;
     keys_to_test.emplace_back(default_k);// Default key
-    for (ut::app_with_keys const &app : ut::test_apps) {
+
+    for (desfire::cipher_type cipher : {desfire::cipher_type::des, desfire::cipher_type::des3_2k,
+                                        desfire::cipher_type::des3_3k, desfire::cipher_type::aes128}) {
+        ut::test_app const &app = ut::get_test_app(cipher);
         // Copy the keys from the test apps
-        keys_to_test.emplace_back(app.default_key);
+        keys_to_test.emplace_back(app.primary_key);
         keys_to_test.emplace_back(app.secondary_key);
     }
 
     const auto find_current_key = [&]() -> bool {
         ESP_LOGI(TEST_TAG, "Attempt to recover the root key (warnings/errors here are normal).");
-        TEST_ASSERT(mifare->select_application(desfire::root_app));
+        TEST_ASSERT(mifare->select_application(desfire::root_app))
         for (auto const &key : keys_to_test) {
             if (mifare->authenticate(key)) {
                 ESP_LOGI(TEST_TAG, "Found the right key, changing to default.");
-                TEST_ASSERT(mifare->change_key(default_k));
-                TEST_ASSERT(mifare->authenticate(default_k));
+                TEST_ASSERT(mifare->change_key(default_k))
+                TEST_ASSERT(mifare->authenticate(default_k))
                 return true;
             }
         }
@@ -749,71 +686,74 @@ void test_mifare_root_operations() {
     ESP_LOGW(TEST_TAG, "pieces of code, test them in the context of non-root apps first.");
     issue_format_warning();
 
-    TEST_ASSERT(mifare->select_application(desfire::root_app));
-    TEST_ASSERT(find_current_key());
+    TEST_ASSERT(mifare->select_application(desfire::root_app))
+    TEST_ASSERT(find_current_key())
 
     const desfire::app_id test_app_id = {0x00, 0x7e, 0x57};
 
     ESP_LOGI(TEST_TAG, "Begin key test cycle.");
     for (auto const &key : keys_to_test) {
-        TEST_ASSERT(mifare->change_key(key));
+        TEST_ASSERT(mifare->change_key(key))
         ESP_LOGI(TEST_TAG, "Changed root key to %s, testing root level ops.", desfire::to_string(key.type()));
-        TEST_ASSERT(mifare->authenticate(key));
+        TEST_ASSERT(mifare->authenticate(key))
         // Do bunch of operations on applications that can only be done at the root level, so that we can verify the
         // trasmission modes for the root level app
         auto r_list = mifare->get_application_ids();
-        TEST_ASSERT(r_list);
+        TEST_ASSERT(r_list)
         if (std::find(std::begin(*r_list), std::end(*r_list), test_app_id) != std::end(*r_list)) {
             // Remove preexisting app
-            TEST_ASSERT(mifare->delete_application(test_app_id));
+            TEST_ASSERT(mifare->delete_application(test_app_id))
         }
-        TEST_ASSERT(mifare->create_application(test_app_id, desfire::app_settings()));
+        TEST_ASSERT(mifare->create_application(test_app_id, desfire::app_settings()))
         r_list = mifare->get_application_ids();
-        TEST_ASSERT(r_list);
+        TEST_ASSERT(r_list)
         TEST_ASSERT_GREATER_OR_EQUAL(1, r_list->size());
-        TEST_ASSERT(std::find(std::begin(*r_list), std::end(*r_list), test_app_id) != std::end(*r_list));
-        TEST_ASSERT(mifare->select_application(test_app_id));
-        TEST_ASSERT(mifare->select_application(desfire::root_app));
-        TEST_ASSERT(mifare->authenticate(key));
-        TEST_ASSERT(mifare->delete_application(test_app_id));
+        TEST_ASSERT(std::find(std::begin(*r_list), std::end(*r_list), test_app_id) != std::end(*r_list))
+        TEST_ASSERT(mifare->select_application(test_app_id))
+        TEST_ASSERT(mifare->select_application(desfire::root_app))
+        TEST_ASSERT(mifare->authenticate(key))
+        TEST_ASSERT(mifare->delete_application(test_app_id))
         // Also format picc will CMAC
-        TEST_ASSERT(mifare->format_picc());
-        TEST_ASSERT(mifare->select_application(desfire::root_app));
+        TEST_ASSERT(mifare->format_picc())
+        TEST_ASSERT(mifare->select_application(desfire::root_app))
         // Master key survives format
-        TEST_ASSERT(mifare->authenticate(key));
+        TEST_ASSERT(mifare->authenticate(key))
     }
 
     // Cleanup
-    TEST_ASSERT(mifare->change_key(default_k));
-    TEST_ASSERT(mifare->authenticate(default_k));
-    TEST_ASSERT(mifare->format_picc());
+    TEST_ASSERT(mifare->change_key(default_k))
+    TEST_ASSERT(mifare->authenticate(default_k))
+    TEST_ASSERT(mifare->format_picc())
 }
 
 void test_mifare_change_app_key() {
-    TEST_ASSERT(pcd != nullptr and mifare != nullptr);
+    TEST_ASSERT(pcd != nullptr and mifare != nullptr)
 
-    for (ut::app_with_keys const &app : ut::test_apps) {
-        ESP_LOGI(TEST_TAG, "Changing same key of app with cipher %s.", desfire::to_string(app.default_key.type()));
-        TEST_ASSERT(mifare->select_application(app.aid));
-        if (not mifare->authenticate(app.default_key)) {
+
+    for (desfire::cipher_type cipher : {desfire::cipher_type::des, desfire::cipher_type::des3_2k,
+                                        desfire::cipher_type::des3_3k, desfire::cipher_type::aes128}) {
+        ut::test_app const &app = ut::get_test_app(cipher);
+        ESP_LOGI(TEST_TAG, "Changing same key of app with cipher %s.", desfire::to_string(app.primary_key.type()));
+        TEST_ASSERT(mifare->select_application(app.aid))
+        if (not mifare->authenticate(app.primary_key)) {
             ESP_LOGW(TEST_TAG, "Default key not working, attempting secondary key and reset...");
-            TEST_ASSERT(mifare->authenticate(app.secondary_key));
-            TEST_ASSERT(mifare->change_key(app.default_key));
+            TEST_ASSERT(mifare->authenticate(app.secondary_key))
+            TEST_ASSERT(mifare->change_key(app.primary_key))
             ESP_LOGI(TEST_TAG, "Reset app key to default, continuing!");
-            TEST_ASSERT(mifare->authenticate(app.default_key));
+            TEST_ASSERT(mifare->authenticate(app.primary_key))
         }
-        TEST_ASSERT(mifare->change_key(app.secondary_key));
-        TEST_ASSERT(mifare->authenticate(app.secondary_key));
+        TEST_ASSERT(mifare->change_key(app.secondary_key))
+        TEST_ASSERT(mifare->authenticate(app.secondary_key))
         const auto res_key_version = mifare->get_key_version(app.secondary_key.key_number());
-        TEST_ASSERT(res_key_version);
+        TEST_ASSERT(res_key_version)
         TEST_ASSERT_EQUAL(app.secondary_key.version(), *res_key_version);
         auto res_key_settings = mifare->get_app_settings();
-        TEST_ASSERT(res_key_settings);
+        TEST_ASSERT(res_key_settings)
         res_key_settings->rights.dir_access_without_auth = true;
-        TEST_ASSERT(mifare->change_app_settings(res_key_settings->rights));
+        TEST_ASSERT(mifare->change_app_settings(res_key_settings->rights))
         res_key_settings->rights.dir_access_without_auth = false;
-        TEST_ASSERT(mifare->change_app_settings(res_key_settings->rights));
-        TEST_ASSERT(mifare->change_key(app.default_key));
+        TEST_ASSERT(mifare->change_app_settings(res_key_settings->rights))
+        TEST_ASSERT(mifare->change_key(app.primary_key))
     }
 }
 
@@ -881,48 +821,48 @@ struct file_test {
     }
 
     static void perform_standard_data_file_test(ut::test_file const &file) {
-        TEST_ASSERT(pcd != nullptr and mifare != nullptr);
-        TEST_ASSERT(mifare->write_data(file.fid, 0, heavy_load()));
+        TEST_ASSERT(pcd != nullptr and mifare != nullptr)
+        TEST_ASSERT(mifare->write_data(file.fid, 0, heavy_load()))
         const auto r_read = mifare->read_data(file.fid, 0, heavy_load().size());
-        TEST_ASSERT(r_read);
+        TEST_ASSERT(r_read)
         TEST_ASSERT_EQUAL(heavy_load().size(), r_read->size());
         TEST_ASSERT_EQUAL_HEX8_ARRAY(heavy_load().data(), r_read->data(), heavy_load().size());
     }
 
     static void perform_backup_data_file_test(ut::test_file const &file) {
-        TEST_ASSERT(pcd != nullptr and mifare != nullptr);
-        TEST_ASSERT(mifare->write_data(file.fid, 0, heavy_load()));
+        TEST_ASSERT(pcd != nullptr and mifare != nullptr)
+        TEST_ASSERT(mifare->write_data(file.fid, 0, heavy_load()))
         const auto r_read_before_commit = mifare->read_data(file.fid, 0, heavy_load().size());
-        TEST_ASSERT(r_read_before_commit);
+        TEST_ASSERT(r_read_before_commit)
         TEST_ASSERT_EACH_EQUAL_HEX8(0x00, r_read_before_commit->data(), r_read_before_commit->size());
-        TEST_ASSERT(mifare->commit_transaction());
+        TEST_ASSERT(mifare->commit_transaction())
         const auto r_read = mifare->read_data(file.fid, 0, heavy_load().size());
-        TEST_ASSERT(r_read);
+        TEST_ASSERT(r_read)
         TEST_ASSERT_EQUAL(heavy_load().size(), r_read->size());
         TEST_ASSERT_EQUAL_HEX8_ARRAY(heavy_load().data(), r_read->data(), heavy_load().size());
     }
 
     static void perform_value_file_test(ut::test_file const &file) {
-        TEST_ASSERT(pcd != nullptr and mifare != nullptr);
+        TEST_ASSERT(pcd != nullptr and mifare != nullptr)
 
         const auto test_get_value = [&](std::int32_t expected) {
             const auto res_read = mifare->get_value(file.fid);
-            TEST_ASSERT(res_read);
+            TEST_ASSERT(res_read)
             TEST_ASSERT_EQUAL(expected, *res_read);
         };
 
         test_get_value(0);
-        TEST_ASSERT(mifare->credit(file.fid, 2));
+        TEST_ASSERT(mifare->credit(file.fid, 2))
         test_get_value(0);// Did not commit yet
-        TEST_ASSERT(mifare->commit_transaction());
+        TEST_ASSERT(mifare->commit_transaction())
         test_get_value(2);
-        TEST_ASSERT(mifare->debit(file.fid, 5));
-        TEST_ASSERT(mifare->commit_transaction());
+        TEST_ASSERT(mifare->debit(file.fid, 5))
+        TEST_ASSERT(mifare->commit_transaction())
         test_get_value(-3);
     }
 
     static void perform_record_file_test(ut::test_file const &file) {
-        TEST_ASSERT(pcd != nullptr and mifare != nullptr);
+        TEST_ASSERT(pcd != nullptr and mifare != nullptr)
 
         using record_t = std::array<std::uint8_t, 8>;
 
@@ -930,35 +870,35 @@ struct file_test {
 
         const auto test_get_record_count = [&](std::uint32_t expected) {
             const auto res_settings = mifare->get_file_settings(file.fid);
-            TEST_ASSERT(res_settings);
+            TEST_ASSERT(res_settings)
             TEST_ASSERT_EQUAL(expected, res_settings->record_settings().record_count);
         };
 
         test_get_record_count(0);
-        TEST_ASSERT(mifare->write_record(file.fid, 4, nibble));
-        TEST_ASSERT(mifare->commit_transaction());
+        TEST_ASSERT(mifare->write_record(file.fid, 4, nibble))
+        TEST_ASSERT(mifare->commit_transaction())
         test_get_record_count(1);
         const auto res_records = mifare->read_parse_records<record_t>(file.fid, 0);
-        TEST_ASSERT(res_records);
+        TEST_ASSERT(res_records)
         TEST_ASSERT_EQUAL(res_records->size(), 1);
         const record_t expected = {0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x02, 0x03};
         TEST_ASSERT_EQUAL_HEX8_ARRAY(expected.data(), res_records->front().data(), 8);
-        TEST_ASSERT(mifare->clear_record_file(file.fid));
-        TEST_ASSERT(mifare->commit_transaction());
+        TEST_ASSERT(mifare->clear_record_file(file.fid))
+        TEST_ASSERT(mifare->commit_transaction())
     }
 
     void perform_test() const {
-        TEST_ASSERT(pcd != nullptr and mifare != nullptr);
+        TEST_ASSERT(pcd != nullptr and mifare != nullptr)
         static const desfire::any_key root_key{desfire::key<desfire::cipher_type::des>{}};
 
         // Make sure there is enough space to run. 1376B is a decent estimate for how much space is needed
-        TEST_ASSERT(mifare->select_application(desfire::root_app));
-        TEST_ASSERT(mifare->authenticate(root_key));
+        TEST_ASSERT(mifare->select_application(desfire::root_app))
+        TEST_ASSERT(mifare->authenticate(root_key))
         const auto r_free_mem = mifare->get_free_mem();
-        TEST_ASSERT(r_free_mem);
+        TEST_ASSERT(r_free_mem)
         if (*r_free_mem < 1376) {
             ESP_LOGI(TEST_TAG, "Formatting to recover space (only %d B free).", *r_free_mem);
-            TEST_ASSERT(mifare->format_picc());
+            TEST_ASSERT(mifare->format_picc())
         }
 
         ut::test_app const &app = ut::get_test_app(cipher);
@@ -968,7 +908,7 @@ struct file_test {
         TEST_ASSERT_EQUAL_HEX8_ARRAY(app.aid.data(), mifare->active_app().data(), 3);
         TEST_ASSERT_EQUAL(app.primary_key.key_number(), mifare->active_key_no());
         file.delete_preexisting(*mifare);
-        TEST_ASSERT(mifare->create_file(file.fid, file.settings));
+        TEST_ASSERT(mifare->create_file(file.fid, file.settings))
 
         switch (ftype) {
             case desfire::file_type::standard:
@@ -986,7 +926,7 @@ struct file_test {
                 perform_record_file_test(file);
                 break;
         }
-        TEST_ASSERT(mifare->delete_file(file.fid));
+        TEST_ASSERT(mifare->delete_file(file.fid))
     }
 
     [[nodiscard]] static file_test &instance() {
@@ -999,15 +939,72 @@ struct file_test {
     }
 };
 
+void unity_perform_pn532_mifare_tests() {
+    issue_header("PN532 TEST AND DIAGNOSTICS (no card)");
+    did_pass_wake_test = false;
+    RUN_TEST(test_wake_channel);
+    if (not did_pass_wake_test) {
+        ESP_LOGE(TEST_TAG, "Unable to wake up PN532 via this channel, skipping all tests.");
+    } else {
+        RUN_TEST(test_get_fw);
+        RUN_TEST(test_diagnostics);
+        issue_header("PN532 SCAN TEST (optionally requires card)");
+        RUN_TEST(test_scan_mifare);
+        RUN_TEST(test_pn532_cycle_rf);
+        RUN_TEST(test_scan_all);
+        RUN_TEST(test_pn532_cycle_rf);
+        issue_header("PN532 MIFARE COMM TEST (requires card)");
+        RUN_TEST(test_data_exchange);
+        RUN_TEST(test_pn532_cycle_rf);
+        issue_header("MIFARE TEST (requires card)");
+        RUN_TEST(setup_mifare);
+        RUN_TEST(test_mifare_base);
+        RUN_TEST(test_mifare_uid);
+        RUN_TEST(test_mifare_create_apps);
+        RUN_TEST(test_mifare_change_app_key);
+        // Note: better to first test apps, before fiddling with the root app.
+        RUN_TEST(test_mifare_root_operations);
+
+        /**
+     * Test file creation, deletion, and read/write cycle.
+     *
+     * @note Since Unity does not allow parms in RUN_TEST, let's store those into a structure and then use them to call
+     * the actual test function. This will generate a separate test entry for each mode.
+     */
+        issue_format_warning();
+        for (desfire::file_security sec : {desfire::file_security::none, desfire::file_security::authenticated, desfire::file_security::encrypted}) {
+            for (desfire::cipher_type cipher : {desfire::cipher_type::des, desfire::cipher_type::des3_2k,
+                                                desfire::cipher_type::des3_3k, desfire::cipher_type::aes128}) {
+                for (desfire::file_type ftype : {desfire::file_type::standard, desfire::file_type::backup,
+                                                 desfire::file_type::value, desfire::file_type::linear_record,
+                                                 desfire::file_type::cyclic_record}) {
+                    file_test::instance().security = sec;
+                    file_test::instance().cipher = cipher;
+                    file_test::instance().ftype = ftype;
+                    UnityDefaultTestRun(&file_test::run, file_test::instance().description(), __LINE__);
+                }
+            }
+        }
+    }
+
+    /**
+     * Teardown.
+     */
+    mifare = nullptr;
+    if (tag_reader != nullptr) {
+        if (pcd != nullptr) {
+            tag_reader->initiator_deselect(pcd->target_logical_index());
+            pcd = nullptr;
+        }
+        tag_reader->rf_configuration_field(true, false);
+        tag_reader = nullptr;
+    }
+    channel = nullptr;
+}
+
 void unity_main() {
     UNITY_BEGIN();
     esp_log_level_set("*", ESP_LOG_INFO);
-    channelInit();
-#ifdef PN532_TEST_I2C
-    RUN_TEST(test_raw_i2c_pn532_sam_config_cmd);
-    gpio_isr_handler_remove(PN532_IRQ);
-    i2c_driver_delete(I2C_NUM_0);
-#else
     issue_header("MIFARE CIPHER TEST (no card)");
     RUN_TEST(test_crc16);
     RUN_TEST(test_crc32);
@@ -1021,59 +1018,17 @@ void unity_main() {
     RUN_TEST(test_create_write_file_rx_cmac);
     RUN_TEST(test_get_key_version_rx_cmac);
     RUN_TEST(test_write_data_cmac_des);
-    issue_header("HARDWARE SETUP (no card)");
-    RUN_TEST(setup_uart_pn532);
-    issue_header("PN532 TEST AND DIAGNOSTICS (no card)");
-    RUN_TEST(test_get_fw);
-    RUN_TEST(test_diagnostics);
-    issue_header("PN532 SCAN TEST (optionally requires card)");
-    RUN_TEST(test_scan_mifare);
-    RUN_TEST(test_pn532_cycle_rf);
-    RUN_TEST(test_scan_all);
-    RUN_TEST(test_pn532_cycle_rf);
-    issue_header("PN532 MIFARE COMM TEST (requires card)");
-    RUN_TEST(test_data_exchange);
-    RUN_TEST(test_pn532_cycle_rf);
-    issue_header("MIFARE TEST (requires card)");
-    RUN_TEST(setup_mifare);
-    RUN_TEST(test_mifare_base);
-    RUN_TEST(test_mifare_uid);
-    RUN_TEST(test_mifare_create_apps);
-    RUN_TEST(test_mifare_change_app_key);
-    // Note: better to first test apps, before fiddling with the root app.
-    RUN_TEST(test_mifare_root_operations);
 
-    /**
-     * Test file creation, deletion, and read/write cycle.
-     *
-     * @note Since Unity does not allow parms in RUN_TEST, let's store those into a structure and then use them to call
-     * the actual test function. This will generate a separate test entry for each mode.
-     */
-    issue_format_warning();
-    for (desfire::file_security sec : {desfire::file_security::none, desfire::file_security::authenticated, desfire::file_security::encrypted}) {
-        for (desfire::cipher_type cipher : {desfire::cipher_type::des, desfire::cipher_type::des3_2k,
-                                            desfire::cipher_type::des3_3k, desfire::cipher_type::aes128}) {
-            for (desfire::file_type ftype : {desfire::file_type::standard, desfire::file_type::backup,
-                                             desfire::file_type::value, desfire::file_type::linear_record,
-                                             desfire::file_type::cyclic_record}) {
-                file_test::instance().security = sec;
-                file_test::instance().cipher = cipher;
-                file_test::instance().ftype = ftype;
-                UnityDefaultTestRun(&file_test::run, file_test::instance().description(), __LINE__);
-            }
-        }
-    }
-
-    /**
-     * Teardown.
-     */
-    if (tag_reader != nullptr) {
-        if (pcd != nullptr) {
-            tag_reader->initiator_deselect(pcd->target_logical_index());
-        }
-        tag_reader->rf_configuration_field(true, false);
-    }
+    setup_channel_switch();
+    for (ut::channel_type chn : {ut::channel_type::hsu, ut::channel_type::i2c, ut::channel_type::i2c_irq, ut::channel_type::spi}) {
+        if (not switch_channel(chn)) {
+#ifdef KEYCARD_CI_CD_MACHINE
+            ESP_LOGW(TEST_TAG, "Unsupported channel %s, skipping...", ut::to_string(chn));
 #endif
+            continue;
+        }
+        unity_perform_pn532_mifare_tests();
+    }
     UNITY_END();
 }
 

@@ -11,6 +11,8 @@
 
 namespace ut {
 
+    using test_fn = void (*)();
+
     struct assert_comm_controller final : public desfire::controller {
         std::list<std::pair<mlab::bin_data, mlab::bin_data>> txrx_fifo;
 
@@ -79,14 +81,6 @@ namespace ut {
     [[nodiscard]] ut::test_file const &get_test_file(desfire::file_type t);
     [[nodiscard]] ut::test_file get_test_file(desfire::file_type t, desfire::file_security security);
 
-    enum struct channel_type {
-        hsu,
-        i2c,
-        i2c_irq,
-        spi
-    };
-
-    [[nodiscard]] const char *to_string(channel_type type);
 }// namespace ut
 
 namespace ut {

@@ -221,18 +221,18 @@ struct file_test {
 
 void unity_perform_cipher_tests() {
     issue_header("MIFARE CIPHER TEST (no card)");
-    RUN_TEST(test::desfire::test_crc16);
-    RUN_TEST(test::desfire::test_crc32);
-    RUN_TEST(test::desfire::test_des);
-    RUN_TEST(test::desfire::test_2k3des);
-    RUN_TEST(test::desfire::test_3k3des);
-    RUN_TEST(test::desfire::test_aes);
-    RUN_TEST(test::desfire::test_change_key_aes);
-    RUN_TEST(test::desfire::test_change_key_des);
-    RUN_TEST(test::desfire::test_change_key_2k3des);
-    RUN_TEST(test::desfire::test_create_write_file_rx_cmac);
-    RUN_TEST(test::desfire::test_get_key_version_rx_cmac);
-    RUN_TEST(test::desfire::test_write_data_cmac_des);
+    RUN_TEST(ut::desfire::test_crc16);
+    RUN_TEST(ut::desfire::test_crc32);
+    RUN_TEST(ut::desfire::test_des);
+    RUN_TEST(ut::desfire::test_2k3des);
+    RUN_TEST(ut::desfire::test_3k3des);
+    RUN_TEST(ut::desfire::test_aes);
+    RUN_TEST(ut::desfire::test_change_key_aes);
+    RUN_TEST(ut::desfire::test_change_key_des);
+    RUN_TEST(ut::desfire::test_change_key_2k3des);
+    RUN_TEST(ut::desfire::test_create_write_file_rx_cmac);
+    RUN_TEST(ut::desfire::test_get_key_version_rx_cmac);
+    RUN_TEST(ut::desfire::test_write_data_cmac_des);
 }
 
 std::shared_ptr<ut::pn532::test_instance> unity_perform_pn532_tests(ut::pn532::channel_type channel) {

@@ -235,33 +235,34 @@ void unity_perform_cipher_tests() {
     RUN_TEST(test::desfire::test_write_data_cmac_des);
 }
 
-std::shared_ptr<test::pn532::instance> unity_perform_pn532_tests(test::pn532::channel_type channel) {
-    test::pn532::auto_cleanup cleanup{};
-    auto instance = test::pn532::activate_channel(channel);
+std::shared_ptr<ut::pn532::test_instance> unity_perform_pn532_tests(ut::pn532::channel_type channel) {
+    auto instance = ut::pn532::try_activate_channel(channel);
     if (instance == nullptr) {
-        ESP_LOGE(TEST_TAG, "Unsupported channel %s.", test::pn532::to_string(channel));
+        ESP_LOGE(TEST_TAG, "Unsupported channel %s.", ut::pn532::to_string(channel));
         // Still run the tests so that Unity can read the failure, if this is not the CI/CD machine
 #ifndef KEYCARD_CI_CD_MACHINE
         return nullptr;
 #endif
-    }
-    bool did_wake = false;
-    issue_header("PN532 TEST AND DIAGNOSTICS (no card)");
-    RUN_TEST(test::pn532::get_test_wake_channel(instance, &did_wake));
-    // Just skip this bunch if the channel does not work there is no hope
-    if (did_wake) {
-        RUN_TEST(test::pn532::get_test_get_fw(instance));
-        RUN_TEST(test::pn532::get_test_diagnostics(instance));
-        issue_header("PN532 SCAN TEST (optionally requires card)");
-        RUN_TEST(test::pn532::get_test_scan_mifare(instance));
-        RUN_TEST(test::pn532::get_test_pn532_cycle_rf(instance));
-        RUN_TEST(test::pn532::get_test_scan_all(instance));
-        RUN_TEST(test::pn532::get_test_pn532_cycle_rf(instance));
-        issue_header("PN532 MIFARE COMM TEST (requires card)");
-        RUN_TEST(test::pn532::get_test_data_exchange(instance));
-        RUN_TEST(test::pn532::get_test_pn532_cycle_rf(instance));
     } else {
-        ESP_LOGE(TEST_TAG, "Channel %s did not wake.", test::pn532::to_string(channel));
+        ut::default_registrar().register_instance(instance);
+    }
+
+    issue_header("PN532 TEST AND DIAGNOSTICS (no card)");
+    RUN_TEST(ut::pn532::test_wake_channel);
+    // Just skip this bunch if the channel does not work there is no hope
+    if (instance->channel_did_wake()) {
+        RUN_TEST(ut::pn532::test_get_fw);
+        RUN_TEST(ut::pn532::test_diagnostics);
+        issue_header("PN532 SCAN TEST (optionally requires card)");
+        RUN_TEST(ut::pn532::test_scan_mifare);
+        RUN_TEST(ut::pn532::test_pn532_cycle_rf);
+        RUN_TEST(ut::pn532::test_scan_all);
+        RUN_TEST(ut::pn532::test_pn532_cycle_rf);
+        issue_header("PN532 MIFARE COMM TEST (requires card)");
+        RUN_TEST(ut::pn532::test_data_exchange);
+        RUN_TEST(ut::pn532::test_pn532_cycle_rf);
+    } else {
+        ESP_LOGE(TEST_TAG, "Channel %s did not wake.", ut::pn532::to_string(channel));
     }
     // Return the instance in case the user wants to do sth else with it
     return instance;
@@ -311,7 +312,7 @@ void unity_perform_pn532_mifare_tests() {
 
 
 void unity_perform_all_tests() {
-    using test::pn532::channel_type;
+    using ut::pn532::channel_type;
 
     UNITY_BEGIN();
     esp_log_level_set("*", ESP_LOG_INFO);

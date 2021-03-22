@@ -7,7 +7,7 @@
 #include <desfire/data.hpp>
 #include <unity.h>
 
-namespace test::desfire {
+namespace ut::desfire {
     namespace {
         using namespace ::desfire;
     }
@@ -191,4 +191,4 @@ namespace test::desfire {
         const std::uint16_t computed_crc = compute_crc16(payload);
         TEST_ASSERT_EQUAL(expected_crc, computed_crc);
     }
-}// namespace test::desfire
+}// namespace ut::desfire

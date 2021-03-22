@@ -268,19 +268,19 @@ std::shared_ptr<ut::pn532::test_instance> unity_perform_pn532_tests(ut::pn532::c
     return instance;
 }
 
-std::shared_ptr<test::desfire::instance> unity_perform_desfire_live_test(pn532::nfc &nfc) {
-    test::desfire::auto_cleanup cleanup{};
-    auto instance = test::desfire::build_instance(nfc);
+std::shared_ptr<ut::desfire::test_instance> unity_perform_desfire_live_test(std::shared_ptr<ut::pn532::test_instance> pn532_test) {
+    auto instance = ut::desfire::try_connect_card(std::move(pn532_test));
+    ut::default_registrar().register_instance(instance);
     if (instance == nullptr) {
         ESP_LOGW(TEST_TAG, "Could not find any card.");
         // Still run the tests so that Unity can read the failure.
     }
-    RUN_TEST(test::desfire::get_test_mifare_base(instance));
-    RUN_TEST(test::desfire::get_test_mifare_uid(instance));
-    RUN_TEST(test::desfire::get_test_mifare_create_apps(instance));
-    RUN_TEST(test::desfire::get_test_mifare_change_app_key(instance));
+    RUN_TEST(ut::desfire::test_mifare_base);
+    RUN_TEST(ut::desfire::test_mifare_uid);
+    RUN_TEST(ut::desfire::test_mifare_create_apps);
+    RUN_TEST(ut::desfire::test_mifare_change_app_key);
     // Note: better to first test apps, before fiddling with the root app.
-    RUN_TEST(test::desfire::get_test_mifare_root_operations(instance));
+    RUN_TEST(ut::desfire::test_mifare_root_operations);
     return instance;
 }
 
@@ -323,7 +323,7 @@ void unity_perform_all_tests() {
     // Itereate through all available transmission channels. Those that cannot be activated will be skipped
     for (channel_type channel : {channel_type::hsu, channel_type::i2c, channel_type::i2c_irq, channel_type::spi}) {
         if (auto pn532_instance = unity_perform_pn532_tests(channel); pn532_instance != nullptr) {
-            if (auto mifare_instance = unity_perform_desfire_live_test(pn532_instance->tag_reader()); mifare_instance) {
+            if (auto mifare_instance = unity_perform_desfire_live_test(pn532_instance); mifare_instance) {
                 // @todo Do the file tests with this instance.
             }
         }

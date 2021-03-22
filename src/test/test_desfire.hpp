@@ -5,66 +5,49 @@
 #ifndef KEYCARD_ACCESS_TEST_DESFIRE_HPP
 #define KEYCARD_ACCESS_TEST_DESFIRE_HPP
 
-#include "utils.hpp"
+#include "registrar.hpp"
+#include "test_pn532.hpp"
+#include <desfire/tag.hpp>
 #include <memory>
 #include <pn532/desfire_pcd.hpp>
 
-namespace test::desfire {
+namespace ut {
+    namespace desfire {
+        using namespace ::desfire;
 
-    class instance {
-        std::unique_ptr<::pn532::desfire_pcd> _controller = nullptr;
-        mutable ::desfire::tag _tag;
+        static constexpr test_tag_t test_tag = 0xde5f19e;
 
-    public:
-        explicit instance(std::unique_ptr<::pn532::desfire_pcd> controller);
-        ~instance();
+        class test_data {
+            std::unique_ptr<pn532::desfire_pcd> _controller = nullptr;
+            std::shared_ptr<ut::pn532::test_instance> _hold_test_instance;
+            ::desfire::tag _tag;
 
-        instance(instance &&) noexcept = default;
-        instance &operator=(instance &&) noexcept = default;
+        public:
+            test_data(std::shared_ptr<ut::pn532::test_instance> pn532_test_instance, std::uint8_t card_logical_index);
+            explicit test_data(std::unique_ptr<pn532::desfire_pcd> controller);
 
-        /**
-         * @ref operator* is intended for usage with structure binding, but sometimes one needs a ref.
-         * @return
-         */
-        [[nodiscard]] ::desfire::tag &tag() const;
+            [[nodiscard]] pn532::desfire_pcd &controller();
+            [[nodiscard]] ::desfire::tag &tag();
+        };
+    }// namespace desfire
 
-        /**
-         * @code
-         * auto &[pcd, tag] = *instance;
-         * @endcode
-         */
-        [[nodiscard]] std::pair<::pn532::desfire_pcd &, ::desfire::tag &> const operator*() const;
+    template <>
+    struct test_instance<desfire::test_tag> : public desfire::test_data {
+        using desfire::test_data::test_data;
     };
 
-    /**
-     * @addtogroup TestPrepare
-     * These methods will return a callable method that can be used with Unity's RUN_TEST.
-     * @note Only one of these methods can be called at a time! The @ref instance parameter will be kept
-     *  alive in memory until the test is run or @ref cleanup is called.
-     * @{
-     */
-    ut::test_fn get_test_mifare_base(std::shared_ptr<instance> instance);
-    ut::test_fn get_test_mifare_uid(std::shared_ptr<instance> instance);
-    ut::test_fn get_test_mifare_create_apps(std::shared_ptr<instance> instance);
-    ut::test_fn get_test_mifare_change_app_key(std::shared_ptr<instance> instance);
-    ut::test_fn get_test_mifare_root_operations(std::shared_ptr<instance> instance);
-    /**
-     * @}
-     */
+    namespace desfire {
+        using test_instance = test_instance<test_tag>;
 
-    std::shared_ptr<instance> build_instance(::pn532::nfc &tag_reader);
+        std::shared_ptr<test_instance> try_connect_card(std::shared_ptr<ut::pn532::test_instance> pn532_test_instance);
+        std::shared_ptr<test_instance> try_connect_card(pn532::nfc &tag_reader);
 
-    /**
-     * Ensures that dangling instances are successfully discarded.
-     */
-    void cleanup();
-
-    struct auto_cleanup {
-        inline ~auto_cleanup() {
-            cleanup();
-        }
-    };
-
-}// namespace test::desfire
+        void test_mifare_base();
+        void test_mifare_uid();
+        void test_mifare_create_apps();
+        void test_mifare_change_app_key();
+        void test_mifare_root_operations();
+    }// namespace desfire
+}// namespace ut
 
 #endif//KEYCARD_ACCESS_TEST_DESFIRE_HPP

@@ -19,7 +19,7 @@ namespace ut {
 
         class test_data {
             std::unique_ptr<pn532::desfire_pcd> _controller = nullptr;
-            std::shared_ptr<ut::pn532::test_instance> _hold_test_instance;
+            [[maybe_unused]] std::shared_ptr<ut::pn532::test_instance> _hold_test_instance;
             ::desfire::tag _tag;
 
         public:

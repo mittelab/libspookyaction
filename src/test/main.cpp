@@ -1,6 +1,6 @@
-#include "test_desfire.hpp"
 #include "test_desfire_ciphers.hpp"
 #include "test_desfire_exchanges.hpp"
+#include "test_desfire_main.hpp"
 #include "test_pn532.hpp"
 #include "utils.hpp"
 #include <mbcontroller.h>
@@ -221,18 +221,18 @@ struct file_test {
 
 void unity_perform_cipher_tests() {
     issue_header("MIFARE CIPHER TEST (no card)");
-    RUN_TEST(ut::desfire::test_crc16);
-    RUN_TEST(ut::desfire::test_crc32);
-    RUN_TEST(ut::desfire::test_des);
-    RUN_TEST(ut::desfire::test_2k3des);
-    RUN_TEST(ut::desfire::test_3k3des);
-    RUN_TEST(ut::desfire::test_aes);
-    RUN_TEST(ut::desfire::test_change_key_aes);
-    RUN_TEST(ut::desfire::test_change_key_des);
-    RUN_TEST(ut::desfire::test_change_key_2k3des);
-    RUN_TEST(ut::desfire::test_create_write_file_rx_cmac);
-    RUN_TEST(ut::desfire::test_get_key_version_rx_cmac);
-    RUN_TEST(ut::desfire::test_write_data_cmac_des);
+    RUN_TEST(ut::desfire_ciphers::test_crc16);
+    RUN_TEST(ut::desfire_ciphers::test_crc32);
+    RUN_TEST(ut::desfire_ciphers::test_des);
+    RUN_TEST(ut::desfire_ciphers::test_2k3des);
+    RUN_TEST(ut::desfire_ciphers::test_3k3des);
+    RUN_TEST(ut::desfire_ciphers::test_aes);
+    RUN_TEST(ut::desfire_exchanges::test_change_key_aes);
+    RUN_TEST(ut::desfire_exchanges::test_change_key_des);
+    RUN_TEST(ut::desfire_exchanges::test_change_key_2k3des);
+    RUN_TEST(ut::desfire_exchanges::test_create_write_file_rx_cmac);
+    RUN_TEST(ut::desfire_exchanges::test_get_key_version_rx_cmac);
+    RUN_TEST(ut::desfire_exchanges::test_write_data_cmac_des);
 }
 
 std::shared_ptr<ut::pn532::test_instance> unity_perform_pn532_tests(ut::pn532::channel_type channel) {
@@ -268,19 +268,19 @@ std::shared_ptr<ut::pn532::test_instance> unity_perform_pn532_tests(ut::pn532::c
     return instance;
 }
 
-std::shared_ptr<ut::desfire::test_instance> unity_perform_desfire_live_test(std::shared_ptr<ut::pn532::test_instance> pn532_test) {
-    auto instance = ut::desfire::try_connect_card(std::move(pn532_test));
+std::shared_ptr<ut::desfire_main::test_instance> unity_perform_desfire_live_test(std::shared_ptr<ut::pn532::test_instance> pn532_test) {
+    auto instance = ut::desfire_main::try_connect_card(std::move(pn532_test));
     ut::default_registrar().register_instance(instance);
     if (instance == nullptr) {
         ESP_LOGW(TEST_TAG, "Could not find any card.");
         // Still run the tests so that Unity can read the failure.
     }
-    RUN_TEST(ut::desfire::test_mifare_base);
-    RUN_TEST(ut::desfire::test_mifare_uid);
-    RUN_TEST(ut::desfire::test_mifare_create_apps);
-    RUN_TEST(ut::desfire::test_mifare_change_app_key);
+    RUN_TEST(ut::desfire_main::test_mifare_base);
+    RUN_TEST(ut::desfire_main::test_mifare_uid);
+    RUN_TEST(ut::desfire_main::test_mifare_create_apps);
+    RUN_TEST(ut::desfire_main::test_mifare_change_app_key);
     // Note: better to first test apps, before fiddling with the root app.
-    RUN_TEST(ut::desfire::test_mifare_root_operations);
+    RUN_TEST(ut::desfire_main::test_mifare_root_operations);
     return instance;
 }
 

@@ -8,11 +8,11 @@
 #include <numeric>
 #include <unity.h>
 
-namespace ut::desfire {
+namespace ut::desfire_exchanges {
     namespace {
         using namespace ::desfire;
 
-        struct assert_comm_controller final : public desfire::controller {
+        struct assert_comm_controller final : public controller {
             std::list<std::pair<mlab::bin_data, mlab::bin_data>> txrx_fifo;
 
             std::pair<mlab::bin_data, bool> communicate(mlab::bin_data const &data) override;
@@ -35,16 +35,16 @@ namespace ut::desfire {
     }// namespace
 
     struct session {
-        desfire::tag &tag;
+        ::desfire::tag &tag;
 
-        template <desfire::cipher_type Cipher>
-        inline session(desfire::tag &tag_, desfire::key<Cipher> const &session_key, desfire::app_id app, std::uint8_t key_no);
+        template <cipher_type Cipher>
+        inline session(::desfire::tag &tag_, key<Cipher> const &session_key, app_id app, std::uint8_t key_no);
 
         inline ~session();
     };
 
-    template <desfire::cipher_type Cipher>
-    session::session(desfire::tag &tag_, desfire::key<Cipher> const &session_key, desfire::app_id app, std::uint8_t key_no) : tag{tag_} {
+    template <cipher_type Cipher>
+    session::session(::desfire::tag &tag_, key<Cipher> const &session_key, app_id app, std::uint8_t key_no) : tag{tag_} {
         tag.template ut_init_session(session_key, app, key_no);
     }
 

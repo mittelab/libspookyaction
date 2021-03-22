@@ -5,7 +5,7 @@
 #ifndef KEYCARD_ACCESS_TEST_DESFIRE_EXCHANGES_HPP
 #define KEYCARD_ACCESS_TEST_DESFIRE_EXCHANGES_HPP
 
-namespace ut::desfire {
+namespace ut::desfire_exchanges {
     void test_change_key_aes();
     void test_change_key_2k3des();
     void test_change_key_des();

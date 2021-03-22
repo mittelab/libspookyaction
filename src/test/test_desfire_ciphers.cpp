@@ -7,7 +7,7 @@
 #include <desfire/data.hpp>
 #include <unity.h>
 
-namespace ut::desfire {
+namespace ut::desfire_ciphers {
     namespace {
         using namespace ::desfire;
     }

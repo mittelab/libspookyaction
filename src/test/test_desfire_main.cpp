@@ -2,7 +2,7 @@
 // Created by spak on 3/18/21.
 //
 
-#include "test_desfire.hpp"
+#include "test_desfire_main.hpp"
 #include "utils.hpp"
 #include <map>
 #include <mbcontroller.h>
@@ -11,7 +11,7 @@
 
 #define TEST_TAG "UT"
 
-namespace ut::desfire {
+namespace ut::desfire_main {
 
     namespace {
         constexpr const char *missing_instance_msg = "Desfire test instance was not set up.";

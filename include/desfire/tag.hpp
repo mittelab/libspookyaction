@@ -14,7 +14,7 @@
 #include <memory>
 
 
-namespace ut::desfire {
+namespace ut::desfire_exchanges {
     struct session;
 }
 
@@ -275,7 +275,7 @@ namespace desfire {
         /**
          * The power of friendship, cit. Wifasoi, 2020
          */
-        friend struct ut::desfire::session;
+        friend struct ut::desfire_exchanges::session;
 
         /**
          * Simulate a new session without the @ref authenticate random component

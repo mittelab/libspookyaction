@@ -2,8 +2,8 @@
 // Created by spak on 3/18/21.
 //
 
-#ifndef KEYCARD_ACCESS_TEST_DESFIRE_HPP
-#define KEYCARD_ACCESS_TEST_DESFIRE_HPP
+#ifndef KEYCARD_ACCESS_TEST_DESFIRE_MAIN_HPP
+#define KEYCARD_ACCESS_TEST_DESFIRE_MAIN_HPP
 
 #include "registrar.hpp"
 #include "test_pn532.hpp"
@@ -12,7 +12,7 @@
 #include <pn532/desfire_pcd.hpp>
 
 namespace ut {
-    namespace desfire {
+    namespace desfire_main {
         using namespace ::desfire;
 
         static constexpr test_tag_t test_tag = 0xde5f19e;
@@ -32,11 +32,11 @@ namespace ut {
     }// namespace desfire
 
     template <>
-    struct test_instance<desfire::test_tag> : public desfire::test_data {
-        using desfire::test_data::test_data;
+    struct test_instance<desfire_main::test_tag> : public desfire_main::test_data {
+        using desfire_main::test_data::test_data;
     };
 
-    namespace desfire {
+    namespace desfire_main {
         using test_instance = test_instance<test_tag>;
 
         std::shared_ptr<test_instance> try_connect_card(std::shared_ptr<ut::pn532::test_instance> pn532_test_instance);
@@ -50,4 +50,4 @@ namespace ut {
     }// namespace desfire
 }// namespace ut
 
-#endif//KEYCARD_ACCESS_TEST_DESFIRE_HPP
+#endif//KEYCARD_ACCESS_TEST_DESFIRE_MAIN_HPP

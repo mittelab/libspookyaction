@@ -191,4 +191,4 @@ namespace ut::desfire_ciphers {
         const std::uint16_t computed_crc = compute_crc16(payload);
         TEST_ASSERT_EQUAL(expected_crc, computed_crc);
     }
-}// namespace ut::desfire
+}// namespace ut::desfire_ciphers

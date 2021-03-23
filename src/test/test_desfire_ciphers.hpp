@@ -12,6 +12,6 @@ namespace ut::desfire_ciphers {
     void test_aes();
     void test_crc32();
     void test_crc16();
-}// namespace ut::desfire
+}// namespace ut::desfire_ciphers
 
 #endif//KEYCARD_ACCESS_TEST_DESFIRE_CIPHERS_HPP

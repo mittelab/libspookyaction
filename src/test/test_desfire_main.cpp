@@ -16,7 +16,6 @@ namespace ut::desfire_main {
     namespace {
         constexpr const char *missing_instance_msg = "Desfire test instance was not set up.";
 
-
         void issue_format_warning() {
             ESP_LOGW(TEST_TAG, "The following test are destructive and will format the PICC!");
             ESP_LOGW(TEST_TAG, "Remove the tag from RF field if you care for your data.");
@@ -25,8 +24,94 @@ namespace ut::desfire_main {
                 vTaskDelay(pdMS_TO_TICKS(1000));
             }
         }
+
+        constexpr std::uint8_t secondary_keys_version = 0x10;
+        constexpr std::array<std::uint8_t, 8> secondary_des_key = {0x0, 0x2, 0x4, 0x6, 0x8, 0xa, 0xc, 0xe};
+        constexpr std::array<std::uint8_t, 16> secondary_des3_2k_key = {0x0, 0x2, 0x4, 0x6, 0x8, 0xa, 0xc, 0xe, 0x10, 0x12, 0x14, 0x16, 0x18, 0x1a, 0x1c, 0x1e};
+        constexpr std::array<std::uint8_t, 24> secondary_des3_3k_key = {0x0, 0x2, 0x4, 0x6, 0x8, 0xa, 0xc, 0xe, 0x10, 0x12, 0x14, 0x16, 0x18, 0x1a, 0x1c, 0x1e, 0x20, 0x22, 0x24, 0x26, 0x28, 0x2a, 0x2c, 0x2e};
+        constexpr std::array<std::uint8_t, 16> secondary_aes_key = {0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf};
+
+        app_id get_default_aid(cipher_type c) {
+            switch (c) {
+                case cipher_type::des:
+                    return {0x00, 0xde, 0x08};
+                case cipher_type::des3_2k:
+                    return {0x00, 0xde, 0x16};
+                case cipher_type::des3_3k:
+                    return {0x00, 0xde, 0x24};
+                case cipher_type::aes128:
+                    return {0x00, 0xae, 0x16};
+                case cipher_type::none:
+                    [[fallthrough]];
+                default:
+                    return {};
+            }
+        }
+
+        any_key get_primary_key(cipher_type c) {
+            switch (c) {
+                case cipher_type::des:
+                    return key<cipher_type::des>{};
+                case cipher_type::des3_2k:
+                    return key<cipher_type::des3_2k>{};
+                case cipher_type::des3_3k:
+                    return key<cipher_type::des3_3k>{};
+                case cipher_type::aes128:
+                    return key<cipher_type::aes128>{};
+                case cipher_type::none:
+                    [[fallthrough]];
+                default:
+                    return {};
+            }
+        }
+
+        any_key get_secondary_key(cipher_type c) {
+            switch (c) {
+                case cipher_type::des:
+                    return key<cipher_type::des>{0, secondary_des_key, secondary_keys_version};
+                case cipher_type::des3_2k:
+                    return key<cipher_type::des3_2k>{0, secondary_des3_2k_key, secondary_keys_version};
+                case cipher_type::des3_3k:
+                    return key<cipher_type::des3_3k>{0, secondary_des3_3k_key, secondary_keys_version};
+                case cipher_type::aes128:
+                    return key<cipher_type::aes128>{0, secondary_aes_key, secondary_keys_version};
+                case cipher_type::none:
+                    [[fallthrough]];
+                default:
+                    return {};
+            }
+        }
     }// namespace
 
+    demo_app::demo_app(cipher_type c) : aid{get_default_aid(c)}, cipher{c}, primary_key{get_primary_key(c)}, secondary_key{get_secondary_key(c)} {}
+
+    void demo_app::ensure_selected_and_primary(tag &tag) const {
+        if (tag.active_app() != aid) {
+            TEST_ASSERT(tag.select_application(aid));
+        }
+        if (tag.active_key_no() != primary_key.key_number()) {
+            if (not tag.authenticate(primary_key)) {
+                TEST_ASSERT(tag.authenticate(secondary_key));
+                ESP_LOGI("UT", "Resetting key of app %02x %02x %02x.", aid[0], aid[1], aid[2]);
+                TEST_ASSERT(tag.change_key(primary_key));
+                TEST_ASSERT(tag.authenticate(primary_key));
+            }
+        }
+    }
+
+    void demo_app::ensure_created(tag &tag, any_key const &root_key) const {
+        if (tag.active_app() != root_app) {
+            TEST_ASSERT(tag.select_application(root_app));
+        }
+        if (tag.active_key_no() != root_key.key_number()) {
+            TEST_ASSERT(tag.authenticate(root_key));
+        }
+        const auto r_get_aids = tag.get_application_ids();
+        TEST_ASSERT(r_get_aids);
+        if (std::find(std::begin(*r_get_aids), std::end(*r_get_aids), aid) == std::end(*r_get_aids)) {
+            TEST_ASSERT(tag.create_application(aid, app_settings{cipher}));
+        }
+    }
 
     test_data::test_data(std::shared_ptr<ut::pn532::test_instance> pn532_test_instance, std::uint8_t card_logical_index)
         : _controller{std::make_unique<pn532::desfire_pcd>(pn532_test_instance->tag_reader(), card_logical_index)},
@@ -50,7 +135,7 @@ namespace ut::desfire_main {
         return *_controller;
     }
 
-    ::desfire::tag &test_data::tag() {
+    tag &test_data::tag() {
         return _tag;
     }
 
@@ -148,7 +233,7 @@ namespace ut::desfire_main {
 
         for (cipher_type cipher : {cipher_type::des, cipher_type::des3_2k,
                                    cipher_type::des3_3k, cipher_type::aes128}) {
-            ut::test_app const &app = ut::get_test_app(cipher);
+            const demo_app app{cipher};
             ESP_LOGI(TEST_TAG, "Creating app with cipher %s.", to_string(cipher));
             TEST_ASSERT(mifare.select_application(root_app))
             TEST_ASSERT(mifare.authenticate(key<cipher_type::des>{}))
@@ -192,7 +277,7 @@ namespace ut::desfire_main {
 
         for (cipher_type cipher : {cipher_type::des, cipher_type::des3_2k,
                                    cipher_type::des3_3k, cipher_type::aes128}) {
-            ut::test_app const &app = ut::get_test_app(cipher);
+            const demo_app app{cipher};
             // Copy the keys from the test apps
             keys_to_test.emplace_back(app.primary_key);
             keys_to_test.emplace_back(app.secondary_key);
@@ -270,7 +355,7 @@ namespace ut::desfire_main {
 
         for (cipher_type cipher : {cipher_type::des, cipher_type::des3_2k,
                                    cipher_type::des3_3k, cipher_type::aes128}) {
-            ut::test_app const &app = ut::get_test_app(cipher);
+            const demo_app app{cipher};
             ESP_LOGI(TEST_TAG, "Changing same key of app with cipher %s.", to_string(app.primary_key.type()));
             TEST_ASSERT(mifare.select_application(app.aid))
             if (not mifare.authenticate(app.primary_key)) {
@@ -332,4 +417,4 @@ namespace ut::desfire_main {
         }
         return nullptr;
     }
-}// namespace ut::desfire
+}// namespace ut::desfire_main

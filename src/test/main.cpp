@@ -1,32 +1,12 @@
 #include "test_desfire_ciphers.hpp"
 #include "test_desfire_exchanges.hpp"
+#include "test_desfire_files.hpp"
 #include "test_desfire_main.hpp"
 #include "test_pn532.hpp"
-#include "utils.hpp"
 #include <mbcontroller.h>
-#include <numeric>
 #include <unity.h>
 
 #define TEST_TAG "UT"
-
-namespace {
-
-    std::unique_ptr<pn532::desfire_pcd> pcd = nullptr;
-    std::unique_ptr<desfire::tag> mifare = nullptr;
-
-    [[nodiscard]] mlab::bin_data const &heavy_load() {
-        static mlab::bin_data load;
-        if (load.empty()) {
-            load.resize(0x100);
-            std::iota(std::begin(load), std::end(load), 0x00);
-        }
-        return load;
-    }
-
-    using namespace std::chrono_literals;
-
-}// namespace
-
 
 void issue_header(std::string const &title) {
     ESP_LOGI(TEST_TAG, "--------------------------------------------------------------------------------");
@@ -35,189 +15,6 @@ void issue_header(std::string const &title) {
     ESP_LOGI(TEST_TAG, "%s", header.c_str());
     vTaskDelay(pdMS_TO_TICKS(2000));
 }
-
-
-struct file_test {
-    desfire::file_security security = desfire::file_security::none;
-    desfire::cipher_type cipher = desfire::cipher_type::none;
-    desfire::file_type ftype = desfire::file_type::standard;
-
-    [[nodiscard]] const char *mode_description() const {
-        switch (security) {
-            case desfire::file_security::none:
-                return "none";
-            case desfire::file_security::encrypted:
-                return "encrypted";
-            case desfire::file_security::authenticated:
-                return "maced";
-        }
-        return nullptr;
-    }
-
-    [[nodiscard]] const char *cipher_description() const {
-        switch (cipher) {
-            case desfire::cipher_type::des:
-                return "des";
-            case desfire::cipher_type::des3_2k:
-                return "des3_2k";
-            case desfire::cipher_type::des3_3k:
-                return "des3_3k";
-            case desfire::cipher_type::aes128:
-                return "aes128";
-            case desfire::bits::cipher_type::none:
-                break;
-        }
-        return nullptr;
-    }
-
-    [[nodiscard]] const char *ftype_description() const {
-        switch (ftype) {
-            case desfire::file_type::standard:
-                return "standard";
-            case desfire::file_type::backup:
-                return "backup";
-            case desfire::file_type::value:
-                return "value";
-            case desfire::file_type::linear_record:
-                return "linear_record";
-            case desfire::file_type::cyclic_record:
-                return "cyclic_record";
-        }
-        return nullptr;
-    }
-
-    [[nodiscard]] const char *description() const {
-        static std::string buffer;
-        buffer.reserve(128);
-        // Here the buffer get cleared
-        buffer = "test_file(desfire::file_security::";
-        buffer.append(mode_description());
-        buffer.append(", desfire::cipher_type::");
-        buffer.append(cipher_description());
-        buffer.append(", desfire::file_type::");
-        buffer.append(ftype_description());
-        buffer.append(")");
-        return buffer.c_str();
-    }
-
-    static void perform_standard_data_file_test(ut::test_file const &file) {
-        TEST_ASSERT(pcd != nullptr and mifare != nullptr)
-        TEST_ASSERT(mifare->write_data(file.fid, 0, heavy_load()))
-        const auto r_read = mifare->read_data(file.fid, 0, heavy_load().size());
-        TEST_ASSERT(r_read)
-        TEST_ASSERT_EQUAL(heavy_load().size(), r_read->size());
-        TEST_ASSERT_EQUAL_HEX8_ARRAY(heavy_load().data(), r_read->data(), heavy_load().size());
-    }
-
-    static void perform_backup_data_file_test(ut::test_file const &file) {
-        TEST_ASSERT(pcd != nullptr and mifare != nullptr)
-        TEST_ASSERT(mifare->write_data(file.fid, 0, heavy_load()))
-        const auto r_read_before_commit = mifare->read_data(file.fid, 0, heavy_load().size());
-        TEST_ASSERT(r_read_before_commit)
-        TEST_ASSERT_EACH_EQUAL_HEX8(0x00, r_read_before_commit->data(), r_read_before_commit->size());
-        TEST_ASSERT(mifare->commit_transaction())
-        const auto r_read = mifare->read_data(file.fid, 0, heavy_load().size());
-        TEST_ASSERT(r_read)
-        TEST_ASSERT_EQUAL(heavy_load().size(), r_read->size());
-        TEST_ASSERT_EQUAL_HEX8_ARRAY(heavy_load().data(), r_read->data(), heavy_load().size());
-    }
-
-    static void perform_value_file_test(ut::test_file const &file) {
-        TEST_ASSERT(pcd != nullptr and mifare != nullptr)
-
-        const auto test_get_value = [&](std::int32_t expected) {
-            const auto res_read = mifare->get_value(file.fid);
-            TEST_ASSERT(res_read)
-            TEST_ASSERT_EQUAL(expected, *res_read);
-        };
-
-        test_get_value(0);
-        TEST_ASSERT(mifare->credit(file.fid, 2))
-        test_get_value(0);// Did not commit yet
-        TEST_ASSERT(mifare->commit_transaction())
-        test_get_value(2);
-        TEST_ASSERT(mifare->debit(file.fid, 5))
-        TEST_ASSERT(mifare->commit_transaction())
-        test_get_value(-3);
-    }
-
-    static void perform_record_file_test(ut::test_file const &file) {
-        TEST_ASSERT(pcd != nullptr and mifare != nullptr)
-
-        using record_t = std::array<std::uint8_t, 8>;
-
-        static const mlab::bin_data nibble = {0x00, 0x01, 0x02, 0x03};
-
-        const auto test_get_record_count = [&](std::uint32_t expected) {
-            const auto res_settings = mifare->get_file_settings(file.fid);
-            TEST_ASSERT(res_settings)
-            TEST_ASSERT_EQUAL(expected, res_settings->record_settings().record_count);
-        };
-
-        test_get_record_count(0);
-        TEST_ASSERT(mifare->write_record(file.fid, 4, nibble))
-        TEST_ASSERT(mifare->commit_transaction())
-        test_get_record_count(1);
-        const auto res_records = mifare->read_parse_records<record_t>(file.fid, 0);
-        TEST_ASSERT(res_records)
-        TEST_ASSERT_EQUAL(res_records->size(), 1);
-        const record_t expected = {0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x02, 0x03};
-        TEST_ASSERT_EQUAL_HEX8_ARRAY(expected.data(), res_records->front().data(), 8);
-        TEST_ASSERT(mifare->clear_record_file(file.fid))
-        TEST_ASSERT(mifare->commit_transaction())
-    }
-
-    void perform_test() const {
-        TEST_ASSERT(pcd != nullptr and mifare != nullptr)
-        static const desfire::any_key root_key{desfire::key<desfire::cipher_type::des>{}};
-
-        // Make sure there is enough space to run. 1376B is a decent estimate for how much space is needed
-        TEST_ASSERT(mifare->select_application(desfire::root_app))
-        TEST_ASSERT(mifare->authenticate(root_key))
-        const auto r_free_mem = mifare->get_free_mem();
-        TEST_ASSERT(r_free_mem)
-        if (*r_free_mem < 1376) {
-            ESP_LOGI(TEST_TAG, "Formatting to recover space (only %d B free).", *r_free_mem);
-            TEST_ASSERT(mifare->format_picc())
-        }
-
-        ut::test_app const &app = ut::get_test_app(cipher);
-        ut::test_file const &file = ut::get_test_file(ftype, security);
-        app.ensure_created(*mifare, root_key);
-        app.ensure_selected_and_primary(*mifare);
-        TEST_ASSERT_EQUAL_HEX8_ARRAY(app.aid.data(), mifare->active_app().data(), 3);
-        TEST_ASSERT_EQUAL(app.primary_key.key_number(), mifare->active_key_no());
-        file.delete_preexisting(*mifare);
-        TEST_ASSERT(mifare->create_file(file.fid, file.settings))
-
-        switch (ftype) {
-            case desfire::file_type::standard:
-                perform_standard_data_file_test(file);
-                break;
-            case desfire::file_type::backup:
-                perform_backup_data_file_test(file);
-                break;
-            case desfire::file_type::value:
-                perform_value_file_test(file);
-                break;
-            case desfire::file_type::linear_record:
-                [[fallthrough]];
-            case desfire::file_type::cyclic_record:
-                perform_record_file_test(file);
-                break;
-        }
-        TEST_ASSERT(mifare->delete_file(file.fid))
-    }
-
-    [[nodiscard]] static file_test &instance() {
-        static file_test _instance{};
-        return _instance;
-    }
-
-    static void run() {
-        instance().perform_test();
-    }
-};
 
 void unity_perform_cipher_tests() {
     issue_header("MIFARE CIPHER TEST (no card)");
@@ -268,7 +65,7 @@ std::shared_ptr<ut::pn532::test_instance> unity_perform_pn532_tests(ut::pn532::c
     return instance;
 }
 
-std::shared_ptr<ut::desfire_main::test_instance> unity_perform_desfire_live_test(std::shared_ptr<ut::pn532::test_instance> pn532_test) {
+std::shared_ptr<ut::desfire_main::test_instance> unity_perform_desfire_main_test(std::shared_ptr<ut::pn532::test_instance> pn532_test) {
     auto instance = ut::desfire_main::try_connect_card(std::move(pn532_test));
     ut::default_registrar().register_instance(instance);
     if (instance == nullptr) {
@@ -284,30 +81,36 @@ std::shared_ptr<ut::desfire_main::test_instance> unity_perform_desfire_live_test
     return instance;
 }
 
-void unity_perform_pn532_mifare_tests() {
+std::shared_ptr<ut::desfire_files::test_instance> unity_perform_desfire_files_test(std::shared_ptr<ut::desfire_main::test_instance> desfire_test) {
+    using desfire::cipher_type;
+    using desfire::file_security;
+    using desfire::file_type;
+
+    auto instance = std::make_shared<ut::desfire_files::test_instance>(std::move(desfire_test));
+    ut::default_registrar().register_instance(instance);
     issue_header("MIFARE TEST (requires card)");
-    /**
-     * @todo Migrate this block
-     */
+
     /**
      * Test file creation, deletion, and read/write cycle.
      *
      * @note Since Unity does not allow parms in RUN_TEST, let's store those into a structure and then use them to call
      * the actual test function. This will generate a separate test entry for each mode.
      */
-    for (desfire::file_security sec : {desfire::file_security::none, desfire::file_security::authenticated, desfire::file_security::encrypted}) {
-        for (desfire::cipher_type cipher : {desfire::cipher_type::des, desfire::cipher_type::des3_2k,
-                                            desfire::cipher_type::des3_3k, desfire::cipher_type::aes128}) {
-            for (desfire::file_type ftype : {desfire::file_type::standard, desfire::file_type::backup,
-                                             desfire::file_type::value, desfire::file_type::linear_record,
-                                             desfire::file_type::cyclic_record}) {
-                file_test::instance().security = sec;
-                file_test::instance().cipher = cipher;
-                file_test::instance().ftype = ftype;
-                UnityDefaultTestRun(&file_test::run, file_test::instance().description(), __LINE__);
+    for (file_security sec : {file_security::none, file_security::authenticated, file_security::encrypted}) {
+        for (cipher_type cipher : {cipher_type::des, cipher_type::des3_2k,
+                                   cipher_type::des3_3k, cipher_type::aes128}) {
+            for (file_type ftype : {file_type::standard, file_type::backup,
+                                    file_type::value, file_type::linear_record,
+                                    file_type::cyclic_record}) {
+                instance->file().security = sec;
+                instance->file().cipher = cipher;
+                instance->file().type = ftype;
+                const std::string desc = instance->file().get_description();
+                UnityDefaultTestRun(&ut::desfire_files::test_file, desc.c_str(), __LINE__);
             }
         }
     }
+    return instance;
 }
 
 
@@ -323,8 +126,8 @@ void unity_perform_all_tests() {
     // Itereate through all available transmission channels. Those that cannot be activated will be skipped
     for (channel_type channel : {channel_type::hsu, channel_type::i2c, channel_type::i2c_irq, channel_type::spi}) {
         if (auto pn532_instance = unity_perform_pn532_tests(channel); pn532_instance != nullptr) {
-            if (auto mifare_instance = unity_perform_desfire_live_test(pn532_instance); mifare_instance) {
-                // @todo Do the file tests with this instance.
+            if (auto mifare_instance = unity_perform_desfire_main_test(pn532_instance); mifare_instance) {
+                unity_perform_desfire_files_test(mifare_instance);
             }
         }
     }

@@ -12,6 +12,6 @@ namespace ut::desfire_exchanges {
     void test_create_write_file_rx_cmac();
     void test_get_key_version_rx_cmac();
     void test_write_data_cmac_des();
-}// namespace ut::desfire
+}// namespace ut::desfire_exchanges
 
 #endif//KEYCARD_ACCESS_TEST_DESFIRE_EXCHANGES_HPP

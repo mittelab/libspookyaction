@@ -68,6 +68,12 @@ namespace desfire {
         template <class... Tn>
         using r = mlab::result<error, Tn...>;
 
+        /**
+         * @brief Construct a new tag object
+         * @note if you want to create a custom controller, you should extend  @ref desfire::controller and implement @ref desfire::controller::communicate
+         * 
+         * @param controller a @ref desfire::controller class that handles the tag comunication
+         */
         inline explicit tag(controller &controller);
 
         tag(tag const &) = delete;
@@ -154,6 +160,16 @@ namespace desfire {
          * | cmd  |LSB             MSB|     | Status |    | Error |
          * ~~~~
          *
+         * @dot
+         * digraph AlignmentMap {
+         *  node [shape=record fontname="sans-serif"];
+         *  rankdir=LR;
+         *  sent1 [label="{0x5A\n[1 byte]|AID\n[3 byte LSB first]}"];
+         *  received1 [label="{0x00\n[1 byte]}"];
+         *  error [style=dashed label="{Error code\n[1 byte]}"];
+         *  sent1 -> {received1 error}[ sametail="b"];
+         * }
+         * @enddot
          * @htmlonly
          * <div style="display:flex; flex-direction: row;">
          * <div>
@@ -193,6 +209,16 @@ namespace desfire {
          * | cmd  |LSB             MSB|              |           |     | Status |    | Error |
          * ~~~~
          *
+         * @dot
+         * digraph AlignmentMap {
+         *  node [shape=record fontname="sans-serif"];
+         *  rankdir=LR;
+         *  sent1 [label="{0xCA\n[1 byte]|AID\n[3 byte LSB first]|key settings\n[1 byte]|# of Keys\n[1 byte]}"];
+         *  received1 [label="{0x00\n[1 byte]}"];
+         *  error [style=dashed label="{Error code\n[1 byte]}"];
+         *  sent1 -> {received1 error}[ sametail="b"];
+         * }
+         * @enddot
          * @htmlonly
          * <script type="WaveDrom">
          * {reg:[
@@ -224,6 +250,17 @@ namespace desfire {
          * +------+--------------------+     +--------+    +-------+
          * | cmd  |     enchipered     |     | Status |    | Error |
          * ~~~~
+         *
+         * @dot
+         * digraph AlignmentMap {
+         *  node [shape=record fontname="sans-serif"];
+         *  rankdir=LR;
+         *  sent1 [label="{0x54\n[1 byte]|key settings\n[8 byte enchipered]}"];
+         *  received1 [label="{0x00\n[1 byte]}"];
+         *  error [style=dashed label="{Error code\n[1 byte]}"];
+         *  sent1 -> {received1 error}[ sametail="b"];
+         * }
+         * @enddot
          * @htmlonly
          * <div style="display:flex; flex-direction: row;">
          * <div>
@@ -263,6 +300,16 @@ namespace desfire {
          * | cmd  |     | Status |              |           |    | Error |
          * ~~~~
          *
+         * @dot
+         * digraph AlignmentMap {
+         *  node [shape=record fontname="sans-serif"];
+         *  rankdir=LR;
+         *  sent1 [label="{0x45\n[1 byte]}"];
+         *  received1 [label="{0x00\n[1 byte]|key settings\n[1 byte]|# of Keys\n[1 byte]}"];
+         *  error [style=dashed label="{Error code\n[1 byte]}"];
+         *  sent1 -> {received1 error}[ sametail="b"];
+         * }
+         * @enddot
          * @htmlonly
          * <div style="display:flex; flex-direction: row;">
          * <div>
@@ -303,6 +350,16 @@ namespace desfire {
          * | cmd  |       |     | Status |             |    | Error |
          * ~~~~
          *
+         * @dot
+         * digraph AlignmentMap {
+         *  node [shape=record fontname="sans-serif"];
+         *  rankdir=LR;
+         *  sent1 [label="{0x64\n[1 byte]|Key #\n[1 byte]}"];
+         *  received1 [label="{0x00\n[1 byte]|key version\n[1 byte]}"];
+         *  error [style=dashed label="{Error code\n[1 byte]}"];
+         *  sent1 -> {received1 error}[ sametail="b"];
+         * }
+         * @enddot
          * @htmlonly
          * <div style="display:flex; flex-direction: row;">
          * <div>
@@ -349,6 +406,20 @@ namespace desfire {
          * | cmd  |     | Status |          1-7 AIDs         |    | Error |
          * ~~~~
          *
+         * @dot
+         * digraph AlignmentMap {
+         *  node [shape=record fontname="sans-serif"];
+         *  rankdir=LR;
+         *  sent1 [label="{0x6A\n[1 byte]}"];
+         *  received1 [label="{0x00\n[1 byte]|AID\n[3xN byte 0-7 AIDs]}"];
+         *  received2 [label="{0xAF\n[1 byte]|AID\n[3xN byte 0-19 AIDs]}"];
+         *  received3 [label="{0x00\n[1 byte]|AID\n[3xN byte 0-7 AIDs]}"];
+         *  error [style=dashed label="{Error code\n[1 byte]}"];
+         *  sent2 [label="{0xAF\n[1 byte]}"];
+         *  sent1 -> {received1 received2 error}[sametail="b"];
+         *  received2 -> sent2 -> received3;
+         * }
+         * @enddot
          * @brief Get a list of all application in the card
          * @ingroup application
          * @note Must be on the @ref root_app, possibly authenticated.
@@ -363,17 +434,27 @@ namespace desfire {
          * ~~~~
          * 0      1                   4     0        1    0       1
          * +------+-------------------+     +--------+    +-------+
-         * | 0xCA |        AID        | --> |  0x00  | OR | CODE  |
+         * | 0xDA |        AID        | --> |  0x00  | OR | CODE  |
          * +------+-------------------+     +--------+    +-------+
          * | cmd  |LSB             MSB|     | Status |    | Error |
          * ~~~~
          *
+         * @dot
+         * digraph AlignmentMap {
+         *  node [shape=record fontname="sans-serif"];
+         *  rankdir=LR;
+         *  sent1 [label="{0xDA\n[1 byte]|AID\n[3 byte LSB first]}"];
+         *  received1 [label="{0x00\n[1 byte]}"];
+         *  error [style=dashed label="{Error code\n[1 byte]}"];
+         *  sent1 -> {received1 error}[ sametail="b"];
+         * }
+         * @enddot
          * @htmlonly
          * <div style="display:flex; flex-direction: row;">
          * <div>
          * <script type="WaveDrom">
          * {reg:[
-         *  {bits: 1, name: '0x64', attr: 'Command code'},
+         *  {bits: 1, name: '0xDA', attr: 'Command code'},
          *  {bits: 3, name: 'AID [LSB first]', attr: 'app'},
          * ],
          * config:{bits: 4, lanes: 1, hflip: true, vflip: true}}
@@ -420,6 +501,21 @@ namespace desfire {
          * | cmd  |     | Status |           |         | Production  |
          * ~~~~
          *
+         * @dot
+         * digraph AlignmentMap {
+         *  node [shape=record fontname="sans-serif"];
+         *  rankdir=LR;
+         *  sent1 [label="{0x60\n[1 byte]}"];
+         *  received1 [label="{0xAF\n[1 byte]|Vendor ID\n[1 byte]|Type\n[1 byte]|Sub-type\n[1 byte]|Mayor version\n[1 byte]|Minor version\n[1 byte]|Tag size\n[1 byte]|protocol\n[1 byte]}"];
+         *  received2 [label="{0xAF\n[1 byte]|Vendor ID\n[1 byte]|Type\n[1 byte]|Sub-type\n[1 byte]|Mayor version\n[1 byte]|Minor version\n[1 byte]|Tag size\n[1 byte]|protocol\n[1 byte]}"];
+         *  received3 [label="{0x00\n[1 byte]|UID\n[7 byte]|Batch #\n[5 byte]|Production week\n[1 byte]|Production year\n[1 byte]}"];
+         *  error [style=dashed label="{Error code\n[1 byte]}"];
+         *  sent2 [label="{0xAF\n[1 byte]}"];
+         *  sent3 [label="{0xAF\n[1 byte]}"];
+         *  sent1 -> {received1 error}[sametail="b"];
+         *  received1 -> sent2 -> received2 -> sent3 -> received3;
+         * }
+         * @enddot
          * @brief Read tag information
          * @ingroup application
          * @return @ref manufacturing_info containing tag information, or the following errors:
@@ -439,6 +535,16 @@ namespace desfire {
          * | cmd  |     | Status |    | Error |
          * ~~~~
          *
+         * @dot
+         * digraph AlignmentMap {
+         *  node [shape=record fontname="sans-serif"];
+         *  rankdir=LR;
+         *  sent1 [label="{0xFC\n[1 byte]}"];
+         *  received1 [label="{0x00\n[1 byte]}"];
+         *  error [style=dashed label="{Error code\n[1 byte]}"];
+         *  sent1 -> {received1 error}[ sametail="b"];
+         * }
+         * @enddot
          * @htmlonly
          * <div style="display:flex; flex-direction: row;">
          * <div>
@@ -478,6 +584,16 @@ namespace desfire {
          * | cmd  |       |     enchipered     |     | Status |    | Error |
          * ~~~~
          *
+         * @dot
+         * digraph AlignmentMap {
+         *  node [shape=record fontname="sans-serif"];
+         *  rankdir=LR;
+         *  sent1 [label="{0x54\n[1 byte]|Key #\n[1 byte]|key data\n[24 byte echipered]}"];
+         *  received1 [label="{0x00\n[1 byte]}"];
+         *  error [style=dashed label="{Error code\n[1 byte]}"];
+         *  sent1 -> {received1 error}[ sametail="b"];
+         * }
+         * @enddot
          * @note Assumes authentication has happened and the key settings allow the change.
          * @ingroup application
          * @return None, or the following errors:
@@ -508,6 +624,38 @@ namespace desfire {
          * +------+     +--------+-------+ - - - +    +-------+
          * | cmd  |     | Status |   0-16 FIDs   |    | Error |
          * ~~~~
+         *
+         * @dot
+         * digraph AlignmentMap {
+         *  node [shape=record fontname="sans-serif"];
+         *  rankdir=LR;
+         *  sent1 [label="{0x6F\n[1 byte]}"];
+         *  received1 [label="{0x00\n[1 byte]|FID\n[1xN byte (0-16 FIDs)]}"];
+         *  error [style=dashed label="{Error code\n[1 byte]}"];
+         *  sent1 -> {received1 error}[ sametail="b"];
+         * }
+         * @enddot
+         * @htmlonly
+         * <div style="display:flex; flex-direction: row;">
+         * <div>
+         * <script type="WaveDrom">
+         * {reg:[
+         *  {bits: 1, name: '0x6F', attr: 'Command code'},
+         *  {bits: 1, name: 'FID', attr: 'fid'},
+         *  {bits: 1, name: 'Comm. sett'},
+         *  {bits: 2, name: 'Access rights [LSB first]'},
+         * ],
+         * config:{bits: 1, lanes: 1, hflip: true, vflip: true}}
+         * </script></div>
+         * <div>
+         * <script type="WaveDrom">
+         * {reg:[
+         *  {bits: 1, name: '0x00', attr: 'Status'},
+         * ],
+         * config:{bits: 1, lanes: 1, hflip: true, vflip: true}}
+         * </script></div>
+         * </div>
+         * @endhtmlonly
          *
          * @brief get a list of files in the selected application
          * @ingroup data
@@ -554,6 +702,43 @@ namespace desfire {
          * | cmd  |       |           enchipered           |     | Status |    | Error |
          * ~~~~
          *
+         * @dot
+         * digraph AlignmentMap {
+         *  node [shape=record fontname="sans-serif"];
+         *  rankdir=LR;
+         *  sent1 [label="{0x5F\n[1 byte]|FID\n[1 byte]|Comm. settings\n[1 byte]|Access rights\n[2 byte LDB first]}"];
+         *  received1 [label="{0x00\n[1 byte]}"];
+         *  error [style=dashed label="{Error code\n[1 byte]}"];
+         *  sent1 -> {received1 error}[ sametail="b"];
+         *
+         *  sent1e [label="{0x5F\n[1 byte]|FID\n[1 byte]|new settings\n[8 byte enchipered]}"];
+         *  received1e [label="{0x00\n[1 byte]}"];
+         *  errore [style=dashed label="{Error code\n[1 byte]}"];
+         *  sent1e -> {received1e errore}[ sametail="b"];
+         * }
+         * @enddot
+         * @htmlonly
+         * <div style="display:flex; flex-direction: row;">
+         * <div>
+         * <script type="WaveDrom">
+         * {reg:[
+         *  {bits: 1, name: '0x5F', attr: 'Command code'},
+         *  {bits: 1, name: 'FID', attr: 'fid'},
+         *  {bits: 1, name: 'Comm. sett'},
+         *  {bits: 2, name: 'Access rights [LSB first]'},
+         * ],
+         * config:{bits: 5, lanes: 1, hflip: true, vflip: true}}
+         * </script></div>
+         * <div>
+         * <script type="WaveDrom">
+         * {reg:[
+         *  {bits: 1, name: '0x00', attr: 'Status'},
+         * ],
+         * config:{bits: 1, lanes: 1, hflip: true, vflip: true}}
+         * </script></div>
+         * </div>
+         * @endhtmlonly
+         *
          * @brief Modify the file settings
          * @ingroup data
          * @param fid The file ID, Max @ref bits::max_standard_data_file_id.
@@ -582,6 +767,43 @@ namespace desfire {
          * +------+-------+--------------------------------+     +--------+    +-------+
          * | cmd  |       |           enchipered           |     | Status |    | Error |
          * ~~~~
+
+         * @dot
+         * digraph AlignmentMap {
+         *  node [shape=record fontname="sans-serif"];
+         *  rankdir=LR;
+         *  sent1 [label="{0x5F\n[1 byte]|FID\n[1 byte]|Comm. settings\n[1 byte]|Access rights\n[2 byte LDB first]}"];
+         *  received1 [label="{0x00\n[1 byte]}"];
+         *  error [style=dashed label="{Error code\n[1 byte]}"];
+         *  sent1 -> {received1 error}[ sametail="b"];
+         *
+         *  sent1e [label="{0x5F\n[1 byte]|FID\n[1 byte]|new settings\n[8 byte enchipered]}"];
+         *  received1e [label="{0x00\n[1 byte]}"];
+         *  errore [style=dashed label="{Error code\n[1 byte]}"];
+         *  sent1e -> {received1e errore}[ sametail="b"];
+         * }
+         * @enddot
+         * @htmlonly
+         * <div style="display:flex; flex-direction: row;">
+         * <div>
+         * <script type="WaveDrom">
+         * {reg:[
+         *  {bits: 1, name: '0x5F', attr: 'Command code'},
+         *  {bits: 1, name: 'FID', attr: 'fid'},
+         *  {bits: 1, name: 'Comm. sett'},
+         *  {bits: 2, name: 'Access rights [LSB first]'},
+         * ],
+         * config:{bits: 5, lanes: 1, hflip: true, vflip: true}}
+         * </script></div>
+         * <div>
+         * <script type="WaveDrom">
+         * {reg:[
+         *  {bits: 1, name: '0x00', attr: 'Status'},
+         * ],
+         * config:{bits: 1, lanes: 1, hflip: true, vflip: true}}
+         * </script></div>
+         * </div>
+         * @endhtmlonly
          *
          * @brief Modify the file settings
          * @ingroup data
@@ -604,6 +826,16 @@ namespace desfire {
          * | cmd  |       |                |LSB         MSB|LSB         MSB|     | Status |    | Error |
          * ~~~~
          *
+         * @dot
+         * digraph AlignmentMap {
+         *  node [shape=record fontname="sans-serif"];
+         *  rankdir=LR;
+         *  sent1 [label="{0xCD\n[1 byte]|FID\n[1 byte]|Comm. settings\n[1 byte]|Access rights\n[2 byte LSB first]|File size\n[3 byte LSB first]}"];
+         *  received1 [label="{0x00\n[1 byte]}"];
+         *  error [style=dashed label="{Error code\n[1 byte]}"];
+         *  sent1 -> {received1 error}[ sametail="b"];
+         * }
+         * @enddot
          * @htmlonly
          * <div style="display:flex; flex-direction: row;">
          * <div>
@@ -660,6 +892,16 @@ namespace desfire {
          * | cmd  |       |                |LSB         MSB|LSB         MSB|     | Status |    | Error |
          * ~~~~
          *
+         * @dot
+         * digraph AlignmentMap {
+         *  node [shape=record fontname="sans-serif"];
+         *  rankdir=LR;
+         *  sent1 [label="{0xCB\n[1 byte]|FID\n[1 byte]|Comm. settings\n[1 byte]|Access rights\n[2 byte LSB first]|File size\n[3 byte LSB first]}"];
+         *  received1 [label="{0x00\n[1 byte]}"];
+         *  error [style=dashed label="{Error code\n[1 byte]}"];
+         *  sent1 -> {received1 error}[ sametail="b"];
+         * }
+         * @enddot
          * @htmlonly
          * <div style="display:flex; flex-direction: row;">
          * <div>
@@ -698,17 +940,27 @@ namespace desfire {
          * ~~~~
          * 0      1       2                3               5               9               13        17              18    0        1    0       1
          * +------+-------+----------------+---------------+---------------+---------------+---------+---------------+     +--------+    +-------+
-         * | 0xCD |  FID  | Comm. settings | Access rights |  Lower Limit  |  Upper Limit  |  Value  |  Lim. credit  | --> |  0x00  | OR | CODE  |
+         * | 0xCC |  FID  | Comm. settings | Access rights |  Lower Limit  |  Upper Limit  |  Value  |  Lim. credit  | --> |  0x00  | OR | CODE  |
          * +------+-------+----------------+---------------+---------------+---------------+---------+---------------+     +--------+    +-------+
          * | cmd  |       |                |LSB         MSB|LSB         MSB|LSB         MSB|LSB   MSB|               |     | Status |    | Error |
          * ~~~~
          *
+         * @dot
+         * digraph AlignmentMap {
+         *  node [shape=record fontname="sans-serif"];
+         *  rankdir=LR;
+         *  sent1 [label="{0xCC\n[1 byte]|FID\n[1 byte]|Comm. settings\n[1 byte]|Access rights\n[2 byte LSB first]|Lower Limit\n[4 byte LSB first]|Upper Limit\n[4 byte LSB first]|Value\n[4 byte LSB first]|Lim. credit\n[1 byte]}"];
+         *  received1 [label="{0x00\n[1 byte]}"];
+         *  error [style=dashed label="{Error code\n[1 byte]}"];
+         *  sent1 -> {received1 error}[ sametail="b"];
+         * }
+         * @enddot
          * @htmlonly
          * <div style="display:flex; flex-direction: row;">
          * <div>
          * <script type="WaveDrom">
          * {reg:[
-         *  {bits: 1, name: '0xCD', attr: 'Command code'},
+         *  {bits: 1, name: '0xCC', attr: 'Command code'},
          *  {bits: 1, name: 'FID', attr: 'fid'},
          *  {bits: 1, name: 'Comm. sett'},
          *  {bits: 2, name: 'Access rights [LSB first]'},
@@ -750,6 +1002,16 @@ namespace desfire {
          * | cmd  |       |                |LSB         MSB|LSB         MSB|LSB              MSB|     | Status |    | Error |
          * ~~~~
          *
+         * @dot
+         * digraph AlignmentMap {
+         *  node [shape=record fontname="sans-serif"];
+         *  rankdir=LR;
+         *  sent1 [label="{0xC1\n[1 byte]|FID\n[1 byte]|Comm. settings\n[1 byte]|Access rights\n[2 byte LSB first]|Record Size\n[3 byte LSB first]|Max # of records\n[3 byte LSB first]}"];
+         *  received1 [label="{0x00\n[1 byte]}"];
+         *  error [style=dashed label="{Error code\n[1 byte]}"];
+         *  sent1 -> {received1 error}[ sametail="b"];
+         * }
+         * @enddot
          * @htmlonly
          * <div style="display:flex; flex-direction: row;">
          * <div>
@@ -795,6 +1057,16 @@ namespace desfire {
          * | cmd  |       |                |LSB         MSB|LSB         MSB|LSB              MSB|     | Status |    | Error |
          * ~~~~
          *
+         * @dot
+         * digraph AlignmentMap {
+         *  node [shape=record fontname="sans-serif"];
+         *  rankdir=LR;
+         *  sent1 [label="{0xC0\n[1 byte]|FID\n[1 byte]|Comm. settings\n[1 byte]|Access rights\n[2 byte LSB first]|Record Size\n[3 byte LSB first]|Max # of records\n[3 byte LSB first]}"];
+         *  received1 [label="{0x00\n[1 byte]}"];
+         *  error [style=dashed label="{Error code\n[1 byte]}"];
+         *  sent1 -> {received1 error}[ sametail="b"];
+         * }
+         * @enddot
          * @htmlonly
          * <div style="display:flex; flex-direction: row;">
          * <div>
@@ -833,6 +1105,16 @@ namespace desfire {
 
         /**
          *
+         * @dot
+         * digraph AlignmentMap {
+         *  node [shape=record fontname="sans-serif"];
+         *  rankdir=LR;
+         *  sent1 [label="{0xDF\n[1 byte]|FID\n[1 byte]}"];
+         *  received1 [label="{0x00\n[1 byte]}"];
+         *  error [style=dashed label="{Error code\n[1 byte]}"];
+         *  sent1 -> {received1 error}[ sametail="b"];
+         * }
+         * @enddot
          * @htmlonly
          * <div style="display:flex; flex-direction: row;">
          * <div>
@@ -865,6 +1147,16 @@ namespace desfire {
 
         /**
          *
+         * @dot
+         * digraph AlignmentMap {
+         *  node [shape=record fontname="sans-serif"];
+         *  rankdir=LR;
+         *  sent1 [label="{0xEB\n[1 byte]|FID\n[1 byte]}"];
+         *  received1 [label="{0x00\n[1 byte]}"];
+         *  error [style=dashed label="{Error code\n[1 byte]}"];
+         *  sent1 -> {received1 error}[ sametail="b"];
+         * }
+         * @enddot
          * @htmlonly
          * <div style="display:flex; flex-direction: row;">
          * <div>
@@ -897,6 +1189,16 @@ namespace desfire {
 
         /**
          *
+         * @dot
+         * digraph AlignmentMap {
+         *  node [shape=record fontname="sans-serif"];
+         *  rankdir=LR;
+         *  sent1 [label="{0xC7\n[1 byte]}"];
+         *  received1 [label="{0x00\n[1 byte]}"];
+         *  error [style=dashed label="{Error code\n[1 byte]}"];
+         *  sent1 -> {received1 error}[ sametail="b"];
+         * }
+         * @enddot
          * @htmlonly
          * <div style="display:flex; flex-direction: row;">
          * <div>
@@ -927,6 +1229,16 @@ namespace desfire {
 
         /**
          *
+         * @dot
+         * digraph AlignmentMap {
+         *  node [shape=record fontname="sans-serif"];
+         *  rankdir=LR;
+         *  sent1 [label="{0xA7\n[1 byte]}"];
+         *  received1 [label="{0x00\n[1 byte]}"];
+         *  error [style=dashed label="{Error code\n[1 byte]}"];
+         *  sent1 -> {received1 error}[ sametail="b"];
+         * }
+         * @enddot
          * @htmlonly
          * <div style="display:flex; flex-direction: row;">
          * <div>
@@ -956,6 +1268,20 @@ namespace desfire {
         r<> abort_transaction();
 
         /**
+         * @dot
+         * digraph AlignmentMap {
+         *  node [shape=record fontname="sans-serif"];
+         *  rankdir=LR;
+         *  sent1 [label="{0xBD\n[1 byte]|FID\n[1 byte]|Offset\n[3 byte LSB first]|Lenght\n[3 byte LSB first]}"];
+         *  received1 [label="{0xAF\n[1 byte]|DATA\n[1-59 bytes]}"];
+         *  received2 [label="{0x00\n[1 byte]|DATA\n[1-59 bytes]}"];
+         *  received3 [label="{0x00\n[1 byte]|DATA\n[1-59 bytes]}"];
+         *  sent2 [label="{0xAF\n[1 byte]}"];
+         *  error [style=dashed label="{Error code\n[1 byte]}"];
+         *  sent1 -> {received1 received2 error}[ sametail="b"];
+         *  received1 -> sent2 -> received3;
+         * }
+         * @enddot
          * @brief read data from file
          * @ingroup data
          * @param fid Max @ref bits::max_standard_data_file_id or @ref bits::max_backup_data_file_id
@@ -1011,13 +1337,23 @@ namespace desfire {
 
         /**
          *
+         * @dot
+         * digraph AlignmentMap {
+         *  node [shape=record fontname="sans-serif"];
+         *  rankdir=LR;
+         *  sent1 [label="{0x6C\n[1 byte]|FID\n[1 byte]}"];
+         *  received1 [label="{0x00\n[1 byte]|Value\n[4 byte]}"];
+         *  error [style=dashed label="{Error code\n[1 byte]}"];
+         *  sent1 -> {received1 error}[ sametail="b"];
+         * }
+         * @enddot
          * @htmlonly
          * <div style="display:flex; flex-direction: row;">
          * <div>
          * <script type="WaveDrom">
          * {reg:[
          *  {bits: 1, name: '0x6C', attr: 'Command code'},
-         *  {bits: 1, name: 'FID', attr: 'fid'},
+         *  {bits: 1, name: 'FID', attr: "fid"},
          * ],
          * config:{bits: 2, lanes: 1, hflip: true, vflip: true}}
          * </script></div>
@@ -1056,6 +1392,16 @@ namespace desfire {
 
         /**
          *
+         * @dot
+         * digraph AlignmentMap {
+         *  node [shape=record fontname="sans-serif"];
+         *  rankdir=LR;
+         *  sent1 [label="{0x0C\n[1 byte]|FID\n[1 byte]| Credit anmount\n[4 byte]}"];
+         *  received1 [label="{0x00\n[1 byte]}"];
+         *  error [style=dashed label="{Error code\n[1 byte]}"];
+         *  sent1 -> {received1 error}[ sametail="b"];
+         * }
+         * @enddot
          * @htmlonly
          * <div style="display:flex; flex-direction: row;">
          * <div>
@@ -1103,6 +1449,16 @@ namespace desfire {
 
         /**
          *
+         * @dot
+         * digraph AlignmentMap {
+         *  node [shape=record fontname="sans-serif"];
+         *  rankdir=LR;
+         *  sent1 [label="{0xDC\n[1 byte]|FID\n[1 byte]| Credit anmount\n[4 byte]}"];
+         *  received1 [label="{0x00\n[1 byte]}"];
+         *  error [style=dashed label="{Error code\n[1 byte]}"];
+         *  sent1 -> {received1 error}[ sametail="b"];
+         * }
+         * @enddot
          * @htmlonly
          * <div style="display:flex; flex-direction: row;">
          * <div>
@@ -1152,6 +1508,16 @@ namespace desfire {
 
         /**
          *
+         * @dot
+         * digraph AlignmentMap {
+         *  node [shape=record fontname="sans-serif"];
+         *  rankdir=LR;
+         *  sent1 [label="{0xDC\n[1 byte]|FID\n[1 byte]| Debit anmount\n[4 byte]}"];
+         *  received1 [label="{0x00\n[1 byte]}"];
+         *  error [style=dashed label="{Error code\n[1 byte]}"];
+         *  sent1 -> {received1 error}[ sametail="b"];
+         * }
+         * @enddot
          * @htmlonly
          * <div style="display:flex; flex-direction: row;">
          * <div>

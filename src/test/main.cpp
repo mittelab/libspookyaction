@@ -49,7 +49,7 @@ std::shared_ptr<ut::pn532::test_instance> unity_perform_pn532_tests(ut::pn532::c
     issue_header("PN532 TEST AND DIAGNOSTICS (no card)");
     RUN_TEST(ut::pn532::test_wake_channel);
     // Just skip this bunch if the channel does not work there is no hope
-    if (instance->channel_did_wake()) {
+    if (instance != nullptr and instance->channel_did_wake()) {
         RUN_TEST(ut::pn532::test_get_fw);
         RUN_TEST(ut::pn532::test_diagnostics);
         issue_header("PN532 SCAN TEST (optionally requires card)");

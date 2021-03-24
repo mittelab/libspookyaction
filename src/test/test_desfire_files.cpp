@@ -87,7 +87,7 @@ namespace ut::desfire_files {
         std::string buffer;
         buffer.reserve(128);
         // Here the buffer get cleared
-        buffer.append("ut::desfire_fites::test_file {.cipher=");
+        buffer.append("ut::desfire_files::test_file {.cipher=");
         buffer.append(cipher_description());
         buffer.append(", .type=");
         buffer.append(type_description());

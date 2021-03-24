@@ -81,7 +81,7 @@ namespace ut::pn532 {
 
     }// namespace
 
-    test_data::test_data(std::unique_ptr<pn532::channel> channel) : _channel{std::move(channel)}, _tag_reader{*channel}, _channel_did_wake{false} {
+    test_data::test_data(std::unique_ptr<pn532::channel> channel) : _channel{std::move(channel)}, _tag_reader{*_channel}, _channel_did_wake{false} {
         if (_channel == nullptr) {
             ESP_LOGE(TEST_TAG, "Null PN532 channel used in test!");
         }

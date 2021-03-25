@@ -33,16 +33,17 @@ void unity_perform_cipher_tests() {
 }
 
 std::shared_ptr<ut::pn532::test_instance> unity_perform_pn532_tests(ut::pn532::channel_type channel) {
-    auto instance = ut::pn532::try_activate_channel(channel);
-    if (instance == nullptr) {
+    if (not ut::pn532::channel_is_supported(channel)) {
 #ifdef KEYCARD_CI_CD_MACHINE
-        // Still run the tests so that Unity can read the failure, if this is not the CI/CD machine
         ESP_LOGE(TEST_TAG, "Unsupported channel %s.", ut::pn532::to_string(channel));
 #else
         ESP_LOGW(TEST_TAG, "Unsupported channel %s.", ut::pn532::to_string(channel));
-        return nullptr;
 #endif
-    } else {
+        return nullptr;
+    }
+    auto instance = ut::pn532::try_activate_channel(channel);
+    // Still run the tests so that Unity can read the failure, if this is not the CI/CD machine
+    if (instance != nullptr) {
         ut::default_registrar().register_instance(instance);
     }
 

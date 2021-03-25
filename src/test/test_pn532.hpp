@@ -50,6 +50,8 @@ namespace ut {
             spi
         };
 
+        [[nodiscard]] bool channel_is_supported(channel_type type);
+
         std::shared_ptr<test_instance> try_activate_channel(channel_type type);
 
         [[nodiscard]] const char *to_string(channel_type type);

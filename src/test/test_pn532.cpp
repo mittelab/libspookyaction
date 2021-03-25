@@ -235,6 +235,37 @@ namespace ut::pn532 {
      * @}
      */
 
+    bool channel_is_supported(channel_type type) {
+        switch (type) {
+            case channel_type::i2c_irq:
+#ifdef KEYCARD_I2C_IRQ
+                return true;
+#else
+                return false;
+#endif
+            case channel_type::i2c:
+#ifdef KEYCARD_I2C
+                return true;
+#else
+                return false;
+#endif
+            case channel_type::hsu:
+#ifdef KEYCARD_HSU
+                return true;
+#else
+                return false;
+#endif
+            case channel_type::spi:
+#ifdef KEYCARD_SPI
+                return true;
+#else
+                return false;
+#endif
+            default:
+                return false;
+        }
+    }
+
     std::shared_ptr<test_instance> try_activate_channel(channel_type type) {
 #ifdef KEYCARD_CI_CD_MACHINE
         gpio_set_direction(PN532_RSTN, GPIO_MODE_OUTPUT);
@@ -247,26 +278,9 @@ namespace ut::pn532 {
         ESP_LOGW(TEST_TAG, "Not running on multi-channel CI/CD machine, the PN532 will not be power-cycled.");
 #endif
         // Check which channels are allowed
-#ifndef KEYCARD_HSU
-        if (type == channel_type::hsu) {
+        if (not channel_is_supported(type)) {
             return nullptr;
         }
-#endif
-#ifndef KEYCARD_I2C
-        if (type == channel_type::i2c) {
-            return nullptr;
-        }
-#endif
-#ifndef KEYCARD_I2C_IRQ
-        if (type == channel_type::i2c_irq) {
-            return nullptr;
-        }
-#endif
-#ifndef KEYCARD_SPI
-        if (type == channel_type::spi) {
-            return nullptr;
-        }
-#endif
         ESP_LOGI(TEST_TAG, "Activating channel %s...", to_string(type));
 #ifdef KEYCARD_CI_CD_MACHINE
         // Configure I0/I1 for the selected mode

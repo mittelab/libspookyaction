@@ -19,6 +19,8 @@ namespace pn532 {
     public:
         inline desfire_pcd(nfc &controller, std::uint8_t target_logical_index);
 
+        [[nodiscard]] inline nfc &tag_reader();
+        [[nodiscard]] inline nfc const &tag_reader() const;
         [[nodiscard]] inline nfc::r<rf_status> last_result() const;
         [[nodiscard]] inline std::uint8_t target_logical_index() const;
 
@@ -28,7 +30,10 @@ namespace pn532 {
 
 namespace pn532 {
     desfire_pcd::desfire_pcd(nfc &controller, std::uint8_t target_logical_index) : _pcd{&controller}, _target{target_logical_index},
-                                                                                   _last_result{rf_status{false, false, controller_error::none}} {}
+                                                                                   _last_result{rf_status{false, false, controller_error::none}} {
+        _pcd->rf_configuration_field(true, true);
+        _pcd->initiator_select(target_logical_index);
+    }
 
     nfc &desfire_pcd::pcd() { return *_pcd; }
 
@@ -38,6 +43,13 @@ namespace pn532 {
 
     nfc::r<rf_status> desfire_pcd::last_result() const {
         return _last_result;
+    }
+
+    nfc &desfire_pcd::tag_reader() {
+        return *_pcd;
+    }
+    nfc const &desfire_pcd::tag_reader() const {
+        return *_pcd;
     }
 
 }// namespace pn532

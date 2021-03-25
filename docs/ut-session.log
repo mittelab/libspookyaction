@@ -4806,7 +4806,7 @@ D (53623) DESFIRE RAW >>: df 00
 D (53653) DESFIRE RAW <<: 00 
 D (53653) DESFIRE <<: 00 
 D (53653) DESFIRE: delete_file: completed with status successful operation
-src/test/main.cpp:916:test_file(desfire::file_security::none, desfire::cipher_type::des, desfire::file_type::standard):PASS
+src/test/main.cpp:916:demo_file(desfire::file_security::none, desfire::cipher_type::des, desfire::file_type::standard):PASS
 D (53663) DESFIRE: select_application: TX mode: plain, ofs: 1
 D (53673) DESFIRE: select_application: RX mode: plain, fetch AF: 1
 D (53673) DESFIRE >>: 5a 00 00 00 
@@ -5128,7 +5128,7 @@ D (56023) DESFIRE RAW >>: df 00
 D (56053) DESFIRE RAW <<: 00 
 D (56053) DESFIRE <<: 00 
 D (56053) DESFIRE: delete_file: completed with status successful operation
-src/test/main.cpp:916:test_file(desfire::file_security::none, desfire::cipher_type::des, desfire::file_type::backup):PASS
+src/test/main.cpp:916:demo_file(desfire::file_security::none, desfire::cipher_type::des, desfire::file_type::backup):PASS
 D (56063) DESFIRE: select_application: TX mode: plain, ofs: 1
 D (56073) DESFIRE: select_application: RX mode: plain, fetch AF: 1
 D (56073) DESFIRE >>: 5a 00 00 00 
@@ -5397,7 +5397,7 @@ D (57623) DESFIRE RAW >>: df 00
 D (57653) DESFIRE RAW <<: 00 
 D (57653) DESFIRE <<: 00 
 D (57653) DESFIRE: delete_file: completed with status successful operation
-src/test/main.cpp:916:test_file(desfire::file_security::none, desfire::cipher_type::des, desfire::file_type::value):PASS
+src/test/main.cpp:916:demo_file(desfire::file_security::none, desfire::cipher_type::des, desfire::file_type::value):PASS
 D (57663) DESFIRE: select_application: TX mode: plain, ofs: 1
 D (57673) DESFIRE: select_application: RX mode: plain, fetch AF: 1
 D (57673) DESFIRE >>: 5a 00 00 00 
@@ -5612,7 +5612,7 @@ D (58943) DESFIRE RAW >>: df 00
 D (58963) DESFIRE RAW <<: 00 
 D (58963) DESFIRE <<: 00 
 D (58963) DESFIRE: delete_file: completed with status successful operation
-src/test/main.cpp:916:test_file(desfire::file_security::none, desfire::cipher_type::des, desfire::file_type::linear_record):PASS
+src/test/main.cpp:916:demo_file(desfire::file_security::none, desfire::cipher_type::des, desfire::file_type::linear_record):PASS
 D (58973) DESFIRE: select_application: TX mode: plain, ofs: 1
 D (58983) DESFIRE: select_application: RX mode: plain, fetch AF: 1
 D (58983) DESFIRE >>: 5a 00 00 00 
@@ -5827,7 +5827,7 @@ D (60263) DESFIRE RAW >>: df 00
 D (60283) DESFIRE RAW <<: 00 
 D (60283) DESFIRE <<: 00 
 D (60283) DESFIRE: delete_file: completed with status successful operation
-src/test/main.cpp:916:test_file(desfire::file_security::none, desfire::cipher_type::des, desfire::file_type::cyclic_record):PASS
+src/test/main.cpp:916:demo_file(desfire::file_security::none, desfire::cipher_type::des, desfire::file_type::cyclic_record):PASS
 D (60293) DESFIRE: select_application: TX mode: plain, ofs: 1
 D (60303) DESFIRE: select_application: RX mode: plain, fetch AF: 1
 D (60303) DESFIRE >>: 5a 00 00 00 
@@ -6092,7 +6092,7 @@ D (62203) DESFIRE RAW >>: df 00
 D (62233) DESFIRE RAW <<: 00 
 D (62233) DESFIRE <<: 00 
 D (62233) DESFIRE: delete_file: completed with status successful operation
-src/test/main.cpp:916:test_file(desfire::file_security::none, desfire::cipher_type::des3_2k, desfire::file_type::standard):PASS
+src/test/main.cpp:916:demo_file(desfire::file_security::none, desfire::cipher_type::des3_2k, desfire::file_type::standard):PASS
 D (62243) DESFIRE: select_application: TX mode: plain, ofs: 1
 D (62253) DESFIRE: select_application: RX mode: plain, fetch AF: 1
 D (62253) DESFIRE >>: 5a 00 00 00 
@@ -6414,7 +6414,7 @@ D (64613) DESFIRE RAW >>: df 00
 D (64643) DESFIRE RAW <<: 00 
 D (64643) DESFIRE <<: 00 
 D (64643) DESFIRE: delete_file: completed with status successful operation
-src/test/main.cpp:916:test_file(desfire::file_security::none, desfire::cipher_type::des3_2k, desfire::file_type::backup):PASS
+src/test/main.cpp:916:demo_file(desfire::file_security::none, desfire::cipher_type::des3_2k, desfire::file_type::backup):PASS
 D (64653) DESFIRE: select_application: TX mode: plain, ofs: 1
 D (64663) DESFIRE: select_application: RX mode: plain, fetch AF: 1
 D (64663) DESFIRE >>: 5a 00 00 00 
@@ -6683,7 +6683,7 @@ D (66223) DESFIRE RAW >>: df 00
 D (66253) DESFIRE RAW <<: 00 
 D (66253) DESFIRE <<: 00 
 D (66253) DESFIRE: delete_file: completed with status successful operation
-src/test/main.cpp:916:test_file(desfire::file_security::none, desfire::cipher_type::des3_2k, desfire::file_type::value):PASS
+src/test/main.cpp:916:demo_file(desfire::file_security::none, desfire::cipher_type::des3_2k, desfire::file_type::value):PASS
 D (66263) DESFIRE: select_application: TX mode: plain, ofs: 1
 D (66273) DESFIRE: select_application: RX mode: plain, fetch AF: 1
 D (66273) DESFIRE >>: 5a 00 00 00 
@@ -6898,7 +6898,7 @@ D (67553) DESFIRE RAW >>: df 00
 D (67573) DESFIRE RAW <<: 00 
 D (67573) DESFIRE <<: 00 
 D (67573) DESFIRE: delete_file: completed with status successful operation
-src/test/main.cpp:916:test_file(desfire::file_security::none, desfire::cipher_type::des3_2k, desfire::file_type::linear_record):PASS
+src/test/main.cpp:916:demo_file(desfire::file_security::none, desfire::cipher_type::des3_2k, desfire::file_type::linear_record):PASS
 D (67583) DESFIRE: select_application: TX mode: plain, ofs: 1
 D (67593) DESFIRE: select_application: RX mode: plain, fetch AF: 1
 D (67593) DESFIRE >>: 5a 00 00 00 
@@ -7113,7 +7113,7 @@ D (68873) DESFIRE RAW >>: df 00
 D (68893) DESFIRE RAW <<: 00 
 D (68893) DESFIRE <<: 00 
 D (68893) DESFIRE: delete_file: completed with status successful operation
-src/test/main.cpp:916:test_file(desfire::file_security::none, desfire::cipher_type::des3_2k, desfire::file_type::cyclic_record):PASS
+src/test/main.cpp:916:demo_file(desfire::file_security::none, desfire::cipher_type::des3_2k, desfire::file_type::cyclic_record):PASS
 D (68903) DESFIRE: select_application: TX mode: plain, ofs: 1
 D (68913) DESFIRE: select_application: RX mode: plain, fetch AF: 1
 D (68913) DESFIRE >>: 5a 00 00 00 
@@ -7544,7 +7544,7 @@ D (71833) DESFIRE BLOB: 89 db 4e 59 22 69 7f c1
 D (71833) DESFIRE RX MAC: 89 db 4e 59 22 69 7f c1 
 D (71843) DESFIRE <<: 00 
 D (71843) DESFIRE: delete_file: completed with status successful operation
-src/test/main.cpp:916:test_file(desfire::file_security::none, desfire::cipher_type::des3_3k, desfire::file_type::standard):PASS
+src/test/main.cpp:916:demo_file(desfire::file_security::none, desfire::cipher_type::des3_3k, desfire::file_type::standard):PASS
 D (71863) DESFIRE: select_application: TX mode: plain, ofs: 1
 D (71863) DESFIRE: select_application: RX mode: plain, fetch AF: 1
 D (71873) DESFIRE >>: 5a 00 00 00 
@@ -8100,7 +8100,7 @@ D (75653) DESFIRE BLOB: fb d0 53 68 2b 54 c6 62
 D (75653) DESFIRE RX MAC: fb d0 53 68 2b 54 c6 62 
 D (75663) DESFIRE <<: 00 
 D (75663) DESFIRE: delete_file: completed with status successful operation
-src/test/main.cpp:916:test_file(desfire::file_security::none, desfire::cipher_type::des3_3k, desfire::file_type::backup):PASS
+src/test/main.cpp:916:demo_file(desfire::file_security::none, desfire::cipher_type::des3_3k, desfire::file_type::backup):PASS
 D (75683) DESFIRE: select_application: TX mode: plain, ofs: 1
 D (75683) DESFIRE: select_application: RX mode: plain, fetch AF: 1
 D (75693) DESFIRE >>: 5a 00 00 00 
@@ -8648,7 +8648,7 @@ D (78963) DESFIRE BLOB: a9 43 61 81 8b a7 13 80
 D (78963) DESFIRE RX MAC: a9 43 61 81 8b a7 13 80 
 D (78973) DESFIRE <<: 00 
 D (78973) DESFIRE: delete_file: completed with status successful operation
-src/test/main.cpp:916:test_file(desfire::file_security::none, desfire::cipher_type::des3_3k, desfire::file_type::value):PASS
+src/test/main.cpp:916:demo_file(desfire::file_security::none, desfire::cipher_type::des3_3k, desfire::file_type::value):PASS
 D (78993) DESFIRE: select_application: TX mode: plain, ofs: 1
 D (78993) DESFIRE: select_application: RX mode: plain, fetch AF: 1
 D (79003) DESFIRE >>: 5a 00 00 00 
@@ -9024,7 +9024,7 @@ D (81183) DESFIRE BLOB: 9e df 08 98 e0 bb 9d 04
 D (81183) DESFIRE RX MAC: 9e df 08 98 e0 bb 9d 04 
 D (81193) DESFIRE <<: 00 
 D (81193) DESFIRE: delete_file: completed with status successful operation
-src/test/main.cpp:916:test_file(desfire::file_security::none, desfire::cipher_type::des3_3k, desfire::file_type::linear_record):PASS
+src/test/main.cpp:916:demo_file(desfire::file_security::none, desfire::cipher_type::des3_3k, desfire::file_type::linear_record):PASS
 D (81213) DESFIRE: select_application: TX mode: plain, ofs: 1
 D (81213) DESFIRE: select_application: RX mode: plain, fetch AF: 1
 D (81223) DESFIRE >>: 5a 00 00 00 
@@ -9400,7 +9400,7 @@ D (83403) DESFIRE BLOB: ba 73 a2 66 23 d5 bf 61
 D (83403) DESFIRE RX MAC: ba 73 a2 66 23 d5 bf 61 
 D (83413) DESFIRE <<: 00 
 D (83413) DESFIRE: delete_file: completed with status successful operation
-src/test/main.cpp:916:test_file(desfire::file_security::none, desfire::cipher_type::des3_3k, desfire::file_type::cyclic_record):PASS
+src/test/main.cpp:916:demo_file(desfire::file_security::none, desfire::cipher_type::des3_3k, desfire::file_type::cyclic_record):PASS
 D (83433) DESFIRE: select_application: TX mode: plain, ofs: 1
 D (83433) DESFIRE: select_application: RX mode: plain, fetch AF: 1
 D (83443) DESFIRE >>: 5a 00 00 00 
@@ -9840,7 +9840,7 @@ D (86493) DESFIRE BLOB: c6 5a e4 80 56 35 dc 1a 8f 66 05 3e 54 a0 2b c4
 D (86503) DESFIRE RX MAC: c6 5a e4 80 56 35 dc 1a 
 D (86503) DESFIRE <<: 00 
 D (86503) DESFIRE: delete_file: completed with status successful operation
-src/test/main.cpp:916:test_file(desfire::file_security::none, desfire::cipher_type::aes128, desfire::file_type::standard):PASS
+src/test/main.cpp:916:demo_file(desfire::file_security::none, desfire::cipher_type::aes128, desfire::file_type::standard):PASS
 D (86523) DESFIRE: select_application: TX mode: plain, ofs: 1
 D (86533) DESFIRE: select_application: RX mode: plain, fetch AF: 1
 D (86533) DESFIRE >>: 5a 00 00 00 
@@ -10405,7 +10405,7 @@ D (90493) DESFIRE BLOB: f0 b9 8f d6 31 ad 28 68 c0 1a f9 b2 e7 a6 82 41
 D (90503) DESFIRE RX MAC: f0 b9 8f d6 31 ad 28 68 
 D (90503) DESFIRE <<: 00 
 D (90503) DESFIRE: delete_file: completed with status successful operation
-src/test/main.cpp:916:test_file(desfire::file_security::none, desfire::cipher_type::aes128, desfire::file_type::backup):PASS
+src/test/main.cpp:916:demo_file(desfire::file_security::none, desfire::cipher_type::aes128, desfire::file_type::backup):PASS
 D (90523) DESFIRE: select_application: TX mode: plain, ofs: 1
 D (90533) DESFIRE: select_application: RX mode: plain, fetch AF: 1
 D (90533) DESFIRE >>: 5a 00 00 00 
@@ -10893,7 +10893,7 @@ D (93583) DESFIRE BLOB: 65 2f ee c1 11 de 48 39 1a 17 bd 1c 93 ab 47 56
 D (93593) DESFIRE RX MAC: 65 2f ee c1 11 de 48 39 
 D (93593) DESFIRE <<: 00 
 D (93593) DESFIRE: delete_file: completed with status successful operation
-src/test/main.cpp:916:test_file(desfire::file_security::none, desfire::cipher_type::aes128, desfire::file_type::value):PASS
+src/test/main.cpp:916:demo_file(desfire::file_security::none, desfire::cipher_type::aes128, desfire::file_type::value):PASS
 D (93613) DESFIRE: select_application: TX mode: plain, ofs: 1
 D (93623) DESFIRE: select_application: RX mode: plain, fetch AF: 1
 D (93623) DESFIRE >>: 5a 00 00 00 
@@ -11268,7 +11268,7 @@ D (95973) DESFIRE BLOB: cb 17 12 ef 19 40 3f 2f ef 9a 56 9e ef 0e 0e 3d
 D (95983) DESFIRE RX MAC: cb 17 12 ef 19 40 3f 2f 
 D (95983) DESFIRE <<: 00 
 D (95983) DESFIRE: delete_file: completed with status successful operation
-src/test/main.cpp:916:test_file(desfire::file_security::none, desfire::cipher_type::aes128, desfire::file_type::linear_record):PASS
+src/test/main.cpp:916:demo_file(desfire::file_security::none, desfire::cipher_type::aes128, desfire::file_type::linear_record):PASS
 D (96003) DESFIRE: select_application: TX mode: plain, ofs: 1
 D (96013) DESFIRE: select_application: RX mode: plain, fetch AF: 1
 D (96023) DESFIRE >>: 5a 00 00 00 
@@ -11643,7 +11643,7 @@ D (98363) DESFIRE BLOB: 05 11 cf 42 93 dc 99 85 ee b7 d5 c3 f1 0d d3 1f
 D (98373) DESFIRE RX MAC: 05 11 cf 42 93 dc 99 85 
 D (98373) DESFIRE <<: 00 
 D (98373) DESFIRE: delete_file: completed with status successful operation
-src/test/main.cpp:916:test_file(desfire::file_security::none, desfire::cipher_type::aes128, desfire::file_type::cyclic_record):PASS
+src/test/main.cpp:916:demo_file(desfire::file_security::none, desfire::cipher_type::aes128, desfire::file_type::cyclic_record):PASS
 D (98393) DESFIRE: select_application: TX mode: plain, ofs: 1
 D (98403) DESFIRE: select_application: RX mode: plain, fetch AF: 1
 D (98413) DESFIRE >>: 5a 00 00 00 
@@ -11984,7 +11984,7 @@ D (100823) DESFIRE RAW >>: df 00
 D (100853) DESFIRE RAW <<: 00 
 D (100853) DESFIRE <<: 00 
 D (100853) DESFIRE: delete_file: completed with status successful operation
-src/test/main.cpp:916:test_file(desfire::file_security::maced, desfire::cipher_type::des, desfire::file_type::standard):PASS
+src/test/main.cpp:916:demo_file(desfire::file_security::maced, desfire::cipher_type::des, desfire::file_type::standard):PASS
 D (100863) DESFIRE: select_application: TX mode: plain, ofs: 1
 D (100873) DESFIRE: select_application: RX mode: plain, fetch AF: 1
 D (100873) DESFIRE >>: 5a 00 00 00 
@@ -12413,7 +12413,7 @@ D (103973) DESFIRE RAW >>: df 00
 D (104003) DESFIRE RAW <<: 00 
 D (104003) DESFIRE <<: 00 
 D (104003) DESFIRE: delete_file: completed with status successful operation
-src/test/main.cpp:916:test_file(desfire::file_security::maced, desfire::cipher_type::des, desfire::file_type::backup):PASS
+src/test/main.cpp:916:demo_file(desfire::file_security::maced, desfire::cipher_type::des, desfire::file_type::backup):PASS
 D (104013) DESFIRE: select_application: TX mode: plain, ofs: 1
 D (104023) DESFIRE: select_application: RX mode: plain, fetch AF: 1
 D (104023) DESFIRE >>: 5a 00 00 00 
@@ -12712,7 +12712,7 @@ D (105753) DESFIRE RAW >>: df 00
 D (105773) DESFIRE RAW <<: 00 
 D (105773) DESFIRE <<: 00 
 D (105773) DESFIRE: delete_file: completed with status successful operation
-src/test/main.cpp:916:test_file(desfire::file_security::maced, desfire::cipher_type::des, desfire::file_type::value):PASS
+src/test/main.cpp:916:demo_file(desfire::file_security::maced, desfire::cipher_type::des, desfire::file_type::value):PASS
 D (105783) DESFIRE: select_application: TX mode: plain, ofs: 1
 D (105793) DESFIRE: select_application: RX mode: plain, fetch AF: 1
 D (105793) DESFIRE >>: 5a 00 00 00 
@@ -12937,7 +12937,7 @@ D (107123) DESFIRE RAW >>: df 00
 D (107153) DESFIRE RAW <<: 00 
 D (107153) DESFIRE <<: 00 
 D (107153) DESFIRE: delete_file: completed with status successful operation
-src/test/main.cpp:916:test_file(desfire::file_security::maced, desfire::cipher_type::des, desfire::file_type::linear_record):PASS
+src/test/main.cpp:916:demo_file(desfire::file_security::maced, desfire::cipher_type::des, desfire::file_type::linear_record):PASS
 D (107163) DESFIRE: select_application: TX mode: plain, ofs: 1
 D (107173) DESFIRE: select_application: RX mode: plain, fetch AF: 1
 D (107173) DESFIRE >>: 5a 00 00 00 
@@ -13162,7 +13162,7 @@ D (108503) DESFIRE RAW >>: df 00
 D (108533) DESFIRE RAW <<: 00 
 D (108533) DESFIRE <<: 00 
 D (108533) DESFIRE: delete_file: completed with status successful operation
-src/test/main.cpp:916:test_file(desfire::file_security::maced, desfire::cipher_type::des, desfire::file_type::cyclic_record):PASS
+src/test/main.cpp:916:demo_file(desfire::file_security::maced, desfire::cipher_type::des, desfire::file_type::cyclic_record):PASS
 D (108543) DESFIRE: select_application: TX mode: plain, ofs: 1
 D (108553) DESFIRE: select_application: RX mode: plain, fetch AF: 1
 D (108553) DESFIRE >>: 5a 00 00 00 
@@ -13498,7 +13498,7 @@ D (110953) DESFIRE RAW >>: df 00
 D (110983) DESFIRE RAW <<: 00 
 D (110983) DESFIRE <<: 00 
 D (110983) DESFIRE: delete_file: completed with status successful operation
-src/test/main.cpp:916:test_file(desfire::file_security::maced, desfire::cipher_type::des3_2k, desfire::file_type::standard):PASS
+src/test/main.cpp:916:demo_file(desfire::file_security::maced, desfire::cipher_type::des3_2k, desfire::file_type::standard):PASS
 D (110993) DESFIRE: select_application: TX mode: plain, ofs: 1
 D (111003) DESFIRE: select_application: RX mode: plain, fetch AF: 1
 D (111003) DESFIRE >>: 5a 00 00 00 
@@ -13986,7 +13986,7 @@ D (114573) DESFIRE RAW >>: df 00
 D (114603) DESFIRE RAW <<: 00 
 D (114603) DESFIRE <<: 00 
 D (114603) DESFIRE: delete_file: completed with status successful operation
-src/test/main.cpp:916:test_file(desfire::file_security::maced, desfire::cipher_type::des3_2k, desfire::file_type::backup):PASS
+src/test/main.cpp:916:demo_file(desfire::file_security::maced, desfire::cipher_type::des3_2k, desfire::file_type::backup):PASS
 D (114613) DESFIRE: select_application: TX mode: plain, ofs: 1
 D (114623) DESFIRE: select_application: RX mode: plain, fetch AF: 1
 D (114623) DESFIRE >>: 5a 00 00 00 
@@ -14285,7 +14285,7 @@ D (116353) DESFIRE RAW >>: df 00
 D (116373) DESFIRE RAW <<: 00 
 D (116373) DESFIRE <<: 00 
 D (116373) DESFIRE: delete_file: completed with status successful operation
-src/test/main.cpp:916:test_file(desfire::file_security::maced, desfire::cipher_type::des3_2k, desfire::file_type::value):PASS
+src/test/main.cpp:916:demo_file(desfire::file_security::maced, desfire::cipher_type::des3_2k, desfire::file_type::value):PASS
 D (116383) DESFIRE: select_application: TX mode: plain, ofs: 1
 D (116393) DESFIRE: select_application: RX mode: plain, fetch AF: 1
 D (116393) DESFIRE >>: 5a 00 00 00 
@@ -14510,7 +14510,7 @@ D (117723) DESFIRE RAW >>: df 00
 D (117753) DESFIRE RAW <<: 00 
 D (117753) DESFIRE <<: 00 
 D (117753) DESFIRE: delete_file: completed with status successful operation
-src/test/main.cpp:916:test_file(desfire::file_security::maced, desfire::cipher_type::des3_2k, desfire::file_type::linear_record):PASS
+src/test/main.cpp:916:demo_file(desfire::file_security::maced, desfire::cipher_type::des3_2k, desfire::file_type::linear_record):PASS
 D (117763) DESFIRE: select_application: TX mode: plain, ofs: 1
 D (117773) DESFIRE: select_application: RX mode: plain, fetch AF: 1
 D (117773) DESFIRE >>: 5a 00 00 00 
@@ -14735,7 +14735,7 @@ D (119103) DESFIRE RAW >>: df 00
 D (119133) DESFIRE RAW <<: 00 
 D (119133) DESFIRE <<: 00 
 D (119133) DESFIRE: delete_file: completed with status successful operation
-src/test/main.cpp:916:test_file(desfire::file_security::maced, desfire::cipher_type::des3_2k, desfire::file_type::cyclic_record):PASS
+src/test/main.cpp:916:demo_file(desfire::file_security::maced, desfire::cipher_type::des3_2k, desfire::file_type::cyclic_record):PASS
 D (119143) DESFIRE: select_application: TX mode: plain, ofs: 1
 D (119153) DESFIRE: select_application: RX mode: plain, fetch AF: 1
 D (119153) DESFIRE >>: 5a 00 00 00 
@@ -15167,7 +15167,7 @@ D (122123) DESFIRE BLOB: 87 aa 9e 02 49 74 db bf
 D (122123) DESFIRE RX MAC: 87 aa 9e 02 49 74 db bf 
 D (122133) DESFIRE <<: 00 
 D (122133) DESFIRE: delete_file: completed with status successful operation
-src/test/main.cpp:916:test_file(desfire::file_security::maced, desfire::cipher_type::des3_3k, desfire::file_type::standard):PASS
+src/test/main.cpp:916:demo_file(desfire::file_security::maced, desfire::cipher_type::des3_3k, desfire::file_type::standard):PASS
 D (122153) DESFIRE: select_application: TX mode: plain, ofs: 1
 D (122153) DESFIRE: select_application: RX mode: plain, fetch AF: 1
 D (122163) DESFIRE >>: 5a 00 00 00 
@@ -15724,7 +15724,7 @@ D (125983) DESFIRE BLOB: 7f f9 9b a5 e4 23 ed c1
 D (125983) DESFIRE RX MAC: 7f f9 9b a5 e4 23 ed c1 
 D (125993) DESFIRE <<: 00 
 D (125993) DESFIRE: delete_file: completed with status successful operation
-src/test/main.cpp:916:test_file(desfire::file_security::maced, desfire::cipher_type::des3_3k, desfire::file_type::backup):PASS
+src/test/main.cpp:916:demo_file(desfire::file_security::maced, desfire::cipher_type::des3_3k, desfire::file_type::backup):PASS
 D (126013) DESFIRE: select_application: TX mode: plain, ofs: 1
 D (126013) DESFIRE: select_application: RX mode: plain, fetch AF: 1
 D (126023) DESFIRE >>: 5a 00 00 00 
@@ -16213,7 +16213,7 @@ D (128903) DESFIRE BLOB: 30 5d 81 e4 ee 73 e5 4e
 D (128903) DESFIRE RX MAC: 30 5d 81 e4 ee 73 e5 4e 
 D (128913) DESFIRE <<: 00 
 D (128913) DESFIRE: delete_file: completed with status successful operation
-src/test/main.cpp:916:test_file(desfire::file_security::maced, desfire::cipher_type::des3_3k, desfire::file_type::value):PASS
+src/test/main.cpp:916:demo_file(desfire::file_security::maced, desfire::cipher_type::des3_3k, desfire::file_type::value):PASS
 D (128933) DESFIRE: select_application: TX mode: plain, ofs: 1
 D (128933) DESFIRE: select_application: RX mode: plain, fetch AF: 1
 D (128943) DESFIRE >>: 5a 00 00 00 
@@ -16590,7 +16590,7 @@ D (131163) DESFIRE BLOB: 56 0b 93 4d d4 15 3a 9b
 D (131163) DESFIRE RX MAC: 56 0b 93 4d d4 15 3a 9b 
 D (131173) DESFIRE <<: 00 
 D (131173) DESFIRE: delete_file: completed with status successful operation
-src/test/main.cpp:916:test_file(desfire::file_security::maced, desfire::cipher_type::des3_3k, desfire::file_type::linear_record):PASS
+src/test/main.cpp:916:demo_file(desfire::file_security::maced, desfire::cipher_type::des3_3k, desfire::file_type::linear_record):PASS
 D (131193) DESFIRE: select_application: TX mode: plain, ofs: 1
 D (131193) DESFIRE: select_application: RX mode: plain, fetch AF: 1
 D (131203) DESFIRE >>: 5a 00 00 00 
@@ -16967,7 +16967,7 @@ D (133433) DESFIRE BLOB: 46 11 7c 2a 51 e0 91 7a
 D (133433) DESFIRE RX MAC: 46 11 7c 2a 51 e0 91 7a 
 D (133443) DESFIRE <<: 00 
 D (133443) DESFIRE: delete_file: completed with status successful operation
-src/test/main.cpp:916:test_file(desfire::file_security::maced, desfire::cipher_type::des3_3k, desfire::file_type::cyclic_record):PASS
+src/test/main.cpp:916:demo_file(desfire::file_security::maced, desfire::cipher_type::des3_3k, desfire::file_type::cyclic_record):PASS
 D (133463) DESFIRE: select_application: TX mode: plain, ofs: 1
 D (133463) DESFIRE: select_application: RX mode: plain, fetch AF: 1
 D (133473) DESFIRE >>: 5a 00 00 00 
@@ -17408,7 +17408,7 @@ D (136573) DESFIRE BLOB: 45 57 79 b5 84 de 80 1a 15 e5 e1 3d a2 c4 ed 8d
 D (136583) DESFIRE RX MAC: 45 57 79 b5 84 de 80 1a 
 D (136583) DESFIRE <<: 00 
 D (136593) DESFIRE: delete_file: completed with status successful operation
-src/test/main.cpp:916:test_file(desfire::file_security::maced, desfire::cipher_type::aes128, desfire::file_type::standard):PASS
+src/test/main.cpp:916:demo_file(desfire::file_security::maced, desfire::cipher_type::aes128, desfire::file_type::standard):PASS
 D (136603) DESFIRE: select_application: TX mode: plain, ofs: 1
 D (136613) DESFIRE: select_application: RX mode: plain, fetch AF: 1
 D (136623) DESFIRE >>: 5a 00 00 00 
@@ -17974,7 +17974,7 @@ D (140623) DESFIRE BLOB: 77 a5 9e ea 51 7a ff e6 9b ba 65 81 5b f2 c0 a0
 D (140633) DESFIRE RX MAC: 77 a5 9e ea 51 7a ff e6 
 D (140633) DESFIRE <<: 00 
 D (140643) DESFIRE: delete_file: completed with status successful operation
-src/test/main.cpp:916:test_file(desfire::file_security::maced, desfire::cipher_type::aes128, desfire::file_type::backup):PASS
+src/test/main.cpp:916:demo_file(desfire::file_security::maced, desfire::cipher_type::aes128, desfire::file_type::backup):PASS
 D (140653) DESFIRE: select_application: TX mode: plain, ofs: 1
 D (140663) DESFIRE: select_application: RX mode: plain, fetch AF: 1
 D (140673) DESFIRE >>: 5a 00 00 00 
@@ -18462,7 +18462,7 @@ D (143743) DESFIRE BLOB: 58 c1 7a 45 62 02 43 74 f1 67 17 91 43 7f 84 2a
 D (143753) DESFIRE RX MAC: 58 c1 7a 45 62 02 43 74 
 D (143753) DESFIRE <<: 00 
 D (143763) DESFIRE: delete_file: completed with status successful operation
-src/test/main.cpp:916:test_file(desfire::file_security::maced, desfire::cipher_type::aes128, desfire::file_type::value):PASS
+src/test/main.cpp:916:demo_file(desfire::file_security::maced, desfire::cipher_type::aes128, desfire::file_type::value):PASS
 D (143773) DESFIRE: select_application: TX mode: plain, ofs: 1
 D (143783) DESFIRE: select_application: RX mode: plain, fetch AF: 1
 D (143793) DESFIRE >>: 5a 00 00 00 
@@ -18838,7 +18838,7 @@ D (146163) DESFIRE BLOB: 9f ab b9 40 1f 7f 92 a2 eb d9 44 16 3c a8 f2 df
 D (146173) DESFIRE RX MAC: 9f ab b9 40 1f 7f 92 a2 
 D (146173) DESFIRE <<: 00 
 D (146183) DESFIRE: delete_file: completed with status successful operation
-src/test/main.cpp:916:test_file(desfire::file_security::maced, desfire::cipher_type::aes128, desfire::file_type::linear_record):PASS
+src/test/main.cpp:916:demo_file(desfire::file_security::maced, desfire::cipher_type::aes128, desfire::file_type::linear_record):PASS
 D (146193) DESFIRE: select_application: TX mode: plain, ofs: 1
 D (146203) DESFIRE: select_application: RX mode: plain, fetch AF: 1
 D (146213) DESFIRE >>: 5a 00 00 00 
@@ -19214,7 +19214,7 @@ D (148583) DESFIRE BLOB: 5d a8 68 c7 de 65 19 93 94 19 c5 06 ff 25 b0 eb
 D (148593) DESFIRE RX MAC: 5d a8 68 c7 de 65 19 93 
 D (148593) DESFIRE <<: 00 
 D (148603) DESFIRE: delete_file: completed with status successful operation
-src/test/main.cpp:916:test_file(desfire::file_security::maced, desfire::cipher_type::aes128, desfire::file_type::cyclic_record):PASS
+src/test/main.cpp:916:demo_file(desfire::file_security::maced, desfire::cipher_type::aes128, desfire::file_type::cyclic_record):PASS
 D (148613) DESFIRE: select_application: TX mode: plain, ofs: 1
 D (148623) DESFIRE: select_application: RX mode: plain, fetch AF: 1
 D (148633) DESFIRE >>: 5a 00 00 00 
@@ -19609,7 +19609,7 @@ D (151453) DESFIRE RAW >>: df 00
 D (151483) DESFIRE RAW <<: 00 
 D (151483) DESFIRE <<: 00 
 D (151483) DESFIRE: delete_file: completed with status successful operation
-src/test/main.cpp:916:test_file(desfire::file_security::encrypted, desfire::cipher_type::des, desfire::file_type::standard):PASS
+src/test/main.cpp:916:demo_file(desfire::file_security::encrypted, desfire::cipher_type::des, desfire::file_type::standard):PASS
 D (151493) DESFIRE: select_application: TX mode: plain, ofs: 1
 D (151503) DESFIRE: select_application: RX mode: plain, fetch AF: 1
 D (151503) DESFIRE >>: 5a 00 00 00 
@@ -20042,7 +20042,7 @@ D (154633) DESFIRE RAW >>: df 00
 D (154663) DESFIRE RAW <<: 00 
 D (154663) DESFIRE <<: 00 
 D (154663) DESFIRE: delete_file: completed with status successful operation
-src/test/main.cpp:916:test_file(desfire::file_security::encrypted, desfire::cipher_type::des, desfire::file_type::backup):PASS
+src/test/main.cpp:916:demo_file(desfire::file_security::encrypted, desfire::cipher_type::des, desfire::file_type::backup):PASS
 D (154673) DESFIRE: select_application: TX mode: plain, ofs: 1
 D (154683) DESFIRE: select_application: RX mode: plain, fetch AF: 1
 D (154683) DESFIRE >>: 5a 00 00 00 
@@ -20335,7 +20335,7 @@ D (156373) DESFIRE RAW >>: df 00
 D (156403) DESFIRE RAW <<: 00 
 D (156403) DESFIRE <<: 00 
 D (156403) DESFIRE: delete_file: completed with status successful operation
-src/test/main.cpp:916:test_file(desfire::file_security::encrypted, desfire::cipher_type::des, desfire::file_type::value):PASS
+src/test/main.cpp:916:demo_file(desfire::file_security::encrypted, desfire::cipher_type::des, desfire::file_type::value):PASS
 D (156413) DESFIRE: select_application: TX mode: plain, ofs: 1
 D (156423) DESFIRE: select_application: RX mode: plain, fetch AF: 1
 D (156423) DESFIRE >>: 5a 00 00 00 
@@ -20559,7 +20559,7 @@ D (157763) DESFIRE RAW >>: df 00
 D (157793) DESFIRE RAW <<: 00 
 D (157793) DESFIRE <<: 00 
 D (157793) DESFIRE: delete_file: completed with status successful operation
-src/test/main.cpp:916:test_file(desfire::file_security::encrypted, desfire::cipher_type::des, desfire::file_type::linear_record):PASS
+src/test/main.cpp:916:demo_file(desfire::file_security::encrypted, desfire::cipher_type::des, desfire::file_type::linear_record):PASS
 D (157803) DESFIRE: select_application: TX mode: plain, ofs: 1
 D (157813) DESFIRE: select_application: RX mode: plain, fetch AF: 1
 D (157813) DESFIRE >>: 5a 00 00 00 
@@ -20783,7 +20783,7 @@ D (159153) DESFIRE RAW >>: df 00
 D (159183) DESFIRE RAW <<: 00 
 D (159183) DESFIRE <<: 00 
 D (159183) DESFIRE: delete_file: completed with status successful operation
-src/test/main.cpp:916:test_file(desfire::file_security::encrypted, desfire::cipher_type::des, desfire::file_type::cyclic_record):PASS
+src/test/main.cpp:916:demo_file(desfire::file_security::encrypted, desfire::cipher_type::des, desfire::file_type::cyclic_record):PASS
 D (159193) DESFIRE: select_application: TX mode: plain, ofs: 1
 D (159203) DESFIRE: select_application: RX mode: plain, fetch AF: 1
 D (159203) DESFIRE >>: 5a 00 00 00 
@@ -21122,7 +21122,7 @@ D (161623) DESFIRE RAW >>: df 00
 D (161653) DESFIRE RAW <<: 00 
 D (161653) DESFIRE <<: 00 
 D (161653) DESFIRE: delete_file: completed with status successful operation
-src/test/main.cpp:916:test_file(desfire::file_security::encrypted, desfire::cipher_type::des3_2k, desfire::file_type::standard):PASS
+src/test/main.cpp:916:demo_file(desfire::file_security::encrypted, desfire::cipher_type::des3_2k, desfire::file_type::standard):PASS
 D (161663) DESFIRE: select_application: TX mode: plain, ofs: 1
 D (161673) DESFIRE: select_application: RX mode: plain, fetch AF: 1
 D (161673) DESFIRE >>: 5a 00 00 00 
@@ -21555,7 +21555,7 @@ D (164803) DESFIRE RAW >>: df 00
 D (164833) DESFIRE RAW <<: 00 
 D (164833) DESFIRE <<: 00 
 D (164833) DESFIRE: delete_file: completed with status successful operation
-src/test/main.cpp:916:test_file(desfire::file_security::encrypted, desfire::cipher_type::des3_2k, desfire::file_type::backup):PASS
+src/test/main.cpp:916:demo_file(desfire::file_security::encrypted, desfire::cipher_type::des3_2k, desfire::file_type::backup):PASS
 D (164843) DESFIRE: select_application: TX mode: plain, ofs: 1
 D (164853) DESFIRE: select_application: RX mode: plain, fetch AF: 1
 D (164853) DESFIRE >>: 5a 00 00 00 
@@ -21848,7 +21848,7 @@ D (166553) DESFIRE RAW >>: df 00
 D (166583) DESFIRE RAW <<: 00 
 D (166583) DESFIRE <<: 00 
 D (166583) DESFIRE: delete_file: completed with status successful operation
-src/test/main.cpp:916:test_file(desfire::file_security::encrypted, desfire::cipher_type::des3_2k, desfire::file_type::value):PASS
+src/test/main.cpp:916:demo_file(desfire::file_security::encrypted, desfire::cipher_type::des3_2k, desfire::file_type::value):PASS
 D (166593) DESFIRE: select_application: TX mode: plain, ofs: 1
 D (166603) DESFIRE: select_application: RX mode: plain, fetch AF: 1
 D (166603) DESFIRE >>: 5a 00 00 00 
@@ -22072,7 +22072,7 @@ D (167943) DESFIRE RAW >>: df 00
 D (167973) DESFIRE RAW <<: 00 
 D (167973) DESFIRE <<: 00 
 D (167973) DESFIRE: delete_file: completed with status successful operation
-src/test/main.cpp:916:test_file(desfire::file_security::encrypted, desfire::cipher_type::des3_2k, desfire::file_type::linear_record):PASS
+src/test/main.cpp:916:demo_file(desfire::file_security::encrypted, desfire::cipher_type::des3_2k, desfire::file_type::linear_record):PASS
 D (167983) DESFIRE: select_application: TX mode: plain, ofs: 1
 D (167993) DESFIRE: select_application: RX mode: plain, fetch AF: 1
 D (167993) DESFIRE >>: 5a 00 00 00 
@@ -22296,7 +22296,7 @@ D (169333) DESFIRE RAW >>: df 00
 D (169363) DESFIRE RAW <<: 00 
 D (169363) DESFIRE <<: 00 
 D (169363) DESFIRE: delete_file: completed with status successful operation
-src/test/main.cpp:916:test_file(desfire::file_security::encrypted, desfire::cipher_type::des3_2k, desfire::file_type::cyclic_record):PASS
+src/test/main.cpp:916:demo_file(desfire::file_security::encrypted, desfire::cipher_type::des3_2k, desfire::file_type::cyclic_record):PASS
 D (169373) DESFIRE: select_application: TX mode: plain, ofs: 1
 D (169383) DESFIRE: select_application: RX mode: plain, fetch AF: 1
 D (169383) DESFIRE >>: 5a 00 00 00 
@@ -22726,7 +22726,7 @@ D (172333) DESFIRE BLOB: ec 13 94 c4 84 43 ef c5
 D (172333) DESFIRE RX MAC: ec 13 94 c4 84 43 ef c5 
 D (172343) DESFIRE <<: 00 
 D (172343) DESFIRE: delete_file: completed with status successful operation
-src/test/main.cpp:916:test_file(desfire::file_security::encrypted, desfire::cipher_type::des3_3k, desfire::file_type::standard):PASS
+src/test/main.cpp:916:demo_file(desfire::file_security::encrypted, desfire::cipher_type::des3_3k, desfire::file_type::standard):PASS
 D (172363) DESFIRE: select_application: TX mode: plain, ofs: 1
 D (172363) DESFIRE: select_application: RX mode: plain, fetch AF: 1
 D (172373) DESFIRE >>: 5a 00 00 00 
@@ -23280,7 +23280,7 @@ D (176183) DESFIRE BLOB: c2 69 7b c1 34 89 5a b4
 D (176183) DESFIRE RX MAC: c2 69 7b c1 34 89 5a b4 
 D (176193) DESFIRE <<: 00 
 D (176193) DESFIRE: delete_file: completed with status successful operation
-src/test/main.cpp:916:test_file(desfire::file_security::encrypted, desfire::cipher_type::des3_3k, desfire::file_type::backup):PASS
+src/test/main.cpp:916:demo_file(desfire::file_security::encrypted, desfire::cipher_type::des3_3k, desfire::file_type::backup):PASS
 D (176213) DESFIRE: select_application: TX mode: plain, ofs: 1
 D (176213) DESFIRE: select_application: RX mode: plain, fetch AF: 1
 D (176223) DESFIRE >>: 5a 00 00 00 
@@ -23822,7 +23822,7 @@ D (179523) DESFIRE BLOB: 05 9a af 3d 8c 60 9d b3
 D (179523) DESFIRE RX MAC: 05 9a af 3d 8c 60 9d b3 
 D (179533) DESFIRE <<: 00 
 D (179533) DESFIRE: delete_file: completed with status successful operation
-src/test/main.cpp:916:test_file(desfire::file_security::encrypted, desfire::cipher_type::des3_3k, desfire::file_type::value):PASS
+src/test/main.cpp:916:demo_file(desfire::file_security::encrypted, desfire::cipher_type::des3_3k, desfire::file_type::value):PASS
 D (179553) DESFIRE: select_application: TX mode: plain, ofs: 1
 D (179553) DESFIRE: select_application: RX mode: plain, fetch AF: 1
 D (179563) DESFIRE >>: 5a 00 00 00 
@@ -24196,7 +24196,7 @@ D (181773) DESFIRE BLOB: 16 6c 27 dd 55 f4 9e 90
 D (181773) DESFIRE RX MAC: 16 6c 27 dd 55 f4 9e 90 
 D (181783) DESFIRE <<: 00 
 D (181783) DESFIRE: delete_file: completed with status successful operation
-src/test/main.cpp:916:test_file(desfire::file_security::encrypted, desfire::cipher_type::des3_3k, desfire::file_type::linear_record):PASS
+src/test/main.cpp:916:demo_file(desfire::file_security::encrypted, desfire::cipher_type::des3_3k, desfire::file_type::linear_record):PASS
 D (181803) DESFIRE: select_application: TX mode: plain, ofs: 1
 D (181803) DESFIRE: select_application: RX mode: plain, fetch AF: 1
 D (181813) DESFIRE >>: 5a 00 00 00 
@@ -24570,7 +24570,7 @@ D (184033) DESFIRE BLOB: a3 0a e6 02 ef 75 11 4a
 D (184033) DESFIRE RX MAC: a3 0a e6 02 ef 75 11 4a 
 D (184043) DESFIRE <<: 00 
 D (184043) DESFIRE: delete_file: completed with status successful operation
-src/test/main.cpp:916:test_file(desfire::file_security::encrypted, desfire::cipher_type::des3_3k, desfire::file_type::cyclic_record):PASS
+src/test/main.cpp:916:demo_file(desfire::file_security::encrypted, desfire::cipher_type::des3_3k, desfire::file_type::cyclic_record):PASS
 D (184063) DESFIRE: select_application: TX mode: plain, ofs: 1
 D (184063) DESFIRE: select_application: RX mode: plain, fetch AF: 1
 D (184073) DESFIRE >>: 5a 00 00 00 
@@ -25010,7 +25010,7 @@ D (187173) DESFIRE BLOB: 48 52 b0 63 8d 7d 19 4a a1 23 32 79 ab 52 de c4
 D (187183) DESFIRE RX MAC: 48 52 b0 63 8d 7d 19 4a 
 D (187183) DESFIRE <<: 00 
 D (187193) DESFIRE: delete_file: completed with status successful operation
-src/test/main.cpp:916:test_file(desfire::file_security::encrypted, desfire::cipher_type::aes128, desfire::file_type::standard):PASS
+src/test/main.cpp:916:demo_file(desfire::file_security::encrypted, desfire::cipher_type::aes128, desfire::file_type::standard):PASS
 D (187203) DESFIRE: select_application: TX mode: plain, ofs: 1
 D (187213) DESFIRE: select_application: RX mode: plain, fetch AF: 1
 D (187223) DESFIRE >>: 5a 00 00 00 
@@ -25575,7 +25575,7 @@ D (191233) DESFIRE BLOB: d4 ba 62 f0 43 9c 01 2b 89 12 f6 56 63 7c 5b 10
 D (191243) DESFIRE RX MAC: d4 ba 62 f0 43 9c 01 2b 
 D (191243) DESFIRE <<: 00 
 D (191253) DESFIRE: delete_file: completed with status successful operation
-src/test/main.cpp:916:test_file(desfire::file_security::encrypted, desfire::cipher_type::aes128, desfire::file_type::backup):PASS
+src/test/main.cpp:916:demo_file(desfire::file_security::encrypted, desfire::cipher_type::aes128, desfire::file_type::backup):PASS
 D (191263) DESFIRE: select_application: TX mode: plain, ofs: 1
 D (191273) DESFIRE: select_application: RX mode: plain, fetch AF: 1
 D (191283) DESFIRE >>: 5a 00 00 00 
@@ -26063,7 +26063,7 @@ D (194353) DESFIRE BLOB: ee c9 21 14 d6 0b dd db a7 27 82 af 12 f1 9b 53
 D (194363) DESFIRE RX MAC: ee c9 21 14 d6 0b dd db 
 D (194363) DESFIRE <<: 00 
 D (194373) DESFIRE: delete_file: completed with status successful operation
-src/test/main.cpp:916:test_file(desfire::file_security::encrypted, desfire::cipher_type::aes128, desfire::file_type::value):PASS
+src/test/main.cpp:916:demo_file(desfire::file_security::encrypted, desfire::cipher_type::aes128, desfire::file_type::value):PASS
 D (194383) DESFIRE: select_application: TX mode: plain, ofs: 1
 D (194393) DESFIRE: select_application: RX mode: plain, fetch AF: 1
 D (194403) DESFIRE >>: 5a 00 00 00 
@@ -26437,7 +26437,7 @@ D (196763) DESFIRE BLOB: e7 ef fc 18 95 6a 28 d2 81 1b e7 cb d1 66 30 ab
 D (196773) DESFIRE RX MAC: e7 ef fc 18 95 6a 28 d2 
 D (196773) DESFIRE <<: 00 
 D (196783) DESFIRE: delete_file: completed with status successful operation
-src/test/main.cpp:916:test_file(desfire::file_security::encrypted, desfire::cipher_type::aes128, desfire::file_type::linear_record):PASS
+src/test/main.cpp:916:demo_file(desfire::file_security::encrypted, desfire::cipher_type::aes128, desfire::file_type::linear_record):PASS
 D (196793) DESFIRE: select_application: TX mode: plain, ofs: 1
 D (196803) DESFIRE: select_application: RX mode: plain, fetch AF: 1
 D (196813) DESFIRE >>: 5a 00 00 00 
@@ -26811,7 +26811,7 @@ D (199173) DESFIRE BLOB: f4 bf 9d 0d 5b d6 4c fb d1 d0 ad 85 42 1b 4b 8e
 D (199183) DESFIRE RX MAC: f4 bf 9d 0d 5b d6 4c fb 
 D (199183) DESFIRE <<: 00 
 D (199193) DESFIRE: delete_file: completed with status successful operation
-src/test/main.cpp:916:test_file(desfire::file_security::encrypted, desfire::cipher_type::aes128, desfire::file_type::cyclic_record):PASS
+src/test/main.cpp:916:demo_file(desfire::file_security::encrypted, desfire::cipher_type::aes128, desfire::file_type::cyclic_record):PASS
 
 -----------------------
 87 Tests 0 Failures 0 Ignored 

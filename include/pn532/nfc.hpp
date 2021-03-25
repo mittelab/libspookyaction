@@ -31,8 +31,8 @@
  * @}
  */
 
-#ifndef APERTURAPORTA_NFC_HPP
-#define APERTURAPORTA_NFC_HPP
+#ifndef PN532_NFC_HPP
+#define PN532_NFC_HPP
 
 #include "bits.hpp"
 #include "channel.hpp"

@@ -5,18 +5,20 @@
 #ifndef PN532_SPI_HPP
 #define PN532_SPI_HPP
 
+#include <mlab/capable_mem.hpp>
 #include <pn532/channel.hpp>
-#include <mlab/irq_assert.hpp>
 
 namespace pn532 {
 
     class spi_channel final : public channel {
-        mlab::irq_assert _irq_assert;
+        std::vector<std::uint8_t, mlab::capable_allocator<std::uint8_t>> _tx_buffer;
+        std::vector<std::uint8_t, mlab::capable_allocator<std::uint8_t>> _rx_buffer;
 
     protected:
     public:
+        spi_channel();
     };
 
-}
+}// namespace pn532
 
 #endif//PN532_SPI_HPP

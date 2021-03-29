@@ -56,7 +56,6 @@ test hardware:
   before_script:
     - cp cicd/.platformio-ci.ini platformio.ini
   script:
-    - pio project init
     - pio run
     - pio test
 

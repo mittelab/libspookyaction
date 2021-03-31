@@ -71,7 +71,7 @@ namespace desfire {
         /**
          * @brief Construct a new tag object
          * @note if you want to create a custom controller, you should extend  @ref desfire::controller and implement @ref desfire::controller::communicate
-         * 
+         *
          * @param controller a @ref desfire::controller class that handles the tag comunication
          */
         inline explicit tag(controller &controller);
@@ -152,14 +152,6 @@ namespace desfire {
         r<> authenticate(any_key const &k);
 
         /**
-         * ~~~~
-         * 0      1                   4     0        1    0       1
-         * +------+-------------------+     +--------+    +-------+
-         * | 0x5A |        AID        | --> |  0x00  | OR | CODE  |
-         * +------+-------------------+     +--------+    +-------+
-         * | cmd  |LSB             MSB|     | Status |    | Error |
-         * ~~~~
-         *
          * @dot
          * digraph AlignmentMap {
          *  node [shape=record fontname="sans-serif"];
@@ -170,25 +162,7 @@ namespace desfire {
          *  sent1 -> {received1 error}[ sametail="b"];
          * }
          * @enddot
-         * @htmlonly
-         * <div style="display:flex; flex-direction: row;">
-         * <div>
-         * <script type="WaveDrom">
-         * {reg:[
-         *  {bits: 1, name: '0x5A', attr: 'Command code'},
-         *  {bits: 3, name: 'AID', attr: 'app'},
-         * ],
-         * config:{bits: 4, lanes: 1, hflip: true, vflip: true}}
-         * </script></div>
-         * <div>
-         * <script type="WaveDrom">
-         * {reg:[
-         *  {bits: 1, name: '0x00', attr: 'Status'},
-         * ],
-         * config:{bits: 1, lanes: 1, hflip: true, vflip: true}}
-         * </script></div>
-         * </div>
-         * @endhtmlonly
+         *
          * @brief Selects the application to use for sucessive operations
          * @ingroup application
          * @param app The id of the app to be selected
@@ -201,14 +175,6 @@ namespace desfire {
         r<> select_application(app_id const &app = root_app);
 
         /**
-         * ~~~~
-         * 0      1                   4              5           6     0        1    0       1
-         * +------+-------------------+--------------+-----------+     +--------+    +-------+
-         * | 0xCA |        AID        | key settings | # of Keys | --> |  0x00  | OR | CODE  |
-         * +------+-------------------+--------------+-----------+     +--------+    +-------+
-         * | cmd  |LSB             MSB|              |           |     | Status |    | Error |
-         * ~~~~
-         *
          * @dot
          * digraph AlignmentMap {
          *  node [shape=record fontname="sans-serif"];
@@ -219,17 +185,7 @@ namespace desfire {
          *  sent1 -> {received1 error}[ sametail="b"];
          * }
          * @enddot
-         * @htmlonly
-         * <script type="WaveDrom">
-         * {reg:[
-         *  {bits: 1, name: '0xCA', attr: 'Command code'},
-         *  {bits: 3, name: 'AID', attr: 'new_app_id'},
-         *  {bits: 1, name: 'Key settings', attr: 'settings'},
-         *  {bits: 1, name: '# of Keys', attr: 'settings'},
-         * ],
-         * config:{bits: 6, lanes: 1, hflip: true, vflip: true}}
-         * </script>
-         * @endhtmlonly
+         *
          * @brief Add a new application to the card
          * @ingroup application
          * @param new_app_id the id of the new app to be created
@@ -243,14 +199,6 @@ namespace desfire {
         r<> create_application(app_id const &new_app_id, app_settings settings);
 
         /**
-         * ~~~~
-         * 0      1                    9     0        1    0       1
-         * +------+--------------------+     +--------+    +-------+
-         * | 0x54 | ###key settings### | --> |  0x00  | OR | CODE  |
-         * +------+--------------------+     +--------+    +-------+
-         * | cmd  |     enchipered     |     | Status |    | Error |
-         * ~~~~
-         *
          * @dot
          * digraph AlignmentMap {
          *  node [shape=record fontname="sans-serif"];
@@ -261,25 +209,7 @@ namespace desfire {
          *  sent1 -> {received1 error}[ sametail="b"];
          * }
          * @enddot
-         * @htmlonly
-         * <div style="display:flex; flex-direction: row;">
-         * <div>
-         * <script type="WaveDrom">
-         * {reg:[
-         *  {bits: 1, name: '0x54', attr: 'Command code'},
-         *  {bits: 8, name: 'key settings[enchipered]', attr: 'new_rights'},
-         * ],
-         * config:{bits: 9, lanes: 1, hflip: true, vflip: true}}
-         * </script></div>
-         * <div>
-         * <script type="WaveDrom">
-         * {reg:[
-         *  {bits: 1, name: '0x00', attr: 'Status'},
-         * ],
-         * config:{bits: 1, lanes: 1, hflip: true, vflip: true}}
-         * </script></div>
-         * </div>
-         * @endhtmlonly
+         *
          * @brief Change the setting of the selected app
          * @ingroup application
          * @param new_rights the new app settings
@@ -292,14 +222,6 @@ namespace desfire {
         r<> change_app_settings(key_rights new_rights);
 
         /**
-         * ~~~~
-         * 0      1     0        1              2           3    0       1
-         * +------+     +--------+--------------+-----------+    +-------+
-         * | 0x45 | --> |  0x00  | key settings | # of Keys | OR | CODE  |
-         * +------+     +--------+--------------+-----------+    +-------+
-         * | cmd  |     | Status |              |           |    | Error |
-         * ~~~~
-         *
          * @dot
          * digraph AlignmentMap {
          *  node [shape=record fontname="sans-serif"];
@@ -310,26 +232,6 @@ namespace desfire {
          *  sent1 -> {received1 error}[ sametail="b"];
          * }
          * @enddot
-         * @htmlonly
-         * <div style="display:flex; flex-direction: row;">
-         * <div>
-         * <script type="WaveDrom">
-         * {reg:[
-         *  {bits: 1, name: '0x45', attr: 'Command code'},
-         * ],
-         * config:{bits: 1, lanes: 1, hflip: true, vflip: true}}
-         * </script></div>
-         * <div>
-         * <script type="WaveDrom">
-         * {reg:[
-         *  {bits: 1, name: '0x00', attr: 'Status'},
-         *  {bits: 1, name: 'key settings', attr: 'app_settings'},
-         *  {bits: 1, name: 'Max # of keys', attr: 'app_settings'},
-         * ],
-         * config:{bits: 3, lanes: 1, hflip: true, vflip: true}}
-         * </script></div>
-         * </div>
-         * @endhtmlonly
          *
          * @brief Get the configuration of the selected app
          * @ingroup application
@@ -342,14 +244,6 @@ namespace desfire {
         r<app_settings> get_app_settings();
 
         /**
-         * ~~~~
-         * 0      1       2     0        1             2    0       1
-         * +------+-------+     +--------+-------------+    +-------+
-         * | 0x64 | Key # | --> |  0x00  | key version | OR | CODE  |
-         * +------+-------+     +--------+-------------+    +-------+
-         * | cmd  |       |     | Status |             |    | Error |
-         * ~~~~
-         *
          * @dot
          * digraph AlignmentMap {
          *  node [shape=record fontname="sans-serif"];
@@ -360,26 +254,6 @@ namespace desfire {
          *  sent1 -> {received1 error}[ sametail="b"];
          * }
          * @enddot
-         * @htmlonly
-         * <div style="display:flex; flex-direction: row;">
-         * <div>
-         * <script type="WaveDrom">
-         * {reg:[
-         *  {bits: 1, name: '0x64', attr: 'Command code'},
-         *  {bits: 1, name: 'Key #', attr: 'key_num'},
-         * ],
-         * config:{bits: 2, lanes: 1, hflip: true, vflip: true}}
-         * </script></div>
-         * <div>
-         * <script type="WaveDrom">
-         * {reg:[
-         *  {bits: 1, name: '0x00', attr: 'Status'},
-         *  {bits: 1, name: 'key version', attr: 'version'},
-         * ],
-         * config:{bits: 2, lanes: 1, hflip: true, vflip: true}}
-         * </script></div>
-         * </div>
-         * @endhtmlonly
          *
          * @brief Get the version of the key (in the selected application)
          * @ingroup application
@@ -392,20 +266,6 @@ namespace desfire {
         r<std::uint8_t> get_key_version(std::uint8_t key_num);
 
         /**
-         * ~~~~
-         * 0      1     0        1             4             N    0       1
-         * +------+     +--------+-------------+ - - - - - - +    +-------+
-         * | 0x6A | --> |  0xAF  |     AID     |     AID     | OR | CODE  |
-         * +------+     +--------+-------------+ - - - - - - +    +-------+
-         * | cmd  |     | Status |         0-19 AIDs         |    | Error |
-         *
-         * 0      1     0        1             4             N    0       1
-         * +------+     +--------+-------------+ - - - - - - +    +-------+
-         * | 0xAF | --> |  0x00  |     AID     |     AID     | OR | CODE  |
-         * +------+     +--------+-------------+ - - - - - - +    +-------+
-         * | cmd  |     | Status |          1-7 AIDs         |    | Error |
-         * ~~~~
-         *
          * @dot
          * digraph AlignmentMap {
          *  node [shape=record fontname="sans-serif"];
@@ -420,6 +280,7 @@ namespace desfire {
          *  received2 -> sent2 -> received3;
          * }
          * @enddot
+         *
          * @brief Get a list of all application in the card
          * @ingroup application
          * @note Must be on the @ref root_app, possibly authenticated.
@@ -431,14 +292,6 @@ namespace desfire {
         r<std::vector<app_id>> get_application_ids();
 
         /**
-         * ~~~~
-         * 0      1                   4     0        1    0       1
-         * +------+-------------------+     +--------+    +-------+
-         * | 0xDA |        AID        | --> |  0x00  | OR | CODE  |
-         * +------+-------------------+     +--------+    +-------+
-         * | cmd  |LSB             MSB|     | Status |    | Error |
-         * ~~~~
-         *
          * @dot
          * digraph AlignmentMap {
          *  node [shape=record fontname="sans-serif"];
@@ -449,25 +302,6 @@ namespace desfire {
          *  sent1 -> {received1 error}[ sametail="b"];
          * }
          * @enddot
-         * @htmlonly
-         * <div style="display:flex; flex-direction: row;">
-         * <div>
-         * <script type="WaveDrom">
-         * {reg:[
-         *  {bits: 1, name: '0xDA', attr: 'Command code'},
-         *  {bits: 3, name: 'AID [LSB first]', attr: 'app'},
-         * ],
-         * config:{bits: 4, lanes: 1, hflip: true, vflip: true}}
-         * </script></div>
-         * <div>
-         * <script type="WaveDrom">
-         * {reg:[
-         *  {bits: 1, name: '0x00', attr: 'Status'},
-         * ],
-         * config:{bits: 1, lanes: 1, hflip: true, vflip: true}}
-         * </script></div>
-         * </div>
-         * @endhtmlonly
          *
          * @brief Delete the application, and all data stored in it
          * @ingroup application
@@ -481,41 +315,31 @@ namespace desfire {
         r<> delete_application(app_id const &app);
 
         /**
-         * ~~~~
-         * 0      1     0        1           2      3          4       5       6          7          8
-         * +------+     +--------+-----------+------+----------+-------+-------+----------+----------+
-         * | 0x60 | --> |  0xAF  | vendor ID | type | Sub-type | mayor | minor | tag size | protocol |
-         * +------+     +--------+-----------+------+----------+-------+-------+----------+----------+
-         * | cmd  |     | Status |           |      |          |    Version    | Storage  |          |
-         *
-         * 0      1     0        1           2      3          4       5       6          7          8
-         * +------+     +--------+-----------+------+----------+-------+-------+----------+----------+
-         * | 0xAF | --> |  0xAF  | vendor ID | type | Sub-type | mayor | minor | tag size | protocol |
-         * +------+     +--------+-----------+------+----------+-------+-------+----------+----------+
-         * | cmd  |     | Status |           |      |          |    Version    | Storage  |          |
-         *
-         * 0      1     0        1           8         13     14     15
-         * +------+     +--------+-----------+---------+------+------+
-         * | 0xAF | --> |  0x00  |    UID    | Batch # | week | year |
-         * +------+     +--------+-----------+---------+------+------+
-         * | cmd  |     | Status |           |         | Production  |
-         * ~~~~
-         *
          * @dot
          * digraph AlignmentMap {
          *  node [shape=record fontname="sans-serif"];
          *  rankdir=LR;
+         *     graph [ranksep=2]
+         *
+         *  subgraph cluster_ss{
          *  sent1 [label="{0x60\n[1 byte]}"];
+         *  sent2 [label="{0xAF\n[1 byte]}"];
+         *  sent3 [label="{0xAF\n[1 byte]}"];
+         *  }
+         *
+         *  subgraph cluster_rr{
          *  received1 [label="{0xAF\n[1 byte]|Vendor ID\n[1 byte]|Type\n[1 byte]|Sub-type\n[1 byte]|Mayor version\n[1 byte]|Minor version\n[1 byte]|Tag size\n[1 byte]|protocol\n[1 byte]}"];
          *  received2 [label="{0xAF\n[1 byte]|Vendor ID\n[1 byte]|Type\n[1 byte]|Sub-type\n[1 byte]|Mayor version\n[1 byte]|Minor version\n[1 byte]|Tag size\n[1 byte]|protocol\n[1 byte]}"];
          *  received3 [label="{0x00\n[1 byte]|UID\n[7 byte]|Batch #\n[5 byte]|Production week\n[1 byte]|Production year\n[1 byte]}"];
-         *  error [style=dashed label="{Error code\n[1 byte]}"];
-         *  sent2 [label="{0xAF\n[1 byte]}"];
-         *  sent3 [label="{0xAF\n[1 byte]}"];
-         *  sent1 -> {received1 error}[sametail="b"];
-         *  received1 -> sent2 -> received2 -> sent3 -> received3;
+         *  }
+         *  sent1 -> received1 [samehead="s1" ];
+         *  sent2 -> received1 [samehead="s1" sametail="r1" dir=back ];
+         *  sent2 -> received2[sametail="r1" samehead="s2"];
+         *  sent3 -> received2[samehead="s2" sametail="r2" dir=back];
+         *  sent3 -> received3[sametail="r2"];
          * }
          * @enddot
+         *
          * @brief Read tag information
          * @ingroup application
          * @return @ref manufacturing_info containing tag information, or the following errors:
@@ -527,13 +351,6 @@ namespace desfire {
 
 
         /**
-         * ~~~~
-         * 0      1     0        1    0       1
-         * +------+     +--------+    +-------+
-         * | 0xFC | --> |  0x00  | OR | CODE  |
-         * +------+     +--------+    +-------+
-         * | cmd  |     | Status |    | Error |
-         * ~~~~
          *
          * @dot
          * digraph AlignmentMap {
@@ -545,24 +362,6 @@ namespace desfire {
          *  sent1 -> {received1 error}[ sametail="b"];
          * }
          * @enddot
-         * @htmlonly
-         * <div style="display:flex; flex-direction: row;">
-         * <div>
-         * <script type="WaveDrom">
-         * {reg:[
-         *  {bits: 1, name: '0xFC', attr: 'Command code'},
-         * ],
-         * config:{bits: 1, lanes: 1, hflip: true, vflip: true}}
-         * </script></div>
-         * <div>
-         * <script type="WaveDrom">
-         * {reg:[
-         *  {bits: 1, name: '0x00', attr: 'Status'},
-         * ],
-         * config:{bits: 1, lanes: 1, hflip: true, vflip: true}}
-         * </script></div>
-         * </div>
-         * @endhtmlonly
          *
          * @brief Delete all the application, and keys on the card
          * @ingroup application
@@ -576,14 +375,6 @@ namespace desfire {
         r<> format_picc();
 
         /**
-         * ~~~~
-         * 0      1       2                    26    0        1    0       1
-         * +------+-------+--------------------+     +--------+    +-------+
-         * | 0x54 | Key # |   ###key data###   | --> |  0x00  | OR | CODE  |
-         * +------+-------+--------------------+     +--------+    +-------+
-         * | cmd  |       |     enchipered     |     | Status |    | Error |
-         * ~~~~
-         *
          * @dot
          * digraph AlignmentMap {
          *  node [shape=record fontname="sans-serif"];
@@ -617,14 +408,6 @@ namespace desfire {
         r<> change_key(any_key const &current_key, std::uint8_t key_no_to_change, any_key const &new_key);
 
         /**
-         * ~~~~
-         * 0      1     0        1       2       N    0       1
-         * +------+     +--------+-------+ - - - +    +-------+
-         * | 0x6F | --> |  0x00  |  FID  |  FID  | OR | CODE  |
-         * +------+     +--------+-------+ - - - +    +-------+
-         * | cmd  |     | Status |   0-16 FIDs   |    | Error |
-         * ~~~~
-         *
          * @dot
          * digraph AlignmentMap {
          *  node [shape=record fontname="sans-serif"];
@@ -635,27 +418,6 @@ namespace desfire {
          *  sent1 -> {received1 error}[ sametail="b"];
          * }
          * @enddot
-         * @htmlonly
-         * <div style="display:flex; flex-direction: row;">
-         * <div>
-         * <script type="WaveDrom">
-         * {reg:[
-         *  {bits: 1, name: '0x6F', attr: 'Command code'},
-         *  {bits: 1, name: 'FID', attr: 'fid'},
-         *  {bits: 1, name: 'Comm. sett'},
-         *  {bits: 2, name: 'Access rights [LSB first]'},
-         * ],
-         * config:{bits: 1, lanes: 1, hflip: true, vflip: true}}
-         * </script></div>
-         * <div>
-         * <script type="WaveDrom">
-         * {reg:[
-         *  {bits: 1, name: '0x00', attr: 'Status'},
-         * ],
-         * config:{bits: 1, lanes: 1, hflip: true, vflip: true}}
-         * </script></div>
-         * </div>
-         * @endhtmlonly
          *
          * @brief get a list of files in the selected application
          * @ingroup data
@@ -717,27 +479,6 @@ namespace desfire {
          *  sent1e -> {received1e errore}[ sametail="b"];
          * }
          * @enddot
-         * @htmlonly
-         * <div style="display:flex; flex-direction: row;">
-         * <div>
-         * <script type="WaveDrom">
-         * {reg:[
-         *  {bits: 1, name: '0x5F', attr: 'Command code'},
-         *  {bits: 1, name: 'FID', attr: 'fid'},
-         *  {bits: 1, name: 'Comm. sett'},
-         *  {bits: 2, name: 'Access rights [LSB first]'},
-         * ],
-         * config:{bits: 5, lanes: 1, hflip: true, vflip: true}}
-         * </script></div>
-         * <div>
-         * <script type="WaveDrom">
-         * {reg:[
-         *  {bits: 1, name: '0x00', attr: 'Status'},
-         * ],
-         * config:{bits: 1, lanes: 1, hflip: true, vflip: true}}
-         * </script></div>
-         * </div>
-         * @endhtmlonly
          *
          * @brief Modify the file settings
          * @ingroup data
@@ -783,27 +524,6 @@ namespace desfire {
          *  sent1e -> {received1e errore}[ sametail="b"];
          * }
          * @enddot
-         * @htmlonly
-         * <div style="display:flex; flex-direction: row;">
-         * <div>
-         * <script type="WaveDrom">
-         * {reg:[
-         *  {bits: 1, name: '0x5F', attr: 'Command code'},
-         *  {bits: 1, name: 'FID', attr: 'fid'},
-         *  {bits: 1, name: 'Comm. sett'},
-         *  {bits: 2, name: 'Access rights [LSB first]'},
-         * ],
-         * config:{bits: 5, lanes: 1, hflip: true, vflip: true}}
-         * </script></div>
-         * <div>
-         * <script type="WaveDrom">
-         * {reg:[
-         *  {bits: 1, name: '0x00', attr: 'Status'},
-         * ],
-         * config:{bits: 1, lanes: 1, hflip: true, vflip: true}}
-         * </script></div>
-         * </div>
-         * @endhtmlonly
          *
          * @brief Modify the file settings
          * @ingroup data
@@ -818,14 +538,6 @@ namespace desfire {
         r<> change_file_settings(file_id fid, generic_file_settings const &settings, file_security security);
 
         /**
-         * ~~~~
-         * 0      1       2                3               5               8     0        1    0       1
-         * +------+-------+----------------+---------------+---------------+     +--------+    +-------+
-         * | 0xCD |  FID  | Comm. settings | Access rights |   File size   | --> |  0x00  | OR | CODE  |
-         * +------+-------+----------------+---------------+---------------+     +--------+    +-------+
-         * | cmd  |       |                |LSB         MSB|LSB         MSB|     | Status |    | Error |
-         * ~~~~
-         *
          * @dot
          * digraph AlignmentMap {
          *  node [shape=record fontname="sans-serif"];
@@ -836,28 +548,6 @@ namespace desfire {
          *  sent1 -> {received1 error}[ sametail="b"];
          * }
          * @enddot
-         * @htmlonly
-         * <div style="display:flex; flex-direction: row;">
-         * <div>
-         * <script type="WaveDrom">
-         * {reg:[
-         *  {bits: 1, name: '0xCD', attr: 'Command code'},
-         *  {bits: 1, name: 'FID', attr: 'fid'},
-         *  {bits: 1, name: 'Comm. sett'},
-         *  {bits: 2, name: 'Access rights [LSB first]'},
-         *  {bits: 3, name: 'File size [LSB first]'},
-         * ],
-         * config:{bits: 8, lanes: 1, hflip: true, vflip: true}}
-         * </script></div>
-         * <div>
-         * <script type="WaveDrom">
-         * {reg:[
-         *  {bits: 1, name: '0x00', attr: 'Status'},
-         * ],
-         * config:{bits: 1, lanes: 1, hflip: true, vflip: true}}
-         * </script></div>
-         * </div>
-         * @endhtmlonly
          *
          * @brief Create a new file in the selected application
          * @ingroup data
@@ -884,14 +574,6 @@ namespace desfire {
 
 
         /**
-         * ~~~~
-         * 0      1       2                3               5               8     0        1    0       1
-         * +------+-------+----------------+---------------+---------------+     +--------+    +-------+
-         * | 0xCB |  FID  | Comm. settings | Access rights |   File size   | --> |  0x00  | OR | CODE  |
-         * +------+-------+----------------+---------------+---------------+     +--------+    +-------+
-         * | cmd  |       |                |LSB         MSB|LSB         MSB|     | Status |    | Error |
-         * ~~~~
-         *
          * @dot
          * digraph AlignmentMap {
          *  node [shape=record fontname="sans-serif"];
@@ -902,28 +584,6 @@ namespace desfire {
          *  sent1 -> {received1 error}[ sametail="b"];
          * }
          * @enddot
-         * @htmlonly
-         * <div style="display:flex; flex-direction: row;">
-         * <div>
-         * <script type="WaveDrom">
-         * {reg:[
-         *  {bits: 1, name: '0xCB', attr: 'Command code'},
-         *  {bits: 1, name: 'FID', attr: 'fid'},
-         *  {bits: 1, name: 'Comm. sett'},
-         *  {bits: 2, name: 'Access rights [LSB first]'},
-         *  {bits: 3, name: 'File size [LSB first]'},
-         * ],
-         * config:{bits: 8, lanes: 1, hflip: true, vflip: true}}
-         * </script></div>
-         * <div>
-         * <script type="WaveDrom">
-         * {reg:[
-         *  {bits: 1, name: '0x00', attr: 'Status'},
-         * ],
-         * config:{bits: 1, lanes: 1, hflip: true, vflip: true}}
-         * </script></div>
-         * </div>
-         * @endhtmlonly
          *
          * @brief Create a new file in the selected application
          * @ingroup data
@@ -937,14 +597,6 @@ namespace desfire {
         r<> create_file(file_id fid, file_settings<file_type::backup> const &settings);
 
         /**
-         * ~~~~
-         * 0      1       2                3               5               9               13        17              18    0        1    0       1
-         * +------+-------+----------------+---------------+---------------+---------------+---------+---------------+     +--------+    +-------+
-         * | 0xCC |  FID  | Comm. settings | Access rights |  Lower Limit  |  Upper Limit  |  Value  |  Lim. credit  | --> |  0x00  | OR | CODE  |
-         * +------+-------+----------------+---------------+---------------+---------------+---------+---------------+     +--------+    +-------+
-         * | cmd  |       |                |LSB         MSB|LSB         MSB|LSB         MSB|LSB   MSB|               |     | Status |    | Error |
-         * ~~~~
-         *
          * @dot
          * digraph AlignmentMap {
          *  node [shape=record fontname="sans-serif"];
@@ -955,31 +607,6 @@ namespace desfire {
          *  sent1 -> {received1 error}[ sametail="b"];
          * }
          * @enddot
-         * @htmlonly
-         * <div style="display:flex; flex-direction: row;">
-         * <div>
-         * <script type="WaveDrom">
-         * {reg:[
-         *  {bits: 1, name: '0xCC', attr: 'Command code'},
-         *  {bits: 1, name: 'FID', attr: 'fid'},
-         *  {bits: 1, name: 'Comm. sett'},
-         *  {bits: 2, name: 'Access rights [LSB first]'},
-         *  {bits: 4, name: 'Lower Limit [LSB first]'},
-         *  {bits: 4, name: 'Upper Limit [LSB first]'},
-         *  {bits: 4, name: 'Value [LSB first]'},
-         *  {bits: 1, name: 'Lim. credit'},
-         * ],
-         * config:{bits: 18, lanes: 1, hflip: true, vflip: true}}
-         * </script></div>
-         * <div>
-         * <script type="WaveDrom">
-         * {reg:[
-         *  {bits: 1, name: '0x00', attr: 'Status'},
-         * ],
-         * config:{bits: 1, lanes: 1, hflip: true, vflip: true}}
-         * </script></div>
-         * </div>
-         * @endhtmlonly
          *
          * @brief Create a new file in the selected application
          * @ingroup valueFile
@@ -994,14 +621,6 @@ namespace desfire {
         r<> create_file(file_id fid, file_settings<file_type::value> const &settings);
 
         /**
-         * ~~~~
-         * 0      1       2                3               5               8                    11    0        1    0       1
-         * +------+-------+----------------+---------------+---------------+--------------------+     +--------+    +-------+
-         * | 0xC1 |  FID  | Comm. settings | Access rights |  Record Size  |  Max # of records  | --> |  0x00  | OR | CODE  |
-         * +------+-------+----------------+---------------+---------------+--------------------+     +--------+    +-------+
-         * | cmd  |       |                |LSB         MSB|LSB         MSB|LSB              MSB|     | Status |    | Error |
-         * ~~~~
-         *
          * @dot
          * digraph AlignmentMap {
          *  node [shape=record fontname="sans-serif"];
@@ -1012,29 +631,6 @@ namespace desfire {
          *  sent1 -> {received1 error}[ sametail="b"];
          * }
          * @enddot
-         * @htmlonly
-         * <div style="display:flex; flex-direction: row;">
-         * <div>
-         * <script type="WaveDrom">
-         * {reg:[
-         *  {bits: 1, name: '0xC1', attr: 'Command code'},
-         *  {bits: 1, name: 'FID', attr: 'fid'},
-         *  {bits: 1, name: 'Comm. sett'},
-         *  {bits: 2, name: 'Access rights [LSB first]'},
-         *  {bits: 3, name: 'Record Size [LSB first]'},
-         *  {bits: 3, name: 'Max # of records [LSB first]'},
-         * ],
-         * config:{bits: 11, lanes: 1, hflip: true, vflip: true}}
-         * </script></div>
-         * <div>
-         * <script type="WaveDrom">
-         * {reg:[
-         *  {bits: 1, name: '0x00', attr: 'Status'},
-         * ],
-         * config:{bits: 1, lanes: 1, hflip: true, vflip: true}}
-         * </script></div>
-         * </div>
-         * @endhtmlonly
          *
          * @brief Create a new file in the selected application
          * @ingroup recordFile
@@ -1049,14 +645,6 @@ namespace desfire {
         r<> create_file(file_id fid, file_settings<file_type::linear_record> const &settings);
 
         /**
-         * ~~~~
-         * 0      1       2                3               5               8                    11    0        1    0       1
-         * +------+-------+----------------+---------------+---------------+--------------------+     +--------+    +-------+
-         * | 0xC0 |  FID  | Comm. settings | Access rights |  Record Size  |  Max # of records  | --> |  0x00  | OR | CODE  |
-         * +------+-------+----------------+---------------+---------------+--------------------+     +--------+    +-------+
-         * | cmd  |       |                |LSB         MSB|LSB         MSB|LSB              MSB|     | Status |    | Error |
-         * ~~~~
-         *
          * @dot
          * digraph AlignmentMap {
          *  node [shape=record fontname="sans-serif"];
@@ -1067,29 +655,6 @@ namespace desfire {
          *  sent1 -> {received1 error}[ sametail="b"];
          * }
          * @enddot
-         * @htmlonly
-         * <div style="display:flex; flex-direction: row;">
-         * <div>
-         * <script type="WaveDrom">
-         * {reg:[
-         *  {bits: 1, name: '0xC0', attr: 'Command code'},
-         *  {bits: 1, name: 'FID', attr: 'fid'},
-         *  {bits: 1, name: 'Comm. sett'},
-         *  {bits: 2, name: 'Access rights [LSB first]'},
-         *  {bits: 3, name: 'Record Size [LSB first]'},
-         *  {bits: 3, name: 'Max # of records [LSB first]'},
-         * ],
-         * config:{bits: 11, lanes: 1, hflip: true, vflip: true}}
-         * </script></div>
-         * <div>
-         * <script type="WaveDrom">
-         * {reg:[
-         *  {bits: 1, name: '0x00', attr: 'Status'},
-         * ],
-         * config:{bits: 1, lanes: 1, hflip: true, vflip: true}}
-         * </script></div>
-         * </div>
-         * @endhtmlonly
          *
          * @brief Create a new file in the selected application
          * @ingroup recordFile
@@ -1115,25 +680,6 @@ namespace desfire {
          *  sent1 -> {received1 error}[ sametail="b"];
          * }
          * @enddot
-         * @htmlonly
-         * <div style="display:flex; flex-direction: row;">
-         * <div>
-         * <script type="WaveDrom">
-         * {reg:[
-         *  {bits: 1, name: '0xDF', attr: 'Command code'},
-         *  {bits: 1, name: 'FID', attr: 'fid'},
-         * ],
-         * config:{bits: 2, lanes: 1, hflip: true, vflip: true}}
-         * </script></div>
-         * <div>
-         * <script type="WaveDrom">
-         * {reg:[
-         *  {bits: 1, name: '0x00', attr: 'Status'},
-         * ],
-         * config:{bits: 1, lanes: 1, hflip: true, vflip: true}}
-         * </script></div>
-         * </div>
-         * @endhtmlonly
          *
          * @brief Delete file
          * @ingroup data
@@ -1146,7 +692,6 @@ namespace desfire {
         r<> delete_file(file_id fid);
 
         /**
-         *
          * @dot
          * digraph AlignmentMap {
          *  node [shape=record fontname="sans-serif"];
@@ -1157,25 +702,6 @@ namespace desfire {
          *  sent1 -> {received1 error}[ sametail="b"];
          * }
          * @enddot
-         * @htmlonly
-         * <div style="display:flex; flex-direction: row;">
-         * <div>
-         * <script type="WaveDrom">
-         * {reg:[
-         *  {bits: 1, name: '0xEB', attr: 'Command code'},
-         *  {bits: 1, name: 'FID', attr: 'fid'},
-         * ],
-         * config:{bits: 2, lanes: 1, hflip: true, vflip: true}}
-         * </script></div>
-         * <div>
-         * <script type="WaveDrom">
-         * {reg:[
-         *  {bits: 1, name: '0x00', attr: 'Status'},
-         * ],
-         * config:{bits: 1, lanes: 1, hflip: true, vflip: true}}
-         * </script></div>
-         * </div>
-         * @endhtmlonly
          *
          * @brief clear the linear records from the file
          * @ingroup recordFile
@@ -1188,7 +714,6 @@ namespace desfire {
         r<> clear_record_file(file_id fid);
 
         /**
-         *
          * @dot
          * digraph AlignmentMap {
          *  node [shape=record fontname="sans-serif"];
@@ -1199,24 +724,6 @@ namespace desfire {
          *  sent1 -> {received1 error}[ sametail="b"];
          * }
          * @enddot
-         * @htmlonly
-         * <div style="display:flex; flex-direction: row;">
-         * <div>
-         * <script type="WaveDrom">
-         * {reg:[
-         *  {bits: 1, name: '0xC7', attr: 'Command code'},
-         * ],
-         * config:{bits: 1, lanes: 1, hflip: true, vflip: true}}
-         * </script></div>
-         * <div>
-         * <script type="WaveDrom">
-         * {reg:[
-         *  {bits: 1, name: '0x00', attr: 'Status'},
-         * ],
-         * config:{bits: 1, lanes: 1, hflip: true, vflip: true}}
-         * </script></div>
-         * </div>
-         * @endhtmlonly
          *
          * @brief commit data to file, abort on error
          * @ingroup data
@@ -1239,24 +746,6 @@ namespace desfire {
          *  sent1 -> {received1 error}[ sametail="b"];
          * }
          * @enddot
-         * @htmlonly
-         * <div style="display:flex; flex-direction: row;">
-         * <div>
-         * <script type="WaveDrom">
-         * {reg:[
-         *  {bits: 1, name: '0xA7', attr: 'Command code'},
-         * ],
-         * config:{bits: 1, lanes: 1, hflip: true, vflip: true}}
-         * </script></div>
-         * <div>
-         * <script type="WaveDrom">
-         * {reg:[
-         *  {bits: 1, name: '0x00', attr: 'Status'},
-         * ],
-         * config:{bits: 1, lanes: 1, hflip: true, vflip: true}}
-         * </script></div>
-         * </div>
-         * @endhtmlonly
          *
          * @brief abort data write to file
          * @ingroup data
@@ -1282,6 +771,7 @@ namespace desfire {
          *  received1 -> sent2 -> received3;
          * }
          * @enddot
+         *
          * @brief read data from file
          * @ingroup data
          * @param fid Max @ref bits::max_standard_data_file_id or @ref bits::max_backup_data_file_id
@@ -1347,26 +837,6 @@ namespace desfire {
          *  sent1 -> {received1 error}[ sametail="b"];
          * }
          * @enddot
-         * @htmlonly
-         * <div style="display:flex; flex-direction: row;">
-         * <div>
-         * <script type="WaveDrom">
-         * {reg:[
-         *  {bits: 1, name: '0x6C', attr: 'Command code'},
-         *  {bits: 1, name: 'FID', attr: "fid"},
-         * ],
-         * config:{bits: 2, lanes: 1, hflip: true, vflip: true}}
-         * </script></div>
-         * <div>
-         * <script type="WaveDrom">
-         * {reg:[
-         *  {bits: 1, name: '0x00', attr: 'Status'},
-         *  {bits: 4, name: 'DATA', attr: 'Plain value'},
-         * ],
-         * config:{bits: 5, lanes: 1, hflip: true, vflip: true}}
-         * </script></div>
-         * </div>
-         * @endhtmlonly
          *
          * @brief read value of a credit/debit file
          * @ingroup valueFile
@@ -1402,26 +872,6 @@ namespace desfire {
          *  sent1 -> {received1 error}[ sametail="b"];
          * }
          * @enddot
-         * @htmlonly
-         * <div style="display:flex; flex-direction: row;">
-         * <div>
-         * <script type="WaveDrom">
-         * {reg:[
-         *  {bits: 1, name: '0x0C', attr: 'Command code'},
-         *  {bits: 1, name: 'FID', attr: 'fid'},
-         *  {bits: 4, name: 'DATA', attr: 'Plain value'},
-         * ],
-         * config:{bits: 6, lanes: 1, hflip: true, vflip: true}}
-         * </script></div>
-         * <div>
-         * <script type="WaveDrom">
-         * {reg:[
-         *  {bits: 1, name: '0x00', attr: 'Status'},
-         * ],
-         * config:{bits: 1, lanes: 1, hflip: true, vflip: true}}
-         * </script></div>
-         * </div>
-         * @endhtmlonly
          *
          * @brief Increment a value file
          * @ingroup valueFile
@@ -1459,26 +909,6 @@ namespace desfire {
          *  sent1 -> {received1 error}[ sametail="b"];
          * }
          * @enddot
-         * @htmlonly
-         * <div style="display:flex; flex-direction: row;">
-         * <div>
-         * <script type="WaveDrom">
-         * {reg:[
-         *  {bits: 1, name: '0xDC', attr: 'Command code'},
-         *  {bits: 1, name: 'FID', attr: 'fid'},
-         *  {bits: 4, name: 'DATA', attr: 'Plain value'},
-         * ],
-         * config:{bits: 6, lanes: 1, hflip: true, vflip: true}}
-         * </script></div>
-         * <div>
-         * <script type="WaveDrom">
-         * {reg:[
-         *  {bits: 1, name: '0x00', attr: 'Status'},
-         * ],
-         * config:{bits: 1, lanes: 1, hflip: true, vflip: true}}
-         * </script></div>
-         * </div>
-         * @endhtmlonly
          *
          * @brief Increment, limited by past debits transaction, the value file
          * @ingroup valueFile
@@ -1518,26 +948,6 @@ namespace desfire {
          *  sent1 -> {received1 error}[ sametail="b"];
          * }
          * @enddot
-         * @htmlonly
-         * <div style="display:flex; flex-direction: row;">
-         * <div>
-         * <script type="WaveDrom">
-         * {reg:[
-         *  {bits: 1, name: '0xDC', attr: 'Command code'},
-         *  {bits: 1, name: 'FID', attr: 'fid'},
-         *  {bits: 4, name: 'DATA', attr: 'Plain value'},
-         * ],
-         * config:{bits: 6, lanes: 1, hflip: true, vflip: true}}
-         * </script></div>
-         * <div>
-         * <script type="WaveDrom">
-         * {reg:[
-         *  {bits: 1, name: '0x00', attr: 'Status'},
-         * ],
-         * config:{bits: 1, lanes: 1, hflip: true, vflip: true}}
-         * </script></div>
-         * </div>
-         * @endhtmlonly
          *
          * @brief Drecement a value file
          * @ingroup valueFile

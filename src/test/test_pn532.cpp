@@ -6,6 +6,7 @@
 #include <pn532/hsu.hpp>
 #include <pn532/i2c.hpp>
 #include <pn532/msg.hpp>
+#include <pn532/spi.hpp>
 #include <unity.h>
 
 #define TEST_TAG "UT"
@@ -72,6 +73,32 @@ namespace ut::pn532 {
                 .sda_pullup_en = GPIO_PULLUP_ENABLE,
                 .scl_pullup_en = GPIO_PULLUP_ENABLE,
                 .master = {.clk_speed = 400000}};
+
+        constexpr spi_bus_config_t spi_bus_config = {
+                .mosi_io_num = PN532_SPI_MOSI,
+                .miso_io_num = PN532_SPI_MISO,
+                .sclk_io_num = PN532_SPI_SCK,
+                .quadwp_io_num = GPIO_NUM_NC,
+                .quadhd_io_num = GPIO_NUM_NC,
+                .max_transfer_sz = 0,
+                .flags = SPICOMMON_BUSFLAG_MASTER,
+                .intr_flags = 0};
+
+        constexpr spi_device_interface_config_t spi_device_config = {
+                .command_bits = 0,
+                .address_bits = 0,
+                .dummy_bits = 0,
+                .mode = 0,
+                .duty_cycle_pos = 0,
+                .cs_ena_pretrans = 0,
+                .cs_ena_posttrans = 0,
+                .clock_speed_hz = SPI_MASTER_FREQ_10M / 2 /** @note Max supported 5MHz by PN532 **/,
+                .input_delay_ns = 0,
+                .spics_io_num = PN532_SPI_SS,
+                .flags = 0,
+                .queue_size = 1,
+                .pre_cb = nullptr,
+                .post_cb = nullptr};
 
 
         [[nodiscard]] bool ok_and_true(nfc::r<bool> const &r) {
@@ -261,6 +288,12 @@ namespace ut::pn532 {
 #else
                 return false;
 #endif
+            case channel_type::spi_irq:
+#ifdef KEYCARD_SPI_IRQ
+                return true;
+#else
+                return false;
+#endif
             default:
                 return false;
         }
@@ -316,8 +349,10 @@ namespace ut::pn532 {
                 channel = std::make_unique<pn532::i2c_channel>(I2C_NUM_0, i2c_config, PN532_IRQ, true);
                 break;
             case channel_type::spi:
-                ESP_LOGE(TEST_TAG, "SPI is not yet supported.");
-                return nullptr;
+                channel = std::make_unique<pn532::spi_channel>(SPI1_HOST, spi_bus_config, spi_device_config, 0);
+                break;
+            case channel_type::spi_irq:
+                channel = std::make_unique<pn532::spi_channel>(SPI1_HOST, spi_bus_config, spi_device_config, 0, PN532_IRQ, true);
                 break;
         }
         ESP_LOGI(TEST_TAG, "Channel %s ready.", to_string(type));
@@ -334,6 +369,8 @@ namespace ut::pn532 {
                 return "HSU";
             case channel_type::spi:
                 return "SPI";
+            case channel_type::spi_irq:
+                return "SPI with IRQ";
             default:
                 return "UNKNOWN";
         }

@@ -127,7 +127,7 @@ void unity_perform_all_tests() {
     unity_perform_cipher_tests();
 
     // Itereate through all available transmission channels. Those that cannot be activated will be skipped
-    for (channel_type channel : {channel_type::hsu, channel_type::i2c, channel_type::i2c_irq, channel_type::spi}) {
+    for (channel_type channel : {channel_type::hsu, channel_type::i2c, channel_type::i2c_irq, channel_type::spi, channel_type::spi_irq}) {
         if (auto pn532_instance = unity_perform_pn532_tests(channel); pn532_instance != nullptr) {
             if (auto mifare_instance = unity_perform_desfire_main_test(pn532_instance); mifare_instance) {
                 unity_perform_desfire_files_test(mifare_instance);

@@ -3,6 +3,7 @@
 //
 
 #include "pn532/spi.hpp"
+#include <mbcontroller.h>
 
 #define PN532_SPI_TAG "PN532-SPI"
 
@@ -99,6 +100,9 @@ namespace pn532 {
             if ((_dma_buffer.front() & spi_mask) != spi_sr) {
                 ESP_LOGE(PN532_SPI_TAG, "Received incorrect SR byte.");
                 return error::comm_malformed;
+            } else if ((_dma_buffer.back() & 0b1) == 0) {
+                // Wait a bit
+                vTaskDelay(pdMS_TO_TICKS((10ms).count()));
             }
         }
         // Nice, we now have a response to read

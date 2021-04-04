@@ -17,8 +17,8 @@ namespace mlab {
 
     template <class Iterator>
     struct range {
-        Iterator it_begin;
-        Iterator it_end;
+        Iterator it_begin{};
+        Iterator it_end{};
 
         range() = default;
 

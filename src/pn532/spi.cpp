@@ -24,7 +24,7 @@ namespace pn532 {
                     return channel::error::comm_error;
             }
         }
-    }
+    }// namespace
 
     spi_transaction_t spi_channel::make_transaction(channel::comm_mode mode) const {
         return spi_transaction_t{
@@ -35,8 +35,7 @@ namespace pn532 {
                 .rxlength = 0,
                 .user = const_cast<spi_channel *>(this),
                 .tx_buffer = mode == comm_mode::send ? const_cast<std::uint8_t *>(_dma_buffer.data()) : nullptr,
-                .rx_buffer = mode == comm_mode::receive ? const_cast<std::uint8_t *>(_dma_buffer.data()) : nullptr
-        };
+                .rx_buffer = mode == comm_mode::receive ? const_cast<std::uint8_t *>(_dma_buffer.data()) : nullptr};
     }
 
     channel::receive_mode spi_channel::raw_receive_mode() const {
@@ -108,9 +107,13 @@ namespace pn532 {
     }
 
     bool spi_channel::on_receive_prepare(ms timeout) {
+        if (not _irq_assert(timeout)) {
+            return false;
+        }
         if (_cs_pin != GPIO_NUM_NC) {
             return gpio_set_level(_cs_pin, 0) == ESP_OK;
         }
+        return true;
     }
 
     void spi_channel::on_receive_complete(r<> const &outcome) {
@@ -123,6 +126,7 @@ namespace pn532 {
         if (_cs_pin != GPIO_NUM_NC) {
             return gpio_set_level(_cs_pin, 0) == ESP_OK;
         }
+        return true;
     }
 
     void spi_channel::on_send_complete(r<> const &outcome) {
@@ -135,8 +139,8 @@ namespace pn532 {
         : _dma_buffer{mlab::capable_allocator<std::uint8_t>{MALLOC_CAP_DMA}},
           _host{std::nullopt},
           _device{nullptr},
-          _cs_pin{GPIO_NUM_NC}
-    {
+          _cs_pin{GPIO_NUM_NC},
+          _irq_assert{} {
         if (dma_chan == 0) {
             ESP_LOGE(PN532_SPI_TAG, "To use SPI with PN532, a DMA channel must be specified (either 0 or 1).");
             return;
@@ -170,6 +174,12 @@ namespace pn532 {
                 _cs_pin = GPIO_NUM_NC;
             }
         }
+    }
+
+    spi_channel::spi_channel(spi_host_device_t host, spi_bus_config_t const &bus_config, spi_device_interface_config_t device_cfg, int dma_chan,
+                             gpio_num_t response_irq_line, bool manage_isr_service)
+        : spi_channel{host, bus_config, device_cfg, dma_chan} {
+        _irq_assert = mlab::irq_assert{manage_isr_service, response_irq_line};
     }
 
     spi_channel::~spi_channel() {

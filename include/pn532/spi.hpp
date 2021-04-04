@@ -36,6 +36,8 @@ namespace pn532 {
         [[nodiscard]] receive_mode raw_receive_mode() const override;
 
     public:
+        bool wake() override;
+
         /**
          *
          * @param host

@@ -9,6 +9,8 @@
 namespace pn532 {
 
     namespace {
+        using namespace std::chrono_literals;
+
         constexpr std::uint8_t spi_dw = 0b01;
         constexpr std::uint8_t spi_dr = 0b11;
         constexpr std::uint8_t spi_sr = 0b10;
@@ -36,6 +38,14 @@ namespace pn532 {
                 .user = const_cast<spi_channel *>(this),
                 .tx_buffer = mode == comm_mode::send ? const_cast<std::uint8_t *>(_dma_buffer.data()) : nullptr,
                 .rx_buffer = mode == comm_mode::receive ? const_cast<std::uint8_t *>(_dma_buffer.data()) : nullptr};
+    }
+
+    bool spi_channel::wake() {
+        if (comm_operation op{*this, comm_mode::send, 100ms}; op.ok()) {
+            return bool(op.update(raw_send({}, 10ms)));
+        } else {
+            return false;
+        }
     }
 
     channel::receive_mode spi_channel::raw_receive_mode() const {
@@ -67,7 +77,9 @@ namespace pn532 {
         reduce_timeout rt{timeout};
         _dma_buffer.resize(buffer.size() + 1);
         _dma_buffer.front() = spi_dw;
-        std::copy(std::begin(buffer) + 1, std::end(buffer), std::begin(_dma_buffer));
+        if (buffer.size() > 0) {
+            std::copy(std::begin(buffer) + 1, std::end(buffer), std::begin(_dma_buffer));
+        }
         return perform_transaction(comm_mode::send, rt.remaining());
     }
 

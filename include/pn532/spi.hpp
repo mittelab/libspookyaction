@@ -8,6 +8,7 @@
 #include <mlab/capable_mem.hpp>
 #include <pn532/channel.hpp>
 #include <driver/spi_master.h>
+#include <driver/gpio.h>
 #include <optional>
 
 namespace pn532 {
@@ -16,6 +17,7 @@ namespace pn532 {
         std::vector<std::uint8_t, mlab::capable_allocator<std::uint8_t>> _dma_buffer;
         std::optional<spi_host_device_t> _host;
         spi_device_handle_t _device;
+        gpio_num_t _cs_pin;
 
         [[nodiscard]] spi_transaction_t make_transaction(channel::comm_mode mode) const;
         r<> perform_transaction(channel::comm_mode mode, ms timeout);
@@ -23,6 +25,11 @@ namespace pn532 {
 
         r<> raw_send(mlab::range<bin_data::const_iterator> const &buffer, ms timeout) override;
         r<> raw_receive(mlab::range<bin_data::iterator> const &buffer, ms timeout) override;
+
+        bool on_receive_prepare(ms timeout) override;
+        void on_receive_complete(r<> const &outcome) override;
+        bool on_send_prepare(ms timeout) override;
+        void on_send_complete(r<> const &outcome) override;
 
         [[nodiscard]] receive_mode raw_receive_mode() const override;
 

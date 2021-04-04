@@ -10,6 +10,9 @@ namespace pn532 {
 
     namespace {
         constexpr std::uint8_t spi_dw = 0b01;
+        constexpr std::uint8_t spi_dr = 0b11;
+        constexpr std::uint8_t spi_sr = 0b10;
+        constexpr std::uint8_t spi_mask = 0b11;
 
         channel::error error_from_esp_err(esp_err_t e) {
             switch (e) {
@@ -75,27 +78,65 @@ namespace pn532 {
         }
         reduce_timeout rt{timeout};
         _dma_buffer.clear();
-        _dma_buffer.resize(buffer.size() + 3 /* sr, status, dr */, 0x00);
-        /**
-         * @todo Perform status read check, ensure CS is kept down
-         */
+        _dma_buffer.resize(2, 0x00);
+        while (rt and (_dma_buffer.back() & 0b1) == 0) {
+            // Perform a status read check
+            if (const auto res = perform_transaction(comm_mode::receive, rt.remaining()); not res) {
+                return res.error();
+            }
+            // Is it a valid status read?
+            if ((_dma_buffer.front() & spi_mask) != spi_sr) {
+                ESP_LOGE(PN532_SPI_TAG, "Received incorrect SR byte.");
+                return error::comm_malformed;
+            }
+        }
+        // Nice, we now have a response to read
+        _dma_buffer.clear();
+        _dma_buffer.resize(buffer.size() + 1 /* DR */, 0x00);
         if (auto res = perform_transaction(comm_mode::receive, rt.remaining()); res) {
-            // Copy back
-            std::copy(std::begin(_dma_buffer) + 3, std::end(_dma_buffer), std::begin(buffer));
+            // Is the DR byte set?
+            if ((_dma_buffer.front() & spi_mask) != spi_dr) {
+                ESP_LOGE(PN532_SPI_TAG, "Received incorrect DR byte.");
+                return error::comm_malformed;
+            }
+            // Copy back to buffer
+            std::copy(std::begin(_dma_buffer) + 1, std::end(_dma_buffer), std::begin(buffer));
             return mlab::result_success;
         } else {
-            return res;
+            return res.error();
+        }
+    }
+
+    bool spi_channel::on_receive_prepare(ms timeout) {
+        if (_cs_pin != GPIO_NUM_NC) {
+            return gpio_set_level(_cs_pin, 0) == ESP_OK;
+        }
+    }
+
+    void spi_channel::on_receive_complete(r<> const &outcome) {
+        if (_cs_pin != GPIO_NUM_NC) {
+            gpio_set_level(_cs_pin, 1);
+        }
+    }
+
+    bool spi_channel::on_send_prepare(ms timeout) {
+        if (_cs_pin != GPIO_NUM_NC) {
+            return gpio_set_level(_cs_pin, 0) == ESP_OK;
+        }
+    }
+
+    void spi_channel::on_send_complete(r<> const &outcome) {
+        if (_cs_pin != GPIO_NUM_NC) {
+            gpio_set_level(_cs_pin, 1);
         }
     }
 
     spi_channel::spi_channel(spi_host_device_t host, spi_bus_config_t const &bus_config, spi_device_interface_config_t device_cfg, int dma_chan)
         : _dma_buffer{mlab::capable_allocator<std::uint8_t>{MALLOC_CAP_DMA}},
           _host{std::nullopt},
-          _device{nullptr}
+          _device{nullptr},
+          _cs_pin{GPIO_NUM_NC}
     {
-        /**
-         * @todo Make sure we control the CS pin
-         */
         if (dma_chan == 0) {
             ESP_LOGE(PN532_SPI_TAG, "To use SPI with PN532, a DMA channel must be specified (either 0 or 1).");
             return;
@@ -111,9 +152,23 @@ namespace pn532 {
         device_cfg.command_bits = 0;
         device_cfg.dummy_bits = 0;
         device_cfg.flags |= SPI_DEVICE_BIT_LSBFIRST;
+        // We will control the CS manually. We do this so that we can continue polling as much as needed instead of having
+        // the SPI driver release CS for us. When that happens, the PN532 releases the buffer, so we do not want that to happen.
+        _cs_pin = static_cast<gpio_num_t>(device_cfg.spics_io_num);
+        device_cfg.spics_io_num = GPIO_NUM_NC;
         if (const auto res = spi_bus_add_device(host, &device_cfg, &_device); res != ESP_OK) {
             ESP_LOGE(PN532_SPI_TAG, "spi_bus_add_device failed, return code %d (%s).", res, esp_err_to_name(res));
             _device = nullptr;
+        }
+        if (_cs_pin != GPIO_NUM_NC) {
+            if (const auto res = gpio_set_direction(_cs_pin, GPIO_MODE_OUTPUT); res != ESP_OK) {
+                ESP_LOGE(PN532_SPI_TAG, "gpio_set_direction failed, return code %d (%s).", res, esp_err_to_name(res));
+                _cs_pin = GPIO_NUM_NC;
+            }
+            if (const auto res = gpio_set_level(_cs_pin, 1); res != ESP_OK) {
+                ESP_LOGE(PN532_SPI_TAG, "gpio_set_level failed, return code %d (%s).", res, esp_err_to_name(res));
+                _cs_pin = GPIO_NUM_NC;
+            }
         }
     }
 

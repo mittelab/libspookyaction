@@ -37,8 +37,10 @@ namespace pn532 {
     }
 
     bool spi_channel::wake() {
-        if (comm_operation op{*this, comm_mode::send, 100ms}; op.ok()) {
-            return bool(op.update(raw_send({}, 10ms)));
+        if (comm_operation op{*this, comm_mode::send, 10ms}; op.ok()) {
+            // Send some dummy data to wake up
+            _dma_buffer = {0x55, 0x55, 0x55};
+            return bool(op.update(perform_transaction(spi_command::data_write, comm_mode::send, 10ms)));
         } else {
             return false;
         }

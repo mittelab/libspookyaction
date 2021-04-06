@@ -75,6 +75,7 @@ namespace pn532 {
         if (_device == nullptr) {
             return error::comm_error;
         }
+        ESP_LOG_BUFFER_HEX_LEVEL(PN532_SPI_TAG " >>", buffer.data(), buffer.size(), ESP_LOG_VERBOSE);
         reduce_timeout rt{timeout};
         _dma_buffer.resize(buffer.size() + 1);
         _dma_buffer.front() = spi_dw;
@@ -98,7 +99,7 @@ namespace pn532 {
             }
             // Is it a valid status read?
             if ((_dma_buffer.front() & spi_mask) != spi_sr) {
-                ESP_LOGE(PN532_SPI_TAG, "Received incorrect SR byte.");
+                ESP_LOGE(PN532_SPI_TAG, "Received incorrect SR byte %02x.", _dma_buffer.front());
                 return error::comm_malformed;
             } else if ((_dma_buffer.back() & 0b1) == 0) {
                 // Wait a bit
@@ -116,6 +117,7 @@ namespace pn532 {
             }
             // Copy back to buffer
             std::copy(std::begin(_dma_buffer) + 1, std::end(_dma_buffer), std::begin(buffer));
+            ESP_LOG_BUFFER_HEX_LEVEL(PN532_SPI_TAG " <<", buffer.data(), buffer.size(), ESP_LOG_VERBOSE);
             return mlab::result_success;
         } else {
             return res.error();
@@ -158,7 +160,7 @@ namespace pn532 {
           _cs_pin{GPIO_NUM_NC},
           _irq_assert{} {
         if (dma_chan == 0) {
-            ESP_LOGE(PN532_SPI_TAG, "To use SPI with PN532, a DMA channel must be specified (either 0 or 1).");
+            ESP_LOGE(PN532_SPI_TAG, "To use SPI with PN532, a DMA channel must be specified (either 1 or 2).");
             return;
         }
         if (const auto res = spi_bus_initialize(host, &bus_config, dma_chan); res != ESP_OK) {

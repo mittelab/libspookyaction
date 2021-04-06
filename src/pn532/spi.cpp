@@ -176,8 +176,11 @@ namespace pn532 {
         device_cfg.flags |= SPI_DEVICE_BIT_LSBFIRST;
         // We will control the CS manually. We do this so that we can continue polling as much as needed instead of having
         // the SPI driver release CS for us. When that happens, the PN532 releases the buffer, so we do not want that to happen.
+#if 0
+// Temporarily let the transaction mechanism mmanage the CS pin, we use buffered mode.
         _cs_pin = static_cast<gpio_num_t>(device_cfg.spics_io_num);
         device_cfg.spics_io_num = GPIO_NUM_NC;
+#endif
         if (const auto res = spi_bus_add_device(host, &device_cfg, &_device); res != ESP_OK) {
             ESP_LOGE(PN532_SPI_TAG, "spi_bus_add_device failed, return code %d (%s).", res, esp_err_to_name(res));
             _device = nullptr;

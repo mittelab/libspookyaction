@@ -34,7 +34,7 @@ namespace pn532 {
                 .flags = 0,
                 .cmd = 0,
                 .addr = 0,
-                .length = _dma_buffer.size(),
+                .length = _dma_buffer.size() * 8,
                 .rxlength = 0,
                 .user = const_cast<spi_channel *>(this),
                 .tx_buffer = mode == comm_mode::send ? const_cast<std::uint8_t *>(_dma_buffer.data()) : nullptr,
@@ -79,7 +79,7 @@ namespace pn532 {
         _dma_buffer.resize(buffer.size() + 1);
         _dma_buffer.front() = spi_dw;
         if (buffer.size() > 0) {
-            std::copy(std::begin(buffer) + 1, std::end(buffer), std::begin(_dma_buffer));
+            std::copy(std::begin(buffer), std::end(buffer), std::begin(_dma_buffer) + 1);
         }
         return perform_transaction(comm_mode::send, rt.remaining());
     }

@@ -349,10 +349,10 @@ namespace ut::pn532 {
                 channel = std::make_unique<pn532::i2c_channel>(I2C_NUM_0, i2c_config, PN532_IRQ, true);
                 break;
             case channel_type::spi:
-                channel = std::make_unique<pn532::spi_channel>(SPI1_HOST, spi_bus_config, spi_device_config, 0);
+                channel = std::make_unique<pn532::spi_channel>(SPI2_HOST, spi_bus_config, spi_device_config, 1);
                 break;
             case channel_type::spi_irq:
-                channel = std::make_unique<pn532::spi_channel>(SPI1_HOST, spi_bus_config, spi_device_config, 0, PN532_IRQ, true);
+                channel = std::make_unique<pn532::spi_channel>(SPI2_HOST, spi_bus_config, spi_device_config, 1, PN532_IRQ, true);
                 break;
         }
         ESP_LOGI(TEST_TAG, "Channel %s ready.", to_string(type));

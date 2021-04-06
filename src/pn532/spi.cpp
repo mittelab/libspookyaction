@@ -12,11 +12,6 @@ namespace pn532 {
     namespace {
         using namespace std::chrono_literals;
 
-        constexpr std::uint8_t spi_dw = 0b01;
-        constexpr std::uint8_t spi_dr = 0b11;
-        constexpr std::uint8_t spi_sr = 0b10;
-        constexpr std::uint8_t spi_mask = 0b11;
-
         channel::error error_from_esp_err(esp_err_t e) {
             switch (e) {
                 case ESP_ERR_TIMEOUT:
@@ -29,10 +24,10 @@ namespace pn532 {
         }
     }// namespace
 
-    spi_transaction_t spi_channel::make_transaction(channel::comm_mode mode) const {
+    spi_transaction_t spi_channel::make_transaction(spi_command cmd, channel::comm_mode mode) const {
         return spi_transaction_t{
                 .flags = 0,
-                .cmd = 0,
+                .cmd = static_cast<std::uint8_t>(cmd),
                 .addr = 0,
                 .length = _dma_buffer.size() * 8,
                 .rxlength = 0,
@@ -53,20 +48,12 @@ namespace pn532 {
         return channel::receive_mode::buffered;
     }
 
-    channel::r<> spi_channel::perform_transaction(channel::comm_mode mode, ms timeout) {
+    channel::r<> spi_channel::perform_transaction(spi_command cmd, channel::comm_mode mode, ms timeout) {
         reduce_timeout rt{timeout};
-        auto transaction = make_transaction(mode);
-        if (const auto res = spi_device_queue_trans(_device, &transaction, pdMS_TO_TICKS(rt.remaining().count())); res != ESP_OK) {
-            ESP_LOGE(PN532_SPI_TAG, "spi_device_queue_trans failed, return code %d (%s).", res, esp_err_to_name(res));
+        auto transaction = make_transaction(cmd, mode);
+        if (const auto res = spi_device_transmit(_device, &transaction); res != ESP_OK) {
+            ESP_LOGE(PN532_SPI_TAG, "spi_device_transmit failed, return code %d (%s).", res, esp_err_to_name(res));
             return error_from_esp_err(res);
-        }
-        spi_transaction_t *transaction_ptr = nullptr;
-        if (const auto res = spi_device_get_trans_result(_device, &transaction_ptr, pdMS_TO_TICKS(rt.remaining().count())); res != ESP_OK) {
-            ESP_LOGE(PN532_SPI_TAG, "spi_device_get_trans_result failed, return code %d (%s).", res, esp_err_to_name(res));
-            return error_from_esp_err(res);
-        } else if (transaction_ptr != &transaction) {
-            ESP_LOGE(PN532_SPI_TAG, "Received incorrect transaction.");
-            return error::comm_error;
         }
         return mlab::result_success;
     }
@@ -77,12 +64,30 @@ namespace pn532 {
         }
         ESP_LOG_BUFFER_HEX_LEVEL(PN532_SPI_TAG " >>", buffer.data(), buffer.size(), ESP_LOG_VERBOSE);
         reduce_timeout rt{timeout};
-        _dma_buffer.resize(buffer.size() + 1);
-        _dma_buffer.front() = spi_dw;
+        _dma_buffer.resize(buffer.size());
         if (buffer.size() > 0) {
-            std::copy(std::begin(buffer), std::end(buffer), std::begin(_dma_buffer) + 1);
+            std::copy(std::begin(buffer), std::end(buffer), std::begin(_dma_buffer));
         }
-        return perform_transaction(comm_mode::send, rt.remaining());
+        return perform_transaction(spi_command::data_write, comm_mode::send, rt.remaining());
+    }
+
+    channel::r<> spi_channel::raw_poll_status(ms timeout) {
+        reduce_timeout rt{timeout};
+        _dma_buffer.clear();
+        _dma_buffer.resize(1, 0x00);
+        while (rt) {
+            // Perform a status read check
+            if (const auto res = perform_transaction(spi_command::status_read, comm_mode::receive, rt.remaining()); not res) {
+                return res.error();
+            } else if ((_dma_buffer.back() & 0b1) == 0) {
+                // Wait a bit
+                vTaskDelay(pdMS_TO_TICKS((10ms).count()));
+            } else {
+                // Successful
+                return mlab::result_success;
+            }
+        }
+        return error::comm_timeout;
     }
 
     channel::r<> spi_channel::raw_receive(mlab::range<bin_data::iterator> const &buffer, ms timeout) {
@@ -90,33 +95,16 @@ namespace pn532 {
             return error::comm_error;
         }
         reduce_timeout rt{timeout};
-        _dma_buffer.clear();
-        _dma_buffer.resize(2, 0x00);
-        while (rt and (_dma_buffer.back() & 0b1) == 0) {
-            // Perform a status read check
-            if (const auto res = perform_transaction(comm_mode::receive, rt.remaining()); not res) {
-                return res.error();
-            }
-            // Is it a valid status read?
-            if ((_dma_buffer.front() & spi_mask) != spi_sr) {
-                ESP_LOGE(PN532_SPI_TAG, "Received incorrect SR byte %02x.", _dma_buffer.front());
-                return error::comm_malformed;
-            } else if ((_dma_buffer.back() & 0b1) == 0) {
-                // Wait a bit
-                vTaskDelay(pdMS_TO_TICKS((10ms).count()));
-            }
+        /// @todo Can skip if using IRQ?
+        if (const auto res = raw_poll_status(rt.remaining()); not res) {
+            return res.error();
         }
         // Nice, we now have a response to read
         _dma_buffer.clear();
-        _dma_buffer.resize(buffer.size() + 1 /* DR */, 0x00);
-        if (auto res = perform_transaction(comm_mode::receive, rt.remaining()); res) {
-            // Is the DR byte set?
-            if ((_dma_buffer.front() & spi_mask) != spi_dr) {
-                ESP_LOGE(PN532_SPI_TAG, "Received incorrect DR byte.");
-                return error::comm_malformed;
-            }
+        _dma_buffer.resize(buffer.size(), 0x00);
+        if (auto res = perform_transaction(spi_command::data_read, comm_mode::receive, rt.remaining()); res) {
             // Copy back to buffer
-            std::copy(std::begin(_dma_buffer) + 1, std::end(_dma_buffer), std::begin(buffer));
+            std::copy(std::begin(_dma_buffer), std::end(_dma_buffer), std::begin(buffer));
             ESP_LOG_BUFFER_HEX_LEVEL(PN532_SPI_TAG " <<", buffer.data(), buffer.size(), ESP_LOG_VERBOSE);
             return mlab::result_success;
         } else {
@@ -171,7 +159,7 @@ namespace pn532 {
         _host = host;
         // Patch the device options
         device_cfg.address_bits = 0;
-        device_cfg.command_bits = 0;
+        device_cfg.command_bits = 8;// 1 byte indicating status read, data read, data write
         device_cfg.dummy_bits = 0;
         device_cfg.flags |= SPI_DEVICE_BIT_LSBFIRST;
         // We will control the CS manually. We do this so that we can continue polling as much as needed instead of having

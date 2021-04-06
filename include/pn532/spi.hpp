@@ -21,12 +21,19 @@ namespace pn532 {
         gpio_num_t _cs_pin;
         mlab::irq_assert _irq_assert;
 
-        [[nodiscard]] spi_transaction_t make_transaction(channel::comm_mode mode) const;
-        r<> perform_transaction(channel::comm_mode mode, ms timeout);
+        enum struct spi_command : std::uint8_t {
+            data_write = 0b01,
+            status_read = 0b10,
+            data_read = 0b11
+        };
+
+        [[nodiscard]] spi_transaction_t make_transaction(spi_command cmd, channel::comm_mode mode) const;
+        r<> perform_transaction(spi_command cmd, channel::comm_mode mode, ms timeout);
 
     protected:
         r<> raw_send(mlab::range<bin_data::const_iterator> const &buffer, ms timeout) override;
         r<> raw_receive(mlab::range<bin_data::iterator> const &buffer, ms timeout) override;
+        r<> raw_poll_status(ms timeout);
 
         bool on_receive_prepare(ms timeout) override;
         void on_receive_complete(r<> const &outcome) override;

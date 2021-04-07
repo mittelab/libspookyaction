@@ -18,7 +18,6 @@ namespace pn532 {
         std::vector<std::uint8_t, mlab::capable_allocator<std::uint8_t>> _dma_buffer;
         std::optional<spi_host_device_t> _host;
         spi_device_handle_t _device;
-        gpio_num_t _cs_pin;
         mlab::irq_assert _irq_assert;
 
         enum struct recv_op_status {
@@ -37,17 +36,12 @@ namespace pn532 {
 
         r<> perform_transaction(spi_command cmd, channel::comm_mode mode, ms timeout);
 
-        bool set_cs(bool high);
-
     protected:
         r<> raw_send(mlab::range<bin_data::const_iterator> const &buffer, ms timeout) override;
         r<> raw_receive(mlab::range<bin_data::iterator> const &buffer, ms timeout) override;
         r<> raw_poll_status(ms timeout);
 
         bool on_receive_prepare(ms timeout) override;
-        void on_receive_complete(r<> const &outcome) override;
-        bool on_send_prepare(ms timeout) override;
-        void on_send_complete(r<> const &outcome) override;
 
         [[nodiscard]] receive_mode raw_receive_mode() const override;
 

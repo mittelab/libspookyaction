@@ -39,16 +39,6 @@ namespace pn532 {
     }
 
 
-    bool spi_channel::set_cs(bool high) {
-        if (_cs_pin != GPIO_NUM_NC) {
-            if (const auto res_gpio = gpio_set_level(_cs_pin, high ? 1 : 0); res_gpio != ESP_OK) {
-                ESP_LOGE(PN532_SPI_TAG, "gpio_set_level failed, return code %d (%s).", res_gpio, esp_err_to_name(res_gpio));
-                return false;
-            }
-        }
-        return true;
-    }
-
     channel::r<> spi_channel::perform_transaction(spi_command cmd, channel::comm_mode mode, ms timeout) {
         reduce_timeout rt{timeout};
         spi_transaction_ext_t transaction{
@@ -138,31 +128,15 @@ namespace pn532 {
         if (not _irq_assert(timeout)) {
             return false;
         }
-        if (not set_cs(false)) {
-            return false;
-        }
         /// @todo Check if IRQ assert is trivial and then set this to true
         _recv_op_status = recv_op_status::init;
         return true;
-    }
-
-    void spi_channel::on_receive_complete(r<> const &outcome) {
-        set_cs(true);
-    }
-
-    bool spi_channel::on_send_prepare(ms timeout) {
-        return set_cs(false);
-    }
-
-    void spi_channel::on_send_complete(r<> const &outcome) {
-        set_cs(true);
     }
 
     spi_channel::spi_channel(spi_host_device_t host, spi_bus_config_t const &bus_config, spi_device_interface_config_t device_cfg, int dma_chan)
         : _dma_buffer{mlab::capable_allocator<std::uint8_t>{MALLOC_CAP_DMA}},
           _host{std::nullopt},
           _device{nullptr},
-          _cs_pin{GPIO_NUM_NC},
           _irq_assert{},
           _recv_op_status{recv_op_status::init} {
         if (dma_chan == 0) {
@@ -180,26 +154,9 @@ namespace pn532 {
         device_cfg.command_bits = 8;// 1 byte indicating status read, data read, data write
         device_cfg.dummy_bits = 0;
         device_cfg.flags |= SPI_DEVICE_BIT_LSBFIRST;
-        // We will control the CS manually. We do this so that we can continue polling as much as needed instead of having
-        // the SPI driver release CS for us. When that happens, the PN532 releases the buffer, so we do not want that to happen.
-#if 0
-// Temporarily let the transaction mechanism mmanage the CS pin, we use buffered mode.
-        _cs_pin = static_cast<gpio_num_t>(device_cfg.spics_io_num);
-        device_cfg.spics_io_num = GPIO_NUM_NC;
-#endif
         if (const auto res = spi_bus_add_device(host, &device_cfg, &_device); res != ESP_OK) {
             ESP_LOGE(PN532_SPI_TAG, "spi_bus_add_device failed, return code %d (%s).", res, esp_err_to_name(res));
             _device = nullptr;
-        }
-        if (_cs_pin != GPIO_NUM_NC) {
-            if (const auto res = gpio_set_direction(_cs_pin, GPIO_MODE_OUTPUT); res != ESP_OK) {
-                ESP_LOGE(PN532_SPI_TAG, "gpio_set_direction failed, return code %d (%s).", res, esp_err_to_name(res));
-                _cs_pin = GPIO_NUM_NC;
-            }
-            if (const auto res = gpio_set_level(_cs_pin, 1); res != ESP_OK) {
-                ESP_LOGE(PN532_SPI_TAG, "gpio_set_level failed, return code %d (%s).", res, esp_err_to_name(res));
-                _cs_pin = GPIO_NUM_NC;
-            }
         }
     }
 

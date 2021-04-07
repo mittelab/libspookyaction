@@ -41,7 +41,7 @@ test examples:
     - >
       for file in examples/*; do
         pio ci \
-          --project-conf=.platformio-ci.ini \
+          --project-conf=cicd/.platformio-ci.ini \
           --lib="." \
           $file
       done
@@ -50,14 +50,14 @@ test examples:
 test hardware:
   <<: *platformio-cache
   stage: test
+  tags:
+    - pn532
+  image: git-registry.mittelab.org/proj/keycard-access/testinator-platformio:latest
   before_script:
-    - cp .platformio-ci.ini platformio.ini
+    - cp cicd/.platformio-ci.ini platformio.ini
   script:
-    - pio project init
     - pio run
-    - pio remote --agent testinator test --upload-port /dev/ttyUSB0 --test-port /dev/ttyUSB0
-  rules:
-    - if: "$PLATFORMIO_AUTH_TOKEN"
+    - pio test
 
 
 pages:

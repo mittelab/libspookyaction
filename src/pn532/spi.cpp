@@ -24,18 +24,6 @@ namespace pn532 {
         }
     }// namespace
 
-    spi_transaction_t spi_channel::make_transaction(spi_command cmd, channel::comm_mode mode) const {
-        return spi_transaction_t{
-                .flags = 0,
-                .cmd = static_cast<std::uint8_t>(cmd),
-                .addr = 0,
-                .length = _dma_buffer.size() * 8,
-                .rxlength = 0,
-                .user = const_cast<spi_channel *>(this),
-                .tx_buffer = mode == comm_mode::send ? const_cast<std::uint8_t *>(_dma_buffer.data()) : nullptr,
-                .rx_buffer = mode == comm_mode::receive ? const_cast<std::uint8_t *>(_dma_buffer.data()) : nullptr};
-    }
-
     bool spi_channel::wake() {
         if (comm_operation op{*this, comm_mode::send, 10ms}; op.ok()) {
             // Send some dummy data to wake up
@@ -47,13 +35,38 @@ namespace pn532 {
     }
 
     channel::receive_mode spi_channel::raw_receive_mode() const {
-        return channel::receive_mode::buffered;
+        return channel::receive_mode::stream;
+    }
+
+
+    bool spi_channel::set_cs(bool high) {
+        if (_cs_pin != GPIO_NUM_NC) {
+            if (const auto res_gpio = gpio_set_level(_cs_pin, high ? 1 : 0); res_gpio != ESP_OK) {
+                ESP_LOGE(PN532_SPI_TAG, "gpio_set_level failed, return code %d (%s).", res_gpio, esp_err_to_name(res_gpio));
+                return false;
+            }
+        }
+        return true;
     }
 
     channel::r<> spi_channel::perform_transaction(spi_command cmd, channel::comm_mode mode, ms timeout) {
         reduce_timeout rt{timeout};
-        auto transaction = make_transaction(cmd, mode);
-        if (const auto res = spi_device_transmit(_device, &transaction); res != ESP_OK) {
+        spi_transaction_ext_t transaction{
+                .base = {
+                        .flags = (cmd == spi_command::none ? SPI_TRANS_VARIABLE_CMD : 0u),
+                        .cmd = static_cast<std::uint8_t>(cmd),
+                        .addr = 0,
+                        .length = _dma_buffer.size() * 8,
+                        .rxlength = 0,
+                        .user = const_cast<spi_channel *>(this),
+                        .tx_buffer = mode == comm_mode::send ? const_cast<std::uint8_t *>(_dma_buffer.data()) : nullptr,
+                        .rx_buffer = mode == comm_mode::receive ? const_cast<std::uint8_t *>(_dma_buffer.data()) : nullptr
+                },
+                .command_bits = 0,
+                .address_bits = 0,
+                .dummy_bits = 0
+        };
+        if (const auto res = spi_device_transmit(_device, reinterpret_cast<spi_transaction_t *>(&transaction)); res != ESP_OK) {
             ESP_LOGE(PN532_SPI_TAG, "spi_device_transmit failed, return code %d (%s).", res, esp_err_to_name(res));
             return error_from_esp_err(res);
         }
@@ -74,6 +87,9 @@ namespace pn532 {
     }
 
     channel::r<> spi_channel::raw_poll_status(ms timeout) {
+        if (_recv_op_status != recv_op_status::init) {
+            return mlab::result_success;
+        }
         reduce_timeout rt{timeout};
         _dma_buffer.clear();
         _dma_buffer.resize(1, 0x00);
@@ -86,6 +102,7 @@ namespace pn532 {
                 vTaskDelay(pdMS_TO_TICKS((10ms).count()));
             } else {
                 // Successful
+                _recv_op_status = recv_op_status::did_poll;
                 return mlab::result_success;
             }
         }
@@ -97,14 +114,17 @@ namespace pn532 {
             return error::comm_error;
         }
         reduce_timeout rt{timeout};
-        /// @todo Can skip if using IRQ?
         if (const auto res = raw_poll_status(rt.remaining()); not res) {
             return res.error();
         }
         // Nice, we now have a response to read
         _dma_buffer.clear();
         _dma_buffer.resize(buffer.size(), 0x00);
-        if (auto res = perform_transaction(spi_command::data_read, comm_mode::receive, rt.remaining()); res) {
+        // Issue the "data_read" command only once
+        const spi_command cmd = _recv_op_status == recv_op_status::data_read ? spi_command::none : spi_command::data_read;
+        // Bump the status
+        _recv_op_status = recv_op_status::data_read;
+        if (auto res = perform_transaction(cmd, comm_mode::receive, rt.remaining()); res) {
             // Copy back to buffer
             std::copy(std::begin(_dma_buffer), std::end(_dma_buffer), std::begin(buffer));
             ESP_LOG_BUFFER_HEX_LEVEL(PN532_SPI_TAG " <<", buffer.data(), buffer.size(), ESP_LOG_VERBOSE);
@@ -118,29 +138,24 @@ namespace pn532 {
         if (not _irq_assert(timeout)) {
             return false;
         }
-        if (_cs_pin != GPIO_NUM_NC) {
-            return gpio_set_level(_cs_pin, 0) == ESP_OK;
+        if (not set_cs(false)) {
+            return false;
         }
+        /// @todo Check if IRQ assert is trivial and then set this to true
+        _recv_op_status = recv_op_status::init;
         return true;
     }
 
     void spi_channel::on_receive_complete(r<> const &outcome) {
-        if (_cs_pin != GPIO_NUM_NC) {
-            gpio_set_level(_cs_pin, 1);
-        }
+        set_cs(true);
     }
 
     bool spi_channel::on_send_prepare(ms timeout) {
-        if (_cs_pin != GPIO_NUM_NC) {
-            return gpio_set_level(_cs_pin, 0) == ESP_OK;
-        }
-        return true;
+        return set_cs(false);
     }
 
     void spi_channel::on_send_complete(r<> const &outcome) {
-        if (_cs_pin != GPIO_NUM_NC) {
-            gpio_set_level(_cs_pin, 1);
-        }
+        set_cs(true);
     }
 
     spi_channel::spi_channel(spi_host_device_t host, spi_bus_config_t const &bus_config, spi_device_interface_config_t device_cfg, int dma_chan)
@@ -148,7 +163,8 @@ namespace pn532 {
           _host{std::nullopt},
           _device{nullptr},
           _cs_pin{GPIO_NUM_NC},
-          _irq_assert{} {
+          _irq_assert{},
+          _recv_op_status{recv_op_status::init} {
         if (dma_chan == 0) {
             ESP_LOGE(PN532_SPI_TAG, "To use SPI with PN532, a DMA channel must be specified (either 1 or 2).");
             return;

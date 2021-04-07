@@ -21,14 +21,23 @@ namespace pn532 {
         gpio_num_t _cs_pin;
         mlab::irq_assert _irq_assert;
 
+        enum struct recv_op_status {
+            init,
+            did_poll,
+            data_read
+        };
+        recv_op_status _recv_op_status;
+
         enum struct spi_command : std::uint8_t {
             data_write = 0b01,
             status_read = 0b10,
-            data_read = 0b11
+            data_read = 0b11,
+            none
         };
 
-        [[nodiscard]] spi_transaction_t make_transaction(spi_command cmd, channel::comm_mode mode) const;
         r<> perform_transaction(spi_command cmd, channel::comm_mode mode, ms timeout);
+
+        bool set_cs(bool high);
 
     protected:
         r<> raw_send(mlab::range<bin_data::const_iterator> const &buffer, ms timeout) override;

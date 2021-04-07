@@ -35,6 +35,7 @@ namespace pn532 {
                 return false;
             }
         } else {
+            PN532_LOGW("%s: %s test failed with %s.", to_string(command_code::diagnose), to_string(bits::test::comm_line), to_string(res_cmd.error()));
             return res_cmd.error();
         }
     }

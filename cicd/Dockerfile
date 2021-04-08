@@ -1,12 +1,16 @@
-FROM python:alpine as dep_builder
-ENV CRYPTOGRAPHY_DONT_BUILD_RUST=1
-RUN mkdir /wheels
-RUN apk add gcc musl-dev python3-dev libffi-dev openssl-dev cargo py3-wheel
-RUN pip wheel --wheel-dir=/wheels platformio future cryptography
-
 FROM python:latest
-COPY --from=dep_builder /wheels /wheels
-RUN pip install --no-index --find-links=/wheels platformio future cryptography
-RUN adduser --disabled-password --ingroup dialout platformio
+ENV CRYPTOGRAPHY_DONT_BUILD_RUST=1
+ENV PIP_NO_CACHE_DIR=1
+
+RUN pip install platformio
+RUN adduser --disabled-password --gecos "" --ingroup dialout platformio
 USER platformio
+RUN pip install --user cffi cryptography future pycparser pyparsing
 WORKDIR /home/platformio
+ADD platformio.ini ./
+RUN echo "Triggering a void pio run to force Platformio to install everything that it needs." \
+ && (pio run 2>/dev/null || true)
+RUN pio system prune --cache -f \
+ && pio platform list \
+ && pio platform update \
+ && rm -rf .pio platformio.ini

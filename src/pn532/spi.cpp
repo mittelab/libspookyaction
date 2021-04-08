@@ -154,6 +154,11 @@ namespace pn532 {
         device_cfg.command_bits = 8;// 1 byte indicating status read, data read, data write
         device_cfg.dummy_bits = 0;
         device_cfg.flags |= SPI_DEVICE_BIT_LSBFIRST;
+        if (device_cfg.clock_speed_hz > 5'000'000) {
+            ESP_LOGW(PN532_SPI_TAG, "Clk speed (%d) above 5MHz: PN532 supports up to 5MHz.", device_cfg.clock_speed_hz);
+        } else if (device_cfg.clock_speed_hz > 1'000'000) {
+            ESP_LOGW(PN532_SPI_TAG, "Clk speed (%d) above 1MHz. PN532 supports up to 5MHz, but it may still fail comm line diagnose self-test.", device_cfg.clock_speed_hz);
+        }
         if (const auto res = spi_bus_add_device(host, &device_cfg, &_device); res != ESP_OK) {
             ESP_LOGE(PN532_SPI_TAG, "spi_bus_add_device failed, return code %d (%s).", res, esp_err_to_name(res));
             _device = nullptr;

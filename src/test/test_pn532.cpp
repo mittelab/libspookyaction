@@ -92,7 +92,7 @@ namespace ut::pn532 {
                 .duty_cycle_pos = 0,
                 .cs_ena_pretrans = 0,
                 .cs_ena_posttrans = 0,
-                .clock_speed_hz = SPI_MASTER_FREQ_10M / 2 /** @note Max supported 5MHz by PN532 **/,
+                .clock_speed_hz = 1'000'000 /** @note Max supported 5MHz by PN532, but it will not pass comm tests o/w. **/,
                 .input_delay_ns = 0,
                 .spics_io_num = PN532_SPI_SS,
                 .flags = 0,

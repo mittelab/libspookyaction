@@ -50,12 +50,10 @@ namespace pn532 {
                         .rxlength = 0,
                         .user = const_cast<spi_channel *>(this),
                         .tx_buffer = mode == comm_mode::send ? const_cast<std::uint8_t *>(_dma_buffer.data()) : nullptr,
-                        .rx_buffer = mode == comm_mode::receive ? const_cast<std::uint8_t *>(_dma_buffer.data()) : nullptr
-                },
+                        .rx_buffer = mode == comm_mode::receive ? const_cast<std::uint8_t *>(_dma_buffer.data()) : nullptr},
                 .command_bits = 0,
                 .address_bits = 0,
-                .dummy_bits = 0
-        };
+                .dummy_bits = 0};
         if (const auto res = spi_device_transmit(_device, reinterpret_cast<spi_transaction_t *>(&transaction)); res != ESP_OK) {
             ESP_LOGE(PN532_SPI_TAG, "spi_device_transmit failed, return code %d (%s).", res, esp_err_to_name(res));
             return error_from_esp_err(res);

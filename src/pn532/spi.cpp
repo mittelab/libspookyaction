@@ -125,11 +125,16 @@ namespace pn532 {
     }
 
     bool spi_channel::on_receive_prepare(ms timeout) {
-        if (not _irq_assert(timeout)) {
-            return false;
+        if (_irq_assert.pin() == GPIO_NUM_NC) {
+            // This is a dummy IRQ assert, so we will need to poll
+            _recv_op_status = recv_op_status::init;
+        } else {
+            // We will poll via IRQ assert
+            if (not _irq_assert(timeout)) {
+                return false;
+            }
+            _recv_op_status = recv_op_status::did_poll;
         }
-        /// @todo Check if IRQ assert is trivial and then set this to true
-        _recv_op_status = recv_op_status::init;
         return true;
     }
 

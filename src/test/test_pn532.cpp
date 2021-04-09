@@ -329,6 +329,8 @@ namespace ut::pn532 {
                 gpio_set_level(PN532_I1, 0);
                 break;
             case channel_type::spi:
+                [[fallthrough]];
+            case channel_type::spi_irq:
                 gpio_set_level(PN532_I0, 0);
                 gpio_set_level(PN532_I1, 1);
                 break;

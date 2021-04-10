@@ -9,7 +9,7 @@ RUN pip install --user cffi cryptography future pycparser pyparsing==2.2.0
 WORKDIR /home/platformio
 ADD platformio.ini ./
 RUN echo "Triggering a void pio run to force Platformio to install everything that it needs." \
- && (pio run 2>/dev/null || true)
+ && (pio run -t upload 2>/dev/null || true)
 RUN pio system prune --cache -f \
  && pio platform list \
  && pio platform update \

@@ -4,6 +4,16 @@ stages:
   - test
   - deploy
 
+.platformio-cache: &platformio-cache
+  image: shaguarger/platformio:latest
+  variables:
+    PLATFORMIO_CORE_DIR: "$CI_PROJECT_DIR/.pio-core"
+  cache:
+    key: ${CI_COMMIT_REF_SLUG}
+    paths:
+      - .pio-core
+      - .pio
+
 check format:
   stage: check
   image: alpine
@@ -25,16 +35,6 @@ check format:
     when: on_failure
 
 
-.platformio-cache: &platformio-cache
-  image: shaguarger/platformio:latest
-  variables:
-    PLATFORMIO_CORE_DIR: "$CI_PROJECT_DIR/.pio-core"
-  cache:
-    key: ${CI_COMMIT_REF_SLUG}
-    paths:
-      - .pio-core
-      - .pio
-
 test examples:
   <<: *platformio-cache
   stage: test
@@ -46,22 +46,6 @@ test examples:
           --lib="." \
           $file
       done
-
-
-test hardware:
-  stage: test
-  tags:
-    - pn532
-  image: ${CI_REGISTRY}/${CI_PROJECT_PATH}/testinator:latest
-  before_script:
-    - cp cicd/platformio.ini platformio.ini
-  script:
-    - pio run
-    - pio test
-  cache:
-    key: ${CI_COMMIT_REF_SLUG}
-    paths:
-      - .pio
 
 
 build hardware container:
@@ -83,9 +67,29 @@ build hardware container:
       - .gitlab-ci.yml
 
 
+test hardware:
+  stage: test
+#  needs:
+#    - job: "build hardware container"
+#      optional: true
+  tags:
+    - pn532
+  image: ${CI_REGISTRY}/${CI_PROJECT_PATH}/testinator:latest
+  before_script:
+    - cp cicd/platformio.ini platformio.ini
+  script:
+    - pio run
+    - pio test
+  cache:
+    key: ${CI_COMMIT_REF_SLUG}
+    paths:
+      - .pio
+
+
 pages:
   stage: deploy
   image: alpine
+  needs: ["check format","test examples"]
   before_script:
     - apk add --update --no-cache doxygen
   script:

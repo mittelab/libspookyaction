@@ -28,6 +28,9 @@ namespace mlab {
 
         explicit irq_assert(bool manage_isr_service, gpio_num_t pin, gpio_int_type_t interrupt_type = GPIO_INTR_NEGEDGE);
 
+        /**
+         * @return `GPIO_NUM_NC` (indicating this @ref irq_assert object asserts no pin and always returns true), or the corresponding pin number.
+         */
         [[nodiscard]] gpio_num_t pin() const;
         /**
          * Waits at most @p timeout and returns true if and only if the given pin asserts the interrupt.

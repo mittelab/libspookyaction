@@ -47,7 +47,8 @@ namespace ut {
             hsu,
             i2c,
             i2c_irq,
-            spi
+            spi,
+            spi_irq
         };
 
         [[nodiscard]] bool channel_is_supported(channel_type type);

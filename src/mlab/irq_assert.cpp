@@ -19,7 +19,7 @@ namespace mlab {
     struct irq_assert::impl {
         SemaphoreHandle_t semaphore = nullptr;
         bool manage_isr_service = false;
-        gpio_num_t pin = GPIO_NUM_MAX;
+        gpio_num_t pin = GPIO_NUM_NC;
     };
 
     /**
@@ -43,7 +43,7 @@ namespace mlab {
         if (_pimpl) {
             return _pimpl->pin;
         }
-        return GPIO_NUM_MAX;
+        return GPIO_NUM_NC;
     }
 
     irq_assert::irq_assert(bool manage_isr_service, gpio_num_t pin, gpio_int_type_t interrupt_type) : _pimpl{std::make_unique<impl>()} {
@@ -80,11 +80,11 @@ namespace mlab {
 
     irq_assert::~irq_assert() {
         if (_pimpl != nullptr) {
-            if (_pimpl->pin != GPIO_NUM_MAX) {
+            if (_pimpl->pin != GPIO_NUM_NC) {
                 if (const auto res = gpio_isr_handler_remove(_pimpl->pin); res != ESP_OK) {
                     ESP_LOGW("MLAB", "gpio_isr_handler_remove failed with status %d (%s).", res, esp_err_to_name(res));
                 }
-                _pimpl->pin = GPIO_NUM_MAX;
+                _pimpl->pin = GPIO_NUM_NC;
             }
             if (_pimpl->semaphore) {
                 vPortFree(_pimpl->semaphore);

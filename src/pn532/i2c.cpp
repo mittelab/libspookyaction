@@ -125,6 +125,7 @@ namespace pn532 {
         if (_port == I2C_NUM_MAX) {
             return error::comm_error;
         }
+        ESP_LOG_BUFFER_HEX_LEVEL(PN532_I2C_TAG " >>", buffer.data(), buffer.size(), ESP_LOG_VERBOSE);
         auto cmd = raw_prepare_command(comm_mode::send);
         if (buffer.size() > 0) {
             cmd.write(buffer, true);
@@ -143,7 +144,7 @@ namespace pn532 {
         }
         reduce_timeout rt{timeout};
         std::uint8_t ready_byte = 0x00;
-        while (rt and ready_byte == 0x00) {
+        while (rt and (ready_byte & 0b1) == 0) {
             auto cmd = raw_prepare_command(comm_mode::receive);
             if (buffer.size() > 0) {
                 cmd.read(ready_byte, I2C_MASTER_ACK);
@@ -156,8 +157,9 @@ namespace pn532 {
             if (const auto res_cmd = cmd(_port, timeout); not res_cmd) {
                 ESP_LOGE(PN532_I2C_TAG, "Receive failed: %s", i2c::to_string(res_cmd.error()));
                 return error_from_i2c_error(res_cmd.error());
-            } else if (ready_byte != 0x00) {
+            } else if ((ready_byte & 0b1) != 0) {
                 // Everything alright
+                ESP_LOG_BUFFER_HEX_LEVEL(PN532_I2C_TAG " <<", buffer.data(), buffer.size(), ESP_LOG_VERBOSE);
                 return mlab::result_success;
             }
             // Wait a bit

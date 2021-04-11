@@ -1,7 +1,18 @@
 stages:
+  - container_build
   - check
   - test
   - deploy
+
+.platformio-cache: &platformio-cache
+  image: shaguarger/platformio:latest
+  variables:
+    PLATFORMIO_CORE_DIR: "$CI_PROJECT_DIR/.pio-core"
+  cache:
+    key: ${CI_COMMIT_REF_SLUG}
+    paths:
+      - .pio-core
+      - .pio
 
 check format:
   stage: check
@@ -24,16 +35,6 @@ check format:
     when: on_failure
 
 
-.platformio-cache: &platformio-cache
-  image: shaguarger/platformio:latest
-  variables:
-    PLATFORMIO_CORE_DIR: "$CI_PROJECT_DIR/.pio-core"
-  cache:
-    key: ${CI_COMMIT_REF_SLUG}
-    paths:
-      - .pio-core
-      - .pio
-
 test examples:
   <<: *platformio-cache
   stage: test
@@ -41,28 +42,54 @@ test examples:
     - >
       for file in examples/*; do
         pio ci \
-          --project-conf=cicd/.platformio-ci.ini \
+          --project-conf=cicd/platformio.ini \
           --lib="." \
           $file
       done
 
 
+build hardware container:
+  stage: container_build
+  image: jdrouet/docker-with-buildx
+  tags:
+    - docker
+  before_script:
+    - docker login -u "${CI_REGISTRY_USER}" -p "${CI_REGISTRY_PASSWORD}" "${CI_REGISTRY}"
+  script:
+    - docker buildx build --platform linux/arm/v7 -t "${CI_REGISTRY}/${CI_PROJECT_PATH}/testinator:latest" cicd
+    - docker push "${CI_REGISTRY}/${CI_PROJECT_PATH}/testinator:latest"
+  only:
+    refs:
+      - master
+      - cicd
+    changes:
+      - cicd/*
+      - .gitlab-ci.yml
+
+
 test hardware:
-  <<: *platformio-cache
   stage: test
+#  needs:
+#    - job: "build hardware container"
+#      optional: true
   tags:
     - pn532
-  image: git-registry.mittelab.org/proj/keycard-access/testinator-platformio:latest
+  image: ${CI_REGISTRY}/${CI_PROJECT_PATH}/testinator:latest
   before_script:
-    - cp cicd/.platformio-ci.ini platformio.ini
+    - cp cicd/platformio.ini platformio.ini
   script:
     - pio run
     - pio test
+  cache:
+    key: ${CI_COMMIT_REF_SLUG}
+    paths:
+      - .pio
 
 
 pages:
   stage: deploy
   image: alpine
+  needs: ["check format","test examples"]
   before_script:
     - apk add --update --no-cache doxygen
   script:

@@ -108,7 +108,8 @@ test hardware:
 pages:
   stage: deploy
   image: alpine
-  needs: ["check format","test examples"]
+  needs:
+    - check format
   before_script:
     - apk add --update --no-cache doxygen
   script:

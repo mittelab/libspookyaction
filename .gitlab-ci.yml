@@ -85,17 +85,15 @@ build hardware container:
 
 test hardware:
   stage: test
-#  needs:
-#    - job: "build hardware container"
-#      optional: true
   tags:
     - pn532
   image: ${CI_REGISTRY}/${CI_PROJECT_PATH}/testinator:latest
   before_script:
     - cp cicd/platformio.ini platformio.ini
   script:
-    - pio run
-    - pio test
+    - pio test --without-uploading --without-testing
+    - pio test --without-building --without-testing || pio test --without-building --without-testing  # Two attempts
+    - pio test --without-building --without-uploading
   cache:
     key: ${CI_COMMIT_REF_SLUG}
     paths:

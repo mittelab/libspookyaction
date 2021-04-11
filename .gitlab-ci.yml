@@ -46,6 +46,14 @@ test examples:
           --lib="." \
           $file
       done
+  rules:
+    - if: '$CI_COMMIT_MESSAGE =~ /skip examples/'
+      when: never
+    - changes:
+        - src
+        - include
+        - examples
+        - cicd/platformio.ini
 
 
 build hardware container:
@@ -58,13 +66,21 @@ build hardware container:
   script:
     - docker buildx build --platform linux/arm/v7 -t "${CI_REGISTRY}/${CI_PROJECT_PATH}/testinator:latest" cicd
     - docker push "${CI_REGISTRY}/${CI_PROJECT_PATH}/testinator:latest"
-  only:
-    refs:
-      - master
-      - cicd
-    changes:
-      - cicd/*
-      - .gitlab-ci.yml
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "master" && $CI_COMMIT_MESSAGE =~ /rebuild hw container/'
+      when: always
+    - if: '$CI_COMMIT_MESSAGE =~ /skip hw container/'
+      when: never
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "master"'
+      changes:
+        - cicd/*
+        - .gitlab-ci.yml
+      when: always
+    - if: '$CI_COMMIT_BRANCH == "master"'
+      changes:
+        - cicd/*
+        - .gitlab-ci.yml
+      when: always
 
 
 test hardware:
@@ -84,6 +100,11 @@ test hardware:
     key: ${CI_COMMIT_REF_SLUG}
     paths:
       - .pio
+  rules:
+    - changes:
+        - src
+        - include
+        - cicd/platformio.ini
 
 
 pages:

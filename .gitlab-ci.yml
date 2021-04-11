@@ -50,9 +50,9 @@ test examples:
     - if: '$CI_COMMIT_MESSAGE =~ /skip examples/'
       when: never
     - changes:
-        - src
-        - include
-        - examples
+        - src/**/*
+        - include/**/*
+        - examples/**/*
         - cicd/platformio.ini
 
 
@@ -100,8 +100,8 @@ test hardware:
       - .pio
   rules:
     - changes:
-        - src
-        - include
+        - src/**/*
+        - include/**/*
         - cicd/platformio.ini
 
 

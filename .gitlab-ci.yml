@@ -105,6 +105,7 @@ build test firmware:
     - pio test --without-uploading --without-testing
   artifacts:
     paths:
+      - .pio/**/*.checksum  # Without this, `pio run` deletes the firmware
       - .pio/**/firmware.bin
       - .pio/**/firmware.elf
   rules:
@@ -144,7 +145,8 @@ test hardware:
   before_script:
     - cp cicd/platformio.ini platformio.ini
   script:
-    - pio test --without-building --without-testing --verbose || pio test --without-building --without-testing --verbose # Two attempts
+    # Make two attempts at uploading. Do not use pio test beause it always returns 0
+    - pio run -t nobuild -t upload --verbose || pio run -t nobuild -t upload --verbose
     - pio test --without-building --without-uploading --verbose
   rules:
     # Run always, on merge request too

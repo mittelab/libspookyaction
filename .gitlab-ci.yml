@@ -1,18 +1,41 @@
+include:
+  - template: 'Workflows/MergeRequest-Pipelines.gitlab-ci.yml'
+
+
 stages:
-  - container_build
   - check
+  - container
+  - build
   - test
   - deploy
 
-.platformio-cache: &platformio-cache
-  image: shaguarger/platformio:latest
-  variables:
-    PLATFORMIO_CORE_DIR: "$CI_PROJECT_DIR/.pio-core"
+
+.pio-cache: &pio-cache
   cache:
     key: ${CI_COMMIT_REF_SLUG}
     paths:
-      - .pio-core
-      - .pio
+      - .pio    
+
+.rules-changes-sources: &rules-changes-sources
+  changes:
+    - src/**/*
+    - include/**/*
+    - examples/**/*
+    - cicd/platformio.ini
+
+.rules-changes-cicd: &rules-changes-cicd
+  changes:
+    - cicd/*
+    - .gitlab-ci.yml
+
+.rules-merge-to-master: &rules-merge-to-master
+  if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "master"'
+  when: always
+
+.rules-master: &rules-master
+  if: '$CI_COMMIT_BRANCH == "master"'
+  when: always
+
 
 check format:
   stage: check
@@ -33,11 +56,65 @@ check format:
       - 0001-Clang-format.patch
     expire_in: 1 week
     when: on_failure
+  rules:
+    # Run always, on merge request too
+    - when: always
 
 
-test examples:
-  <<: *platformio-cache
-  stage: test
+build hardware container:
+  stage: container
+  image: jdrouet/docker-with-buildx
+  needs: []
+  tags:
+    - docker
+  variables:
+    BUILDX_INSTANCE: bad_boy_builder
+  before_script:
+    - docker login -u "${CI_REGISTRY_USER}" -p "${CI_REGISTRY_PASSWORD}" "${CI_REGISTRY}"
+    - docker buildx create --name ${BUILDX_INSTANCE}
+    - docker buildx inspect --bootstrap
+    - docker buildx ls
+    - docker buildx use ${BUILDX_INSTANCE}
+  script:
+    - docker buildx build --platform linux/arm/v7,linux/amd64 --push -t "${CI_REGISTRY}/${CI_PROJECT_PATH}/testinator:latest" cicd
+  after_script:
+    - docker buildx rm ${BUILDX_INSTANCE}
+  rules:
+    # [skip hw container] [rebuild hw container] tags
+    - if: '$CI_COMMIT_BRANCH == "master" && $CI_COMMIT_MESSAGE =~ /rebuild hw container/'
+      when: always
+    - if: '$CI_COMMIT_MESSAGE =~ /skip hw container/'
+      when: never
+    # Otherwise automatically rebuild on master and on merge requests that change the pipeline
+    - <<: *rules-merge-to-master
+      <<: *rules-changes-cicd
+    - <<: *rules-master
+      <<: *rules-changes-cicd
+
+
+build test firmware:
+  stage: build
+  image: ${CI_REGISTRY}/${CI_PROJECT_PATH}/testinator:latest
+  <<: *pio-cache
+  before_script:
+    - cp cicd/platformio.ini platformio.ini
+  script:
+    # Remove the cached firmwares to ensure we will rebuild
+    - rm -f .pio/**/firmware.{bin,elf}
+    - pio run
+    - pio test --without-uploading --without-testing
+  artifacts:
+    paths:
+      - .pio/**/firmware.bin
+      - .pio/**/firmware.elf
+  rules:
+    - when: always
+
+
+build examples:
+  image: ${CI_REGISTRY}/${CI_PROJECT_PATH}/testinator:latest
+  stage: build
+  <<: *pio-cache
   script:
     - >
       for file in examples/*; do
@@ -47,62 +124,34 @@ test examples:
           $file
       done
   rules:
+    # [skip examples] tag for skipping
     - if: '$CI_COMMIT_MESSAGE =~ /skip examples/'
       when: never
-    - changes:
-        - src/**/*
-        - include/**/*
-        - examples/**/*
-        - cicd/platformio.ini
-
-
-build hardware container:
-  stage: container_build
-  image: jdrouet/docker-with-buildx
-  tags:
-    - docker
-  before_script:
-    - docker login -u "${CI_REGISTRY_USER}" -p "${CI_REGISTRY_PASSWORD}" "${CI_REGISTRY}"
-  script:
-    - docker buildx build --platform linux/arm/v7 -t "${CI_REGISTRY}/${CI_PROJECT_PATH}/testinator:latest" cicd
-    - docker push "${CI_REGISTRY}/${CI_PROJECT_PATH}/testinator:latest"
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "master" && $CI_COMMIT_MESSAGE =~ /rebuild hw container/'
-      when: always
-    - if: '$CI_COMMIT_MESSAGE =~ /skip hw container/'
-      when: never
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "master"'
-      changes:
-        - cicd/*
-        - .gitlab-ci.yml
-      when: always
-    - if: '$CI_COMMIT_BRANCH == "master"'
-      changes:
-        - cicd/*
-        - .gitlab-ci.yml
-      when: always
+    # Run on merge request
+    - <<: *rules-merge-to-master
+    # But skip by default if the sources did not change
+    - <<: *rules-changes-sources
+    - <<: *rules-changes-cicd
 
 
 test hardware:
   stage: test
+  image: ${CI_REGISTRY}/${CI_PROJECT_PATH}/testinator:latest
   tags:
     - pn532
-  image: ${CI_REGISTRY}/${CI_PROJECT_PATH}/testinator:latest
+  dependencies:
+    - build test firmware
   before_script:
     - cp cicd/platformio.ini platformio.ini
   script:
-    - pio test --without-uploading --without-testing
-    - pio test --without-building --without-testing || pio test --without-building --without-testing  # Two attempts
-    - pio test --without-building --without-uploading
-  cache:
-    key: ${CI_COMMIT_REF_SLUG}
-    paths:
-      - .pio
+    - pio test --without-building --without-testing --verbose || pio test --without-building --without-testing --verbose # Two attempts
+    - pio test --without-building --without-uploading --verbose
   rules:
-    - changes:
-        - src/**/*
-        - include/**/*
-        - cicd/platformio.ini
+    # Run always, on merge request too
+    - <<: *rules-merge-to-master
+    # But skip by default if the sources did not change
+    - <<: *rules-changes-sources
+    - <<: *rules-changes-cicd
 
 
 pages:
@@ -119,5 +168,5 @@ pages:
   artifacts:
     paths:
       - public
-  only:
-    - master
+  rules:
+    - <<: *rules-master

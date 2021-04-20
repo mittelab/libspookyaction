@@ -14,6 +14,8 @@
 
 namespace pn532 {
 
+    using capable_buffer = std::vector<std::uint8_t, mlab::capable_allocator<std::uint8_t>>;
+
     /**
      * @brief Implementation of SPI channel protocol for PN532 over ESP32's SPI driver.
      * This class supports, when specified, the possibility of using a GPIO pin for the PN532's IRQ line; in that case, the
@@ -31,8 +33,9 @@ namespace pn532 {
     class spi_channel final : public channel {
         /**
          * SPI uses DMA. DMA data must be allocated with special capabilities, therefore it is necessary to have this intermediate buffer.
+         * This is shared among all send/receive methods.
          */
-        std::vector<std::uint8_t, mlab::capable_allocator<std::uint8_t>> _dma_buffer;
+        capable_buffer _dma_buffer;
 
         std::optional<spi_host_device_t> _host;
         spi_device_handle_t _device;
@@ -63,16 +66,19 @@ namespace pn532 {
 
         /**
          * Performs an SPI transaction, trasmitting or filling @ref _dma_buffer.
-         * In case of a @ref channel::comm_mode::send operation, @ref _dma_buffer will be sent.
-         * In case of a @ref channel::comm_mode::receive operation, @ref _dma_buffer has to be preallocated at the expected
+         * In case of a @ref channel::comm_mode::send operation, @p buffer will be sent.
+         * In case of a @ref channel::comm_mode::receive operation, @p buffer has to be preallocated at the expected
          * size and will be filled entirely by the SPI driver.
+         * @param buffer The buffer to either send (if @p mode is @ref channel::comm_mode::send) or fill with data (for
+         *  @ref channel::comm_mode::receive). Note that in the first case, the buffer is not going to be modified (we
+         *  do not take it as `const &` because the driver expects a non-const data pointer); in the second case instead
+         *  it's responsibility of the caller to preallocate the buffer at the right size.
          * @param cmd SPI command to prefix to this transaction (or none if @ref spi_command::none)
          * @param mode Send or receive (at an PN532 level).
          * @param timeout Timeout before failure
          * @return @ref mlab::result_success or the corresponding @ref error code.
-         * @todo Take the DMA buffer as a parameter, instead of depending on it being correctly initialized.
          */
-        r<> perform_transaction(spi_command cmd, channel::comm_mode mode, ms timeout);
+        r<> perform_transaction(capable_buffer &buffer, spi_command cmd, channel::comm_mode mode, ms timeout);
 
     protected:
         r<> raw_send(mlab::range<bin_data::const_iterator> const &buffer, ms timeout) override;

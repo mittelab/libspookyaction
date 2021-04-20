@@ -28,7 +28,7 @@ namespace pn532 {
         if (comm_operation op{*this, comm_mode::send, 10ms}; op.ok()) {
             // Send some dummy data to wake up
             _dma_buffer = {0x55, 0x55, 0x55};
-            return bool(op.update(perform_transaction(spi_command::data_write, comm_mode::send, 10ms)));
+            return bool(op.update(perform_transaction(_dma_buffer, spi_command::data_write, comm_mode::send, 10ms)));
         } else {
             return false;
         }
@@ -39,18 +39,18 @@ namespace pn532 {
     }
 
 
-    channel::r<> spi_channel::perform_transaction(spi_command cmd, channel::comm_mode mode, ms timeout) {
+    channel::r<> spi_channel::perform_transaction(capable_buffer &buffer, spi_command cmd, channel::comm_mode mode, ms timeout) {
         reduce_timeout rt{timeout};
         spi_transaction_ext_t transaction{
                 .base = {
                         .flags = (cmd == spi_command::none ? SPI_TRANS_VARIABLE_CMD : 0u),
                         .cmd = static_cast<std::uint8_t>(cmd),
                         .addr = 0,
-                        .length = _dma_buffer.size() * 8,
+                        .length = buffer.size() * 8,
                         .rxlength = 0,
                         .user = const_cast<spi_channel *>(this),
-                        .tx_buffer = mode == comm_mode::send ? const_cast<std::uint8_t *>(_dma_buffer.data()) : nullptr,
-                        .rx_buffer = mode == comm_mode::receive ? const_cast<std::uint8_t *>(_dma_buffer.data()) : nullptr},
+                        .tx_buffer = mode == comm_mode::send ? const_cast<std::uint8_t *>(buffer.data()) : nullptr,
+                        .rx_buffer = mode == comm_mode::receive ? const_cast<std::uint8_t *>(buffer.data()) : nullptr},
                 .command_bits = 0,
                 .address_bits = 0,
                 .dummy_bits = 0};
@@ -71,7 +71,7 @@ namespace pn532 {
         if (buffer.size() > 0) {
             std::copy(std::begin(buffer), std::end(buffer), std::begin(_dma_buffer));
         }
-        return perform_transaction(spi_command::data_write, comm_mode::send, rt.remaining());
+        return perform_transaction(_dma_buffer, spi_command::data_write, comm_mode::send, rt.remaining());
     }
 
     channel::r<> spi_channel::raw_poll_status(ms timeout) {
@@ -83,7 +83,7 @@ namespace pn532 {
         _dma_buffer.resize(1, 0x00);
         while (rt) {
             // Perform a status read check
-            if (const auto res = perform_transaction(spi_command::status_read, comm_mode::receive, rt.remaining()); not res) {
+            if (const auto res = perform_transaction(_dma_buffer, spi_command::status_read, comm_mode::receive, rt.remaining()); not res) {
                 return res.error();
             } else if ((_dma_buffer.back() & 0b1) == 0) {
                 // Wait a bit
@@ -112,7 +112,7 @@ namespace pn532 {
         const spi_command cmd = _recv_op_status == recv_op_status::data_read ? spi_command::none : spi_command::data_read;
         // Bump the status
         _recv_op_status = recv_op_status::data_read;
-        if (auto res = perform_transaction(cmd, comm_mode::receive, rt.remaining()); res) {
+        if (auto res = perform_transaction(_dma_buffer, cmd, comm_mode::receive, rt.remaining()); res) {
             // Copy back to buffer
             std::copy(std::begin(_dma_buffer), std::end(_dma_buffer), std::begin(buffer));
             ESP_LOG_BUFFER_HEX_LEVEL(PN532_SPI_TAG " <<", buffer.data(), buffer.size(), ESP_LOG_VERBOSE);

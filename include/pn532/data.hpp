@@ -13,11 +13,6 @@
 #include <limits>
 
 namespace pn532 {
-    // Locally import all declaration from mlab.
-    namespace {
-        using namespace mlab;
-    }
-
     using controller_error = bits::error;
     using command_code = bits::command;
 
@@ -121,7 +116,7 @@ namespace pn532 {
     };
 
 
-    using any_target = any_of<target_type, poll_entry>;
+    using any_target = mlab::any_of<target_type, poll_entry>;
 
     enum struct gpio_loc {
         p3,
@@ -270,7 +265,7 @@ namespace pn532 {
 
         [[nodiscard]] inline bool operator[](std::pair<gpio_loc, std::uint8_t> const &gpio_idx) const;
 
-        inline bit_ref operator[](std::pair<gpio_loc, std::uint8_t> const &gpio_idx);
+        inline mlab::bit_ref operator[](std::pair<gpio_loc, std::uint8_t> const &gpio_idx);
     };
 }// namespace pn532
 
@@ -367,17 +362,17 @@ namespace pn532 {
         }
     }
 
-    bit_ref gpio_status::operator[](std::pair<gpio_loc, std::uint8_t> const &gpio_idx) {
+    mlab::bit_ref gpio_status::operator[](std::pair<gpio_loc, std::uint8_t> const &gpio_idx) {
         static std::uint8_t _garbage = 0x00;
         switch (gpio_idx.first) {
             case gpio_loc::p3:
-                return bit_ref{_p3_mask, gpio_idx.second, bits::gpio_p3_pin_mask};
+                return mlab::bit_ref{_p3_mask, gpio_idx.second, bits::gpio_p3_pin_mask};
             case gpio_loc::p7:
-                return bit_ref{_p7_mask, gpio_idx.second, bits::gpio_p7_pin_mask};
+                return mlab::bit_ref{_p7_mask, gpio_idx.second, bits::gpio_p7_pin_mask};
             case gpio_loc::i0i1:
-                return bit_ref{_i0i1_mask, gpio_idx.second, bits::gpio_i0i1_pin_mask};
+                return mlab::bit_ref{_i0i1_mask, gpio_idx.second, bits::gpio_i0i1_pin_mask};
         }
-        return bit_ref{_garbage, gpio_idx.second, 0xff};
+        return mlab::bit_ref{_garbage, gpio_idx.second, 0xff};
     }
 
     gpio_status::gpio_status(std::uint8_t p3_mask, std::uint8_t p7_mask, std::uint8_t i0i1_mask) : _p3_mask{p3_mask}, _p7_mask{p7_mask}, _i0i1_mask{i0i1_mask} {}

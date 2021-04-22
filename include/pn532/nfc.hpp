@@ -41,6 +41,9 @@
 #include "msg.hpp"
 
 namespace pn532 {
+    namespace {
+        using namespace std::chrono_literals;
+    }
     static constexpr ms default_timeout = 1s;
     static constexpr ms long_timeout = 3s;
 

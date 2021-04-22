@@ -6,8 +6,16 @@
 #include <mlab/time.hpp>
 
 namespace pn532 {
-    using mlab::ms;
-    using mlab::reduce_timeout;
+    namespace {
+        using mlab::ms;
+        using mlab::reduce_timeout;
+        using mlab::prealloc;
+
+        template <class It>
+        using range = mlab::range<It>;
+
+        using mlab::make_range;
+    }
 
     const std::vector<bits::target_type> nfc::poll_all_targets = {
             target_type::generic_passive_106kbps,
@@ -187,7 +195,7 @@ namespace pn532 {
     nfc::r<> nfc::write_gpio(gpio_status const &status, bool write_p3, bool write_p7, ms timeout) {
         if (not write_p3 and not write_p7) {
             PN532_LOGW("Attempt to write nothing on the GPIO, did you miss to pass some parameter?");
-            return result_success;
+            return mlab::result_success;
         }
         bin_data payload{prealloc(2)};
         if (write_p3) {

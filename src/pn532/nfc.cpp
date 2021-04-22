@@ -8,14 +8,14 @@
 namespace pn532 {
     namespace {
         using mlab::ms;
-        using mlab::reduce_timeout;
         using mlab::prealloc;
+        using mlab::reduce_timeout;
 
         template <class It>
         using range = mlab::range<It>;
 
         using mlab::make_range;
-    }
+    }// namespace
 
     const std::vector<bits::target_type> nfc::poll_all_targets = {
             target_type::generic_passive_106kbps,
@@ -52,7 +52,7 @@ namespace pn532 {
         template <class... Args>
         nfc::r<bool> nfc_diagnose_simple(
                 channel &chn, bits::test test, std::uint8_t expected, ms timeout,
-                std::size_t expected_body_size = 0, Args &&... append_to_body) {
+                std::size_t expected_body_size = 0, Args &&...append_to_body) {
             PN532_LOGI("%s: running %s...", to_string(command_code::diagnose), to_string(test));
             bin_data payload = bin_data::chain(prealloc(expected_body_size + 1), test,
                                                std::forward<Args>(append_to_body)...);

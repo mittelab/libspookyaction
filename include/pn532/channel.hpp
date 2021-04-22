@@ -14,23 +14,36 @@
 #include <pn532/msg.hpp>
 
 namespace pn532 {
-    using mlab::bin_data;
-    using mlab::bin_stream;
-    using mlab::reduce_timeout;
+    namespace {
+        using mlab::bin_data;
+        using mlab::bin_stream;
+        using mlab::reduce_timeout;
+    }// namespace
 
     using ms = std::chrono::milliseconds;
 
+    /**
+     * @brief Types of frames transmitted from/to the PN532
+     */
     enum struct frame_type {
-        ack,
-        nack,
-        info,
-        error
+        ack, ///< Previous communication was acknowledged.
+        nack,///< Previous communication has to be repeated, or trasmission completed.
+        info,///< Frame containing data.
+        error///< Application-level error
     };
 
 
+    /**
+     * @brief Data structure holding data for the PN532 frame.
+     * For @ref frame_type::ack, @ref frame_type::nack, @ref frame_type::error, the type carries all the information.
+     * The only relevant template specialization is @ref frame<frame_type::info>
+     */
     template <frame_type>
     struct frame {};
 
+    /**
+     * @brief A (possibly extended) info frame.
+     */
     template <>
     struct frame<frame_type::info> {
         bits::transport transport = bits::transport::host_to_pn532;
@@ -38,11 +51,31 @@ namespace pn532 {
         bin_data data;
     };
 
+    /**
+     * @brief Any frame trasmitted by the PN532, i.e. one of @ref frame
+     * @note In order to know what which frame has to be extracted, parse first a @ref frame_id, and then
+     * tie the stream and the @ref frame_id together.
+     * @code
+     *  bin_stream s{d};
+     *  frame_id id{};
+     *  s >> id;
+     *  any_frame f{};
+     *  std::tie(s, id) >> f;
+     * @endcode
+     */
     class any_frame : public mlab::any_of<frame_type, frame, frame_type::error> {
     public:
         using mlab::any_of<frame_type, frame, frame_type::error>::any_of;
     };
 
+    /**
+     * @brief Helper data structure used to progressively identify frame size.
+     * Frame length is dynamically determined by the presence of preamble/postamble and by the frame type.
+     * Only some channels support reading one byte at a time in order to determine the full frame length. Others
+     * require to request the frame over and over again by sending a NACK. This data structure helps in tracking
+     * what is known about a frame while it is being received.
+     * @see channel::receive_mode
+     */
     struct frame_id {
         /**
          * This is the absolute minimum frame length, that is just the start of packet code and the frame code.
@@ -54,9 +87,26 @@ namespace pn532 {
          */
         static constexpr std::size_t max_min_info_frame_header_length = min_frame_length + 1 /* preamble */ + 3 /* extended info frame length */;
 
+        /**
+         * The frame type (if known).
+         */
         frame_type type = frame_type::error;
+
+        /**
+         * True if and only if a preamble has been detected (and thus a postamble is expected)
+         */
         bool has_preamble = false;
+
+        /**
+         * Determined total frame length (so far).
+         */
         std::size_t frame_total_length = min_frame_length;
+
+        /**
+         * @brief Determined data length for an info frame.
+         * This includes @ref frame<frame_type::info>::transport and @ref frame<frame_type::info>::command, not
+         * just @ref frame<frame_type::info>::data.
+         */
         std::size_t info_frame_data_size = 0;
     };
 
@@ -69,40 +119,79 @@ namespace pn532 {
     bin_stream &operator>>(bin_stream &s, any_frame &f);
 
     /**
+     * Special extraction operator that operates on a @ref bin_stream, once a @ref frame_id has been parsed.
+     * @param s_id Stream and @ref frame_id. Note that this has to be the same stream from which the @ref frame_id
+     *  was extracted, in particular it must point at the first position that is _not_ part of @ref frame_id.
+     * @param f Target @ref any_frame structure.
+     * @return The stream of @p s_id after the extraction of @p f.
      * @code
-     * bin_stream s{d};
-     * frame_id id{};
-     * s >> id;
-     * any_frame f{};
-     * std::tie(s, id) >> f;
+     *  bin_stream s{d};
+     *  frame_id id{};
+     *  s >> id;
+     *  any_frame f{};
+     *  std::tie(s, id) >> f;
      * @endcode
      */
     bin_stream &operator>>(std::tuple<bin_stream &, frame_id const &> s_id, any_frame &f);
 
     /**
-     * Needs at least 5 bytes (ack, nack, standard info frame), better 8 (to determine length in extended info frames)
-     * @param s
-     * @param id
-     * @return
+     * Extractor for @ref frame_id.
+     * This supports also extracting partial information, and will just leave the members it cannot
+     * prefill as they are.
+     * @param s Stream from which the @ref frame_id is extracted. Needs at least 5 bytes (ack, nack,
+     *  standard info frame), better 8 (to determine length in extended info frames without having
+     *  to request further extractions).
+     * @param id @ref frame_id to fill.
+     * @return The stream @p s after the extraction of @p id.
      */
     bin_stream &operator>>(bin_stream &s, frame_id &id);
 
 
+    /**
+     * @brief Abstract class for the PN532 communication channel.
+     * Each channel class must support send and receive over a hardware channel. Only one operation
+     * among @ref comm_mode::send and @ref comm_mode::receive can be performed at a given time. Before
+     * another communication operation is performed, the previous one is guaranteed to be completed;
+     * note that the PN532 always uses half-duplex communication mode.
+     *
+     * Subclasses must implement the following methods (see corresponding documentation):
+     *  - @ref raw_send
+     *  - @ref raw_receive
+     *  - @ref wake
+     *  - @ref receive_mode
+     * and may implement one or more of these event handlers:
+     *  - @ref on_receive_prepare
+     *  - @ref on_receive_complete
+     *  - @ref on_send_prepare
+     *  - @ref on_send_complete
+     *
+     * Use @ref comm_operation to manage firing events correctly.
+     *
+     * @note Subclasses should never directly call any of @ref on_receive_prepare, @ref on_receive_complete,
+     *  @ref on_send_prepare, @ref on_send_complete. These are managed by @ref comm_operation. Moreover, subclasses
+     *  should never call @ref raw_send or @ref raw_receive without a @ref comm_operation in place.
+     */
     class channel {
     public:
         virtual ~channel() = default;
 
+        /**
+         * @brief Channel-level errors.
+         */
         enum struct error {
-            comm_timeout,
-            comm_error,
-            comm_malformed,
-            failure
+            comm_timeout,  ///< The given timeout was exceeded before the transmission was complete
+            comm_error,    ///< Hardware error during trasmission.
+            comm_malformed,///< Malformed data cannot be parsed (or unexpected frame).
+            failure        ///< The PN532 gave an application-level ERROR frame..
         };
 
         template <class... Tn>
         using r = mlab::result<error, Tn...>;
 
     protected:
+        /**
+         * One of the two possible half-duplex communication modes of the channel, send and receive.
+         */
         enum struct comm_mode {
             send,
             receive
@@ -260,25 +349,160 @@ namespace pn532 {
 
     [[nodiscard]] const char *to_string(channel::error e);
 
+    /**
+     * @brief Class managing the correct firing of the events in the PN532.
+     * This class is a RAII wrapper that fires the correct events at construction and destruction. It holds the
+     * transmission result @ref channel::r<> obtained so far (or the corresponding error), in such a way that it
+     * can pass it to @ref on_receive_complete or @ref on_send_complete. Always call @ref raw_send and @ref raw_receive
+     * with one such class in scope (otherwise the events will not be fired and the class may not be in the correct
+     * state). Use the passthrough methods @ref comm_operation::update to record results or errors, as in the
+     * following example. Use the @ref comm_operation::ok accessor to check whether the @ref on_receive_prepare
+     * or @ref on_send_prepare events were successful before calling any lower level function. See the examples
+     * further down.
+     *
+     * @note Subclasses should never directly call any of @ref on_receive_prepare, @ref on_receive_complete,
+     *  @ref on_send_prepare, @ref on_send_complete. These are managed by this class. Moreover, subclasses
+     *  should never call @ref raw_send or @ref raw_receive without a @ref comm_operation in place.
+     *
+     * @code
+     *  using namespace std::chrono_literals;
+     *
+     *  // In a subclass of channel
+     *  channel::r<any_frame> chn_subclass::custom_receive_frame() {
+     *      // Create a comm_operation alive within the scope of the if.
+     *      // This fires on_receive_prepare, and test with ::ok() whether it succeeded.
+     *      if (comm_operation op{*this, comm_mode::receive, 10ms}; op.ok()) {
+     *          // Able to receive, prepare buffer
+     *          mlab::bin_data buffer{mlab::prealloc(100)};
+     *          // Make sure to test whether the communication succeeded
+     *          if (const auto result_comm = raw_receive(buffer.view(), 10ms); result_comm) {
+     *              // Success, attempt parsing
+     *              mlab::bin_stream s{buffer};
+     *              frame_id fid{};
+     *              s >> fid;
+     *              if (s.bad()) {
+     *                  // Could not parse the frame, update the comm_operation and return
+     *                  return op.update(error::comm_malformed);
+     *              }
+     *              // Extract the frame
+     *              any_frame f{};
+     *              std::tie(s, fid) >> f;
+     *              if (s.bad()) {
+     *                  // Could not parse the frame, update the comm_operation and return
+     *                  return op.update(error::comm_malformed);
+     *              }
+     *              // Nice! Parsed. Update the operation and return the frame
+     *              return op.update(std::move(f));
+     *          } else {
+     *              // Failure, update the comm_opeation and return the error from raw_receive
+     *              return op.update(result_comm.error());
+     *          }
+     *      } else {
+     *          // Receive preparation failed, return the error collected into comm_operation
+     *          return op.error();
+     *      }
+     *  }
+     * @endcode
+     *
+     * @code
+     *  using namespace std::chrono_literals;
+     *
+     *  // In some subclass of channel that requires sending data to wake
+     *  bool chn_subclass::wake() {
+     *      // Create a comm_operation alive within the scope of the if.
+     *      // This fires on_send_prepare, and test with ::ok() whether it succeeded.
+     *      if (comm_operation op{*this, comm_mode::send, 10ms}; op.ok()) {
+     *          // Attempt sending data; use the result to update the comm operation
+     *          //  and passthrough. An explicit cast to bool is required here.
+     *          return bool(op.update(raw_send({0x55, 0x55, 0x55}, 10ms)));
+     *      } else {
+     *          return false;
+     *      }
+     *  }
+     * @endcode
+     */
     class channel::comm_operation {
         channel &_owner;
         comm_mode _event;
         r<> _result;
 
     public:
+        /**
+         * Calls @ref on_receive_prepare or @ref on_send_prepare and stores the outcome.
+         * @param owner The target class for calling @ref on_receive_prepare or @ref on_send_prepare.
+         * @param event Chooses between @ref on_receive_prepare, @ref on_receive_complete and  @ref on_send_prepare,
+         *  @ref on_send_complete.
+         * @param timeout Timeout to pass to @ref on_receive_prepare or @ref on_send_prepare.
+         * @see ok
+         */
+
         comm_operation(channel &owner, comm_mode event, ms timeout);
+
+        /**
+         * Calls @ref on_receive_complete or @ref on_send_complete with the internally stored result.
+         */
         ~comm_operation();
 
+        /**
+         * @ref Tests whether the operation contains an error or not.
+         * The main usage of this is to test whether the @ref on_receive_prepare and @ref on_send_prepare
+         * events have succeeded.
+         * @return True if an only if so far the operation succeeded.
+         * @code
+         *  // Fire the on_receive_prepare event.
+         *  if (comm_operation op{*this, comm_operation::receive, 10ms}; op.ok()) {
+         *      // Do stuff
+         *  } else {
+         *      // Preparation failed
+         *  }
+         * @endcode
+         */
         [[nodiscard]] inline bool ok() const;
 
+        /**
+         * @brief Error currently stored in this operation.
+         * @return The error code of the currently stored result.
+         * @note This calls @ref mlab::result::error; if the result is @ref mlab::result_success, it is not
+         *  valid to call this method, therefore test first with @ref ok that this @ref comm_operation actually
+         *  is _not_ ok and contains an error.
+         */
         [[nodiscard]] inline decltype(auto) error() const;
 
+        /**
+         * @addtogroup comm_operation::update
+         * These methods collect a result, an error, or a boolean representing success and store it inside the
+         * class. Moreover, they return whatever was passed to them (in the form of @ref channel::r<> or in form
+         * of @ref channel::error), in such a way that the user can directly pass it through in a `return` statement.
+         * The updated result is used in the call to @ref on_receive_complete and @ref on_send_complete.
+         * @{
+         */
+
+        /**
+         * Stores an error state from an explicit error code.
+         * @param e Error code
+         * @return The same error code @p e
+         */
         [[nodiscard]] inline enum error update(enum error e);
 
+        /**
+         * Stores a success or timeout state from a boolean.
+         * @param operation_result True if the operation succeded, false if it timed out.
+         * @return @ref mlab::result_success or @ref error::comm_timeout, depending on @p operation_result.
+         */
         [[nodiscard]] inline r<> update(bool operation_result);
 
+        /**
+         * Stores an existing result into the internal @ref channel::r<>
+         * @tparam Tn Any result type for @ref mlab::result
+         * @tparam Args Anything that can be assigned to @ref channel::r<>
+         * @param args Anything that can be assigned to @ref channel::r<>
+         * @return The same result as the one specified
+         */
         template <class... Tn, class... Args>
-        [[nodiscard]] inline r<Tn...> update(Args &&... args);
+        [[nodiscard]] inline r<Tn...> update(Args &&...args);
+        /**
+         * @}
+         */
     };
 
 }// namespace pn532
@@ -327,7 +551,7 @@ namespace pn532 {
     }
 
     template <class... Tn, class... Args>
-    channel::r<Tn...> channel::comm_operation::update(Args &&... args) {
+    channel::r<Tn...> channel::comm_operation::update(Args &&...args) {
         r<Tn...> retval{std::forward<Args>(args)...};
         if (retval) {
             _result = mlab::result_success;

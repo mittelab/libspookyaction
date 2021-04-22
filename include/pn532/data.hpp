@@ -50,11 +50,34 @@ namespace pn532 {
     struct poll_entry : public bits::target<bits::baudrate_modulation_of_target<Type>> {
     };
 
+    /**
+     * @brief Monostate structure that signals infinity. Use @ref infty.
+     */
     struct infty_t {
     };
 
+    /**
+     * @brief A marker for the infinity value added by @ref with_inf to an integral type.
+     * @see with_inf
+     */
     static constexpr infty_t infty = infty_t{};
 
+    /**
+     * @brief "Concept-like" wrapper that adds a signalling "infinity" value to an integral type.
+     * In the PN532, sometimes the natural maximum (`std::numeric_limits<Integral>::max()`) of an integral type is used
+     * to signal infinity, e.g. repeat an operation indefinitely. This template explicitly marks this property by adding some
+     * syntactic sugar to the type. This type behaves exactly like the underlying integral type, but moreover can be assigned
+     * and compared with @ref infty.
+     * @code
+     *  with_inf<int> i = infty;
+     *  if (i == infty) {
+     *      std::cout << "∞" << std::endl;
+     *  } else {
+     *      std::cout << i << std::endl;
+     *  }
+     * @endcode
+     * @tparam Integral Any integral type
+     */
     template <class Integral>
     struct with_inf {
         static_assert(std::is_integral_v<Integral>);
@@ -78,6 +101,9 @@ namespace pn532 {
         inline bool operator!=(infty_t) const { return v != std::numeric_limits<Integral>::max(); }
     };
 
+    /**
+     * @brief Shorthand wrapper for a byte with infinity expressed as 0xff.
+     */
     using infbyte = with_inf<std::uint8_t>;
 
     struct poll_entry_with_atr {

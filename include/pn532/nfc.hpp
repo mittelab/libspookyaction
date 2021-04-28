@@ -98,7 +98,7 @@ namespace pn532 {
         r<bool> diagnose_attention_req_or_card_presence(ms timeout = long_timeout);
 
         /**
-         * @brief Check comunication channel by sending random data, and read it back (UM0701-02 §7.2.1)
+         * @brief Check communication channel by sending random data, and read it back (UM0701-02 §7.2.1)
          * @ingroup Miscellaneous
          * @param timeout maximum time for getting a response
          * @return True if data ecoes without error, False otherwise; or one of the following errors:
@@ -261,7 +261,7 @@ namespace pn532 {
 
         /**
          * @brief Set the UART/HSU baudrate (UM0701-02 §7.2.8)
-         * @note This command is allowed only for HSU comunication.
+         * @note This command is allowed only for HSU communication.
          *       After 200uS from the ACK, commands with the new baudrate can be sent.
          * @ingroup Miscellaneous
          * @param br new baudrate for successive commands
@@ -475,8 +475,8 @@ namespace pn532 {
          * @ingroup Initiator
          * @param target_logical_index index the PN532 has given to the tag,
          *  can be retrived with initiator_list_passive_* commands or via @ref initiator_auto_poll
-         * @param in_to_trg baudrate for comunications from the initiator(PN532) to the target(tag)
-         * @param trg_to_in baudrate for comunications from the target(tag) to the initiator(PN532)
+         * @param in_to_trg baudrate for communications from the initiator(PN532) to the target(tag)
+         * @param trg_to_in baudrate for communications from the target(tag) to the initiator(PN532)
          * @param timeout maximum time for getting a response
          * @return @ref rf_status, or one of the following errors:
          *         - @ref error::comm_malformed,
@@ -683,9 +683,9 @@ namespace pn532 {
         r<rf_status, bin_data> initiator_communicate_through(bin_data raw_data, ms timeout = default_timeout);
 
         /**
-         * @brief activate the target with active or passive comunication (UM0701-02 §7.3.3)
+         * @brief activate the target with active or passive communication (UM0701-02 §7.3.3)
          * @ingroup Initiator
-         * @param speed comunication baudrate
+         * @param speed communication baudrate
          * @param timeout maximum time for getting a response
          * @return @ref jump_dep_psl, or one of the following errors:
          *         - @ref error::comm_malformed,
@@ -695,9 +695,9 @@ namespace pn532 {
         r<jump_dep_psl> initiator_jump_for_dep_active(baudrate speed, ms timeout = default_timeout);
 
         /**
-         * @brief activate the target with active or passive comunication (UM0701-02 §7.3.3)
+         * @brief activate the target with active or passive communication (UM0701-02 §7.3.3)
          * @ingroup Initiator
-         * @param speed comunication baudrate
+         * @param speed communication baudrate
          * @param general_info Max 48 bytes.
          * @param timeout maximum time for getting a response
          * @return @ref jump_dep_psl, or one of the following errors:
@@ -710,9 +710,9 @@ namespace pn532 {
                 ms timeout = default_timeout);
 
         /**
-         * @brief activate the target with active or passive comunication (UM0701-02 §7.3.3)
+         * @brief activate the target with active or passive communication (UM0701-02 §7.3.3)
          * @ingroup Initiator
-         * @param speed comunication baudrate
+         * @param speed communication baudrate
          * @param nfcid_3t the NFCID3 used for the ATR_REQ
          * @param timeout maximum time for getting a response
          * @return @ref jump_dep_psl, or one of the following errors:
@@ -725,9 +725,9 @@ namespace pn532 {
                 ms timeout = default_timeout);
 
         /**
-         * @brief activate the target with active or passive comunication (UM0701-02 §7.3.3)
+         * @brief activate the target with active or passive communication (UM0701-02 §7.3.3)
          * @ingroup Initiator
-         * @param speed comunication baudrate
+         * @param speed communication baudrate
          * @param nfcid_3t the NFCID3 used for the ATR_REQ
          * @param general_info Max 48 bytes.
          * @param timeout maximum time for getting a response
@@ -742,7 +742,7 @@ namespace pn532 {
                 ms timeout = default_timeout);
 
         /**
-         * @brief activate the target with active or passive comunication (UM0701-02 §7.3.3)
+         * @brief activate the target with active or passive communication (UM0701-02 §7.3.3)
          * @ingroup Initiator
          * @param timeout maximum time for getting a response
          * @return @ref jump_dep_psl, or one of the following errors:
@@ -753,7 +753,7 @@ namespace pn532 {
         r<jump_dep_psl> initiator_jump_for_dep_passive_106kbps(ms timeout = default_timeout);
 
         /**
-         * @brief activate the target with active or passive comunication (UM0701-02 §7.3.3)
+         * @brief activate the target with active or passive communication (UM0701-02 §7.3.3)
          * @ingroup Initiator
          * @param general_info Max 48 bytes.
          * @param timeout maximum time for getting a response
@@ -767,7 +767,7 @@ namespace pn532 {
                 ms timeout = default_timeout);
 
         /**
-         * @brief activate the target with active or passive comunication (UM0701-02 §7.3.3)
+         * @brief activate the target with active or passive communication (UM0701-02 §7.3.3)
          * @ingroup Initiator
          * @param nfcid_3t the NFCID3 used for the ATR_REQ
          * @param timeout maximum time for getting a response
@@ -781,7 +781,7 @@ namespace pn532 {
                 ms timeout = default_timeout);
 
         /**
-         * @brief activate the target with active or passive comunication (UM0701-02 §7.3.3)
+         * @brief activate the target with active or passive communication (UM0701-02 §7.3.3)
          * @ingroup Initiator
          * @param nfcid_3t the NFCID3 used for the ATR_REQ
          * @param general_info Max 48 bytes.
@@ -797,7 +797,7 @@ namespace pn532 {
                 ms timeout = default_timeout);
 
         /**
-         * @brief activate the target with active or passive comunication (UM0701-02 §7.3.3)
+         * @brief activate the target with active or passive communication (UM0701-02 §7.3.3)
          * @ingroup Initiator
          * @param target_id number attributed to the activated target
          * @param timeout maximum time for getting a response
@@ -811,7 +811,7 @@ namespace pn532 {
                 ms timeout = default_timeout);
 
         /**
-         * @brief activate the target with active or passive comunication (UM0701-02 §7.3.3)
+         * @brief activate the target with active or passive communication (UM0701-02 §7.3.3)
          * @ingroup Initiator
          * @param target_id number attributed to the activated target
          * @param general_info Max 48 bytes.
@@ -827,7 +827,7 @@ namespace pn532 {
                 ms timeout = default_timeout);
 
         /**
-         * @brief activate the target with active or passive comunication (UM0701-02 §7.3.3)
+         * @brief activate the target with active or passive communication (UM0701-02 §7.3.3)
          * @ingroup Initiator
          * @param target_id number attributed to the activated target
          * @param nfcid_3t the NFCID3 used for the ATR_REQ
@@ -843,7 +843,7 @@ namespace pn532 {
                 ms timeout = default_timeout);
 
         /**
-         * @brief activate the target with active or passive comunication (UM0701-02 §7.3.3)
+         * @brief activate the target with active or passive communication (UM0701-02 §7.3.3)
          * @ingroup Initiator
          * @param target_id number attributed to the activated target
          * @param nfcid_3t the NFCID3 used for the ATR_REQ
@@ -861,7 +861,7 @@ namespace pn532 {
                 ms timeout = default_timeout);
 
         /**
-         * @brief activate the target with active or passive comunication (UM0701-02 §7.3.3)
+         * @brief activate the target with active or passive communication (UM0701-02 §7.3.3)
          * @ingroup Initiator
          * @param target_id number attributed to the activated target
          * @param timeout maximum time for getting a response
@@ -875,7 +875,7 @@ namespace pn532 {
                 ms timeout = default_timeout);
 
         /**
-         * @brief activate the target with active or passive comunication (UM0701-02 §7.3.3)
+         * @brief activate the target with active or passive communication (UM0701-02 §7.3.3)
          * @ingroup Initiator
          * @param target_id number attributed to the activated target
          * @param general_info Max 48 bytes.
@@ -891,7 +891,7 @@ namespace pn532 {
                 ms timeout = default_timeout);
 
         /**
-         * @brief activate the target with active or passive comunication (UM0701-02 §7.3.3)
+         * @brief activate the target with active or passive communication (UM0701-02 §7.3.3)
          * @ingroup Initiator
          * @param target_id number attributed to the activated target
          * @param timeout maximum time for getting a response
@@ -905,7 +905,7 @@ namespace pn532 {
                 ms timeout = default_timeout);
 
         /**
-         * @brief activate the target with active or passive comunication (UM0701-02 §7.3.3)
+         * @brief activate the target with active or passive communication (UM0701-02 §7.3.3)
          * @ingroup Initiator
          * @param target_id number attributed to the activated target
          * @param general_info Max 48 bytes.
@@ -921,9 +921,9 @@ namespace pn532 {
                 ms timeout = default_timeout);
 
         /**
-         * @brief activate the target with active or passive comunication (UM0701-02 §7.3.3)
+         * @brief activate the target with active or passive communication (UM0701-02 §7.3.3)
          * @ingroup Initiator
-         * @param speed comunication baudrate
+         * @param speed communication baudrate
          * @param timeout maximum time for getting a response
          * @return @ref jump_dep_psl, or one of the following errors:
          *         - @ref error::comm_malformed,
@@ -933,9 +933,9 @@ namespace pn532 {
         r<jump_dep_psl> initiator_jump_for_psl_active(baudrate speed, ms timeout = default_timeout);
 
         /**
-         * @brief activate the target with active or passive comunication (UM0701-02 §7.3.3)
+         * @brief activate the target with active or passive communication (UM0701-02 §7.3.3)
          * @ingroup Initiator
-         * @param speed comunication baudrate
+         * @param speed communication baudrate
          * @param general_info Max 48 bytes.
          * @param timeout maximum time for getting a response
          * @return @ref jump_dep_psl, or one of the following errors:
@@ -948,9 +948,9 @@ namespace pn532 {
                 ms timeout = default_timeout);
 
         /**
-         * @brief activate the target with active or passive comunication (UM0701-02 §7.3.3)
+         * @brief activate the target with active or passive communication (UM0701-02 §7.3.3)
          * @ingroup Initiator
-         * @param speed comunication baudrate
+         * @param speed communication baudrate
          * @param nfcid_3t the NFCID3 used for the ATR_REQ
          * @param timeout maximum time for getting a response
          * @return @ref jump_dep_psl, or one of the following errors:
@@ -963,9 +963,9 @@ namespace pn532 {
                 ms timeout = default_timeout);
 
         /**
-         * @brief activate the target with active or passive comunication (UM0701-02 §7.3.3)
+         * @brief activate the target with active or passive communication (UM0701-02 §7.3.3)
          * @ingroup Initiator
-         * @param speed comunication baudrate
+         * @param speed communication baudrate
          * @param nfcid_3t the NFCID3 used for the ATR_REQ
          * @param general_info Max 48 bytes.
          * @param timeout maximum time for getting a response
@@ -980,7 +980,7 @@ namespace pn532 {
                 ms timeout = default_timeout);
 
         /**
-         * @brief activate the target with active or passive comunication (UM0701-02 §7.3.3)
+         * @brief activate the target with active or passive communication (UM0701-02 §7.3.3)
          * @ingroup Initiator
          * @param timeout maximum time for getting a response
          * @return @ref jump_dep_psl, or one of the following errors:
@@ -991,7 +991,7 @@ namespace pn532 {
         r<jump_dep_psl> initiator_jump_for_psl_passive_106kbps(ms timeout = default_timeout);
 
         /**
-         * @brief activate the target with active or passive comunication (UM0701-02 §7.3.3)
+         * @brief activate the target with active or passive communication (UM0701-02 §7.3.3)
          * @ingroup Initiator
          * @param general_info Max 48 bytes.
          * @param timeout maximum time for getting a response
@@ -1005,7 +1005,7 @@ namespace pn532 {
                 ms timeout = default_timeout);
 
         /**
-         * @brief activate the target with active or passive comunication (UM0701-02 §7.3.3)
+         * @brief activate the target with active or passive communication (UM0701-02 §7.3.3)
          * @ingroup Initiator
          * @param nfcid_3t the NFCID3 used for the ATR_REQ
          * @param timeout maximum time for getting a response
@@ -1019,7 +1019,7 @@ namespace pn532 {
                 ms timeout = default_timeout);
 
         /**
-         * @brief activate the target with active or passive comunication (UM0701-02 §7.3.3)
+         * @brief activate the target with active or passive communication (UM0701-02 §7.3.3)
          * @ingroup Initiator
          * @param nfcid_3t the NFCID3 used for the ATR_REQ
          * @param general_info Max 48 bytes.
@@ -1035,7 +1035,7 @@ namespace pn532 {
                 ms timeout = default_timeout);
 
         /**
-         * @brief activate the target with active or passive comunication (UM0701-02 §7.3.3)
+         * @brief activate the target with active or passive communication (UM0701-02 §7.3.3)
          * @ingroup Initiator
          * @param target_id number attributed to the activated target
          * @param timeout maximum time for getting a response
@@ -1049,7 +1049,7 @@ namespace pn532 {
                 ms timeout = default_timeout);
 
         /**
-         * @brief activate the target with active or passive comunication (UM0701-02 §7.3.3)
+         * @brief activate the target with active or passive communication (UM0701-02 §7.3.3)
          * @ingroup Initiator
          * @param target_id number attributed to the activated target
          * @param general_info Max 48 bytes.
@@ -1065,7 +1065,7 @@ namespace pn532 {
                 ms timeout = default_timeout);
 
         /**
-         * @brief activate the target with active or passive comunication (UM0701-02 §7.3.3)
+         * @brief activate the target with active or passive communication (UM0701-02 §7.3.3)
          * @ingroup Initiator
          * @param target_id number attributed to the activated target
          * @param nfcid_3t the NFCID3 used for the ATR_REQ
@@ -1081,7 +1081,7 @@ namespace pn532 {
                 ms timeout = default_timeout);
 
         /**
-         * @brief activate the target with active or passive comunication (UM0701-02 §7.3.3)
+         * @brief activate the target with active or passive communication (UM0701-02 §7.3.3)
          * @ingroup Initiator
          * @param target_id number attributed to the activated target
          * @param nfcid_3t the NFCID3 used for the ATR_REQ
@@ -1099,7 +1099,7 @@ namespace pn532 {
                 ms timeout = default_timeout);
 
         /**
-         * @brief activate the target with active or passive comunication (UM0701-02 §7.3.3)
+         * @brief activate the target with active or passive communication (UM0701-02 §7.3.3)
          * @ingroup Initiator
          * @param target_id number attributed to the activated target
          * @param timeout maximum time for getting a response
@@ -1113,7 +1113,7 @@ namespace pn532 {
                 ms timeout = default_timeout);
 
         /**
-         * @brief activate the target with active or passive comunication (UM0701-02 §7.3.3)
+         * @brief activate the target with active or passive communication (UM0701-02 §7.3.3)
          * @ingroup Initiator
          * @param target_id number attributed to the activated target
          * @param general_info Max 48 bytes.
@@ -1129,7 +1129,7 @@ namespace pn532 {
                 ms timeout = default_timeout);
 
         /**
-         * @brief activate the target with active or passive comunication (UM0701-02 §7.3.3)
+         * @brief activate the target with active or passive communication (UM0701-02 §7.3.3)
          * @ingroup Initiator
          * @param target_id number attributed to the activated target
          * @param timeout maximum time for getting a response
@@ -1143,7 +1143,7 @@ namespace pn532 {
                 ms timeout = default_timeout);
 
         /**
-         * @brief activate the target with active or passive comunication (UM0701-02 §7.3.3)
+         * @brief activate the target with active or passive communication (UM0701-02 §7.3.3)
          * @ingroup Initiator
          * @param target_id number attributed to the activated target
          * @param general_info Max 48 bytes.

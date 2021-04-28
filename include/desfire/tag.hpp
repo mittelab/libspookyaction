@@ -72,7 +72,7 @@ namespace desfire {
          * @brief Construct a new tag object
          * @note if you want to create a custom controller, you should extend  @ref desfire::controller and implement @ref desfire::controller::communicate
          *
-         * @param controller a @ref desfire::controller class that handles the tag comunication
+         * @param controller a @ref desfire::controller class that handles the tag communication
          */
         inline explicit tag(controller &controller);
 
@@ -432,7 +432,7 @@ namespace desfire {
          * @brief Read the file settings
          * @ingroup data
          * @param fid The file ID, Max @ref bits::max_standard_data_file_id.
-         * @return @ref any_file_settings cointaining the file settings, or the following errors:
+         * @return @ref any_file_settings containingthe file settings, or the following errors:
          * - @ref error::malformed
          * - @ref error::crypto_error
          * - @ref error::controller_error
@@ -484,7 +484,7 @@ namespace desfire {
          * @ingroup data
          * @param fid The file ID, Max @ref bits::max_standard_data_file_id.
          * @param settings The new file settings
-         * @note will read the file configuration to check witch comunication mode (@ref file_security) should use
+         * @note will read the file configuration to check witch communication mode (@ref file_security) should use
          * @return None, or the following errors:
          * - @ref error::malformed
          * - @ref error::crypto_error
@@ -529,7 +529,7 @@ namespace desfire {
          * @ingroup data
          * @param fid The file ID, Max @ref bits::max_standard_data_file_id.
          * @param settings The new file settings
-         * @param security The comunication mode to use
+         * @param security The communication mode to use
          * @return None, or the following errors:
          * - @ref error::malformed
          * - @ref error::crypto_error
@@ -790,7 +790,7 @@ namespace desfire {
          * @param fid Max @ref bits::max_standard_data_file_id or @ref bits::max_backup_data_file_id
          * @param offset Limited to 24 bits, i.e. must be below 0xFFFFFF.
          * @param length Limited to 24 bits, i.e. must be below 0xFFFFFF.
-         * @param security Force the comunication mode, and do not auto-detect
+         * @param security Force the communication mode, and do not auto-detect
          * @return @ref bin_data containing requested data, or the following errors:
          * - @ref error::malformed
          * - @ref error::crypto_error
@@ -816,7 +816,7 @@ namespace desfire {
          * @param fid Max @ref bits::max_standard_data_file_id or @ref bits::max_backup_data_file_id
          * @param offset Limited to 24 bits, i.e. must be below 0xFFFFFF.
          * @param data Limited to 24 bits, i.e. must be below 0xFFFFFF.
-         * @param security Force the comunication mode, and do not auto-detect
+         * @param security Force the communication mode, and do not auto-detect
          * @return None, or the following errors:
          * - @ref error::malformed
          * - @ref error::crypto_error
@@ -852,7 +852,7 @@ namespace desfire {
          * @brief read value of a credit/debit file
          * @ingroup valueFile
          * @param fid Max @ref bits::max_value_file_id.
-         * @param security Force the comunication mode, and do not auto-detect
+         * @param security Force the communication mode, and do not auto-detect
          * @return the value in the file, or the following errors:
          * - @ref error::malformed
          * - @ref error::crypto_error
@@ -889,7 +889,7 @@ namespace desfire {
          * @ingroup valueFile
          * @param fid Max @ref bits::max_value_file_id.
          * @param amount Must be nonnegative.
-         * @param security Force the comunication mode, and do not auto-detect
+         * @param security Force the communication mode, and do not auto-detect
          * @return None, or the following errors:
          * - @ref error::malformed
          * - @ref error::crypto_error
@@ -927,7 +927,7 @@ namespace desfire {
          * @ingroup valueFile
          * @param fid Max @ref bits::max_value_file_id.
          * @param amount Must be nonnegative.
-         * @param security Force the comunication mode, and do not auto-detect
+         * @param security Force the communication mode, and do not auto-detect
          * @note This can be used without full write/read permission. It can be use to refound a transaction in a safe way.
          * @return None, or the following errors:
          * - @ref error::malformed
@@ -965,7 +965,7 @@ namespace desfire {
          * @ingroup valueFile
          * @param fid Max @ref bits::max_value_file_id.
          * @param amount Must be nonnegative.
-         * @param security Force the comunication mode, and do not auto-detect
+         * @param security Force the communication mode, and do not auto-detect
          * @return None, or the following errors:
          * - @ref error::malformed
          * - @ref error::crypto_error
@@ -993,7 +993,7 @@ namespace desfire {
          * @param fid Max @ref bits::max_record_file_id.
          * @param offset Limited to 24 bits, i.e. must be below 0xFFFFFF.
          * @param data Limited to 24 bits, i.e. must be below 0xFFFFFF.
-         * @param security Force the comunication mode, and do not auto-detect
+         * @param security Force the communication mode, and do not auto-detect
          * @return None, or the following errors:
          * - @ref error::malformed
          * - @ref error::crypto_error
@@ -1018,7 +1018,7 @@ namespace desfire {
          * @param fid Max @ref bits::max_record_file_id.
          * @param record_index Limited to 24 bits, i.e. must be below 0xFFFFFF.
          * @param record_count Limited to 24 bits, i.e. must be below 0xFFFFFF.
-         * @return @ref bin_data cointaining the record/s, or the following errors:
+         * @return @ref bin_data containingthe record/s, or the following errors:
          * - @ref error::malformed
          * - @ref error::crypto_error
          * - @ref error::parameter_error
@@ -1031,8 +1031,8 @@ namespace desfire {
          * @param fid Max @ref bits::max_record_file_id.
          * @param record_index Limited to 24 bits, i.e. must be below 0xFFFFFF.
          * @param record_count Limited to 24 bits, i.e. must be below 0xFFFFFF.
-         * @param security Force the comunication mode, and do not auto-detect
-         * @return @ref bin_data cointaining the record/s, or the following errors:
+         * @param security Force the communication mode, and do not auto-detect
+         * @return @ref bin_data containingthe record/s, or the following errors:
          * - @ref error::malformed
          * - @ref error::crypto_error
          * - @ref error::parameter_error
@@ -1044,7 +1044,7 @@ namespace desfire {
          * @brief Get the card UID
          * @ingroup card
          * @note need to be authenticated, this will fetch the "real" uid in case "uid randomization" is enabled
-         * @return @ref bin_data cointaining the record/s, or the following errors:
+         * @return @ref bin_data containingthe record/s, or the following errors:
          * - @ref error::malformed
          * - @ref error::crypto_error
          * - @ref error::controller_error

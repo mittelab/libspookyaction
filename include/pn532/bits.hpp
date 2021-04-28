@@ -44,7 +44,7 @@ namespace pn532::bits {
         write_register = 0x08,        ///< Write low level registers (UM0701-02 §7.2.5)
         read_gpio = 0x0c,             ///< Get gpio state (UM0701-02 §7.2.6)
         write_gpio = 0x0e,            ///< Write the GPIO status (UM0701-02 §7.2.7)
-        set_serial_baudrate = 0x10,   ///< Configure serial comunication baudrate (only on HSU mode) (UM0701-02 §7.2.8)
+        set_serial_baudrate = 0x10,   ///< Configure serial communication baudrate (only on HSU mode) (UM0701-02 §7.2.8)
         set_parameters = 0x12,        ///< Set internal configuration parameters (UM0701-02 §7.2.9)
         sam_configuration = 0x14,     ///< Configure the sam data-flow (UM0701-02 §7.2.10)
         power_down = 0x16,            ///< Set the PN532 in deep-sleep (UM0701-02 §7.2.11)
@@ -58,7 +58,7 @@ namespace pn532::bits {
         in_data_exchange = 0x40,      ///< Start a data excange with the selected target (UM0701-02 §7.3.8)
         in_communicate_thru = 0x42,   ///< Start a low level data exchange (UM0701-02 §7.3.9)
         in_deselect = 0x44,           ///< Deselect the target, but keep configuration information in memory (UM0701-02 §7.3.10)
-        in_release = 0x52,            ///< Terminate comunication with the target, and delete all the memorized information (UM0701-02 §7.3.11)
+        in_release = 0x52,            ///< Terminate communication with the target, and delete all the memorized information (UM0701-02 §7.3.11)
         in_select = 0x54,             ///< Select the target (UM0701-02 §7.3.12)
         in_autopoll = 0x60,           ///< Poll for sepcified targets in range, and inizialize them (UM0701-02 §7.3.13)
         tg_init_as_target = 0x8c,     ///< Configure the PN532 as a target (UM0701-02 §7.3.14)
@@ -72,10 +72,10 @@ namespace pn532::bits {
     };
 
     enum struct test : std::uint8_t {
-        comm_line = 0x0,  ///< Check the comunication with PN532 by sending data, and reading it back
+        comm_line = 0x0,  ///< Check the communication with PN532 by sending data, and reading it back
         rom = 0x1,        ///< Check the rom content of the PN532 is consistent
         ram = 0x2,        ///< Check the ram of the PN532
-        poll_target = 0x4,///< Chck by polling a target and keep count of comunication errors
+        poll_target = 0x4,///< Chck by polling a target and keep count of communication errors
         echo_back = 0x5,
         attention_req_or_card_presence = 0x6,
         self_antenna = 0x7

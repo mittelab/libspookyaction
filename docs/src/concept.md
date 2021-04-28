@@ -42,7 +42,7 @@ digraph libpn532 {
 
 ## Channels
 
-Abstract the comunication between the user (microcontroller, computer ecc..) and the tag reader.
+Abstract the communication between the user (microcontroller, computer ecc..) and the tag reader.
 At the moment the I2C, SPI and HSU(UART) channel are implemented.
 
 ## Controllers

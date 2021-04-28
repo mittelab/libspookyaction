@@ -110,12 +110,18 @@ namespace desfire {
         write
     };
 
+    /**
+     * @todo Do not use a union
+     */
     union access_rights {
         using change_actor = key_actor_mask<std::uint16_t, bits::file_access_rights_change_shift, all_keys_t>;
         using rw_actor = key_actor_mask<std::uint16_t, bits::file_access_rights_read_write_shift, all_keys_t>;
         using w_actor = key_actor_mask<std::uint16_t, bits::file_access_rights_write_shift, all_keys_t>;
         using r_actor = key_actor_mask<std::uint16_t, bits::file_access_rights_read_shift, all_keys_t>;
 
+        /**
+         * @todo use std::array<std::uint8_t, 2>
+         */
         std::uint16_t value;
 
         change_actor change;

@@ -245,7 +245,6 @@ namespace desfire {
             case crypto_direction::decrypt:
                 mbedtls_des3_crypt_cbc(&_dec_context, MBEDTLS_DES_DECRYPT, data.size(), iv.data(), data.data(), data.data());
                 break;
-                break;
         }
         ESP_LOG_BUFFER_HEX_LEVEL(output_tag(dir), data.data(), data.size(), ESP_LOG_DEBUG);
     }
@@ -301,7 +300,6 @@ namespace desfire {
                 break;
             case crypto_direction::decrypt:
                 mbedtls_aes_crypt_cbc(&_dec_context, MBEDTLS_AES_DECRYPT, data.size(), iv.data(), data.data(), data.data());
-                break;
                 break;
         }
         ESP_LOG_BUFFER_HEX_LEVEL(output_tag(dir), data.data(), data.size(), ESP_LOG_DEBUG);

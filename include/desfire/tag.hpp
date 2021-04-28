@@ -89,6 +89,7 @@ namespace desfire {
          * @return bin_data, or the following errors:
          * - @ref error::malformed
          * - @ref error::controller_error
+         * @todo Make private
          */
         r<bin_data> raw_command_response(bin_stream &tx_data, bool rx_fetch_additional_frames);
 
@@ -808,6 +809,8 @@ namespace desfire {
          * - @ref error::crypto_error
          * - @ref error::parameter_error
          * - @ref error::controller_error
+         *
+         * @todo Add warning marking the fact that using these overloads without file_security it could leak data on cloned cards with different security
          */
         r<> write_data(file_id fid, std::uint32_t offset, bin_data const &data);
 

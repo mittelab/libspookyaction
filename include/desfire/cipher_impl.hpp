@@ -73,6 +73,9 @@ namespace desfire {
         void do_crypto(range<bin_data::iterator> const &data, crypto_direction dir, block_t &iv) override;
     };
 
+    /**
+     * @todo Move
+     */
     class cipher_dummy final : public cipher {
     public:
         void prepare_tx(bin_data &, std::size_t, cipher_mode mode) override {

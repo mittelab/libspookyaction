@@ -349,6 +349,8 @@ namespace desfire {
                          "range 1..%u.",
                          to_string(command_code::create_application), settings.max_num_keys,
                          bits::max_keys_per_app);
+            /// @todo Use std::clamp
+            /// @todo Warning but allow to go on
             settings.max_num_keys = std::min(std::max(settings.max_num_keys, std::uint8_t(1)), bits::max_keys_per_app);
         }
         if (settings.rights.allowed_to_change_keys == no_key and not settings.rights.config_changeable) {

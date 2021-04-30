@@ -64,7 +64,7 @@ namespace pn532 {
         return uart_flush_input(_port) == ESP_OK;
     }
 
-    channel::r<> hsu_channel::raw_send(mlab::range<bin_data::const_iterator> const &buffer, ms timeout) {
+    channel::result<> hsu_channel::raw_send(mlab::range<bin_data::const_iterator> const &buffer, ms timeout) {
         if (_port == UART_NUM_MAX) {
             return error::comm_error;
         }
@@ -90,7 +90,7 @@ namespace pn532 {
         return error::comm_error;
     }
 
-    channel::r<> hsu_channel::raw_receive(mlab::range<bin_data::iterator> const &buffer, ms timeout) {
+    channel::result<> hsu_channel::raw_receive(mlab::range<bin_data::iterator> const &buffer, ms timeout) {
         if (_port == UART_NUM_MAX) {
             return error::comm_error;
         }

@@ -264,7 +264,7 @@ namespace pn532 {
         _owner._has_operation = false;
     }
 
-    channel::r<any_frame> channel::receive(ms timeout) {
+    channel::result<any_frame> channel::receive(ms timeout) {
         switch (raw_receive_mode()) {
             case receive_mode::stream:
                 return receive_stream(timeout);
@@ -275,7 +275,7 @@ namespace pn532 {
     }
 
 
-    channel::r<> channel::send(any_frame const &frame, ms timeout) {
+    channel::result<> channel::send(any_frame const &frame, ms timeout) {
         reduce_timeout rt{timeout};
         bin_data &buffer = get_clean_buffer();
         buffer << frame;
@@ -286,7 +286,7 @@ namespace pn532 {
         }
     }
 
-    channel::r<> channel::receive_ack(bool ack_value, ms timeout) {
+    channel::result<> channel::receive_ack(bool ack_value, ms timeout) {
         if (auto const res_recv = receive(timeout); res_recv) {
             if (res_recv->type() == (ack_value ? frame_type::ack : frame_type::nack)) {
                 return result_success;
@@ -299,7 +299,7 @@ namespace pn532 {
         }
     }
 
-    channel::r<> channel::send_ack(bool ack_value, ms timeout) {
+    channel::result<> channel::send_ack(bool ack_value, ms timeout) {
         if (ack_value) {
             return send(frame<frame_type::ack>{}, timeout);
         } else {
@@ -307,7 +307,7 @@ namespace pn532 {
         }
     }
 
-    channel::r<any_frame> channel::receive_restart(ms timeout) {
+    channel::result<any_frame> channel::receive_restart(ms timeout) {
         reduce_timeout rt{timeout};
         bin_data &buffer = get_clean_buffer();
         bin_stream s{buffer};
@@ -364,7 +364,7 @@ namespace pn532 {
         return error::comm_error;
     }
 
-    channel::r<any_frame> channel::receive_stream(ms timeout) {
+    channel::result<any_frame> channel::receive_stream(ms timeout) {
         reduce_timeout rt{timeout};
         if (comm_operation op{*this, comm_mode::receive, rt.remaining()}; op.ok()) {
             bin_data &buffer = get_clean_buffer();
@@ -405,7 +405,7 @@ namespace pn532 {
     }
 
 
-    channel::r<> channel::command(bits::command cmd, bin_data data, ms timeout) {
+    channel::result<> channel::command(bits::command cmd, bin_data data, ms timeout) {
         reduce_timeout rt{timeout};
         frame<frame_type::info> f{bits::transport::host_to_pn532, cmd, std::move(data)};
         if (auto const res_send = send(std::move(f), rt.remaining()); not res_send) {
@@ -415,9 +415,9 @@ namespace pn532 {
         }
     }
 
-    channel::r<bin_data> channel::response(bits::command cmd, ms timeout) {
+    channel::result<bin_data> channel::response(bits::command cmd, ms timeout) {
         reduce_timeout rt{timeout};
-        r<bin_data> retval = error::comm_timeout;
+        result<bin_data> retval = error::comm_timeout;
         if (auto res_recv = receive(rt.remaining()); res_recv) {
             if (res_recv->type() == frame_type::error) {
                 PN532_LOGW("Command %s failed.", to_string(cmd));
@@ -452,7 +452,7 @@ namespace pn532 {
         return retval;
     }
 
-    channel::r<bin_data> channel::command_response(bits::command cmd, bin_data data, ms timeout) {
+    channel::result<bin_data> channel::command_response(bits::command cmd, bin_data data, ms timeout) {
         reduce_timeout rt{timeout};
         if (auto const res_cmd = command(cmd, std::move(data), rt.remaining()); not res_cmd) {
             return res_cmd.error();

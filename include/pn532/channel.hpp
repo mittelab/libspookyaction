@@ -186,7 +186,7 @@ namespace pn532 {
         };
 
         template <class... Tn>
-        using r = mlab::result<error, Tn...>;
+        using result = mlab::result<error, Tn...>;
 
     protected:
         /**
@@ -219,7 +219,7 @@ namespace pn532 {
         };
 
 
-        virtual r<> raw_send(mlab::range<bin_data::const_iterator> const &buffer, ms timeout) = 0;
+        virtual result<> raw_send(mlab::range<bin_data::const_iterator> const &buffer, ms timeout) = 0;
 
         /**
          * @param buffer
@@ -231,7 +231,7 @@ namespace pn532 {
          * @return
          * @see receive_mode
          */
-        virtual r<> raw_receive(mlab::range<bin_data::iterator> const &buffer, ms timeout) = 0;
+        virtual result<> raw_receive(mlab::range<bin_data::iterator> const &buffer, ms timeout) = 0;
 
         /**
          * Determines whether multiple calls to @ref raw_receive can be performed as part of a single
@@ -251,16 +251,16 @@ namespace pn532 {
          * @{
          */
         virtual bool on_receive_prepare(ms timeout) { return true; }
-        virtual void on_receive_complete(r<> const &outcome) {}
+        virtual void on_receive_complete(result<> const &outcome) {}
         virtual bool on_send_prepare(ms timeout) { return true; }
-        virtual void on_send_complete(r<> const &outcome) {}
+        virtual void on_send_complete(result<> const &outcome) {}
         /**
          * @}
          */
 
-        r<> send(any_frame const &frame, ms timeout);
+        result<> send(any_frame const &frame, ms timeout);
 
-        r<any_frame> receive(ms timeout);
+        result<any_frame> receive(ms timeout);
 
     public:
         virtual bool wake() = 0;
@@ -272,7 +272,7 @@ namespace pn532 {
          * @param timeout maximum time for getting a response
          * @return No data, but can return the following errors: @ref error::comm_timeout.
          */
-        r<> send_ack(bool ack_value, ms timeout);
+        result<> send_ack(bool ack_value, ms timeout);
 
         /**
          * @brief Wait for an ACK or NACK
@@ -281,7 +281,7 @@ namespace pn532 {
          * @returns true if ACK otherwhise false if NACK or the following errors: @ref error::comm_error,
          *  @ref error::comm_malformed, @ref error::comm_timeout
          */
-        r<> receive_ack(bool ack_value, ms timeout);
+        result<> receive_ack(bool ack_value, ms timeout);
 
         /**
          * @brief Command without response
@@ -292,7 +292,7 @@ namespace pn532 {
          * @return No data, but can return the following errors: @ref error::comm_timeout, @ref error::nack,
          *   @ref error::comm_malformed
          */
-        r<> command(bits::command cmd, bin_data data, ms timeout);
+        result<> command(bits::command cmd, bin_data data, ms timeout);
 
         /**
          * @brief Wait for a response frame of a command
@@ -302,7 +302,7 @@ namespace pn532 {
          * @return Either the received data, or one of the following errors: @ref error::comm_malformed,
          *  @ref error::comm_checksum_fail, or @ref error::comm_timeout. No other error codes are produced.
          */
-        r<bin_data> response(bits::command cmd, ms timeout);
+        result<bin_data> response(bits::command cmd, ms timeout);
 
         /**
          * @brief Command with response
@@ -315,7 +315,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<bin_data> command_response(bits::command cmd, bin_data data, ms timeout);
+        result<bin_data> command_response(bits::command cmd, bin_data data, ms timeout);
 
         /**
          * @brief Get data from a command response
@@ -329,18 +329,18 @@ namespace pn532 {
          *         - @ref error::comm_timeout
          */
         template <class Data, class = typename std::enable_if<bin_stream::is_extractable<Data>::value>::type>
-        r<Data> command_parse_response(bits::command cmd, bin_data data, ms timeout);
+        result<Data> command_parse_response(bits::command cmd, bin_data data, ms timeout);
 
     private:
         /**
          * Receives the frame one piece at a time.
          */
-        r<any_frame> receive_stream(ms timeout);
+        result<any_frame> receive_stream(ms timeout);
 
         /**
          * Receives the frame but restarts every time it needs to read a new chunk.
          */
-        r<any_frame> receive_restart(ms timeout);
+        result<any_frame> receive_restart(ms timeout);
 
         bool _has_operation = false;
     };
@@ -352,7 +352,7 @@ namespace pn532 {
     /**
      * @brief Class managing the correct firing of the events in the PN532.
      * This class is a RAII wrapper that fires the correct events at construction and destruction. It holds the
-     * transmission result @ref channel::r<> obtained so far (or the corresponding error), in such a way that it
+     * transmission result @ref channel::result<> obtained so far (or the corresponding error), in such a way that it
      * can pass it to @ref on_receive_complete or @ref on_send_complete. Always call @ref raw_send and @ref raw_receive
      * with one such class in scope (otherwise the events will not be fired and the class may not be in the correct
      * state). Use the passthrough methods @ref comm_operation::update to record results or errors, as in the
@@ -368,7 +368,7 @@ namespace pn532 {
      *  using namespace std::chrono_literals;
      *
      *  // In a subclass of channel
-     *  channel::r<any_frame> chn_subclass::custom_receive_frame() {
+     *  channel::result<any_frame> chn_subclass::custom_receive_frame() {
      *      // Create a comm_operation alive within the scope of the if.
      *      // This fires on_receive_prepare, and test with ::ok() whether it succeeded.
      *      if (comm_operation op{*this, comm_mode::receive, 10ms}; op.ok()) {
@@ -424,7 +424,7 @@ namespace pn532 {
     class channel::comm_operation {
         channel &_owner;
         comm_mode _event;
-        r<> _result;
+        result<> _result;
 
     public:
         /**
@@ -471,7 +471,7 @@ namespace pn532 {
         /**
          * @addtogroup comm_operation::update
          * These methods collect a result, an error, or a boolean representing success and store it inside the
-         * class. Moreover, they return whatever was passed to them (in the form of @ref channel::r<> or in form
+         * class. Moreover, they return whatever was passed to them (in the form of @ref channel::result<> or in form
          * of @ref channel::error), in such a way that the user can directly pass it through in a `return` statement.
          * The updated result is used in the call to @ref on_receive_complete and @ref on_send_complete.
          * @{
@@ -489,17 +489,17 @@ namespace pn532 {
          * @param operation_result True if the operation succeded, false if it timed out.
          * @return @ref mlab::result_success or @ref error::comm_timeout, depending on @p operation_result.
          */
-        [[nodiscard]] inline r<> update(bool operation_result);
+        [[nodiscard]] inline result<> update(bool operation_result);
 
         /**
-         * Stores an existing result into the internal @ref channel::r<>
+         * Stores an existing result into the internal @ref channel::result<>
          * @tparam Tn Any result type for @ref mlab::result
-         * @tparam Args Anything that can be assigned to @ref channel::r<>
-         * @param args Anything that can be assigned to @ref channel::r<>
+         * @tparam Args Anything that can be assigned to @ref channel::result<>
+         * @param args Anything that can be assigned to @ref channel::result<>
          * @return The same result as the one specified
          */
         template <class... Tn, class... Args>
-        [[nodiscard]] inline r<Tn...> update(Args &&... args);
+        [[nodiscard]] inline result<Tn...> update(Args &&... args);
         /**
          * @}
          */
@@ -510,7 +510,7 @@ namespace pn532 {
 namespace pn532 {
 
     template <class Data, class>
-    channel::r<Data> channel::command_parse_response(bits::command cmd, bin_data data, ms timeout) {
+    channel::result<Data> channel::command_parse_response(bits::command cmd, bin_data data, ms timeout) {
         if (const auto res_cmd = command_response(cmd, std::move(data), timeout); res_cmd) {
             bin_stream s{*res_cmd};
             auto retval = Data();
@@ -541,7 +541,7 @@ namespace pn532 {
         return e;
     }
 
-    channel::r<> channel::comm_operation::update(bool operation_result) {
+    channel::result<> channel::comm_operation::update(bool operation_result) {
         if (operation_result) {
             _result = mlab::result_success;
         } else {
@@ -551,8 +551,8 @@ namespace pn532 {
     }
 
     template <class... Tn, class... Args>
-    channel::r<Tn...> channel::comm_operation::update(Args &&... args) {
-        r<Tn...> retval{std::forward<Args>(args)...};
+    channel::result<Tn...> channel::comm_operation::update(Args &&... args) {
+        result<Tn...> retval{std::forward<Args>(args)...};
         if (retval) {
             _result = mlab::result_success;
         } else {

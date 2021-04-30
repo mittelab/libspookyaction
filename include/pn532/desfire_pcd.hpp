@@ -12,7 +12,7 @@ namespace pn532 {
     class desfire_pcd final : public desfire::controller {
         nfc *_pcd;
         std::uint8_t _target;
-        nfc::r<rf_status> _last_result;
+        nfc::result<rf_status> _last_result;
 
         [[nodiscard]] inline nfc &pcd();
 
@@ -21,7 +21,7 @@ namespace pn532 {
 
         [[nodiscard]] inline nfc &tag_reader();
         [[nodiscard]] inline nfc const &tag_reader() const;
-        [[nodiscard]] inline nfc::r<rf_status> last_result() const;
+        [[nodiscard]] inline nfc::result<rf_status> last_result() const;
         [[nodiscard]] inline std::uint8_t target_logical_index() const;
 
         std::pair<bin_data, bool> communicate(bin_data const &data) override;
@@ -41,7 +41,7 @@ namespace pn532 {
         return _target;
     }
 
-    nfc::r<rf_status> desfire_pcd::last_result() const {
+    nfc::result<rf_status> desfire_pcd::last_result() const {
         return _last_result;
     }
 

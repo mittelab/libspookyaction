@@ -57,7 +57,7 @@ namespace desfire {
         }
     }// namespace
 
-    tag::r<> tag::safe_drop_payload(command_code cmd, tag::r<bin_data> const &result) {
+    tag::result<> tag::safe_drop_payload(command_code cmd, tag::result<bin_data> const &result) {
         if (result) {
             if (not result->empty()) {
                 tag::log_not_empty(cmd, result->view());
@@ -103,7 +103,7 @@ namespace desfire {
         _active_key_number = std::numeric_limits<std::uint8_t>::max();
     }
 
-    tag::r<bin_data> tag::raw_command_response(bin_stream &tx_data, bool rx_fetch_additional_frames) {
+    tag::result<bin_data> tag::raw_command_response(bin_stream &tx_data, bool rx_fetch_additional_frames) {
         static constexpr auto chunk_size = bits::max_packet_length;
         static bin_data tx_chunk{prealloc(chunk_size)};
         const auto num_tx_chunks = 1 + div_round_up(saturate_sub(tx_data.remaining(), chunk_size), chunk_size - 1);
@@ -163,7 +163,7 @@ namespace desfire {
         return std::move(rx_data);
     }
 
-    tag::r<status, bin_data> tag::command_status_response(command_code cmd, bin_data const &data, comm_cfg const &cfg, bool rx_fetch_additional_frames, cipher *override_cipher) {
+    tag::result<status, bin_data> tag::command_status_response(command_code cmd, bin_data const &data, comm_cfg const &cfg, bool rx_fetch_additional_frames, cipher *override_cipher) {
         if (_active_cipher == nullptr and override_cipher == nullptr) {
             DESFIRE_LOGE("No active cipher and no override cipher: 'tag' is in an invalid state (coding mistake).");
             return error::crypto_error;
@@ -217,7 +217,7 @@ namespace desfire {
         return {cmd_status, std::move(rx_data)};
     }
 
-    tag::r<bin_data> tag::command_response(command_code cmd, const bin_data &payload, const tag::comm_cfg &cfg, bool rx_fetch_additional_frames, cipher *override_cipher) {
+    tag::result<bin_data> tag::command_response(command_code cmd, const bin_data &payload, const tag::comm_cfg &cfg, bool rx_fetch_additional_frames, cipher *override_cipher) {
         auto_logout logout_on_error{*this, override_cipher != nullptr};
 
         if (auto res_status_cmd = command_status_response(cmd, payload, cfg, rx_fetch_additional_frames, override_cipher); res_status_cmd) {
@@ -236,7 +236,7 @@ namespace desfire {
         }
     }
 
-    tag::r<> tag::select_application(app_id const &app) {
+    tag::result<> tag::select_application(app_id const &app) {
         const auto res_cmd = command_response(command_code::select_application, bin_data::chain(app), cipher_mode::plain);
         if (res_cmd) {
             DESFIRE_LOGD("Selected application %02x %02x %02x.", app[0], app[1], app[2]);
@@ -246,7 +246,7 @@ namespace desfire {
         return safe_drop_payload(command_code::select_application, res_cmd);
     }
 
-    tag::r<> tag::authenticate(const any_key &k) {
+    tag::result<> tag::authenticate(const any_key &k) {
         /// Clear preexisting authentication, check parms
         logout(false);
         if (k.type() == cipher_type::none) {
@@ -330,11 +330,11 @@ namespace desfire {
         return result_success;
     }
 
-    tag::r<app_settings> tag::get_app_settings() {
+    tag::result<app_settings> tag::get_app_settings() {
         return command_parse_response<app_settings>(command_code::get_key_settings, bin_data{}, default_comm_cfg());
     }
 
-    tag::r<std::uint8_t> tag::get_key_version(std::uint8_t key_num) {
+    tag::result<std::uint8_t> tag::get_key_version(std::uint8_t key_num) {
         if (key_num >= bits::max_keys_per_app) {
             DESFIRE_LOGE("%s: invalid key num %u (max %u).", to_string(command_code::get_key_version), key_num, bits::max_keys_per_app);
             return error::parameter_error;
@@ -343,7 +343,7 @@ namespace desfire {
                                                     default_comm_cfg());
     }
 
-    tag::r<> tag::create_application(app_id const &new_app_id, app_settings settings) {
+    tag::result<> tag::create_application(app_id const &new_app_id, app_settings settings) {
         if (settings.max_num_keys == 0 or settings.max_num_keys > bits::max_keys_per_app) {
             DESFIRE_LOGW("%s: attempt to create an app with a maximum number of keys of %u, will be clamped in the "
                          "range 1..%u.",
@@ -365,7 +365,7 @@ namespace desfire {
                                          default_comm_cfg()));
     }
 
-    tag::r<> tag::change_app_settings(key_rights new_rights) {
+    tag::result<> tag::change_app_settings(key_rights new_rights) {
         if (active_app() == root_app) {
             if (new_rights.allowed_to_change_keys != 0) {
                 DESFIRE_LOGW("%s: only the unique master key can have the right to change keys in the root app.",
@@ -383,22 +383,22 @@ namespace desfire {
                                          {cipher_mode::ciphered, default_comm_cfg().rx}));
     }
 
-    tag::r<> tag::delete_application(app_id const &app) {
+    tag::result<> tag::delete_application(app_id const &app) {
         return safe_drop_payload(command_code::delete_application,
                                  command_response(command_code::delete_application,
                                                   bin_data::chain(app),
                                                   default_comm_cfg()));
     }
 
-    tag::r<std::vector<app_id>> tag::get_application_ids() {
+    tag::result<std::vector<app_id>> tag::get_application_ids() {
         return command_parse_response<std::vector<app_id>>(command_code::get_application_ids, {}, default_comm_cfg());
     }
 
-    tag::r<manufacturing_info> tag::get_info() {
+    tag::result<manufacturing_info> tag::get_info() {
         return command_parse_response<manufacturing_info>(command_code::get_version, bin_data{}, default_comm_cfg());
     }
 
-    tag::r<> tag::format_picc() {
+    tag::result<> tag::format_picc() {
         const auto res_cmd = command_response(command_code::format_picc, bin_data{}, default_comm_cfg());
         if (res_cmd) {
             logout(false);
@@ -407,7 +407,7 @@ namespace desfire {
         return safe_drop_payload(command_code::format_picc, res_cmd);
     }
 
-    tag::r<> tag::change_key(any_key const &new_key) {
+    tag::result<> tag::change_key(any_key const &new_key) {
         if (active_key_no() >= bits::max_keys_per_app) {
             DESFIRE_LOGE("%s: not authenticated.", to_string(command_code::change_key));
             return error::authentication_error;
@@ -422,7 +422,7 @@ namespace desfire {
         return change_key_internal(nullptr, active_key_no(), new_key);
     }
 
-    tag::r<> tag::change_key(any_key const &current_key, std::uint8_t key_no_to_change, any_key const &new_key) {
+    tag::result<> tag::change_key(any_key const &current_key, std::uint8_t key_no_to_change, any_key const &new_key) {
         if (key_no_to_change >= bits::max_keys_per_app) {
             DESFIRE_LOGE("%s: invalid key num %u (max %u).", to_string(command_code::change_key), key_no_to_change, bits::max_keys_per_app);
             return error::parameter_error;
@@ -441,7 +441,7 @@ namespace desfire {
         return change_key_internal(&current_key, key_no_to_change, new_key);
     }
 
-    tag::r<> tag::change_key_internal(any_key const *current_key, std::uint8_t key_no_to_change, any_key const &new_key) {
+    tag::result<> tag::change_key_internal(any_key const *current_key, std::uint8_t key_no_to_change, any_key const &new_key) {
         // Tweak the key number to allow change type of key on the root app (since cipher type must be set at creation).
         const std::uint8_t key_no_flag = (active_app() == root_app
                                                   ? key_no_to_change | static_cast<std::uint8_t>(app_crypto_from_cipher(new_key.type()))
@@ -495,7 +495,7 @@ namespace desfire {
         return safe_drop_payload(command_code::change_key, res_cmd);
     }
 
-    tag::r<std::vector<file_id>> tag::get_file_ids() {
+    tag::result<std::vector<file_id>> tag::get_file_ids() {
         auto res_cmd = command_response(command_code::get_file_ids, {}, default_comm_cfg());
         if (res_cmd) {
             return std::move(*res_cmd);
@@ -503,7 +503,7 @@ namespace desfire {
         return res_cmd.error();
     }
 
-    tag::r<any_file_settings> tag::get_file_settings(file_id fid) {
+    tag::result<any_file_settings> tag::get_file_settings(file_id fid) {
         return command_parse_response<any_file_settings>(
                 command_code::get_file_settings, bin_data::chain(fid), default_comm_cfg());
     }
@@ -516,7 +516,7 @@ namespace desfire {
         return settings.generic_settings().security;
     }
 
-    tag::r<file_security> tag::determine_file_security(file_id fid, file_access access) {
+    tag::result<file_security> tag::determine_file_security(file_id fid, file_access access) {
         if (const auto res_get_settings = get_file_settings(fid); res_get_settings) {
             return determine_file_security(access, *res_get_settings);
         } else {
@@ -524,7 +524,7 @@ namespace desfire {
         }
     }
 
-    tag::r<> tag::change_file_settings(file_id fid, generic_file_settings const &settings) {
+    tag::result<> tag::change_file_settings(file_id fid, generic_file_settings const &settings) {
         if (const auto res_sec = determine_file_security(fid, file_access::change); res_sec) {
             return change_file_settings(fid, settings, *res_sec);
         } else {
@@ -532,7 +532,7 @@ namespace desfire {
         }
     }
 
-    tag::r<> tag::change_file_settings(file_id fid, generic_file_settings const &settings, file_security security) {
+    tag::result<> tag::change_file_settings(file_id fid, generic_file_settings const &settings, file_security security) {
         if (security == file_security::authenticated) {
             // We do not use MAC res_sec for this command, upgrade it
             security = file_security::encrypted;
@@ -545,7 +545,7 @@ namespace desfire {
                                          cfg));
     }
 
-    tag::r<bin_data> tag::read_data(file_id fid, std::uint32_t offset, std::uint32_t length) {
+    tag::result<bin_data> tag::read_data(file_id fid, std::uint32_t offset, std::uint32_t length) {
         if (const auto res_sec = determine_file_security(fid, file_access::read); res_sec) {
             return read_data(fid, offset, length, *res_sec);
         } else {
@@ -553,7 +553,7 @@ namespace desfire {
         }
     }
 
-    tag::r<bin_data> tag::read_data(file_id fid, std::uint32_t offset, std::uint32_t length, file_security security) {
+    tag::result<bin_data> tag::read_data(file_id fid, std::uint32_t offset, std::uint32_t length, file_security security) {
         if (fid > bits::max_backup_data_file_id or fid > bits::max_standard_data_file_id) {
             DESFIRE_LOGW("%s: invalid file id %d for data or backup file.", to_string(command_code::read_data), fid);
             return error::parameter_error;
@@ -575,7 +575,7 @@ namespace desfire {
         return command_response(command_code::read_data, payload, comm_cfg{default_comm_cfg().tx, rx_cipher_mode});
     }
 
-    tag::r<> tag::write_data(file_id fid, std::uint32_t offset, bin_data const &data) {
+    tag::result<> tag::write_data(file_id fid, std::uint32_t offset, bin_data const &data) {
         if (const auto res_sec = determine_file_security(fid, file_access::write); res_sec) {
             return write_data(fid, offset, data, *res_sec);
         } else {
@@ -583,7 +583,7 @@ namespace desfire {
         }
     }
 
-    tag::r<> tag::write_data(file_id fid, std::uint32_t offset, bin_data const &data, file_security security) {
+    tag::result<> tag::write_data(file_id fid, std::uint32_t offset, bin_data const &data, file_security security) {
         if (fid > bits::max_backup_data_file_id or fid > bits::max_standard_data_file_id) {
             DESFIRE_LOGW("%s: invalid file id %d for data or backup file.", to_string(command_code::write_data), fid);
             return error::parameter_error;
@@ -608,7 +608,7 @@ namespace desfire {
     }
 
 
-    tag::r<std::int32_t> tag::get_value(file_id fid) {
+    tag::result<std::int32_t> tag::get_value(file_id fid) {
         if (const auto res_sec = determine_file_security(fid, file_access::read); res_sec) {
             return get_value(fid, *res_sec);
         } else {
@@ -616,7 +616,7 @@ namespace desfire {
         }
     }
 
-    tag::r<std::int32_t> tag::get_value(file_id fid, file_security security) {
+    tag::result<std::int32_t> tag::get_value(file_id fid, file_security security) {
         if (fid > bits::max_value_file_id) {
             DESFIRE_LOGW("%s: invalid file id %d for a value file.", to_string(command_code::get_value), fid);
             return error::parameter_error;
@@ -629,7 +629,7 @@ namespace desfire {
                 comm_cfg{default_comm_cfg().tx, rx_cipher_mode});
     }
 
-    tag::r<> tag::write_value(command_code cmd, file_id fid, std::int32_t amount, file_security security) {
+    tag::result<> tag::write_value(command_code cmd, file_id fid, std::int32_t amount, file_security security) {
         if (cmd != command_code::credit and cmd != command_code::debit and cmd != command_code::limited_credit) {
             DESFIRE_LOGE("write_value command used with invalid command code %s.", to_string(cmd));
             return error::parameter_error;
@@ -647,7 +647,7 @@ namespace desfire {
         return safe_drop_payload(cmd, command_response(cmd, payload, cfg));
     }
 
-    tag::r<> tag::credit(file_id fid, std::int32_t amount) {
+    tag::result<> tag::credit(file_id fid, std::int32_t amount) {
         if (const auto res_sec = determine_file_security(fid, file_access::write); res_sec) {
             return write_value(command_code::credit, fid, amount, *res_sec);
         } else {
@@ -655,7 +655,7 @@ namespace desfire {
         }
     }
 
-    tag::r<> tag::limited_credit(file_id fid, std::int32_t amount) {
+    tag::result<> tag::limited_credit(file_id fid, std::int32_t amount) {
         if (const auto res_sec = determine_file_security(fid, file_access::write); res_sec) {
             return write_value(command_code::limited_credit, fid, amount, *res_sec);
         } else {
@@ -663,7 +663,7 @@ namespace desfire {
         }
     }
 
-    tag::r<> tag::debit(file_id fid, std::int32_t amount) {
+    tag::result<> tag::debit(file_id fid, std::int32_t amount) {
         if (const auto res_sec = determine_file_security(fid, file_access::write); res_sec) {
             return write_value(command_code::debit, fid, amount, *res_sec);
         } else {
@@ -671,19 +671,19 @@ namespace desfire {
         }
     }
 
-    tag::r<> tag::credit(file_id fid, std::int32_t amount, file_security security) {
+    tag::result<> tag::credit(file_id fid, std::int32_t amount, file_security security) {
         return write_value(command_code::credit, fid, amount, security);
     }
 
-    tag::r<> tag::limited_credit(file_id fid, std::int32_t amount, file_security security) {
+    tag::result<> tag::limited_credit(file_id fid, std::int32_t amount, file_security security) {
         return write_value(command_code::limited_credit, fid, amount, security);
     }
 
-    tag::r<> tag::debit(file_id fid, std::int32_t amount, file_security security) {
+    tag::result<> tag::debit(file_id fid, std::int32_t amount, file_security security) {
         return write_value(command_code::debit, fid, amount, security);
     }
 
-    tag::r<> tag::write_record(file_id fid, std::uint32_t offset, bin_data const &data) {
+    tag::result<> tag::write_record(file_id fid, std::uint32_t offset, bin_data const &data) {
         if (const auto res_sec = determine_file_security(fid, file_access::write); res_sec) {
             return write_record(fid, offset, data, *res_sec);
         } else {
@@ -691,7 +691,7 @@ namespace desfire {
         }
     }
 
-    tag::r<> tag::write_record(file_id fid, std::uint32_t offset, bin_data const &data, file_security security) {
+    tag::result<> tag::write_record(file_id fid, std::uint32_t offset, bin_data const &data, file_security security) {
         if (fid > bits::max_record_file_id) {
             DESFIRE_LOGW("%s: invalid file id %d for a record file.", to_string(command_code::write_record), fid);
             return error::parameter_error;
@@ -716,7 +716,7 @@ namespace desfire {
                                  command_response(command_code::write_record, payload, cfg));
     }
 
-    tag::r<bin_data> tag::read_records(file_id fid, std::uint32_t record_index, std::uint32_t record_count) {
+    tag::result<bin_data> tag::read_records(file_id fid, std::uint32_t record_index, std::uint32_t record_count) {
         if (const auto res_sec = determine_file_security(fid, file_access::write); res_sec) {
             return read_records(fid, record_index, record_count, *res_sec);
         } else {
@@ -724,7 +724,7 @@ namespace desfire {
         }
     }
 
-    tag::r<bin_data> tag::read_records(file_id fid, std::uint32_t record_index, std::uint32_t record_count, file_security security) {
+    tag::result<bin_data> tag::read_records(file_id fid, std::uint32_t record_index, std::uint32_t record_count, file_security security) {
         if (fid > bits::max_record_file_id) {
             DESFIRE_LOGW("%s: invalid file id %d for a record file.", to_string(command_code::write_record), fid);
             return error::parameter_error;
@@ -748,7 +748,7 @@ namespace desfire {
     }
 
 
-    tag::r<> tag::create_file(file_id fid, any_file_settings const &settings) {
+    tag::result<> tag::create_file(file_id fid, any_file_settings const &settings) {
         switch (settings.type()) {
             case file_type::standard:
                 return create_file(fid, settings.get<file_type::standard>());
@@ -766,7 +766,7 @@ namespace desfire {
         }
     }
 
-    tag::r<> tag::create_file(file_id fid, file_settings<file_type::standard> const &settings) {
+    tag::result<> tag::create_file(file_id fid, file_settings<file_type::standard> const &settings) {
         if (fid > bits::max_standard_data_file_id) {
             DESFIRE_LOGW("%s: invalid file id %d for a data file.", to_string(command_code::create_std_data_file), fid);
             return error::parameter_error;
@@ -777,7 +777,7 @@ namespace desfire {
                                          default_comm_cfg()));
     }
 
-    tag::r<> tag::create_file(file_id fid, file_settings<file_type::backup> const &settings) {
+    tag::result<> tag::create_file(file_id fid, file_settings<file_type::backup> const &settings) {
         if (fid > bits::max_backup_data_file_id) {
             DESFIRE_LOGW("%s: invalid file id %d for a backup file.", to_string(command_code::create_backup_data_file), fid);
             return error::parameter_error;
@@ -788,7 +788,7 @@ namespace desfire {
                                          default_comm_cfg()));
     }
 
-    tag::r<> tag::create_file(file_id fid, file_settings<file_type::value> const &settings) {
+    tag::result<> tag::create_file(file_id fid, file_settings<file_type::value> const &settings) {
         if (fid > bits::max_value_file_id) {
             return error::parameter_error;
         }
@@ -801,7 +801,7 @@ namespace desfire {
                                          default_comm_cfg()));
     }
 
-    tag::r<> tag::create_file(file_id fid, file_settings<file_type::linear_record> const &settings) {
+    tag::result<> tag::create_file(file_id fid, file_settings<file_type::linear_record> const &settings) {
         if (fid > bits::max_record_file_id) {
             DESFIRE_LOGW("%s: invalid file id %d for a record file.", to_string(command_code::create_linear_record_file), fid);
             return error::parameter_error;
@@ -815,7 +815,7 @@ namespace desfire {
                                          default_comm_cfg()));
     }
 
-    tag::r<> tag::create_file(file_id fid, file_settings<file_type::cyclic_record> const &settings) {
+    tag::result<> tag::create_file(file_id fid, file_settings<file_type::cyclic_record> const &settings) {
         if (fid > bits::max_record_file_id) {
             DESFIRE_LOGW("%s: invalid file id %d for a record file.", to_string(command_code::create_cyclic_record_file), fid);
             return error::parameter_error;
@@ -832,13 +832,13 @@ namespace desfire {
                                          default_comm_cfg()));
     }
 
-    tag::r<> tag::delete_file(file_id fid) {
+    tag::result<> tag::delete_file(file_id fid) {
         return safe_drop_payload(command_code::delete_file,
                                  command_response(
                                          command_code::delete_file, bin_data::chain(fid), default_comm_cfg()));
     }
 
-    tag::r<> tag::clear_record_file(file_id fid) {
+    tag::result<> tag::clear_record_file(file_id fid) {
         if (fid > bits::max_record_file_id) {
             DESFIRE_LOGW("%s: invalid file id %d for a record file.", to_string(command_code::clear_record_file), fid);
             return error::parameter_error;
@@ -849,19 +849,19 @@ namespace desfire {
     }
 
 
-    tag::r<> tag::commit_transaction() {
+    tag::result<> tag::commit_transaction() {
         return safe_drop_payload(command_code::commit_transaction,
                                  command_response(
                                          command_code::commit_transaction, bin_data{}, default_comm_cfg()));
     }
 
-    tag::r<> tag::abort_transaction() {
+    tag::result<> tag::abort_transaction() {
         return safe_drop_payload(command_code::abort_transaction,
                                  command_response(
                                          command_code::abort_transaction, bin_data{}, default_comm_cfg()));
     }
 
-    tag::r<std::array<std::uint8_t, 7>> tag::get_card_uid() {
+    tag::result<std::array<std::uint8_t, 7>> tag::get_card_uid() {
         if (active_key_type() == cipher_type::none) {
             DESFIRE_LOGW("%s: did not authenticate, likely to fail.", to_string(command_code::get_card_uid));
         }
@@ -871,7 +871,7 @@ namespace desfire {
                 comm_cfg{default_comm_cfg().tx, cipher_mode::ciphered});
     }
 
-    tag::r<std::uint32_t> tag::get_free_mem() {
+    tag::result<std::uint32_t> tag::get_free_mem() {
         const auto res_free_mem = command_parse_response<lsb_uint24>(command_code::free_mem, bin_data{},
                                                                      default_comm_cfg());
         if (not res_free_mem) {
@@ -881,7 +881,7 @@ namespace desfire {
     }
 
 
-    tag::r<> tag::set_configuration(bool allow_format, bool enable_random_id) {
+    tag::result<> tag::set_configuration(bool allow_format, bool enable_random_id) {
         if (active_key_type() == cipher_type::none) {
             DESFIRE_LOGW("%s: did not authenticate, likely to fail.", to_string(command_code::set_configuration));
         }

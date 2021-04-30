@@ -121,7 +121,7 @@ namespace pn532 {
         return cmd;
     }
 
-    channel::r<> i2c_channel::raw_send(mlab::range<bin_data::const_iterator> const &buffer, ms timeout) {
+    channel::result<> i2c_channel::raw_send(mlab::range<bin_data::const_iterator> const &buffer, ms timeout) {
         if (_port == I2C_NUM_MAX) {
             return error::comm_error;
         }
@@ -138,7 +138,7 @@ namespace pn532 {
         return mlab::result_success;
     }
 
-    channel::r<> i2c_channel::raw_receive(mlab::range<bin_data::iterator> const &buffer, ms timeout) {
+    channel::result<> i2c_channel::raw_receive(mlab::range<bin_data::iterator> const &buffer, ms timeout) {
         if (_port == I2C_NUM_MAX) {
             return error::comm_error;
         }

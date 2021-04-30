@@ -7,7 +7,7 @@
 namespace pn532 {
     std::pair<bin_data, bool> desfire_pcd::communicate(bin_data const &data) {
         if (auto res = pcd().initiator_data_exchange(target_logical_index(), data); res) {
-            _last_result = nfc::r<rf_status>{res->first};
+            _last_result = nfc::result<rf_status>{res->first};
             if (res->first.error != controller_error::none) {
                 PN532_LOGE("PCD/PICC comm failed at protocol level, %s", to_string(res->first.error));
             }
@@ -15,7 +15,7 @@ namespace pn532 {
             return {std::move(res->second), res->first.error == controller_error::none};
         } else {
             PN532_LOGE("PCD/PICC comm failed at NFC level, %s", to_string(res.error()));
-            _last_result = nfc::r<rf_status>{res.error()};
+            _last_result = nfc::result<rf_status>{res.error()};
             return {bin_data{}, false};
         }
     }

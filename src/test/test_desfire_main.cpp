@@ -145,7 +145,7 @@ namespace ut::desfire_main {
      * @{
      */
 
-    void test_auth_attempt(tag::r<> const &r) {
+    void test_auth_attempt(tag::result<> const &result) {
         auto instance = default_registrar().get<test_instance>();
         if (instance == nullptr) {
             TEST_FAIL_MESSAGE(missing_instance_msg);
@@ -153,8 +153,8 @@ namespace ut::desfire_main {
         }
         auto &pcd = instance->controller();
 
-        if (not r) {
-            ESP_LOGW(TEST_TAG, "Authentication failed: %s", to_string(r.error()));
+        if (not result) {
+            ESP_LOGW(TEST_TAG, "Authentication failed: %s", to_string(result.error()));
             if (not pcd.last_result()) {
                 ESP_LOGW(TEST_TAG, "Last PCD error: %s", ::pn532::to_string(pcd.last_result().error()));
             } else {

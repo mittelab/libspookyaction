@@ -163,8 +163,8 @@ namespace pn532 {
          */
         [[nodiscard]] i2c::command raw_prepare_command(comm_mode mode) const;
 
-        r<> raw_send(mlab::range<bin_data::const_iterator> const &buffer, ms timeout) override;
-        r<> raw_receive(mlab::range<bin_data::iterator> const &buffer, ms timeout) override;
+        result<> raw_send(mlab::range<bin_data::const_iterator> const &buffer, ms timeout) override;
+        result<> raw_receive(mlab::range<bin_data::iterator> const &buffer, ms timeout) override;
 
         [[nodiscard]] inline receive_mode raw_receive_mode() const override;
 

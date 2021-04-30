@@ -101,7 +101,7 @@ namespace ut::pn532 {
                 .post_cb = nullptr};
 
 
-        [[nodiscard]] bool ok_and_true(nfc::r<bool> const &r) {
+        [[nodiscard]] bool ok_and_true(nfc::result<bool> const &r) {
             return r and *r;
         }
 

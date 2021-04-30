@@ -39,7 +39,7 @@ namespace pn532 {
     }
 
 
-    channel::r<> spi_channel::perform_transaction(capable_buffer &buffer, spi_command cmd, channel::comm_mode mode, ms timeout) {
+    channel::result<> spi_channel::perform_transaction(capable_buffer &buffer, spi_command cmd, channel::comm_mode mode, ms timeout) {
         reduce_timeout rt{timeout};
         spi_transaction_ext_t transaction{
                 .base = {
@@ -61,7 +61,7 @@ namespace pn532 {
         return mlab::result_success;
     }
 
-    channel::r<> spi_channel::raw_send(mlab::range<bin_data::const_iterator> const &buffer, ms timeout) {
+    channel::result<> spi_channel::raw_send(mlab::range<bin_data::const_iterator> const &buffer, ms timeout) {
         if (_device == nullptr) {
             return error::comm_error;
         }
@@ -74,7 +74,7 @@ namespace pn532 {
         return perform_transaction(_dma_buffer, spi_command::data_write, comm_mode::send, rt.remaining());
     }
 
-    channel::r<> spi_channel::raw_poll_status(ms timeout) {
+    channel::result<> spi_channel::raw_poll_status(ms timeout) {
         if (_recv_op_status != recv_op_status::init) {
             return mlab::result_success;
         }
@@ -97,7 +97,7 @@ namespace pn532 {
         return error::comm_timeout;
     }
 
-    channel::r<> spi_channel::raw_receive(mlab::range<bin_data::iterator> const &buffer, ms timeout) {
+    channel::result<> spi_channel::raw_receive(mlab::range<bin_data::iterator> const &buffer, ms timeout) {
         if (_device == nullptr) {
             return error::comm_error;
         }

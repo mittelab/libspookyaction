@@ -78,12 +78,12 @@ namespace pn532 {
          * @param timeout Timeout before failure
          * @return @ref mlab::result_success or the corresponding @ref error code.
          */
-        r<> perform_transaction(capable_buffer &buffer, spi_command cmd, channel::comm_mode mode, ms timeout);
+        result<> perform_transaction(capable_buffer &buffer, spi_command cmd, channel::comm_mode mode, ms timeout);
 
     protected:
-        r<> raw_send(mlab::range<bin_data::const_iterator> const &buffer, ms timeout) override;
-        r<> raw_receive(mlab::range<bin_data::iterator> const &buffer, ms timeout) override;
-        r<> raw_poll_status(ms timeout);
+        result<> raw_send(mlab::range<bin_data::const_iterator> const &buffer, ms timeout) override;
+        result<> raw_receive(mlab::range<bin_data::iterator> const &buffer, ms timeout) override;
+        result<> raw_poll_status(ms timeout);
 
         bool on_receive_prepare(ms timeout) override;
 

@@ -52,7 +52,7 @@ namespace pn532 {
         static const std::vector<bits::target_type> poll_all_targets;
 
         template <class... Tn>
-        using r = channel::r<Tn...>;
+        using result = channel::result<Tn...>;
 
         inline explicit nfc(channel &chn);
 
@@ -73,7 +73,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<bool> diagnose_rom(ms timeout = long_timeout);
+        result<bool> diagnose_rom(ms timeout = long_timeout);
 
         /**
          * @brief Self-check PN532 RAM memory (UM0701-02 §7.2.1)
@@ -84,7 +84,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<bool> diagnose_ram(ms timeout = long_timeout);
+        result<bool> diagnose_ram(ms timeout = long_timeout);
 
         /**
          * @brief Check if card is still inside the field (UM0701-02 §7.2.1)
@@ -95,7 +95,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<bool> diagnose_attention_req_or_card_presence(ms timeout = long_timeout);
+        result<bool> diagnose_attention_req_or_card_presence(ms timeout = long_timeout);
 
         /**
          * @brief Check communication channel by sending random data, and read it back (UM0701-02 §7.2.1)
@@ -106,7 +106,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<bool> diagnose_comm_line(ms timeout = long_timeout);
+        result<bool> diagnose_comm_line(ms timeout = long_timeout);
 
         /**
          * @brief Sends FeliCa polling comand and count fails attempt (UM0701-02 §7.2.1)
@@ -116,7 +116,7 @@ namespace pn532 {
          * @param timeout maximum time for getting a response
          * @return Number of fails (<128) at 212 kbps, number of fails (<128) as 424 kbps, command_code result.
          */
-        r<unsigned, unsigned> diagnose_poll_target(bool slow = true, bool fast = true, ms timeout = long_timeout);
+        result<unsigned, unsigned> diagnose_poll_target(bool slow = true, bool fast = true, ms timeout = long_timeout);
 
         /**
          * @brief Set the PN532 in target mode(simulating a tag), and echo data back to the initiator after a delay (UM0701-02 §7.2.1)
@@ -130,7 +130,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<> diagnose_echo_back(ms reply_delay, std::uint8_t tx_mode, std::uint8_t rx_mode, ms timeout = long_timeout);
+        result<> diagnose_echo_back(ms reply_delay, std::uint8_t tx_mode, std::uint8_t rx_mode, ms timeout = long_timeout);
 
         /**
          * @brief test antenna for open circuits, or shorts (UM0701-02 §7.2.1)
@@ -143,7 +143,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<bool> diagnose_self_antenna(
+        result<bool> diagnose_self_antenna(
                 low_current_thr low_threshold, high_current_thr high_threshold,
                 ms timeout = long_timeout);
 
@@ -156,7 +156,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<firmware_version> get_firmware_version(ms timeout = default_timeout);
+        result<firmware_version> get_firmware_version(ms timeout = default_timeout);
 
         /**
          * @brief Red the general status of the PN532 (last error, bitrate TX/RX, modulation and SAM status) (UM0701-02 §7.2.3)
@@ -167,7 +167,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<general_status> get_general_status(ms timeout = default_timeout);
+        result<general_status> get_general_status(ms timeout = default_timeout);
 
         /**
          * @brief read multiple registers (UM0701-02 §7.2.4)
@@ -178,7 +178,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<std::vector<uint8_t>> read_registers(std::vector<reg_addr> const &addresses, ms timeout = default_timeout);
+        result<std::vector<uint8_t>> read_registers(std::vector<reg_addr> const &addresses, ms timeout = default_timeout);
 
         /**
          * @brief read a single register (UM0701-02 §7.2.4)
@@ -190,7 +190,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        inline r<uint8_t> read_register(reg_addr const &addr, ms timeout = default_timeout);
+        inline result<uint8_t> read_register(reg_addr const &addr, ms timeout = default_timeout);
 
         /**
          * @brief write multiple registers (UM0701-02 §7.2.5)
@@ -202,7 +202,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<> write_registers(
+        result<> write_registers(
                 std::vector<std::pair<reg_addr, std::uint8_t>> const &addr_value_pairs,
                 ms timeout = default_timeout);
 
@@ -217,7 +217,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        inline r<> write_register(reg_addr const &addr, std::uint8_t val, ms timeout = default_timeout);
+        inline result<> write_register(reg_addr const &addr, std::uint8_t val, ms timeout = default_timeout);
 
         /**
          * @brief Read all GPIOs (UM0701-02 §7.2.6)
@@ -228,7 +228,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<gpio_status> read_gpio(ms timeout = default_timeout);
+        result<gpio_status> read_gpio(ms timeout = default_timeout);
 
         /**
          * @brief Write on GPIOs (UM0701-02 §7.2.7)
@@ -242,7 +242,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<>
+        result<>
         write_gpio(gpio_status const &status, bool write_p3 = true, bool write_p7 = true, ms timeout = default_timeout);
 
         /**
@@ -257,7 +257,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<> set_gpio_pin(gpio_loc loc, std::uint8_t pin_idx, bool value, ms timeout = default_timeout);
+        result<> set_gpio_pin(gpio_loc loc, std::uint8_t pin_idx, bool value, ms timeout = default_timeout);
 
         /**
          * @brief Set the UART/HSU baudrate (UM0701-02 §7.2.8)
@@ -271,7 +271,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<> set_serial_baud_rate(serial_baudrate br, ms timeout = default_timeout);
+        result<> set_serial_baud_rate(serial_baudrate br, ms timeout = default_timeout);
 
         /**
          * @brief Configure the SAM data path (UM0701-02 §7.2.10)
@@ -285,7 +285,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<> sam_configuration(
+        result<> sam_configuration(
                 sam_mode mode, ms sam_timeout, bool controller_drives_irq = true,
                 ms timeout = default_timeout);
         /**
@@ -299,7 +299,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<> rf_configuration_field(bool auto_rfca, bool rf_on, ms timeout = default_timeout);
+        result<> rf_configuration_field(bool auto_rfca, bool rf_on, ms timeout = default_timeout);
 
         /**
          * @brief Set timeout for ATR_RES and non-DEP communications (UM0701-02 §7.3.1)
@@ -312,7 +312,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<> rf_configuration_timings(
+        result<> rf_configuration_timings(
                 rf_timeout atr_res_timeout = rf_timeout::ms_102_4,
                 rf_timeout retry_timeout = rf_timeout::ms_51_2, ms timeout = default_timeout);
 
@@ -326,7 +326,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<> rf_configuration_retries(infbyte comm_retries = 0, ms timeout = default_timeout);
+        result<> rf_configuration_retries(infbyte comm_retries = 0, ms timeout = default_timeout);
 
         /**
          * @brief Set maximum retries for ATR, PSL and passive actions (UM0701-02 §7.3.1)
@@ -345,7 +345,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<> rf_configuration_retries(
+        result<> rf_configuration_retries(
                 infbyte atr_retries, infbyte psl_retries,
                 infbyte passive_activation_retries = infty,
                 ms timeout = default_timeout);
@@ -360,7 +360,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<> rf_configuration_analog_106kbps_typea(ciu_reg_106kbps_typea const &config, ms timeout = default_timeout);
+        result<> rf_configuration_analog_106kbps_typea(ciu_reg_106kbps_typea const &config, ms timeout = default_timeout);
 
         /**
          * @brief Set RF analog parameters for 212kbps and 424kbps tags (UM0701-02 §7.3.1)
@@ -372,7 +372,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<> rf_configuration_analog_212_424kbps(ciu_reg_212_424kbps const &config, ms timeout = default_timeout);
+        result<> rf_configuration_analog_212_424kbps(ciu_reg_212_424kbps const &config, ms timeout = default_timeout);
 
         /**
          * @brief Set RF analog parameters for type B tags (UM0701-02 §7.3.1)
@@ -384,7 +384,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<> rf_configuration_analog_typeb(ciu_reg_typeb const &config, ms timeout = default_timeout);
+        result<> rf_configuration_analog_typeb(ciu_reg_typeb const &config, ms timeout = default_timeout);
 
         /**
          * @brief Set RF analog parameters for 212kbps,424kbps and 848kbps tags comunicating with the ISO/IEC14443-4 protocol (UM0701-02 §7.3.1)
@@ -396,7 +396,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<>
+        result<>
         rf_configuration_analog_iso_iec_14443_4(ciu_reg_iso_iec_14443_4 const &config, ms timeout = default_timeout);
 
         /**
@@ -413,7 +413,7 @@ namespace pn532 {
          *         - @ref error::comm_timeout
          */
         template <class T, class = typename std::enable_if<not std::is_same_v<bin_data, typename std::decay_t<T>::type>>::type>
-        r<rf_status, bin_data>
+        result<rf_status, bin_data>
         initiator_data_exchange(std::uint8_t target_logical_index, T &&data, ms timeout = default_timeout);
 
         /**
@@ -428,7 +428,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<rf_status, bin_data>
+        result<rf_status, bin_data>
         initiator_data_exchange(std::uint8_t target_logical_index, bin_data const &data, ms timeout = default_timeout);
 
         /**
@@ -442,7 +442,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<rf_status> initiator_select(std::uint8_t target_logical_index, ms timeout = default_timeout);
+        result<rf_status> initiator_select(std::uint8_t target_logical_index, ms timeout = default_timeout);
 
         /**
          * @brief Deselect the tag, but maintain the information (UM0701-02 §7.3.10)
@@ -455,7 +455,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<rf_status> initiator_deselect(std::uint8_t target_logical_index, ms timeout = default_timeout);
+        result<rf_status> initiator_deselect(std::uint8_t target_logical_index, ms timeout = default_timeout);
 
         /**
          * @brief Release the tag, deselect and delete the information (UM0701-02 §7.3.11)
@@ -468,7 +468,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<rf_status> initiator_release(std::uint8_t target_logical_index, ms timeout = default_timeout);
+        result<rf_status> initiator_release(std::uint8_t target_logical_index, ms timeout = default_timeout);
 
         /**
          * @brief change baudrate of a TPE or ISO/IEC14443-4 target (UM0701-02 §7.3.7)
@@ -483,7 +483,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<rf_status> initiator_psl(
+        result<rf_status> initiator_psl(
                 std::uint8_t target_logical_index, baudrate in_to_trg, baudrate trg_to_in,
                 ms timeout = default_timeout);
 
@@ -497,7 +497,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<std::vector<target_kbps106_typea>> initiator_list_passive_kbps106_typea(
+        result<std::vector<target_kbps106_typea>> initiator_list_passive_kbps106_typea(
                 std::uint8_t max_targets = bits::max_num_targets, ms timeout = long_timeout);
 
         /**
@@ -511,19 +511,19 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<std::vector<target_kbps106_typea>> initiator_list_passive_kbps106_typea(
+        result<std::vector<target_kbps106_typea>> initiator_list_passive_kbps106_typea(
                 uid_cascade_l1 uid, std::uint8_t max_targets = 1, ms timeout = long_timeout);
 
         /**
          * @copydoc initiator_list_passive_kbps106_typea(uid_cascade_l1,std::uint8_t,ms)
          */
-        r<std::vector<target_kbps106_typea>> initiator_list_passive_kbps106_typea(
+        result<std::vector<target_kbps106_typea>> initiator_list_passive_kbps106_typea(
                 uid_cascade_l2 uid, std::uint8_t max_targets = 1, ms timeout = long_timeout);
 
         /**
          * @copydoc initiator_list_passive_kbps106_typea(uid_cascade_l1,std::uint8_t,ms)
          */
-        r<std::vector<target_kbps106_typea>> initiator_list_passive_kbps106_typea(
+        result<std::vector<target_kbps106_typea>> initiator_list_passive_kbps106_typea(
                 uid_cascade_l3 uid, std::uint8_t max_targets = 1, ms timeout = long_timeout);
 
         /**
@@ -538,7 +538,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<std::vector<target_kbps106_typeb>> initiator_list_passive_kbps106_typeb(
+        result<std::vector<target_kbps106_typeb>> initiator_list_passive_kbps106_typeb(
                 std::uint8_t application_family_id, polling_method method = polling_method::timeslot,
                 std::uint8_t max_targets = bits::max_num_targets, ms timeout = long_timeout);
 
@@ -553,7 +553,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<std::vector<target_kbps212_felica>> initiator_list_passive_kbps212_felica(
+        result<std::vector<target_kbps212_felica>> initiator_list_passive_kbps212_felica(
                 std::array<std::uint8_t, 5> const &payload, std::uint8_t max_targets = bits::max_num_targets,
                 ms timeout = long_timeout);
 
@@ -568,7 +568,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<std::vector<target_kbps424_felica>> initiator_list_passive_kbps424_felica(
+        result<std::vector<target_kbps424_felica>> initiator_list_passive_kbps424_felica(
                 std::array<std::uint8_t, 5> const &payload, std::uint8_t max_targets = bits::max_num_targets,
                 ms timeout = long_timeout);
 
@@ -581,7 +581,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<std::vector<target_kbps106_jewel_tag>> initiator_list_passive_kbps106_jewel_tag(
+        result<std::vector<target_kbps106_jewel_tag>> initiator_list_passive_kbps106_jewel_tag(
                 ms timeout = long_timeout);
 
         /**
@@ -595,7 +595,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<rf_status, atr_res_info>
+        result<rf_status, atr_res_info>
         initiator_activate_target(std::uint8_t target_logical_index, ms timeout = default_timeout);
 
         /**
@@ -610,7 +610,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<rf_status, atr_res_info> initiator_activate_target(
+        result<rf_status, atr_res_info> initiator_activate_target(
                 std::uint8_t target_logical_index,
                 std::array<std::uint8_t, 10> const &nfcid_3t,
                 ms timeout = default_timeout);
@@ -627,7 +627,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<rf_status, atr_res_info> initiator_activate_target(
+        result<rf_status, atr_res_info> initiator_activate_target(
                 std::uint8_t target_logical_index,
                 std::vector<std::uint8_t> const &general_info,
                 ms timeout = default_timeout);
@@ -645,7 +645,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<rf_status, atr_res_info> initiator_activate_target(
+        result<rf_status, atr_res_info> initiator_activate_target(
                 std::uint8_t target_logical_index,
                 std::array<std::uint8_t, 10> const &nfcid_3t,
                 std::vector<std::uint8_t> const &general_info,
@@ -664,7 +664,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<std::vector<any_target>> initiator_auto_poll(
+        result<std::vector<any_target>> initiator_auto_poll(
                 std::vector<target_type> const &types_to_poll = poll_all_targets,
                 infbyte polls_per_type = 3,
                 poll_period period = poll_period::ms_150,
@@ -680,7 +680,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<rf_status, bin_data> initiator_communicate_through(bin_data raw_data, ms timeout = default_timeout);
+        result<rf_status, bin_data> initiator_communicate_through(bin_data raw_data, ms timeout = default_timeout);
 
         /**
          * @brief activate the target with active or passive communication (UM0701-02 §7.3.3)
@@ -692,7 +692,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<jump_dep_psl> initiator_jump_for_dep_active(baudrate speed, ms timeout = default_timeout);
+        result<jump_dep_psl> initiator_jump_for_dep_active(baudrate speed, ms timeout = default_timeout);
 
         /**
          * @brief activate the target with active or passive communication (UM0701-02 §7.3.3)
@@ -705,7 +705,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<jump_dep_psl> initiator_jump_for_dep_active(
+        result<jump_dep_psl> initiator_jump_for_dep_active(
                 baudrate speed, std::vector<std::uint8_t> const &general_info,
                 ms timeout = default_timeout);
 
@@ -720,7 +720,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<jump_dep_psl> initiator_jump_for_dep_active(
+        result<jump_dep_psl> initiator_jump_for_dep_active(
                 baudrate speed, std::array<std::uint8_t, 10> const &nfcid_3t,
                 ms timeout = default_timeout);
 
@@ -736,7 +736,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<jump_dep_psl> initiator_jump_for_dep_active(
+        result<jump_dep_psl> initiator_jump_for_dep_active(
                 baudrate speed, std::array<std::uint8_t, 10> const &nfcid_3t,
                 std::vector<std::uint8_t> const &general_info,
                 ms timeout = default_timeout);
@@ -750,7 +750,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<jump_dep_psl> initiator_jump_for_dep_passive_106kbps(ms timeout = default_timeout);
+        result<jump_dep_psl> initiator_jump_for_dep_passive_106kbps(ms timeout = default_timeout);
 
         /**
          * @brief activate the target with active or passive communication (UM0701-02 §7.3.3)
@@ -762,7 +762,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<jump_dep_psl> initiator_jump_for_dep_passive_106kbps(
+        result<jump_dep_psl> initiator_jump_for_dep_passive_106kbps(
                 std::vector<std::uint8_t> const &general_info,
                 ms timeout = default_timeout);
 
@@ -776,7 +776,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<jump_dep_psl> initiator_jump_for_dep_passive_106kbps(
+        result<jump_dep_psl> initiator_jump_for_dep_passive_106kbps(
                 std::array<std::uint8_t, 10> const &nfcid_3t,
                 ms timeout = default_timeout);
 
@@ -791,7 +791,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<jump_dep_psl> initiator_jump_for_dep_passive_106kbps(
+        result<jump_dep_psl> initiator_jump_for_dep_passive_106kbps(
                 std::array<std::uint8_t, 10> const &nfcid_3t,
                 std::vector<std::uint8_t> const &general_info,
                 ms timeout = default_timeout);
@@ -806,7 +806,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<jump_dep_psl> initiator_jump_for_dep_passive_106kbps(
+        result<jump_dep_psl> initiator_jump_for_dep_passive_106kbps(
                 std::array<std::uint8_t, 4> const &target_id,
                 ms timeout = default_timeout);
 
@@ -821,7 +821,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<jump_dep_psl> initiator_jump_for_dep_passive_106kbps(
+        result<jump_dep_psl> initiator_jump_for_dep_passive_106kbps(
                 std::array<std::uint8_t, 4> const &target_id,
                 std::vector<std::uint8_t> const &general_info,
                 ms timeout = default_timeout);
@@ -837,7 +837,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<jump_dep_psl> initiator_jump_for_dep_passive_106kbps(
+        result<jump_dep_psl> initiator_jump_for_dep_passive_106kbps(
                 std::array<std::uint8_t, 4> const &target_id,
                 std::array<std::uint8_t, 10> const &nfcid_3t,
                 ms timeout = default_timeout);
@@ -854,7 +854,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<jump_dep_psl> initiator_jump_for_dep_passive_106kbps(
+        result<jump_dep_psl> initiator_jump_for_dep_passive_106kbps(
                 std::array<std::uint8_t, 4> const &target_id,
                 std::array<std::uint8_t, 10> const &nfcid_3t,
                 std::vector<std::uint8_t> const &general_info,
@@ -870,7 +870,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<jump_dep_psl> initiator_jump_for_dep_passive_212kbps(
+        result<jump_dep_psl> initiator_jump_for_dep_passive_212kbps(
                 std::array<std::uint8_t, 5> const &target_id,
                 ms timeout = default_timeout);
 
@@ -885,7 +885,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<jump_dep_psl> initiator_jump_for_dep_passive_212kbps(
+        result<jump_dep_psl> initiator_jump_for_dep_passive_212kbps(
                 std::array<std::uint8_t, 5> const &target_id,
                 std::vector<std::uint8_t> const &general_info,
                 ms timeout = default_timeout);
@@ -900,7 +900,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<jump_dep_psl> initiator_jump_for_dep_passive_424kbps(
+        result<jump_dep_psl> initiator_jump_for_dep_passive_424kbps(
                 std::array<std::uint8_t, 5> const &target_id,
                 ms timeout = default_timeout);
 
@@ -915,7 +915,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<jump_dep_psl> initiator_jump_for_dep_passive_424kbps(
+        result<jump_dep_psl> initiator_jump_for_dep_passive_424kbps(
                 std::array<std::uint8_t, 5> const &target_id,
                 std::vector<std::uint8_t> const &general_info,
                 ms timeout = default_timeout);
@@ -930,7 +930,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<jump_dep_psl> initiator_jump_for_psl_active(baudrate speed, ms timeout = default_timeout);
+        result<jump_dep_psl> initiator_jump_for_psl_active(baudrate speed, ms timeout = default_timeout);
 
         /**
          * @brief activate the target with active or passive communication (UM0701-02 §7.3.3)
@@ -943,7 +943,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<jump_dep_psl> initiator_jump_for_psl_active(
+        result<jump_dep_psl> initiator_jump_for_psl_active(
                 baudrate speed, std::vector<std::uint8_t> const &general_info,
                 ms timeout = default_timeout);
 
@@ -958,7 +958,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<jump_dep_psl> initiator_jump_for_psl_active(
+        result<jump_dep_psl> initiator_jump_for_psl_active(
                 baudrate speed, std::array<std::uint8_t, 10> const &nfcid_3t,
                 ms timeout = default_timeout);
 
@@ -974,7 +974,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<jump_dep_psl> initiator_jump_for_psl_active(
+        result<jump_dep_psl> initiator_jump_for_psl_active(
                 baudrate speed, std::array<std::uint8_t, 10> const &nfcid_3t,
                 std::vector<std::uint8_t> const &general_info,
                 ms timeout = default_timeout);
@@ -988,7 +988,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<jump_dep_psl> initiator_jump_for_psl_passive_106kbps(ms timeout = default_timeout);
+        result<jump_dep_psl> initiator_jump_for_psl_passive_106kbps(ms timeout = default_timeout);
 
         /**
          * @brief activate the target with active or passive communication (UM0701-02 §7.3.3)
@@ -1000,7 +1000,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<jump_dep_psl> initiator_jump_for_psl_passive_106kbps(
+        result<jump_dep_psl> initiator_jump_for_psl_passive_106kbps(
                 std::vector<std::uint8_t> const &general_info,
                 ms timeout = default_timeout);
 
@@ -1014,7 +1014,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<jump_dep_psl> initiator_jump_for_psl_passive_106kbps(
+        result<jump_dep_psl> initiator_jump_for_psl_passive_106kbps(
                 std::array<std::uint8_t, 10> const &nfcid_3t,
                 ms timeout = default_timeout);
 
@@ -1029,7 +1029,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<jump_dep_psl> initiator_jump_for_psl_passive_106kbps(
+        result<jump_dep_psl> initiator_jump_for_psl_passive_106kbps(
                 std::array<std::uint8_t, 10> const &nfcid_3t,
                 std::vector<std::uint8_t> const &general_info,
                 ms timeout = default_timeout);
@@ -1044,7 +1044,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<jump_dep_psl> initiator_jump_for_psl_passive_106kbps(
+        result<jump_dep_psl> initiator_jump_for_psl_passive_106kbps(
                 std::array<std::uint8_t, 4> const &target_id,
                 ms timeout = default_timeout);
 
@@ -1059,7 +1059,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<jump_dep_psl> initiator_jump_for_psl_passive_106kbps(
+        result<jump_dep_psl> initiator_jump_for_psl_passive_106kbps(
                 std::array<std::uint8_t, 4> const &target_id,
                 std::vector<std::uint8_t> const &general_info,
                 ms timeout = default_timeout);
@@ -1075,7 +1075,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<jump_dep_psl> initiator_jump_for_psl_passive_106kbps(
+        result<jump_dep_psl> initiator_jump_for_psl_passive_106kbps(
                 std::array<std::uint8_t, 4> const &target_id,
                 std::array<std::uint8_t, 10> const &nfcid_3t,
                 ms timeout = default_timeout);
@@ -1092,7 +1092,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<jump_dep_psl> initiator_jump_for_psl_passive_106kbps(
+        result<jump_dep_psl> initiator_jump_for_psl_passive_106kbps(
                 std::array<std::uint8_t, 4> const &target_id,
                 std::array<std::uint8_t, 10> const &nfcid_3t,
                 std::vector<std::uint8_t> const &general_info,
@@ -1108,7 +1108,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<jump_dep_psl> initiator_jump_for_psl_passive_212kbps(
+        result<jump_dep_psl> initiator_jump_for_psl_passive_212kbps(
                 std::array<std::uint8_t, 5> const &target_id,
                 ms timeout = default_timeout);
 
@@ -1123,7 +1123,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<jump_dep_psl> initiator_jump_for_psl_passive_212kbps(
+        result<jump_dep_psl> initiator_jump_for_psl_passive_212kbps(
                 std::array<std::uint8_t, 5> const &target_id,
                 std::vector<std::uint8_t> const &general_info,
                 ms timeout = default_timeout);
@@ -1138,7 +1138,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<jump_dep_psl> initiator_jump_for_psl_passive_424kbps(
+        result<jump_dep_psl> initiator_jump_for_psl_passive_424kbps(
                 std::array<std::uint8_t, 5> const &target_id,
                 ms timeout = default_timeout);
 
@@ -1153,7 +1153,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<jump_dep_psl> initiator_jump_for_psl_passive_424kbps(
+        result<jump_dep_psl> initiator_jump_for_psl_passive_424kbps(
                 std::array<std::uint8_t, 5> const &target_id,
                 std::vector<std::uint8_t> const &general_info,
                 ms timeout = default_timeout);
@@ -1163,7 +1163,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<> set_parameters(parameters const &parms, ms timeout = default_timeout);
+        result<> set_parameters(parameters const &parms, ms timeout = default_timeout);
 
         /**
          * @return @ref rf_status, or one of the following errors:
@@ -1171,7 +1171,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<rf_status> power_down(std::vector<wakeup_source> const &wakeup_sources, ms timeout = default_timeout);
+        result<rf_status> power_down(std::vector<wakeup_source> const &wakeup_sources, ms timeout = default_timeout);
 
         /**
          * @return @ref rf_status, or one of the following errors:
@@ -1179,7 +1179,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<rf_status> power_down(
+        result<rf_status> power_down(
                 std::vector<wakeup_source> const &wakeup_sources, bool generate_irq, ms timeout = default_timeout);
 
         /**
@@ -1188,7 +1188,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<> rf_regulation_test(tx_mode mode, ms timeout = default_timeout);
+        result<> rf_regulation_test(tx_mode mode, ms timeout = default_timeout);
 
         /**
          * @return @ref status_as_target, or one of the following errors:
@@ -1196,7 +1196,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<status_as_target> target_get_target_status(ms timeout = default_timeout);
+        result<status_as_target> target_get_target_status(ms timeout = default_timeout);
 
         /**
          * @brief configure the PN532 as a target (UM0701-02 §7.3.14)
@@ -1210,7 +1210,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<init_as_target_res> target_init_as_target(
+        result<init_as_target_res> target_init_as_target(
                 bool picc_only, bool dep_only, bool passive_only, mifare_params const &mifare,
                 felica_params const &felica, std::array<std::uint8_t, 10> const &nfcid_3t,
                 std::vector<std::uint8_t> const &general_info = {},
@@ -1226,7 +1226,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<rf_status> target_set_general_bytes(
+        result<rf_status> target_set_general_bytes(
                 std::vector<std::uint8_t> const &general_info, ms timeout = default_timeout);
 
         /**
@@ -1238,7 +1238,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<rf_status, bin_data> target_get_data(ms timeout = default_timeout);
+        result<rf_status, bin_data> target_get_data(ms timeout = default_timeout);
 
         /**
          * @brief set data to be sent at the initiator (UM0701-02 §7.3.17)
@@ -1250,7 +1250,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<rf_status> target_set_data(std::vector<std::uint8_t> const &data, ms timeout = default_timeout);
+        result<rf_status> target_set_data(std::vector<std::uint8_t> const &data, ms timeout = default_timeout);
 
         /**
          * @ingroup Target
@@ -1261,7 +1261,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<rf_status> target_set_metadata(std::vector<std::uint8_t> const &data, ms timeout = default_timeout);
+        result<rf_status> target_set_metadata(std::vector<std::uint8_t> const &data, ms timeout = default_timeout);
 
         /**
          * @ingroup Target
@@ -1271,7 +1271,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<rf_status, bin_data> target_get_initiator_command(ms timeout = default_timeout);
+        result<rf_status, bin_data> target_get_initiator_command(ms timeout = default_timeout);
 
         /**
          * @ingroup Target
@@ -1282,7 +1282,7 @@ namespace pn532 {
          *         - @ref error::comm_checksum_fail
          *         - @ref error::comm_timeout
          */
-        r<rf_status> target_response_to_initiator(std::vector<std::uint8_t> const &data, ms timeout = default_timeout);
+        result<rf_status> target_response_to_initiator(std::vector<std::uint8_t> const &data, ms timeout = default_timeout);
 
     private:
         channel *_channel;
@@ -1292,7 +1292,7 @@ namespace pn532 {
         [[nodiscard]] static std::uint8_t get_target(command_code cmd, std::uint8_t target_logical_index, bool expect_more_data);
 
         template <baudrate_modulation BrMd>
-        r<std::vector<bits::target<BrMd>>> initiator_list_passive(
+        result<std::vector<bits::target<BrMd>>> initiator_list_passive(
                 std::uint8_t max_targets,
                 bin_data const &initiator_data, ms timeout);
     };
@@ -1306,7 +1306,7 @@ namespace pn532 {
 
     channel &nfc::chn() const { return *_channel; }
 
-    nfc::r<uint8_t> nfc::read_register(reg_addr const &addr, ms timeout) {
+    nfc::result<uint8_t> nfc::read_register(reg_addr const &addr, ms timeout) {
         if (const auto res_cmd = read_registers({addr}, timeout); res_cmd) {
             return res_cmd->at(0);
         } else {
@@ -1314,12 +1314,12 @@ namespace pn532 {
         }
     }
 
-    nfc::r<> nfc::write_register(reg_addr const &addr, std::uint8_t val, ms timeout) {
+    nfc::result<> nfc::write_register(reg_addr const &addr, std::uint8_t val, ms timeout) {
         return write_registers({{addr, val}}, timeout);
     }
 
     template <class T, class>
-    nfc::r<rf_status, bin_data> nfc::initiator_data_exchange(std::uint8_t target_logical_index, T &&data, ms timeout) {
+    nfc::result<rf_status, bin_data> nfc::initiator_data_exchange(std::uint8_t target_logical_index, T &&data, ms timeout) {
         static bin_data buffer{};
         buffer.clear();
         buffer << std::forward<T>(data);

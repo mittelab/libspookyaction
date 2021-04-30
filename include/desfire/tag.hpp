@@ -66,7 +66,7 @@ namespace desfire {
         struct comm_cfg;
 
         template <class... Tn>
-        using r = mlab::result<error, Tn...>;
+        using result = mlab::result<error, Tn...>;
 
         /**
          * @brief Construct a new tag object
@@ -91,7 +91,7 @@ namespace desfire {
          * - @ref error::controller_error
          * @todo Make private
          */
-        r<bin_data> raw_command_response(bin_stream &tx_data, bool rx_fetch_additional_frames);
+        result<bin_data> raw_command_response(bin_stream &tx_data, bool rx_fetch_additional_frames);
 
         /**
          * This method automatically divides @p data into appropriate chunks and sends them to the PICC, pre-processing
@@ -113,7 +113,7 @@ namespace desfire {
          * - @ref error::crypto_error
          * - @ref error::controller_error
          */
-        r<status, bin_data> command_status_response(command_code cmd, bin_data const &data, comm_cfg const &cfg, bool rx_fetch_additional_frames = true, cipher *override_cipher = nullptr);
+        result<status, bin_data> command_status_response(command_code cmd, bin_data const &data, comm_cfg const &cfg, bool rx_fetch_additional_frames = true, cipher *override_cipher = nullptr);
 
         /**
          * Will automatically fetch all additional frames if requested to do so by @p cfg, and at the end will parse the
@@ -124,7 +124,7 @@ namespace desfire {
          * - @ref error::crypto_error
          * - @ref error::controller_error
          */
-        r<bin_data> command_response(command_code cmd, bin_data const &payload, comm_cfg const &cfg, bool rx_fetch_additional_frames = true, cipher *override_cipher = nullptr);
+        result<bin_data> command_response(command_code cmd, bin_data const &payload, comm_cfg const &cfg, bool rx_fetch_additional_frames = true, cipher *override_cipher = nullptr);
 
         /**
          * @ingroup data
@@ -134,7 +134,7 @@ namespace desfire {
          * - @ref error::controller_error
          */
         template <class Data, class = typename std::enable_if<bin_stream::is_extractable<Data>::value or std::is_integral_v<Data>>::type>
-        r<Data> command_parse_response(command_code cmd, bin_data const &payload, comm_cfg const &cfg);
+        result<Data> command_parse_response(command_code cmd, bin_data const &payload, comm_cfg const &cfg);
 
         /**
          * @return @ref root_app if no app was selected, otherwise the app id.
@@ -149,8 +149,8 @@ namespace desfire {
         [[nodiscard]] inline std::uint8_t active_key_no() const;
 
         template <cipher_type Type>
-        r<> authenticate(key<Type> const &k);
-        r<> authenticate(any_key const &k);
+        result<> authenticate(key<Type> const &k);
+        result<> authenticate(any_key const &k);
 
         /**
          * @dot
@@ -173,7 +173,7 @@ namespace desfire {
          * - @ref error::crypto_error
          * - @ref error::controller_error
          */
-        r<> select_application(app_id const &app = root_app);
+        result<> select_application(app_id const &app = root_app);
 
         /**
          * @dot
@@ -197,7 +197,7 @@ namespace desfire {
          * - @ref error::crypto_error
          * - @ref error::controller_error
          */
-        r<> create_application(app_id const &new_app_id, app_settings settings);
+        result<> create_application(app_id const &new_app_id, app_settings settings);
 
         /**
          * @dot
@@ -220,7 +220,7 @@ namespace desfire {
          * - @ref error::crypto_error
          * - @ref error::controller_error
          */
-        r<> change_app_settings(key_rights new_rights);
+        result<> change_app_settings(key_rights new_rights);
 
         /**
          * @dot
@@ -242,7 +242,7 @@ namespace desfire {
          * - @ref error::crypto_error
          * - @ref error::controller_error
          */
-        r<app_settings> get_app_settings();
+        result<app_settings> get_app_settings();
 
         /**
          * @dot
@@ -264,7 +264,7 @@ namespace desfire {
          * - @ref error::parameter_error
          * - @ref error::controller_error
          */
-        r<std::uint8_t> get_key_version(std::uint8_t key_num);
+        result<std::uint8_t> get_key_version(std::uint8_t key_num);
 
         /**
          * @dot
@@ -290,7 +290,7 @@ namespace desfire {
          * - @ref error::crypto_error
          * - @ref error::controller_error
          */
-        r<std::vector<app_id>> get_application_ids();
+        result<std::vector<app_id>> get_application_ids();
 
         /**
          * @dot
@@ -313,7 +313,7 @@ namespace desfire {
          * - @ref error::crypto_error
          * - @ref error::controller_error
          */
-        r<> delete_application(app_id const &app);
+        result<> delete_application(app_id const &app);
 
         /**
          * @dot
@@ -348,7 +348,7 @@ namespace desfire {
          * - @ref error::crypto_error
          * - @ref error::controller_error
          */
-        r<manufacturing_info> get_info();
+        result<manufacturing_info> get_info();
 
 
         /**
@@ -373,7 +373,7 @@ namespace desfire {
          * - @ref error::crypto_error
          * - @ref error::controller_error
          */
-        r<> format_picc();
+        result<> format_picc();
 
         /**
          * @dot
@@ -396,8 +396,8 @@ namespace desfire {
          * - @ref error::authentication_error
          */
         template <cipher_type Type>
-        r<> change_key(key<Type> const &new_key);
-        r<> change_key(any_key const &new_key);
+        result<> change_key(key<Type> const &new_key);
+        result<> change_key(any_key const &new_key);
 
 
         /**
@@ -405,8 +405,8 @@ namespace desfire {
          * pass the current key in order to change another, even if already authenticated.
          */
         template <cipher_type Type1, cipher_type Type2>
-        r<> change_key(key<Type1> const &current_key, std::uint8_t key_no_to_change, key<Type2> const &new_key);
-        r<> change_key(any_key const &current_key, std::uint8_t key_no_to_change, any_key const &new_key);
+        result<> change_key(key<Type1> const &current_key, std::uint8_t key_no_to_change, key<Type2> const &new_key);
+        result<> change_key(any_key const &current_key, std::uint8_t key_no_to_change, any_key const &new_key);
 
         /**
          * @dot
@@ -427,7 +427,7 @@ namespace desfire {
          * - @ref error::crypto_error
          * - @ref error::controller_error
          */
-        r<std::vector<file_id>> get_file_ids();
+        result<std::vector<file_id>> get_file_ids();
 
         /**
          * @brief Read the file settings
@@ -438,7 +438,7 @@ namespace desfire {
          * - @ref error::crypto_error
          * - @ref error::controller_error
          */
-        r<any_file_settings> get_file_settings(file_id fid);
+        result<any_file_settings> get_file_settings(file_id fid);
 
         /**
          * @brief Read the file settings
@@ -446,7 +446,7 @@ namespace desfire {
          * @param fid The file ID, Max @ref bits::max_standard_data_file_id.
          */
         template <file_type Type>
-        r<file_settings<Type>> get_specific_file_settings(file_id fid);
+        result<file_settings<Type>> get_specific_file_settings(file_id fid);
 
         /**
          * ~~~~
@@ -491,7 +491,7 @@ namespace desfire {
          * - @ref error::crypto_error
          * - @ref error::controller_error
          */
-        r<> change_file_settings(file_id fid, generic_file_settings const &settings);
+        result<> change_file_settings(file_id fid, generic_file_settings const &settings);
 
         /**
          * ~~~~
@@ -536,7 +536,7 @@ namespace desfire {
          * - @ref error::crypto_error
          * - @ref error::controller_error
          */
-        r<> change_file_settings(file_id fid, generic_file_settings const &settings, file_security security);
+        result<> change_file_settings(file_id fid, generic_file_settings const &settings, file_security security);
 
         /**
          * @dot
@@ -559,7 +559,7 @@ namespace desfire {
          * - @ref error::crypto_error
          * - @ref error::controller_error
          */
-        r<> create_file(file_id fid, file_settings<file_type::standard> const &settings);
+        result<> create_file(file_id fid, file_settings<file_type::standard> const &settings);
 
         /**
          * @brief Create a new file in the selected application
@@ -571,7 +571,7 @@ namespace desfire {
          * - @ref error::crypto_error
          * - @ref error::controller_error
          */
-        r<> create_file(file_id fid, any_file_settings const &settings);
+        result<> create_file(file_id fid, any_file_settings const &settings);
 
 
         /**
@@ -595,7 +595,7 @@ namespace desfire {
          * - @ref error::crypto_error
          * - @ref error::controller_error
          */
-        r<> create_file(file_id fid, file_settings<file_type::backup> const &settings);
+        result<> create_file(file_id fid, file_settings<file_type::backup> const &settings);
 
         /**
          * @dot
@@ -619,7 +619,7 @@ namespace desfire {
          * - @ref error::crypto_error
          * - @ref error::controller_error
          */
-        r<> create_file(file_id fid, file_settings<file_type::value> const &settings);
+        result<> create_file(file_id fid, file_settings<file_type::value> const &settings);
 
         /**
          * @dot
@@ -643,7 +643,7 @@ namespace desfire {
          * - @ref error::crypto_error
          * - @ref error::controller_error
          */
-        r<> create_file(file_id fid, file_settings<file_type::linear_record> const &settings);
+        result<> create_file(file_id fid, file_settings<file_type::linear_record> const &settings);
 
         /**
          * @dot
@@ -667,7 +667,7 @@ namespace desfire {
          * - @ref error::crypto_error
          * - @ref error::controller_error
          */
-        r<> create_file(file_id fid, file_settings<file_type::cyclic_record> const &settings);
+        result<> create_file(file_id fid, file_settings<file_type::cyclic_record> const &settings);
 
         /**
          *
@@ -690,7 +690,7 @@ namespace desfire {
          * - @ref error::crypto_error
          * - @ref error::controller_error
          */
-        r<> delete_file(file_id fid);
+        result<> delete_file(file_id fid);
 
         /**
          * @dot
@@ -712,7 +712,7 @@ namespace desfire {
          * - @ref error::crypto_error
          * - @ref error::controller_error
          */
-        r<> clear_record_file(file_id fid);
+        result<> clear_record_file(file_id fid);
 
         /**
          * @dot
@@ -733,7 +733,7 @@ namespace desfire {
          * - @ref error::crypto_error
          * - @ref error::controller_error
          */
-        r<> commit_transaction();
+        result<> commit_transaction();
 
         /**
          *
@@ -755,7 +755,7 @@ namespace desfire {
          * - @ref error::crypto_error
          * - @ref error::controller_error
          */
-        r<> abort_transaction();
+        result<> abort_transaction();
 
         /**
          * @dot
@@ -783,7 +783,7 @@ namespace desfire {
          * - @ref error::crypto_error
          * - @ref error::controller_error
          */
-        r<bin_data> read_data(file_id fid, std::uint32_t offset, std::uint32_t length);
+        result<bin_data> read_data(file_id fid, std::uint32_t offset, std::uint32_t length);
 
         /**
          * @brief read data from file
@@ -797,7 +797,7 @@ namespace desfire {
          * - @ref error::crypto_error
          * - @ref error::controller_error
          */
-        r<bin_data> read_data(file_id fid, std::uint32_t offset, std::uint32_t length, file_security security);
+        result<bin_data> read_data(file_id fid, std::uint32_t offset, std::uint32_t length, file_security security);
 
         /**
          * @brief write data to file
@@ -812,7 +812,7 @@ namespace desfire {
          *
          * @todo Add warning marking the fact that using these overloads without file_security it could leak data on cloned cards with different security
          */
-        r<> write_data(file_id fid, std::uint32_t offset, bin_data const &data);
+        result<> write_data(file_id fid, std::uint32_t offset, bin_data const &data);
 
         /**
          * @brief write data to file
@@ -826,7 +826,7 @@ namespace desfire {
          * - @ref error::parameter_error
          * - @ref error::controller_error
          */
-        r<> write_data(file_id fid, std::uint32_t offset, bin_data const &data, file_security security);
+        result<> write_data(file_id fid, std::uint32_t offset, bin_data const &data, file_security security);
 
         /**
          *
@@ -849,7 +849,7 @@ namespace desfire {
          * - @ref error::crypto_error
          * - @ref error::controller_error
          */
-        r<std::int32_t> get_value(file_id fid);
+        result<std::int32_t> get_value(file_id fid);
 
         /**
          * @brief read value of a credit/debit file
@@ -861,7 +861,7 @@ namespace desfire {
          * - @ref error::crypto_error
          * - @ref error::controller_error
          */
-        r<std::int32_t> get_value(file_id fid, file_security security);
+        result<std::int32_t> get_value(file_id fid, file_security security);
 
         /**
          *
@@ -885,7 +885,7 @@ namespace desfire {
          * - @ref error::crypto_error
          * - @ref error::controller_error
          */
-        r<> credit(file_id fid, std::int32_t amount);
+        result<> credit(file_id fid, std::int32_t amount);
 
         /**
          * @brief Increment a value file
@@ -898,7 +898,7 @@ namespace desfire {
          * - @ref error::crypto_error
          * - @ref error::controller_error
          */
-        r<> credit(file_id fid, std::int32_t amount, file_security security);
+        result<> credit(file_id fid, std::int32_t amount, file_security security);
 
         /**
          *
@@ -923,7 +923,7 @@ namespace desfire {
          * - @ref error::crypto_error
          * - @ref error::controller_error
          */
-        r<> limited_credit(file_id fid, std::int32_t amount);
+        result<> limited_credit(file_id fid, std::int32_t amount);
 
         /**
          * @brief Increment, limited by past debits transaction, the value file
@@ -937,7 +937,7 @@ namespace desfire {
          * - @ref error::crypto_error
          * - @ref error::controller_error
          */
-        r<> limited_credit(file_id fid, std::int32_t amount, file_security security);
+        result<> limited_credit(file_id fid, std::int32_t amount, file_security security);
 
         /**
          *
@@ -961,7 +961,7 @@ namespace desfire {
          * - @ref error::crypto_error
          * - @ref error::controller_error
          */
-        r<> debit(file_id fid, std::int32_t amount);
+        result<> debit(file_id fid, std::int32_t amount);
 
         /**
          * @brief Drecement a value file
@@ -974,7 +974,7 @@ namespace desfire {
          * - @ref error::crypto_error
          * - @ref error::controller_error
          */
-        r<> debit(file_id fid, std::int32_t amount, file_security security);
+        result<> debit(file_id fid, std::int32_t amount, file_security security);
 
         /**
          * @brief Write to a linear or cyclic file
@@ -988,7 +988,7 @@ namespace desfire {
          * - @ref error::parameter_error
          * - @ref error::controller_error
          */
-        r<> write_record(file_id fid, std::uint32_t offset, bin_data const &data);
+        result<> write_record(file_id fid, std::uint32_t offset, bin_data const &data);
 
         /**
          * @brief Write to a linear or cyclic file
@@ -1003,18 +1003,18 @@ namespace desfire {
          * - @ref error::parameter_error
          * - @ref error::controller_error
          */
-        r<> write_record(file_id fid, std::uint32_t offset, bin_data const &data, file_security security);
+        result<> write_record(file_id fid, std::uint32_t offset, bin_data const &data, file_security security);
 
         template <class T>
-        r<> write_record(file_id fid, T &&record);
+        result<> write_record(file_id fid, T &&record);
         template <class T>
-        r<> write_record(file_id fid, T &&record, file_security security);
+        result<> write_record(file_id fid, T &&record, file_security security);
 
         template <class T>
-        r<std::vector<T>> read_parse_records(file_id fid, std::uint32_t index = 0, std::uint32_t count = all_records);
+        result<std::vector<T>> read_parse_records(file_id fid, std::uint32_t index = 0, std::uint32_t count = all_records);
 
         template <class T>
-        r<std::vector<T>> read_parse_records(file_id fid, std::uint32_t index, std::uint32_t count, file_security security);
+        result<std::vector<T>> read_parse_records(file_id fid, std::uint32_t index, std::uint32_t count, file_security security);
 
         /**
          * @brief Read records from a linear or cyclic file
@@ -1027,7 +1027,7 @@ namespace desfire {
          * - @ref error::parameter_error
          * - @ref error::controller_error
          */
-        r<bin_data> read_records(file_id fid, std::uint32_t record_index = 0, std::uint32_t record_count = all_records);
+        result<bin_data> read_records(file_id fid, std::uint32_t record_index = 0, std::uint32_t record_count = all_records);
 
         /**
          * @brief Read records from a linear or cyclic file
@@ -1041,7 +1041,7 @@ namespace desfire {
          * - @ref error::parameter_error
          * - @ref error::controller_error
          */
-        r<bin_data> read_records(file_id fid, std::uint32_t record_index, std::uint32_t record_count, file_security security);
+        result<bin_data> read_records(file_id fid, std::uint32_t record_index, std::uint32_t record_count, file_security security);
 
         /**
          * @brief Get the card UID
@@ -1052,7 +1052,7 @@ namespace desfire {
          * - @ref error::crypto_error
          * - @ref error::controller_error
          */
-        r<std::array<std::uint8_t, 7>> get_card_uid();
+        result<std::array<std::uint8_t, 7>> get_card_uid();
 
         /**
          * @brief Read the amount of free flash memory
@@ -1062,7 +1062,7 @@ namespace desfire {
          * - @ref error::crypto_error
          * - @ref error::controller_error
          */
-        r<std::uint32_t> get_free_mem();
+        result<std::uint32_t> get_free_mem();
 
         /**
          * @brief Configure if the card can be formatted, or if will show the real UID
@@ -1075,7 +1075,7 @@ namespace desfire {
          * - @ref error::crypto_error
          * - @ref error::controller_error
          */
-        r<> set_configuration(bool allow_format = true, bool enable_random_id = false);
+        result<> set_configuration(bool allow_format = true, bool enable_random_id = false);
 
     private:
         /**
@@ -1093,22 +1093,22 @@ namespace desfire {
         template <class T>
         [[nodiscard]] static std::vector<T> parse_records(bin_data const &data, std::uint32_t exp_count);
 
-        [[nodiscard]] r<file_security> determine_file_security(file_id fid, file_access access);
+        [[nodiscard]] result<file_security> determine_file_security(file_id fid, file_access access);
         [[nodiscard]] file_security determine_file_security(file_access access, any_file_settings const &settings) const;
 
-        [[nodiscard]] static r<> safe_drop_payload(command_code cmd, tag::r<bin_data> const &result);
+        [[nodiscard]] static result<> safe_drop_payload(command_code cmd, tag::result<bin_data> const &result);
         static void log_not_empty(command_code cmd, range<bin_data::const_iterator> const &data);
 
         [[nodiscard]] inline controller &ctrl();
 
-        r<> change_key_internal(any_key const *current_key, std::uint8_t key_no_to_change, any_key const &new_key);
+        result<> change_key_internal(any_key const *current_key, std::uint8_t key_no_to_change, any_key const &new_key);
 
         /**
          * @param cmd Must be one of @ref command_code::credit, @ref command_code::debit, @ref command_code::limited_credit.
          * @param fid Max @ref bits::max_value_file_id.
          * @param amount Must be nonnegative.
          */
-        r<> write_value(command_code cmd, file_id fid, std::int32_t amount, file_security security);
+        result<> write_value(command_code cmd, file_id fid, std::int32_t amount, file_security security);
 
 
         /**
@@ -1153,16 +1153,16 @@ namespace desfire {
                                        _active_app{root_app} {}
 
     template <cipher_type Type>
-    tag::r<> tag::authenticate(key<Type> const &k) {
+    tag::result<> tag::authenticate(key<Type> const &k) {
         return authenticate(any_key{k});
     }
     template <cipher_type Type>
-    tag::r<> tag::change_key(key<Type> const &new_key) {
+    tag::result<> tag::change_key(key<Type> const &new_key) {
         return change_key(any_key{new_key});
     }
 
     template <cipher_type Type1, cipher_type Type2>
-    tag::r<> tag::change_key(key<Type1> const &current_key, std::uint8_t key_no_to_change, key<Type2> const &new_key) {
+    tag::result<> tag::change_key(key<Type1> const &current_key, std::uint8_t key_no_to_change, key<Type2> const &new_key) {
         return change_key(any_key{current_key}, key_no_to_change, any_key{new_key});
     }
 
@@ -1186,7 +1186,7 @@ namespace desfire {
                                                                                         tx_secure_data_offset{sec_data_ofs} {}
 
     template <class Data, class>
-    tag::r<Data> tag::command_parse_response(command_code cmd, bin_data const &payload, comm_cfg const &cfg) {
+    tag::result<Data> tag::command_parse_response(command_code cmd, bin_data const &payload, comm_cfg const &cfg) {
         const auto res_cmd = command_response(cmd, payload, cfg);
         if (not res_cmd) {
             return res_cmd.error();
@@ -1218,7 +1218,7 @@ namespace desfire {
     }
 
     template <file_type Type>
-    tag::r<file_settings<Type>> tag::get_specific_file_settings(file_id fid) {
+    tag::result<file_settings<Type>> tag::get_specific_file_settings(file_id fid) {
         if (auto res_cmd = get_file_settings(fid); res_cmd) {
             // Assert the file type is correct
             if (res_cmd->type() != Type) {
@@ -1232,7 +1232,7 @@ namespace desfire {
 
 
     template <class T>
-    tag::r<> tag::write_record(file_id fid, T &&record, file_security security) {
+    tag::result<> tag::write_record(file_id fid, T &&record, file_security security) {
         static bin_data buffer{};
         buffer.clear();
         buffer << std::forward<T>(record);
@@ -1240,7 +1240,7 @@ namespace desfire {
     }
 
     template <class T>
-    tag::r<> tag::write_record(file_id fid, T &&record) {
+    tag::result<> tag::write_record(file_id fid, T &&record) {
         static bin_data buffer{};
         buffer.clear();
         buffer << std::forward<T>(record);
@@ -1268,7 +1268,7 @@ namespace desfire {
     }
 
     template <class T>
-    tag::r<std::vector<T>> tag::read_parse_records(file_id fid, std::uint32_t index, std::uint32_t count, file_security security) {
+    tag::result<std::vector<T>> tag::read_parse_records(file_id fid, std::uint32_t index, std::uint32_t count, file_security security) {
         const auto res_read_records = read_records(fid, index, count, security);
         if (not res_read_records) {
             return res_read_records.error();
@@ -1277,7 +1277,7 @@ namespace desfire {
     }
 
     template <class T>
-    tag::r<std::vector<T>> tag::read_parse_records(file_id fid, std::uint32_t index, std::uint32_t count) {
+    tag::result<std::vector<T>> tag::read_parse_records(file_id fid, std::uint32_t index, std::uint32_t count) {
         const auto res_read_records = read_records(fid, index, count);
         if (not res_read_records) {
             return res_read_records.error();

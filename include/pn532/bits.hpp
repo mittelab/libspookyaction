@@ -471,9 +471,17 @@ namespace pn532::bits {
     static constexpr std::uint8_t init_as_target_dep_only_bit = 1 << 1;
     static constexpr std::uint8_t init_as_target_passive_only_bit = 1 << 0;
 
-    /// @todo Why unused?
-    static constexpr std::uint8_t sel_res_dep_mask = 0x40;
-    static constexpr std::uint8_t sel_res_picc_mask = 0x60;
+    /**
+     * @addtogroup Select Result masks
+     * These constants seem to be intended for usage in @ref pn532::mifare_params::sel_res
+     * and @ref target_info<baudrate_modulation::kbps106_iso_iec_14443_typea>::sel_res.
+     * @{
+     */
+    [[maybe_unused]] static constexpr std::uint8_t sel_res_dep_mask = 0x40;
+    [[maybe_unused]] static constexpr std::uint8_t sel_res_picc_mask = 0x60;
+    /**
+     * @}
+     */
 
     static constexpr std::size_t init_as_target_general_info_max_length = 47;
     static constexpr std::size_t init_as_target_historical_bytes_max_length = 48;

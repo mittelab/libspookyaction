@@ -2,13 +2,13 @@
 // Created by spak on 3/14/21.
 //
 
-#include "mlab/irq_assert.hpp"
 #include <esp_log.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/semphr.h>
+#include <pn532/esp32/irq_assert.hpp>
 
 
-namespace mlab {
+namespace pn532::esp32 {
 
     namespace {
         void IRAM_ATTR _irq_to_semaphore(void *semaphore_hdl) {
@@ -68,7 +68,7 @@ namespace mlab {
         _pimpl->pin = pin;
     }
 
-    bool irq_assert::operator()(ms timeout) {
+    bool irq_assert::operator()(mlab::ms timeout) {
         if (_pimpl == nullptr) {
             return true;
         } else if (not _pimpl->semaphore) {
@@ -95,4 +95,4 @@ namespace mlab {
             }
         }
     }
-}// namespace mlab
+}// namespace pn532::esp32

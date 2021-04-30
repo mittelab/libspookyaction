@@ -7,9 +7,9 @@
 
 #include <driver/i2c.h>
 #include <memory>
-#include <mlab/irq_assert.hpp>
 #include <mlab/result.hpp>
 #include <pn532/channel.hpp>
+#include <pn532/esp32/irq_assert.hpp>
 
 namespace pn532::esp32 {
 
@@ -154,7 +154,7 @@ namespace pn532::esp32 {
     class i2c_channel final : public channel {
         i2c_port_t _port;
         std::uint8_t _slave_addr;
-        mlab::irq_assert _irq_assert;
+        irq_assert _irq_assert;
 
     protected:
         /**

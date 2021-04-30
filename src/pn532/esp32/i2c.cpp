@@ -186,7 +186,7 @@ namespace pn532::esp32 {
     }
     i2c_channel::i2c_channel(i2c_port_t port, i2c_config_t config, gpio_num_t response_irq_line, bool manage_isr_service, std::uint8_t slave_address) : i2c_channel{port, config, slave_address} {
         // Prepare the IRQ assertion too
-        _irq_assert = mlab::irq_assert{manage_isr_service, response_irq_line, GPIO_INTR_NEGEDGE};
+        _irq_assert = irq_assert{manage_isr_service, response_irq_line, GPIO_INTR_NEGEDGE};
     }
 
     i2c_channel::~i2c_channel() {

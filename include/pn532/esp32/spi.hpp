@@ -8,9 +8,9 @@
 #include <driver/gpio.h>
 #include <driver/spi_master.h>
 #include <mlab/capable_mem.hpp>
-#include <mlab/irq_assert.hpp>
 #include <optional>
 #include <pn532/channel.hpp>
+#include <pn532/esp32/irq_assert.hpp>
 
 namespace pn532::esp32 {
 
@@ -39,7 +39,7 @@ namespace pn532::esp32 {
 
         std::optional<spi_host_device_t> _host;
         spi_device_handle_t _device;
-        mlab::irq_assert _irq_assert;
+        irq_assert _irq_assert;
 
         /**
          * @brief State of a receive operation.

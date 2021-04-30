@@ -171,7 +171,7 @@ namespace pn532::esp32 {
     spi_channel::spi_channel(spi_host_device_t host, spi_bus_config_t const &bus_config, spi_device_interface_config_t device_cfg, int dma_chan,
                              gpio_num_t response_irq_line, bool manage_isr_service)
         : spi_channel{host, bus_config, device_cfg, dma_chan} {
-        _irq_assert = mlab::irq_assert{manage_isr_service, response_irq_line};
+        _irq_assert = irq_assert{manage_isr_service, response_irq_line};
     }
 
     spi_channel::~spi_channel() {

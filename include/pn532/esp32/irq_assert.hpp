@@ -2,14 +2,14 @@
 // Created by spak on 3/14/21.
 //
 
-#ifndef MLAB_IRQ_ASSERT_HPP
-#define MLAB_IRQ_ASSERT_HPP
+#ifndef PN532_ESP32_IRQ_ASSERT_HPP
+#define PN532_ESP32_IRQ_ASSERT_HPP
 
-#include "time.hpp"
 #include <driver/gpio.h>
 #include <memory>
+#include <mlab/time.hpp>
 
-namespace mlab {
+namespace pn532::esp32 {
     class irq_assert {
         struct impl;
         std::unique_ptr<impl> _pimpl;
@@ -38,11 +38,11 @@ namespace mlab {
          * @return True if the interrupt specified at runtime has been triggered on the given pin.
          * @note Always asserts true if @ref irq_assert was default constructed.
          */
-        bool operator()(ms timeout);
+        bool operator()(mlab::ms timeout);
 
         ~irq_assert();
     };
 
-}// namespace mlab
+}// namespace pn532::esp32
 
-#endif//MLAB_IRQ_ASSERT_HPP
+#endif//PN532_ESP32_IRQ_ASSERT_HPP

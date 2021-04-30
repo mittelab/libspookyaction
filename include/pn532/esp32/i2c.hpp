@@ -2,16 +2,16 @@
 // Created by spak on 2/19/21.
 //
 
-#ifndef PN532_I2C_HPP
-#define PN532_I2C_HPP
+#ifndef PN532_ESP32_I2C_HPP
+#define PN532_ESP32_I2C_HPP
 
-#include "channel.hpp"
 #include <driver/i2c.h>
 #include <memory>
 #include <mlab/irq_assert.hpp>
 #include <mlab/result.hpp>
+#include <pn532/channel.hpp>
 
-namespace pn532 {
+namespace pn532::esp32 {
 
     namespace i2c {
 
@@ -226,9 +226,9 @@ namespace pn532 {
     };
 
 
-}// namespace pn532
+}// namespace pn532::esp32
 
-namespace pn532 {
+namespace pn532::esp32 {
 
     channel::error i2c_channel::error_from_i2c_error(i2c::error e) {
         switch (e) {
@@ -255,6 +255,6 @@ namespace pn532 {
         return receive_mode::buffered;
     }
 
-}// namespace pn532
+}// namespace pn532::esp32
 
-#endif//PN532_I2C_HPP
+#endif//PN532_ESP32_I2C_HPP

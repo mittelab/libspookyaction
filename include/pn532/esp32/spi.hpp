@@ -2,8 +2,8 @@
 // Created by spak on 3/25/21.
 //
 
-#ifndef PN532_SPI_HPP
-#define PN532_SPI_HPP
+#ifndef PN532_ESP32_SPI_HPP
+#define PN532_ESP32_SPI_HPP
 
 #include <driver/gpio.h>
 #include <driver/spi_master.h>
@@ -12,7 +12,7 @@
 #include <optional>
 #include <pn532/channel.hpp>
 
-namespace pn532 {
+namespace pn532::esp32 {
 
     using capable_buffer = std::vector<std::uint8_t, mlab::capable_allocator<std::uint8_t>>;
 
@@ -128,6 +128,6 @@ namespace pn532 {
         ~spi_channel() override;
     };
 
-}// namespace pn532
+}// namespace pn532::esp32
 
-#endif//PN532_SPI_HPP
+#endif//PN532_ESP32_SPI_HPP

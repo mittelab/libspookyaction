@@ -2,13 +2,13 @@
 // Created by Pietro Saccardi on 21/12/2020.
 //
 
-#ifndef PN532_HSU_HPP
-#define PN532_HSU_HPP
+#ifndef PN532_ESP32_HSU_HPP
+#define PN532_ESP32_HSU_HPP
 
-#include "channel.hpp"
 #include <mbcontroller.h>
+#include <pn532/channel.hpp>
 
-namespace pn532 {
+namespace pn532::esp32 {
 
     /**
      * @brief Implementation of HSU channel protocol for PN532 over ESP32's I2C driver.
@@ -40,12 +40,12 @@ namespace pn532 {
 
         ~hsu_channel() override;
     };
-}// namespace pn532
+}// namespace pn532::esp32
 
-namespace pn532 {
+namespace pn532::esp32 {
     channel::receive_mode hsu_channel::raw_receive_mode() const {
         return receive_mode::stream;
     }
-}// namespace pn532
+}// namespace pn532::esp32
 
-#endif//PN532_HSU_HPP
+#endif//PN532_ESP32_HSU_HPP

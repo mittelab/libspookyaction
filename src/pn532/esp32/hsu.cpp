@@ -3,12 +3,12 @@
 //
 
 
-#include "pn532/hsu.hpp"
+#include "pn532/esp32/hsu.hpp"
 #include "pn532/log.h"
 
 #define PN532_HSU_TAG "PN532-HSU"
 
-namespace pn532 {
+namespace pn532::esp32 {
 
     using namespace std::chrono_literals;
 
@@ -128,4 +128,4 @@ namespace pn532 {
     }
 
 
-}// namespace pn532
+}// namespace pn532::esp32

@@ -2,12 +2,12 @@
 // Created by spak on 3/25/21.
 //
 
-#include "pn532/spi.hpp"
+#include "pn532/esp32/spi.hpp"
 #include <mbcontroller.h>
 
 #define PN532_SPI_TAG "PN532-SPI"
 
-namespace pn532 {
+namespace pn532::esp32 {
 
     namespace {
         using namespace std::chrono_literals;
@@ -189,4 +189,4 @@ namespace pn532 {
         }
     }
 
-}// namespace pn532
+}// namespace pn532::esp32

@@ -3,10 +3,10 @@
 //
 
 #include "test_pn532.hpp"
-#include <pn532/hsu.hpp>
-#include <pn532/i2c.hpp>
+#include <pn532/esp32/hsu.hpp>
+#include <pn532/esp32/i2c.hpp>
+#include <pn532/esp32/spi.hpp>
 #include <pn532/msg.hpp>
-#include <pn532/spi.hpp>
 #include <unity.h>
 
 #define TEST_TAG "UT"
@@ -342,19 +342,19 @@ namespace ut::pn532 {
         std::unique_ptr<pn532::channel> channel = nullptr;
         switch (type) {
             case channel_type::hsu:
-                channel = std::make_unique<pn532::hsu_channel>(UART_NUM_1, uart_config, PN532_SERIAL_TX, PN532_SERIAL_RX);
+                channel = std::make_unique<pn532::esp32::hsu_channel>(UART_NUM_1, uart_config, PN532_SERIAL_TX, PN532_SERIAL_RX);
                 break;
             case channel_type::i2c:
-                channel = std::make_unique<pn532::i2c_channel>(I2C_NUM_0, i2c_config);
+                channel = std::make_unique<pn532::esp32::i2c_channel>(I2C_NUM_0, i2c_config);
                 break;
             case channel_type::i2c_irq:
-                channel = std::make_unique<pn532::i2c_channel>(I2C_NUM_0, i2c_config, PN532_IRQ, true);
+                channel = std::make_unique<pn532::esp32::i2c_channel>(I2C_NUM_0, i2c_config, PN532_IRQ, true);
                 break;
             case channel_type::spi:
-                channel = std::make_unique<pn532::spi_channel>(SPI2_HOST, spi_bus_config, spi_device_config, 1);
+                channel = std::make_unique<pn532::esp32::spi_channel>(SPI2_HOST, spi_bus_config, spi_device_config, 1);
                 break;
             case channel_type::spi_irq:
-                channel = std::make_unique<pn532::spi_channel>(SPI2_HOST, spi_bus_config, spi_device_config, 1, PN532_IRQ, true);
+                channel = std::make_unique<pn532::esp32::spi_channel>(SPI2_HOST, spi_bus_config, spi_device_config, 1, PN532_IRQ, true);
                 break;
         }
         ESP_LOGI(TEST_TAG, "Channel %s ready.", to_string(type));

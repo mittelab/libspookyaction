@@ -3,12 +3,12 @@
 //
 
 
-#include "pn532/i2c.hpp"
+#include "pn532/esp32/i2c.hpp"
 #include <memory>
 
 #define PN532_I2C_TAG "PN532-I2C"
 
-namespace pn532 {
+namespace pn532::esp32 {
     using namespace std::chrono_literals;
 
 
@@ -210,4 +210,4 @@ namespace pn532 {
         return _irq_assert(timeout);
     }
 
-}// namespace pn532
+}// namespace pn532::esp32

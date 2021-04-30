@@ -73,27 +73,6 @@ namespace desfire {
         void do_crypto(range<bin_data::iterator> const &data, crypto_direction dir, block_t &iv) override;
     };
 
-    /**
-     * @todo Move
-     */
-    class cipher_dummy final : public cipher {
-    public:
-        void prepare_tx(bin_data &, std::size_t, cipher_mode mode) override {
-            if (mode != cipher_mode::plain) {
-                DESFIRE_LOGE("Dummy cipher supports only plain comm mode.");
-            }
-        }
-
-        bool confirm_rx(bin_data &, cipher_mode mode) override {
-            if (mode != cipher_mode::plain) {
-                DESFIRE_LOGE("Dummy cipher supports only plain comm mode.");
-                return false;
-            }
-            return true;
-        }
-
-        void reinit_with_session_key(bin_data const &) override {}
-    };
 }// namespace desfire
 
 #endif//DESFIRE_CIPHER_IMPL_HPP

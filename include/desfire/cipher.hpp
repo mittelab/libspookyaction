@@ -76,6 +76,15 @@ namespace desfire {
         using mac_t = std::array<std::uint8_t, mac_size>;
         using crc_t = std::array<std::uint8_t, crc_size>;
     };
+
+    class cipher_dummy final : public cipher {
+    public:
+        inline void prepare_tx(bin_data &, std::size_t, cipher_mode mode) override;
+
+        inline bool confirm_rx(bin_data &, cipher_mode mode) override;
+
+        inline void reinit_with_session_key(bin_data const &) override;
+    };
 }// namespace desfire
 
 namespace desfire {
@@ -129,6 +138,22 @@ namespace desfire {
                 return true;
         }
     }
+
+    void cipher_dummy::prepare_tx(bin_data &, std::size_t, cipher_mode mode) {
+        if (mode != cipher_mode::plain) {
+            DESFIRE_LOGE("Dummy cipher supports only plain comm mode.");
+        }
+    }
+
+    bool cipher_dummy::confirm_rx(bin_data &, cipher_mode mode) {
+        if (mode != cipher_mode::plain) {
+            DESFIRE_LOGE("Dummy cipher supports only plain comm mode.");
+            return false;
+        }
+        return true;
+    }
+
+    void cipher_dummy::reinit_with_session_key(bin_data const &) {}
 
 }// namespace desfire
 

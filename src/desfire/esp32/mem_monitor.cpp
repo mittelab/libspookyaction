@@ -2,10 +2,10 @@
 // Created by spak on 3/14/21.
 //
 
-#include "mlab/mem_monitor.hpp"
+#include <desfire/esp32/mem_monitor.hpp>
 #include <esp_log.h>
 
-namespace mlab {
+namespace desfire::esp32 {
 
     mem_monitor::mem_monitor() {
         ESP_LOGI("MEM", "Begin heap monitoring");
@@ -33,4 +33,4 @@ namespace mlab {
         }
         return leaked;
     }
-}// namespace mlab
+}// namespace desfire::esp32

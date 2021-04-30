@@ -85,11 +85,12 @@ namespace desfire {
         tag &operator=(tag &&) = default;
 
         /**
-         * @internal
          * @return bin_data, or the following errors:
          * - @ref error::malformed
          * - @ref error::controller_error
-         * @todo Make private
+         * @note This method is *not* private because we do not have access to a Desfire/Mifare specification, therefore we cannot
+         *  guarantee that the list of commands implemented here is at all complete. Users who have access to the manual may therefore
+         *  directly send packets encoding further commands without having to explicitly extend or modify this class.
          */
         result<bin_data> raw_command_response(bin_stream &tx_data, bool rx_fetch_additional_frames);
 

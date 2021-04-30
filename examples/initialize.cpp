@@ -2,8 +2,8 @@
 #include "driver/uart.h"
 #include "unity.h"
 
-#include <pn532/esp32/hsu.hpp>
 #include <pn532/controller.hpp>
+#include <pn532/esp32/hsu.hpp>
 
 #define TXD (GPIO_NUM_17)
 #define RXD (GPIO_NUM_16)

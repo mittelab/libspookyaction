@@ -2,8 +2,8 @@
 #include "driver/uart.h"
 #include "unity.h"
 
-#include <pn532/esp32/hsu.hpp>
 #include <pn532/controller.hpp>
+#include <pn532/esp32/hsu.hpp>
 
 #define TXD (GPIO_NUM_17)
 #define RXD (GPIO_NUM_16)
@@ -12,7 +12,7 @@
 
 using namespace std::chrono_literals;
 
-std::pair<pn532::esp32::shsu_channel, pn532::controller> initialize_PN532() {
+std::pair<pn532::esp32::hsu_channel, pn532::controller> initialize_PN532() {
     static constexpr uart_config_t uart_config = {
             .baud_rate = 115200,
             .data_bits = UART_DATA_8_BITS,

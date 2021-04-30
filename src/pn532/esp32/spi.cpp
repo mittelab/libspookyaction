@@ -137,7 +137,7 @@ namespace pn532::esp32 {
     }
 
     spi_channel::spi_channel(spi_host_device_t host, spi_bus_config_t const &bus_config, spi_device_interface_config_t device_cfg, int dma_chan)
-        : _dma_buffer{mlab::capable_allocator<std::uint8_t>{MALLOC_CAP_DMA}},
+        : _dma_buffer{capable_allocator<std::uint8_t>{MALLOC_CAP_DMA}},
           _host{std::nullopt},
           _device{nullptr},
           _irq_assert{},

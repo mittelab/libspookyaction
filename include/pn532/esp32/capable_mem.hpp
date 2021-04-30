@@ -2,15 +2,15 @@
 // Created by spak on 3/26/21.
 //
 
-#ifndef MLAB_CAPABLE_MEM_HPP
-#define MLAB_CAPABLE_MEM_HPP
+#ifndef PN532_ESP32_CAPABLE_MEM_HPP
+#define PN532_ESP32_CAPABLE_MEM_HPP
 
 #include <cstdint>
 #include <esp_heap_caps.h>
 #include <limits>
 #include <type_traits>
 
-namespace mlab {
+namespace pn532::esp32 {
 
     template <class T>
     class capable_allocator {
@@ -38,9 +38,9 @@ namespace mlab {
     };
 
 
-}// namespace mlab
+}// namespace pn532::esp32
 
-namespace mlab {
+namespace pn532::esp32 {
     template <class T>
     capable_allocator<T>::capable_allocator(uint32_t default_caps) : _default_caps{default_caps} {}
 
@@ -76,6 +76,6 @@ namespace mlab {
         return not std::is_same_v<T, U>;
     }
 
-}// namespace mlab
+}// namespace pn532::esp32
 
-#endif//MLAB_CAPABLE_MEM_HPP
+#endif//PN532_ESP32_CAPABLE_MEM_HPP

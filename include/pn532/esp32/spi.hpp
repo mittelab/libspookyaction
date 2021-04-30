@@ -7,14 +7,14 @@
 
 #include <driver/gpio.h>
 #include <driver/spi_master.h>
-#include <mlab/capable_mem.hpp>
 #include <optional>
 #include <pn532/channel.hpp>
+#include <pn532/esp32/capable_mem.hpp>
 #include <pn532/esp32/irq_assert.hpp>
 
 namespace pn532::esp32 {
 
-    using capable_buffer = std::vector<std::uint8_t, mlab::capable_allocator<std::uint8_t>>;
+    using capable_buffer = std::vector<std::uint8_t, capable_allocator<std::uint8_t>>;
 
     /**
      * @brief Implementation of SPI channel protocol for PN532 over ESP32's SPI driver.

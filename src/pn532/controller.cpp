@@ -349,7 +349,7 @@ namespace pn532 {
             if (max_targets < 1 or max_targets > bits::max_num_targets) {
                 PN532_LOGW("%s: incorrect max targets %u for %s, clamping.",
                            to_string(command_code::in_list_passive_target), max_targets, fname);
-                max_targets = std::min(std::max(max_targets, std::uint8_t(1)), bits::max_num_targets);
+                max_targets = std::clamp(max_targets, std::uint8_t(1), bits::max_num_targets);
             }
         }
     }// namespace

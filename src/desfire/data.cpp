@@ -413,7 +413,7 @@ namespace mlab {
     }
 
     bin_data &operator<<(bin_data &bd, desfire::app_settings const &ks) {
-        const std::uint8_t flag = std::min(std::max(ks.max_num_keys, std::uint8_t(1)), bits::max_keys_per_app) | static_cast<std::uint8_t>(ks.crypto);
+        const std::uint8_t flag = std::clamp(ks.max_num_keys, std::uint8_t(1), bits::max_keys_per_app) | static_cast<std::uint8_t>(ks.crypto);
         return bd << prealloc(2) << ks.rights << flag;
     }
 

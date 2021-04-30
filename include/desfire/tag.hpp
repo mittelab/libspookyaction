@@ -42,10 +42,10 @@
 #define DESFIRE_TAG_HPP
 
 #include "cipher.hpp"
-#include "controller.hpp"
 #include "data.hpp"
 #include "mlab/result.hpp"
 #include "msg.hpp"
+#include "pcd.hpp"
 #include <list>
 #include <memory>
 
@@ -70,11 +70,11 @@ namespace desfire {
 
         /**
          * @brief Construct a new tag object
-         * @note if you want to create a custom controller, you should extend  @ref desfire::controller and implement @ref desfire::controller::communicate
+         * @note if you want to create a custom pcd, you should extend  @ref desfire::pcd and implement @ref desfire::pcd::communicate
          *
-         * @param controller a @ref desfire::controller class that handles the tag communication
+         * @param pcd_ a @ref desfire::pcd class that handles the tag communication
          */
-        inline explicit tag(controller &controller);
+        inline explicit tag(desfire::pcd &pcd);
 
         tag(tag const &) = delete;
 
@@ -167,7 +167,7 @@ namespace desfire {
          * @brief Selects the application to use for sucessive operations
          * @ingroup application
          * @param app The id of the app to be selected
-         * @note After selecting a new application, the controller is logged out and a new authentication is necessary.
+         * @note After selecting a new application, the pcd is logged out and a new authentication is necessary.
          * @return None, or the following errors:
          * - @ref error::malformed
          * - @ref error::crypto_error
@@ -367,7 +367,7 @@ namespace desfire {
          * @brief Delete all the application, and keys on the card
          * @ingroup application
          * @note Must be on the @ref root_app for this to succeed, and authenticated with the master key. After
-         * formatting the controller will be logged out and on the @ref root_app.
+         * formatting the pcd will be logged out and on the @ref root_app.
          * @return None, or the following errors:
          * - @ref error::malformed
          * - @ref error::crypto_error
@@ -1099,7 +1099,7 @@ namespace desfire {
         [[nodiscard]] static result<> safe_drop_payload(command_code cmd, tag::result<bin_data> const &result);
         static void log_not_empty(command_code cmd, range<bin_data::const_iterator> const &data);
 
-        [[nodiscard]] inline controller &ctrl();
+        [[nodiscard]] inline desfire::pcd &pcd();
 
         result<> change_key_internal(any_key const *current_key, std::uint8_t key_no_to_change, any_key const &new_key);
 
@@ -1121,7 +1121,7 @@ namespace desfire {
         struct auto_logout;
 
 
-        controller *_controller;
+        desfire::pcd *_pcd;
 
         std::unique_ptr<cipher> _active_cipher;
         cipher_type _active_cipher_type;
@@ -1142,15 +1142,15 @@ namespace desfire {
 
 namespace desfire {
 
-    controller &tag::ctrl() {
-        return *_controller;
+    desfire::pcd &tag::pcd() {
+        return *_pcd;
     }
 
-    tag::tag(controller &controller) : _controller{&controller},
-                                       _active_cipher{std::make_unique<cipher_dummy>()},
-                                       _active_cipher_type{cipher_type::none},
-                                       _active_key_number{std::numeric_limits<std::uint8_t>::max()},
-                                       _active_app{root_app} {}
+    tag::tag(desfire::pcd &pcd) : _pcd{&pcd},
+                                  _active_cipher{std::make_unique<cipher_dummy>()},
+                                  _active_cipher_type{cipher_type::none},
+                                  _active_key_number{std::numeric_limits<std::uint8_t>::max()},
+                                  _active_app{root_app} {}
 
     template <cipher_type Type>
     tag::result<> tag::authenticate(key<Type> const &k) {

@@ -5,11 +5,11 @@
 #ifndef PN532_DESFIRE_PCD_HPP
 #define PN532_DESFIRE_PCD_HPP
 
-#include "desfire/controller.hpp"
+#include "desfire/pcd.hpp"
 #include "nfc.hpp"
 
 namespace pn532 {
-    class desfire_pcd final : public desfire::controller {
+    class desfire_pcd final : public desfire::pcd {
         nfc *_pcd;
         std::uint8_t _target;
         nfc::result<rf_status> _last_result;

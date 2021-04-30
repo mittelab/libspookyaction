@@ -129,7 +129,7 @@ namespace desfire {
 
             // Actual transmission
             ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " RAW >>", tx_chunk.data(), tx_chunk.size(), ESP_LOG_DEBUG);
-            if (const auto &[rx_chunk, success] = ctrl().communicate(tx_chunk); success) {
+            if (const auto &[rx_chunk, success] = pcd().communicate(tx_chunk); success) {
                 ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " RAW <<", rx_chunk.data(), rx_chunk.size(), ESP_LOG_DEBUG);
 
                 // Make sure there was an actual response

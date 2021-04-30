@@ -114,25 +114,25 @@ namespace ut::desfire_main {
     }
 
     test_data::test_data(std::shared_ptr<ut::pn532::test_instance> pn532_test_instance, std::uint8_t card_logical_index)
-        : _controller{std::make_unique<pn532::desfire_pcd>(pn532_test_instance->tag_reader(), card_logical_index)},
+        : _pcd{std::make_unique<pn532::desfire_pcd>(pn532_test_instance->tag_reader(), card_logical_index)},
           _hold_test_instance{std::move(pn532_test_instance)},
-          _tag{*_controller} {
-        if (_controller == nullptr) {
-            ESP_LOGE(TEST_TAG, "desfire::tag object was set up with an invalid controller! If a SEGFAULT did not happen, it is about to.");
+          _tag{*_pcd} {
+        if (_pcd == nullptr) {
+            ESP_LOGE(TEST_TAG, "desfire::tag object was set up with an invalid pcd! If a SEGFAULT did not happen, it is about to.");
         }
     }
 
     test_data::test_data(std::unique_ptr<pn532::desfire_pcd> controller)
-        : _controller{std::move(controller)},
+        : _pcd{std::move(controller)},
           _hold_test_instance{nullptr},
-          _tag{*_controller} {
-        if (_controller == nullptr) {
-            ESP_LOGE(TEST_TAG, "desfire::tag object was set up with an invalid controller! If a SEGFAULT did not happen, it is about to.");
+          _tag{*_pcd} {
+        if (_pcd == nullptr) {
+            ESP_LOGE(TEST_TAG, "desfire::tag object was set up with an invalid pcd! If a SEGFAULT did not happen, it is about to.");
         }
     }
 
     pn532::desfire_pcd &test_data::controller() {
-        return *_controller;
+        return *_pcd;
     }
 
     tag &test_data::tag() {

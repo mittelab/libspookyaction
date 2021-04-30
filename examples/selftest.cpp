@@ -2,8 +2,8 @@
 #include "driver/uart.h"
 #include "unity.h"
 
+#include <pn532/controller.hpp>
 #include <pn532/hsu.hpp>
-#include <pn532/nfc.hpp>
 
 #define TXD (GPIO_NUM_17)
 #define RXD (GPIO_NUM_16)
@@ -12,7 +12,7 @@
 
 using namespace std::chrono_literals;
 
-std::pair<pn532::hsu_channel, pn532::nfc> initialize_PN532() {
+std::pair<pn532::hsu_channel, pn532::controller> initialize_PN532() {
     static constexpr uart_config_t uart_config = {
             .baud_rate = 115200,
             .data_bits = UART_DATA_8_BITS,
@@ -23,7 +23,7 @@ std::pair<pn532::hsu_channel, pn532::nfc> initialize_PN532() {
             .source_clk = UART_SCLK_REF_TICK};
 
     auto serialDriver = pn532::hsu_channel(UART_DUT, uart_config, TXD, RXD);
-    auto tagReader = pn532::nfc(serialDriver);
+    auto tagReader = pn532::controller(serialDriver);
     serialDriver.wake();
     tagReader.sam_configuration(pn532::sam_mode::normal, 1s);
     tagReader.rf_configuration_retries(pn532::infty);
@@ -31,7 +31,7 @@ std::pair<pn532::hsu_channel, pn532::nfc> initialize_PN532() {
     tagReader.rf_configuration_field(false, true);
     return {std::move(serialDriver), std::move(tagReader)};
 }
-void selftest(pn532::nfc &tagReader) {
+void selftest(pn532::controller &tagReader) {
     //Autotest PN532 ROM firmware
     printf("ROM: %s\n", tagReader.diagnose_rom() ? "OK" : "FAIL");
 
@@ -49,7 +49,7 @@ void selftest(pn532::nfc &tagReader) {
     auto poll_ret = tagReader.diagnose_poll_target(true, true);
     if (!poll_ret) printf("ERROR (%s)\n", pn532::to_string(poll_ret.error()));
     else
-        printf("%d@212kbts %d@424kbps\n", poll_ret->first, poll_ret->second);
+        printf("%d@212kbps %d@424kbps\n", poll_ret->first, poll_ret->second);
 
     // Check antenna for open circuit, or short circuit
     auto ret = tagReader.diagnose_self_antenna(pn532::bits::low_current_thr::mA_25, pn532::bits::high_current_thr::mA_150);

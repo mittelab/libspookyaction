@@ -150,7 +150,7 @@ namespace pn532 {
         i0i1
     };
 
-    // Data returned after "GetFirmwareVersion" (@ref nfc::get_firmware_version) (UM0701-02 §7.2.2)
+    // Data returned after "GetFirmwareVersion" (@ref controller::get_firmware_version) (UM0701-02 §7.2.2)
     struct firmware_version {
         std::uint8_t ic;         //!< The ic version, for PN532 is always 0x32
         std::uint8_t version;    //!< IC firmware version
@@ -160,7 +160,7 @@ namespace pn532 {
         bool iso_iec_14443_typeb;//!< The chip supports ISO 14443 TypeB tags
     };
 
-    // Data returned after "GetGeneralStatus" (@ref nfc::get_general_status) (one for each tag) (UM0701-02 §7.2.3)
+    // Data returned after "GetGeneralStatus" (@ref controller::get_general_status) (one for each tag) (UM0701-02 §7.2.3)
     struct target_status {
         std::uint8_t logical_index;//!< Tag index (given at initialization from the PN532)
         baudrate baudrate_rx;      //!< Bit rate in reception
@@ -177,7 +177,7 @@ namespace pn532 {
         inline explicit operator bool() const { return error == controller_error::none; }
     };
 
-    // Data returned after "SetParameter" (@ref nfc::set_parameters) (UM0701-02 §7.2.9)
+    // Data returned after "SetParameter" (@ref controller::set_parameters) (UM0701-02 §7.2.9)
     struct parameters {
         bool use_nad_data;                     //!< Use NAD information (used in initiator mode)
         bool use_did_data;                     //!< Use DID information (used in initiator mode)
@@ -187,7 +187,7 @@ namespace pn532 {
         bool remove_pre_post_amble;            //!< Disable pre/post-amble byte
     };
 
-    // Data returned after "GetGeneralStatus" (@ref nfc::get_general_status) (UM0701-02 §7.2.3)
+    // Data returned after "GetGeneralStatus" (@ref controller::get_general_status) (UM0701-02 §7.2.3)
     struct sam_status {
         bool neg_pulse_on_clad_line;
         bool detected_rf_field_off;
@@ -195,7 +195,7 @@ namespace pn532 {
         bool clad_line_high;
     };
 
-    // Data returned after "GetGeneralStatus" (@ref nfc::get_general_status) (UM0701-02 §7.2.3)
+    // Data returned after "GetGeneralStatus" (@ref controller::get_general_status) (UM0701-02 §7.2.3)
     struct general_status {
         controller_error last_error;       //!< Last error of the controller
         bool rf_field_present;             //!< True if the RF field is switched on
@@ -203,7 +203,7 @@ namespace pn532 {
         sam_status sam;                    //!< SAM status information
     };
 
-    // Data returned after "TgGetTargetStatus" (@ref nfc::target_get_target_status) (UM0701-02 §7.2.21)
+    // Data returned after "TgGetTargetStatus" (@ref controller::target_get_target_status) (UM0701-02 §7.2.21)
     struct status_as_target {
         nfcip1_picc_status status;
         baudrate initiator_speed;
@@ -211,7 +211,7 @@ namespace pn532 {
     };
 
     /**
-     * Parameters for the command "Diagnose" (@ref nfc::diagnose_self_antenna) (UM0701-02 §7.2.1)
+     * Parameters for the command "Diagnose" (@ref controller::diagnose_self_antenna) (UM0701-02 §7.2.1)
      * The parameters are described in (PN532/C1 §8.6.9.2)
      */
     struct reg_antenna_detector {
@@ -237,7 +237,7 @@ namespace pn532 {
         framing framing_type;
     };
 
-    // Parameters for the command "TgGetTargetStatus" (@ref nfc::target_init_as_target) (UM0701-02 §7.3.21)
+    // Parameters for the command "TgGetTargetStatus" (@ref controller::target_init_as_target) (UM0701-02 §7.3.21)
     struct mifare_params {
         std::array<std::uint8_t, 2> sens_res;
         std::array<std::uint8_t, 3> nfcid_1t;
@@ -253,7 +253,7 @@ namespace pn532 {
         std::array<std::uint8_t, 2> syst_code;
     };
 
-    // Data returned after "TgInitAsTarget" (@ref nfc::target_init_as_target) (UM0701-02 §7.3.14)
+    // Data returned after "TgInitAsTarget" (@ref controller::target_init_as_target) (UM0701-02 §7.3.14)
     struct init_as_target_res {
         mode_as_target mode;                        //!< A byte containing witch mode the PN532 has been activated
         std::vector<std::uint8_t> initiator_command;//!< A vector containing the first frame received by the PN532

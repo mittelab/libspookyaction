@@ -17,7 +17,7 @@ digraph libpn532 {
         UART[label="pn532::hsu"shape=box];
     }
     subgraph cluster_nfc{
-        label="pn532::nfc"
+        label="pn532::controller"
         channel[shape=box];
     }
     subgraph cluster_tag{

@@ -7,7 +7,7 @@
 
 #include "registrar.hpp"
 #include <memory>
-#include <pn532/nfc.hpp>
+#include <pn532/controller.hpp>
 
 namespace ut {
 
@@ -18,7 +18,7 @@ namespace ut {
 
         class test_data {
             std::unique_ptr<pn532::channel> _channel = nullptr;
-            pn532::nfc _tag_reader;
+            pn532::controller _tag_reader;
             bool _channel_did_wake;
 
         public:
@@ -29,7 +29,7 @@ namespace ut {
             inline void mark_channel_did_wake();
 
             [[nodiscard]] pn532::channel &channel();
-            [[nodiscard]] pn532::nfc &tag_reader();
+            [[nodiscard]] pn532::controller &tag_reader();
         };
 
 

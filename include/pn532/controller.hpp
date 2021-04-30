@@ -31,8 +31,8 @@
  * @}
  */
 
-#ifndef PN532_NFC_HPP
-#define PN532_NFC_HPP
+#ifndef PN532_CONTROLLER_HPP
+#define PN532_CONTROLLER_HPP
 
 #include "bits.hpp"
 #include "channel.hpp"
@@ -47,22 +47,22 @@ namespace pn532 {
     static constexpr ms default_timeout = 1s;
     static constexpr ms long_timeout = 3s;
 
-    class nfc {
+    class controller {
     public:
         static const std::vector<bits::target_type> poll_all_targets;
 
         template <class... Tn>
         using result = channel::result<Tn...>;
 
-        inline explicit nfc(channel &chn);
+        inline explicit controller(channel &chn);
 
-        nfc(nfc const &) = delete;
+        controller(controller const &) = delete;
 
-        nfc(nfc &&) = default;
+        controller(controller &&) = default;
 
-        nfc &operator=(nfc const &) = delete;
+        controller &operator=(controller const &) = delete;
 
-        nfc &operator=(nfc &&) = default;
+        controller &operator=(controller &&) = default;
 
         /**
          * @brief Selfcheck PN532 ROM memory (UM0701-02 §7.2.1)
@@ -305,7 +305,7 @@ namespace pn532 {
          * @brief Set timeout for ATR_RES and non-DEP communications (UM0701-02 §7.3.1)
          * @ingroup RF
          * @param atr_res_timeout set timeout for ATR request (use when pn532 is the Initiator)
-         * @param retry_timeout set timeout for InCommunicateThru @ref nfc::initiator_communicate_through
+         * @param retry_timeout set timeout for InCommunicateThru @ref controller::initiator_communicate_through
          * @param timeout maximum time for getting a response
          * @return No data, or one of the following errors:
          *         - @ref error::comm_malformed,
@@ -338,7 +338,7 @@ namespace pn532 {
          * - passive mode: don't care, pn532 will just try twice
          * @endparblock
          * @param psl_retries number of retries after a PSL_RES or PPS response: 0x00 -> try once, 0xFF -> try indefinitely (or you can use @ref infty)
-         * @param passive_activation_retries set timeout for InCommunicateThru @ref nfc::initiator_communicate_through
+         * @param passive_activation_retries set timeout for InCommunicateThru @ref controller::initiator_communicate_through
          * @param timeout maximum time for getting a response
          * @return No data, or one of the following errors:
          *         - @ref error::comm_malformed,
@@ -1302,11 +1302,11 @@ namespace pn532 {
 
 namespace pn532 {
 
-    nfc::nfc(channel &chn) : _channel{&chn} {}
+    controller::controller(channel &chn) : _channel{&chn} {}
 
-    channel &nfc::chn() const { return *_channel; }
+    channel &controller::chn() const { return *_channel; }
 
-    nfc::result<uint8_t> nfc::read_register(reg_addr const &addr, ms timeout) {
+    controller::result<uint8_t> controller::read_register(reg_addr const &addr, ms timeout) {
         if (const auto res_cmd = read_registers({addr}, timeout); res_cmd) {
             return res_cmd->at(0);
         } else {
@@ -1314,12 +1314,12 @@ namespace pn532 {
         }
     }
 
-    nfc::result<> nfc::write_register(reg_addr const &addr, std::uint8_t val, ms timeout) {
+    controller::result<> controller::write_register(reg_addr const &addr, std::uint8_t val, ms timeout) {
         return write_registers({{addr, val}}, timeout);
     }
 
     template <class T, class>
-    nfc::result<rf_status, bin_data> nfc::initiator_data_exchange(std::uint8_t target_logical_index, T &&data, ms timeout) {
+    controller::result<rf_status, bin_data> controller::initiator_data_exchange(std::uint8_t target_logical_index, T &&data, ms timeout) {
         static bin_data buffer{};
         buffer.clear();
         buffer << std::forward<T>(data);
@@ -1329,4 +1329,4 @@ namespace pn532 {
 }// namespace pn532
 
 
-#endif//PN532_NFC_HPP
+#endif//PN532_CONTROLLER_HPP

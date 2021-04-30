@@ -2,8 +2,8 @@
 #include "driver/uart.h"
 #include "unity.h"
 
+#include <pn532/controller.hpp>
 #include <pn532/hsu.hpp>
-#include <pn532/nfc.hpp>
 
 #define TXD (GPIO_NUM_17)
 #define RXD (GPIO_NUM_16)
@@ -23,7 +23,7 @@ void initialize_PN532() {
             .source_clk = UART_SCLK_REF_TICK};
 
     auto serialDriver = pn532::hsu_channel(UART_DUT, uart_config, TXD, RXD);
-    auto tagReader = pn532::nfc(serialDriver);
+    auto tagReader = pn532::controller(serialDriver);
     serialDriver.wake();
     tagReader.sam_configuration(pn532::sam_mode::normal, 1s);
     tagReader.rf_configuration_retries(pn532::infty);

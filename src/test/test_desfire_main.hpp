@@ -53,7 +53,7 @@ namespace ut {
         using test_instance = test_instance<test_tag>;
 
         std::shared_ptr<test_instance> try_connect_card(std::shared_ptr<ut::pn532::test_instance> pn532_test_instance);
-        std::shared_ptr<test_instance> try_connect_card(pn532::nfc &tag_reader);
+        std::shared_ptr<test_instance> try_connect_card(pn532::controller &tag_reader);
 
         void test_mifare_base();
         void test_mifare_uid();

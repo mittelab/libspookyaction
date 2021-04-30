@@ -387,7 +387,7 @@ namespace ut::desfire_main {
     namespace {
         using namespace std::chrono_literals;
 
-        std::uint8_t try_find_card(pn532::nfc &tag_reader) {
+        std::uint8_t try_find_card(pn532::controller &tag_reader) {
             ESP_LOGI(TEST_TAG, "Please bring card close now (searching for one passive 106 kbps target)...");
             const auto r_scan = tag_reader.initiator_list_passive_kbps106_typea(1, 10s);
             if (not r_scan or r_scan->empty()) {
@@ -401,7 +401,7 @@ namespace ut::desfire_main {
             return r_scan->front().logical_index;
         }
     }// namespace
-    std::shared_ptr<test_instance> try_connect_card(pn532::nfc &tag_reader) {
+    std::shared_ptr<test_instance> try_connect_card(pn532::controller &tag_reader) {
         if (const auto logical_idx = try_find_card(tag_reader); logical_idx != std::numeric_limits<std::uint8_t>::max()) {
             return std::make_shared<test_instance>(std::make_unique<pn532::desfire_pcd>(tag_reader, logical_idx));
         }

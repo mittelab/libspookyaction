@@ -101,7 +101,7 @@ namespace ut::pn532 {
                 .post_cb = nullptr};
 
 
-        [[nodiscard]] bool ok_and_true(nfc::result<bool> const &r) {
+        [[nodiscard]] bool ok_and_true(controller::result<bool> const &r) {
             return r and *r;
         }
 
@@ -117,7 +117,7 @@ namespace ut::pn532 {
     pn532::channel &test_data::channel() {
         return *_channel;
     }
-    pn532::nfc &test_data::tag_reader() {
+    pn532::controller &test_data::tag_reader() {
         return _tag_reader;
     }
 

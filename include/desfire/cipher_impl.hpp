@@ -22,7 +22,7 @@
 
 namespace desfire {
 
-    class cipher_des final : public cipher_scheme_legacy {
+    class cipher_des : public cipher_scheme_legacy {
         mbedtls_des_context _enc_context;
         mbedtls_des_context _dec_context;
         mbedtls_des_context _mac_enc_context;
@@ -35,7 +35,7 @@ namespace desfire {
         void do_crypto(range<bin_data::iterator> const &data, crypto_direction dir, block_t &iv) override;
     };
 
-    class cipher_2k3des final : public cipher_scheme_legacy {
+    class cipher_2k3des : public cipher_scheme_legacy {
         mbedtls_des3_context _enc_context;
         mbedtls_des3_context _dec_context;
         mbedtls_des3_context _mac_enc_context;
@@ -49,7 +49,7 @@ namespace desfire {
         void do_crypto(range<bin_data::iterator> const &data, crypto_direction dir, block_t &iv) override;
     };
 
-    class cipher_3k3des final : public cipher_scheme<8, 0x1b> {
+    class cipher_3k3des : public cipher_scheme<8, 0x1b> {
         mbedtls_des3_context _enc_context;
         mbedtls_des3_context _dec_context;
 
@@ -61,7 +61,7 @@ namespace desfire {
         void do_crypto(range<bin_data::iterator> const &data, crypto_direction dir, block_t &iv) override;
     };
 
-    class cipher_aes final : public cipher_scheme<16, 0x87> {
+    class cipher_aes : public cipher_scheme<16, 0x87> {
         mbedtls_aes_context _enc_context;
         mbedtls_aes_context _dec_context;
 

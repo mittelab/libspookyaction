@@ -162,7 +162,7 @@ pages:
   needs:
     - check format
   before_script:
-    - apk add --update --no-cache doxygen graphviz
+    - apk add --update --no-cache doxygen graphviz ttf-opensans
   script:
     - doxygen ./docs/doxigen.conf
     - mkdir -p public

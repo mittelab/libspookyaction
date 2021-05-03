@@ -162,7 +162,7 @@ pages:
   needs:
     - check format
   before_script:
-    - apk add --update --no-cache doxygen
+    - apk add --update --no-cache doxygen graphviz
   script:
     - doxygen ./docs/doxigen.conf
     - mkdir -p public

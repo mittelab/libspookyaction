@@ -24,17 +24,29 @@ namespace mlab {
 
         inline range(Iterator b, Iterator e) : it_begin{b}, it_end{e} {}
 
+        template <class Container>
+        explicit range(Container &c) : range{std::begin(c), std::end(c)} {}
+
         template <class Jterator, class = typename std::enable_if<std::is_convertible_v<Jterator, Iterator>>::type>
         range(range<Jterator> const &other) : it_begin{other.it_begin}, it_end{other.it_end} {}
 
+        /**
+         * @todo Enable only if random access
+         */
         [[nodiscard]] inline typename std::iterator_traits<Iterator>::difference_type size() const {
             return std::distance(it_begin, it_end);
         }
 
+        /**
+         * @todo Deprecate
+         */
         [[nodiscard]] inline typename std::add_const_t<typename std::iterator_traits<Iterator>::pointer> data() const {
             return &*it_begin;
         }
 
+        /**
+         * @todo Deprecate
+         */
         [[nodiscard]] inline typename std::iterator_traits<Iterator>::pointer data() {
             return &*it_begin;
         }
@@ -47,6 +59,11 @@ namespace mlab {
     template <class Iterator>
     inline range<Iterator> make_range(Iterator begin, Iterator end) {
         return {begin, end};
+    }
+
+    template <class Container>
+    inline auto make_range(Container &c) {
+        return range<decltype(std::begin(std::declval<Container &>()))>{c};
     }
 
     struct bit_ref {
@@ -85,6 +102,14 @@ namespace mlab {
                 std::size_t length = std::numeric_limits<std::size_t>::max()) const;
 
         [[nodiscard]] inline range<iterator> view(
+                std::size_t start = 0,
+                std::size_t length = std::numeric_limits<std::size_t>::max());
+
+        [[nodiscard]] inline range<value_type const *> data_view(
+                std::size_t start = 0,
+                std::size_t length = std::numeric_limits<std::size_t>::max()) const;
+
+        [[nodiscard]] inline range<value_type *> data_view(
                 std::size_t start = 0,
                 std::size_t length = std::numeric_limits<std::size_t>::max());
 
@@ -315,13 +340,25 @@ namespace mlab {
     range<bin_data::const_iterator> bin_data::view(std::size_t start, std::size_t length) const {
         start = std::min(start, size());
         length = std::min(length, size() - start);
-        return make_range(begin() + start, begin() + start + length);
+        return {begin() + difference_type(start), begin() + difference_type(start + length)};
     }
 
     range<bin_data::iterator> bin_data::view(std::size_t start, std::size_t length) {
         start = std::min(start, size() - 1);
         length = std::min(length, size() - start);
-        return make_range(begin() + start, begin() + start + length);
+        return {begin() + difference_type(start), begin() + difference_type(start + length)};
+    }
+
+    range<bin_data::value_type const *> bin_data::data_view(std::size_t start, std::size_t length) const {
+        start = std::min(start, size());
+        length = std::min(length, size() - start);
+        return {data() + start, data() + start + length};
+    }
+
+    range<bin_data::value_type *> bin_data::data_view(std::size_t start, std::size_t length) {
+        start = std::min(start, size() - 1);
+        length = std::min(length, size() - start);
+        return {data() + start, data() + start + length};
     }
 
     bit_ref &bit_ref::operator=(bool v) {

@@ -15,9 +15,7 @@ namespace desfire {
 
     namespace {
         using mlab::bin_data;
-
-        template <class It>
-        using range = mlab::range<It>;
+        using mlab::range;
     }// namespace
 
 

@@ -117,4 +117,44 @@ namespace desfire {
             }
         }
     }
+
+    void cmac_provider::prep_subkey(range<std::uint8_t *> subkey, std::uint8_t last_byte_xor) {
+        const bool do_xor = (*std::begin(subkey) & 0x80) != 0;
+        // Some app-specific magic: lshift by one
+        lshift_sequence(std::begin(subkey), std::end(subkey), 1);
+        // ...and xor with R if the MSB is one
+        if (do_xor) {
+            *std::prev(std::end(subkey)) ^= last_byte_xor;
+        }
+    }
+
+    void cmac_provider::prepare_subkeys(crypto &crypto) {
+        auto rg_key_nopad = key_nopad();
+        auto rg_key_pad = key_pad();
+
+        DESFIRE_LOGD("Deriving CMAC subkeys...");
+
+        // Clear the keys to zero
+        std::fill(std::begin(rg_key_pad), std::end(rg_key_pad), 0);
+        std::fill(std::begin(rg_key_nopad), std::end(rg_key_nopad), 0);
+
+        // Do the initial crypto. Should use a 0-filled IV. We use the padded key which we just reset.
+        crypto.do_crypto(rg_key_nopad, rg_key_pad, crypto_operation::mac);
+
+        // rg_key_pad contains garbage now, process the nopad key first
+        prep_subkey(rg_key_nopad, last_byte_xor());
+
+        // Copy the nopad key to the pad key, and do it again
+        std::copy(std::begin(rg_key_nopad), std::end(rg_key_nopad), std::begin(rg_key_pad));
+        prep_subkey(rg_key_nopad, last_byte_xor());
+
+        ESP_LOGD(DESFIRE_TAG " KEY", "CMAC key for unpadded data:");
+        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " KEY", _subkey_nopad.get(), block_size(), ESP_LOG_DEBUG);
+        ESP_LOGD(DESFIRE_TAG " KEY", "CMAC key for padded data:");
+        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " KEY", _subkey_pad.get(), block_size(), ESP_LOG_DEBUG);
+    }
+
+    cmac_provider::mac_t cmac_provider::compute_mac(crypto &crypto, range<bin_data::const_iterator> data) {
+        return {};
+    }
 }

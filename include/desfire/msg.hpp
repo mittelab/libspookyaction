@@ -7,6 +7,7 @@
 
 #include "bits.hpp"
 #include "data.hpp"
+#include "crypto_base.hpp"
 
 namespace desfire {
     [[nodiscard]] const char *to_string(bits::cipher_mode comm);
@@ -15,6 +16,7 @@ namespace desfire {
     [[nodiscard]] const char *to_string(cipher_type c);
     [[nodiscard]] const char *to_string(command_code c);
     [[nodiscard]] const char *to_string(file_type t);
+    [[nodiscard]] const char *to_string(crypto_operation op);
     [[nodiscard]] const char *to_string(crypto_direction mode);
 }// namespace desfire
 

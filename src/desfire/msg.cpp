@@ -54,6 +54,18 @@ namespace desfire {
         return "UNKNOWN";
     }
 
+    const char *to_string(crypto_operation op) {
+        switch (op) {
+            case crypto_operation::encrypt:
+                return "encrypt";
+            case crypto_operation::decrypt:
+                return "decrypt";
+            case crypto_operation::mac:
+                return "mac";
+        }
+        return "UNKNOWN";
+    }
+
     const char *to_string(status s) {
         switch (s) {
             case status::ok:

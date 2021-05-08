@@ -6,7 +6,7 @@
 #define DESFIRE_CRYPTO_PROTOCOL_HPP
 
 #include <desfire/bits.hpp>
-#include <desfire/crypto_base.hpp>
+#include <desfire/crypto_ciphers_base.hpp>
 #include <memory>
 
 namespace desfire {

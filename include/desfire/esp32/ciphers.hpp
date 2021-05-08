@@ -5,7 +5,7 @@
 #ifndef DESFIRE_ESP32_CIPHERS_HPP
 #define DESFIRE_ESP32_CIPHERS_HPP
 
-#include <desfire/crypto_base.hpp>
+#include <desfire/crypto_ciphers_base.hpp>
 
 /**
  * @note ''esp_config.h'' must be included before ''aes.h'' to enable hardware AES.

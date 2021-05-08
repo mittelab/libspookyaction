@@ -25,6 +25,8 @@ namespace desfire {
     template <std::size_t BlockSize>
     [[nodiscard]] std::size_t padded_length(std::size_t size);
 
+    inline std::size_t padded_length(std::size_t size, std::size_t block_size);
+
     template <std::size_t Length>
     void set_key_version(std::array<std::uint8_t, Length> &k, std::uint8_t v);
 
@@ -104,6 +106,15 @@ namespace desfire {
     std::size_t padded_length(std::size_t size) {
         static_assert(BlockSize % 2 == 0, "This version works just with powers of two.");
         return (size + BlockSize - 1) & -BlockSize;
+    }
+
+    std::size_t padded_length(std::size_t size, std::size_t block_size) {
+        if (block_size % 2 == 0) {
+            return (size + block_size - 1) & -block_size;
+        } else {
+            const auto rem_div = std::div(long(size), long(block_size));
+            return rem_div.quot * block_size + (rem_div.rem > 0 ? block_size : 0);
+        }
     }
 
     template <std::size_t BlockSize, class ByteIterator, class N, class Fn, std::size_t NPaddingBytes>

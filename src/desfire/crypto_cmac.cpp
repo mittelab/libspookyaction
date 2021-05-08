@@ -46,7 +46,7 @@ namespace desfire {
     }
 
 
-    cmac_provider::mac_t cmac_provider::compute_mac(crypto &crypto, range<std::uint8_t *> iv, range<bin_data::const_iterator> data) {
+    cmac_provider::mac_t cmac_provider::compute_cmac(crypto &crypto, range<std::uint8_t *> iv, range<std::uint8_t const *> data) {
         mac_t retval{0, 0, 0, 0, 0, 0, 0, 0};
 
         if (iv.size() < block_size()) {

@@ -120,27 +120,24 @@ namespace desfire {
         setup_with_key(make_range(new_key));
     }
 
-    void crypto_3k3des_base::setup_with_key(range<const std::uint8_t *> key) {
-        setup_with_key_primitive(key);
-        cmac()->initialize_subkeys(*this);
+    crypto_3k3des_base::crypto_3k3des_base() : crypto_with_cmac{8, bits::crypto_cmac_xor_byte_3k3des} {
     }
 
-    void crypto_aes_base::setup_with_key(range<const std::uint8_t *> key) {
-        setup_with_key_primitive(key);
-        cmac()->initialize_subkeys(*this);
+    crypto_aes_base::crypto_aes_base() : crypto_with_cmac{16, bits::crypto_cmac_xor_byte_aes} {
     }
 
-    crypto_3k3des_base::crypto_3k3des_base() : _cmac{8, bits::crypto_cmac_xor_byte_3k3des} {
+
+    void crypto_with_cmac::setup_with_key(range<const std::uint8_t *> key) {
+        setup_primitives_with_key(key);
+        _cmac.initialize_subkeys(*this);
     }
 
-    crypto_aes_base::crypto_aes_base() : _cmac{16, bits::crypto_cmac_xor_byte_aes} {
+    crypto_with_cmac::crypto_with_cmac(std::uint8_t block_size, std::uint8_t last_byte_xor)
+        : _cmac{block_size, last_byte_xor}
+    {}
+
+    crypto_with_cmac::mac_t crypto_with_cmac::do_cmac(range<std::uint8_t const *> data, range<std::uint8_t *> iv) {
+        return _cmac.compute_cmac(*this, iv, data);
     }
 
-    cmac_provider *crypto_3k3des_base::cmac() {
-        return &_cmac;
-    }
-
-    cmac_provider *crypto_aes_base::cmac() {
-        return &_cmac;
-    }
 }// namespace desfire

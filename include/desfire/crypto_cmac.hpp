@@ -15,8 +15,6 @@ namespace desfire {
         using mlab::bin_data;
     }
 
-    class crypto_3k3des_base;
-    class crypto_aes_base;
     class crypto;
 
     class cmac_provider {
@@ -39,7 +37,7 @@ namespace desfire {
 
         void initialize_subkeys(crypto &crypto);
 
-        mac_t compute_mac(crypto &crypto, range<std::uint8_t *> iv, range<bin_data::const_iterator> data);
+        mac_t compute_cmac(crypto &crypto, range<std::uint8_t *> iv, range<std::uint8_t const *> data);
 
         static void prepare_subkey(range<std::uint8_t *> subkey, std::uint8_t last_byte_xor);
 

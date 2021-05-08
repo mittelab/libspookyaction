@@ -118,7 +118,7 @@ namespace desfire {
         }
     }
 
-    void cmac_provider::prep_subkey(range<std::uint8_t *> subkey, std::uint8_t last_byte_xor) {
+    void cmac_provider::prepare_subkey(range<std::uint8_t *> subkey, std::uint8_t last_byte_xor) {
         const bool do_xor = (*std::begin(subkey) & 0x80) != 0;
         // Some app-specific magic: lshift by one
         lshift_sequence(std::begin(subkey), std::end(subkey), 1);
@@ -128,7 +128,7 @@ namespace desfire {
         }
     }
 
-    void cmac_provider::prepare_subkeys(crypto &crypto) {
+    void cmac_provider::initialize_subkeys(crypto &crypto) {
         auto rg_key_nopad = key_nopad();
         auto rg_key_pad = key_pad();
 
@@ -142,19 +142,69 @@ namespace desfire {
         crypto.do_crypto(rg_key_nopad, rg_key_pad, crypto_operation::mac);
 
         // rg_key_pad contains garbage now, process the nopad key first
-        prep_subkey(rg_key_nopad, last_byte_xor());
+        prepare_subkey(rg_key_nopad, last_byte_xor());
 
         // Copy the nopad key to the pad key, and do it again
         std::copy(std::begin(rg_key_nopad), std::end(rg_key_nopad), std::begin(rg_key_pad));
-        prep_subkey(rg_key_nopad, last_byte_xor());
+        prepare_subkey(rg_key_nopad, last_byte_xor());
 
         ESP_LOGD(DESFIRE_TAG " KEY", "CMAC key for unpadded data:");
-        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " KEY", _subkey_nopad.get(), block_size(), ESP_LOG_DEBUG);
+        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " KEY", _subkey_nopad.get(), block_size_bytes(), ESP_LOG_DEBUG);
         ESP_LOGD(DESFIRE_TAG " KEY", "CMAC key for padded data:");
-        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " KEY", _subkey_pad.get(), block_size(), ESP_LOG_DEBUG);
+        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " KEY", _subkey_pad.get(), block_size_bytes(), ESP_LOG_DEBUG);
     }
 
-    cmac_provider::mac_t cmac_provider::compute_mac(crypto &crypto, range<bin_data::const_iterator> data) {
-        return {};
+
+    cmac_provider::mac_t cmac_provider::compute_mac(crypto &crypto, range<std::uint8_t *> iv, range<bin_data::const_iterator> data) {
+        mac_t retval{0, 0, 0, 0, 0, 0, 0, 0};
+
+        if (iv.size() < block_size_bytes()) {
+            DESFIRE_LOGE("CMAC: got %d bytes for IV, need at least %d for CMAC.", iv.size(), block_size_bytes());
+            return retval;
+        }
+
+        static const auto xor_op = [](std::uint8_t l, std::uint8_t r) -> std::uint8_t { return l ^ r; };
+
+        // Resize the buffer and copy data
+        _cmac_buffer.clear();
+        _cmac_buffer.resize([&]() -> std::size_t {
+          switch (block_size()) {
+              case cmac_block_size::_8:
+                  return padded_length<8>(data.size());
+              case cmac_block_size::_16:
+                  return padded_length<16>(data.size());
+          }
+          return 0;
+        }());
+
+        std::copy(std::begin(data), std::end(data), std::begin(_cmac_buffer));
+
+        // Spec requires XOR-ing the last block with the appropriate key.
+        const auto last_block = _cmac_buffer.view(_cmac_buffer.size() - block_size_bytes());
+        if (_cmac_buffer.size() == data.size()) {
+            // Was not padded
+            std::transform(std::begin(last_block), std::end(last_block), _subkey_nopad.get(),
+                           std::begin(last_block), xor_op);
+        } else {
+            // Was padded, but spec wants to pad with 80 00 .. 00, so change one byte
+            _cmac_buffer[data.size()] = 0x80;
+            std::transform(std::begin(last_block), std::end(last_block), _subkey_pad.get(),
+                           std::begin(last_block), xor_op);
+        }
+
+        // Return the first 8 bytes of the last block
+        crypto.do_crypto(_cmac_buffer.data_view(), iv, crypto_operation::mac);
+        std::copy(std::begin(iv), std::begin(iv) + retval.size(), std::begin(retval));
+        return retval;
+    }
+
+    cmac_provider::cmac_provider(crypto_3k3des_base &crypto)
+        : cmac_provider{cmac_block_size::_8, bits::crypto_cmac_xor_byte_3k3des} {
+        initialize_subkeys(crypto);
+    }
+
+    cmac_provider::cmac_provider(crypto_aes_base &crypto)
+        : cmac_provider{cmac_block_size::_16, bits::crypto_cmac_xor_byte_aes} {
+        initialize_subkeys(crypto);
     }
 }

@@ -28,12 +28,12 @@ namespace desfire {
         virtual ~crypto() = default;
     };
 
-    class crypto_des_base : virtual crypto {
+    class crypto_des_base : public virtual crypto {
     public:
         void init_session(range<std::uint8_t const *> random_data) final;
     };
 
-    class crypto_2k3des_base : virtual crypto {
+    class crypto_2k3des_base : public virtual crypto {
         bool _degenerate = false;
     public:
         [[nodiscard]] inline bool is_degenerate() const;
@@ -41,12 +41,12 @@ namespace desfire {
         void init_session(range<std::uint8_t const *> random_data) final;
     };
 
-    class crypto_3k3des_base : virtual crypto {
+    class crypto_3k3des_base : public virtual crypto {
     public:
         void init_session(range<std::uint8_t const *> random_data) final;
     };
 
-    class crypto_aes_base : virtual crypto {
+    class crypto_aes_base : public virtual crypto {
     public:
         void init_session(range<std::uint8_t const *> random_data) final;
     };

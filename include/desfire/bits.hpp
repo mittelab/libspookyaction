@@ -150,6 +150,9 @@ namespace desfire::bits {
 
     static constexpr std::uint8_t config_flag_enable_random_uid = 0x02;
     static constexpr std::uint8_t config_flag_disable_format = 0x01;
+
+    static constexpr std::uint8_t crypto_cmac_xor_byte_3k3des = 0x1b;
+    static constexpr std::uint8_t crypto_cmac_xor_byte_aes = 0x87;
 }// namespace desfire::bits
 
 #endif//DESFIRE_BITS_HPP

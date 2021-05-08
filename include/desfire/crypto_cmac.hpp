@@ -32,8 +32,7 @@ namespace desfire {
     public:
         using mac_t = std::array<std::uint8_t, 8>;
 
-        explicit cmac_provider(crypto_3k3des_base &crypto);
-        explicit cmac_provider(crypto_aes_base &crypto);
+        inline cmac_provider(std::size_t block_size, std::uint8_t last_byte_xor);
 
         [[nodiscard]] inline std::size_t block_size() const;
         [[nodiscard]] inline std::uint8_t last_byte_xor() const;
@@ -44,8 +43,6 @@ namespace desfire {
 
         static void prepare_subkey(range<std::uint8_t *> subkey, std::uint8_t last_byte_xor);
 
-    protected:
-        inline cmac_provider(std::size_t block_size, std::uint8_t last_byte_xor);
     };
 }
 
@@ -63,10 +60,10 @@ namespace desfire {
         return _last_byte_xor;
     }
     range<std::uint8_t *> cmac_provider::key_pad() const {
-        return {_subkey_pad.get(), _subkey_pad.get() + block_size_bytes()};
+        return {_subkey_pad.get(), _subkey_pad.get() + block_size()};
     }
     range<std::uint8_t *> cmac_provider::key_nopad() const {
-        return {_subkey_nopad.get(), _subkey_nopad.get() + block_size_bytes()};
+        return {_subkey_nopad.get(), _subkey_nopad.get() + block_size()};
     }
 }
 #endif//DESFIRE_CRYPTO_CMAC_HPP

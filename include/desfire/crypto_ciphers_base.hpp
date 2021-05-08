@@ -7,6 +7,7 @@
 
 #include <cstdint>
 #include <mlab/bin_data.hpp>
+#include <desfire/crypto_cmac.hpp>
 
 namespace desfire {
     namespace {
@@ -24,6 +25,7 @@ namespace desfire {
     public:
         virtual void setup_with_key(range<std::uint8_t const *> key) = 0;
         virtual void init_session(range<std::uint8_t const *> random_data) = 0;
+        virtual cmac_provider *cmac() { return nullptr; };
         virtual void do_crypto(range<std::uint8_t *> data, range<std::uint8_t *> iv, crypto_operation op) = 0;
         virtual ~crypto() = default;
     };
@@ -42,13 +44,25 @@ namespace desfire {
     };
 
     class crypto_3k3des_base : public virtual crypto {
+        cmac_provider _cmac;
     public:
+        crypto_3k3des_base();
+        [[nodiscard]] cmac_provider *cmac() final;
         void init_session(range<std::uint8_t const *> random_data) final;
+        void setup_with_key(range<std::uint8_t const *> key) final;
+    protected:
+        virtual void setup_with_key_primitive(range<std::uint8_t const *> key) = 0;
     };
 
     class crypto_aes_base : public virtual crypto {
+        cmac_provider _cmac;
     public:
+        crypto_aes_base();
+        [[nodiscard]] cmac_provider *cmac() final;
         void init_session(range<std::uint8_t const *> random_data) final;
+        void setup_with_key(range<std::uint8_t const *> key) final;
+    protected:
+        virtual void setup_with_key_primitive(range<std::uint8_t const *> key) = 0;
     };
 
 }

@@ -43,8 +43,8 @@ namespace desfire {
          * that this property has to be preserved.
          */
         const auto eq_except_parity = [](std::uint8_t l, std::uint8_t r) -> bool {
-          static constexpr std::uint8_t mask = 0b11111110;
-          return (l & mask) == (r & mask);
+            static constexpr std::uint8_t mask = 0b11111110;
+            return (l & mask) == (r & mask);
         };
         const auto it_begin_2nd_half = std::begin(key) + 8;
         _degenerate = std::equal(std::begin(key), it_begin_2nd_half, it_begin_2nd_half, eq_except_parity);
@@ -120,4 +120,27 @@ namespace desfire {
         setup_with_key(make_range(new_key));
     }
 
-}
+    void crypto_3k3des_base::setup_with_key(range<const std::uint8_t *> key) {
+        setup_with_key_primitive(key);
+        cmac()->initialize_subkeys(*this);
+    }
+
+    void crypto_aes_base::setup_with_key(range<const std::uint8_t *> key) {
+        setup_with_key_primitive(key);
+        cmac()->initialize_subkeys(*this);
+    }
+
+    crypto_3k3des_base::crypto_3k3des_base() : _cmac{8, bits::crypto_cmac_xor_byte_3k3des} {
+    }
+
+    crypto_aes_base::crypto_aes_base() : _cmac{16, bits::crypto_cmac_xor_byte_aes} {
+    }
+
+    cmac_provider *crypto_3k3des_base::cmac() {
+        return &_cmac;
+    }
+
+    cmac_provider *crypto_aes_base::cmac() {
+        return &_cmac;
+    }
+}// namespace desfire

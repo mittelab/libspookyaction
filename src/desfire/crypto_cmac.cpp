@@ -80,14 +80,4 @@ namespace desfire {
         std::copy(std::begin(iv), std::begin(iv) + retval.size(), std::begin(retval));
         return retval;
     }
-
-    cmac_provider::cmac_provider(crypto_3k3des_base &crypto)
-            : cmac_provider{8, bits::crypto_cmac_xor_byte_3k3des} {
-        initialize_subkeys(crypto);
-    }
-
-    cmac_provider::cmac_provider(crypto_aes_base &crypto)
-            : cmac_provider{16, bits::crypto_cmac_xor_byte_aes} {
-        initialize_subkeys(crypto);
-    }
 }

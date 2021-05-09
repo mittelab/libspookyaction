@@ -30,7 +30,7 @@ namespace desfire {
 
     private:
         [[nodiscard]] block_t &get_zeroed_iv();
-        [[nodiscard]] crypto &crypto();
+        [[nodiscard]] crypto &crypto_provider();
 
         /**
          * Returns the first @ref mac_length bytes of the IV after encrypting @p data.
@@ -40,7 +40,7 @@ namespace desfire {
         static bool drop_padding_verify_crc(bin_data &d);
 
         block_t _iv;
-        std::unique_ptr<desfire::crypto> _crypto;
+        std::unique_ptr<crypto> _crypto;
     };
 
 
@@ -56,7 +56,7 @@ namespace desfire {
         void reinit_with_session_key(bin_data const &rndab) override;
 
     private:
-        [[nodiscard]] crypto_with_cmac &crypto();
+        [[nodiscard]] crypto_with_cmac &crypto_provider();
 
         [[nodiscard]] range<std::uint8_t *> iv();
 
@@ -66,9 +66,6 @@ namespace desfire {
         std::unique_ptr<std::uint8_t[]> _iv;
         std::unique_ptr<crypto_with_cmac> _crypto;
     };
-}
-
-namespace desfire {
 }
 
 #endif//DESFIRE_CRYPTO_CIPHERS_HPP

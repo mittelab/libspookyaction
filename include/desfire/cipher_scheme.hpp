@@ -43,7 +43,7 @@ namespace desfire {
 
         /**
          * @note **Subclassing guide:** subclasses shall call this method as last in the constructor, and as last in
-         * @ref reinit_with_session_Key. This method will derive CMAC keys, therefore all crypto primitives shall be
+         * @ref reinit_with_session_Key. This method will derive CMAC keys, therefore all crypto_provider primitives shall be
          * in place before performing this call.
          */
         void initialize();

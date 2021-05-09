@@ -29,8 +29,8 @@ namespace desfire {
         std::fill(std::begin(rg_key_pad), std::end(rg_key_pad), 0);
         std::fill(std::begin(rg_key_nopad), std::end(rg_key_nopad), 0);
 
-        // Do the initial crypto. Should use a 0-filled IV. We use the padded key which we just reset.
-        crypto().do_crypto(rg_key_nopad, rg_key_pad, crypto_operation::mac);
+        // Do the initial crypto_provider. Should use a 0-filled IV. We use the padded key which we just reset.
+        crypto_provider().do_crypto(rg_key_nopad, rg_key_pad, crypto_operation::mac);
 
         // rg_key_pad contains garbage now, process the nopad key first
         prepare_subkey(rg_key_nopad, last_byte_xor());
@@ -76,7 +76,7 @@ namespace desfire {
         }
 
         // Return the first 8 bytes of the last block
-        crypto().do_crypto(_cmac_buffer.data_view(), iv, crypto_operation::mac);
+        crypto_provider().do_crypto(_cmac_buffer.data_view(), iv, crypto_operation::mac);
         std::copy(std::begin(iv), std::begin(iv) + retval.size(), std::begin(retval));
         return retval;
     }

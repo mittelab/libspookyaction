@@ -98,12 +98,12 @@ namespace desfire {
     [[nodiscard]] const char *to_string(cipher_iv);
 
     iv_session::iv_session(cipher &c, cipher_iv iv_mode) : _c{c}, _old_iv_mode{c.iv_mode()} {
-        DESFIRE_LOGD("Switching crypto IV mode to %s (was %s).", to_string(iv_mode), to_string(_c.iv_mode()));
+        DESFIRE_LOGD("Switching crypto_provider IV mode to %s (was %s).", to_string(iv_mode), to_string(_c.iv_mode()));
         _c.set_iv_mode(iv_mode);
     }
 
     iv_session::~iv_session() {
-        DESFIRE_LOGD("Restoring crypto IV mode to %s.", to_string(_old_iv_mode));
+        DESFIRE_LOGD("Restoring crypto_provider IV mode to %s.", to_string(_old_iv_mode));
         _c.set_iv_mode(_old_iv_mode);
     }
 

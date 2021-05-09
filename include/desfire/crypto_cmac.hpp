@@ -27,7 +27,7 @@ namespace desfire {
 
         [[nodiscard]] inline range<std::uint8_t *> key_pad() const;
         [[nodiscard]] inline range<std::uint8_t *> key_nopad() const;
-        [[nodiscard]] inline crypto &crypto() const;
+        [[nodiscard]] inline crypto &crypto_provider() const;
 
     public:
         using mac_t = std::array<std::uint8_t, 8>;
@@ -38,7 +38,7 @@ namespace desfire {
          * @param block_size
          * @param last_byte_xor
          */
-        inline cmac_provider(desfire::crypto &crypto, std::size_t block_size, std::uint8_t last_byte_xor);
+        inline cmac_provider(crypto &crypto, std::size_t block_size, std::uint8_t last_byte_xor);
 
         [[nodiscard]] inline std::size_t block_size() const;
         [[nodiscard]] inline std::uint8_t last_byte_xor() const;
@@ -53,7 +53,7 @@ namespace desfire {
 }
 
 namespace desfire {
-    cmac_provider::cmac_provider(desfire::crypto &crypto, std::size_t block_size, std::uint8_t last_byte_xor)
+    cmac_provider::cmac_provider(crypto &crypto, std::size_t block_size, std::uint8_t last_byte_xor)
             : _crypto{&crypto},
               _block_size{block_size},
               _last_byte_xor{last_byte_xor},
@@ -73,7 +73,7 @@ namespace desfire {
         return {_subkey_nopad.get(), _subkey_nopad.get() + block_size()};
     }
 
-    crypto &cmac_provider::crypto() const {
+    crypto &cmac_provider::crypto_provider() const {
         return *_crypto;
     }
 }

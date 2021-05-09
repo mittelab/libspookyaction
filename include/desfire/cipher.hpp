@@ -47,6 +47,10 @@ namespace desfire {
          */
         virtual bool confirm_rx(bin_data &data, cipher_mode mode) = 0;
 
+        /**
+         * @todo Rename to init-session
+         * @param rndab
+         */
         virtual void reinit_with_session_key(bin_data const &rndab) = 0;
 
         [[nodiscard]] inline static bool is_legacy(bits::cipher_type type);

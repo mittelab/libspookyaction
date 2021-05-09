@@ -129,15 +129,15 @@ namespace desfire {
 
     void crypto_with_cmac::setup_with_key(range<const std::uint8_t *> key) {
         setup_primitives_with_key(key);
-        _cmac.initialize_subkeys(*this);
+        _cmac.initialize_subkeys();
     }
 
     crypto_with_cmac::crypto_with_cmac(std::uint8_t block_size, std::uint8_t last_byte_xor)
-        : _cmac{block_size, last_byte_xor}
+        : _cmac{*this, block_size, last_byte_xor}
     {}
 
     crypto_with_cmac::mac_t crypto_with_cmac::do_cmac(range<std::uint8_t const *> data, range<std::uint8_t *> iv) {
-        return _cmac.compute_cmac(*this, iv, data);
+        return _cmac.compute_cmac(iv, data);
     }
 
 }// namespace desfire

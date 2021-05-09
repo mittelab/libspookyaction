@@ -18,6 +18,7 @@ namespace desfire {
     class crypto;
 
     class cmac_provider {
+        crypto *_crypto;
         std::size_t _block_size;
         std::uint8_t _last_byte_xor;
         std::unique_ptr<std::uint8_t[]> _subkey_pad;
@@ -26,18 +27,25 @@ namespace desfire {
 
         [[nodiscard]] inline range<std::uint8_t *> key_pad() const;
         [[nodiscard]] inline range<std::uint8_t *> key_nopad() const;
+        [[nodiscard]] inline crypto &crypto() const;
 
     public:
         using mac_t = std::array<std::uint8_t, 8>;
 
-        inline cmac_provider(std::size_t block_size, std::uint8_t last_byte_xor);
+        /**
+         *
+         * @param crypto Must stay alive as long as cmac_provider
+         * @param block_size
+         * @param last_byte_xor
+         */
+        inline cmac_provider(desfire::crypto &crypto, std::size_t block_size, std::uint8_t last_byte_xor);
 
         [[nodiscard]] inline std::size_t block_size() const;
         [[nodiscard]] inline std::uint8_t last_byte_xor() const;
 
-        void initialize_subkeys(crypto &crypto);
+        void initialize_subkeys();
 
-        mac_t compute_cmac(crypto &crypto, range<std::uint8_t *> iv, range<std::uint8_t const *> data);
+        mac_t compute_cmac(range<std::uint8_t *> iv, range<std::uint8_t const *> data);
 
         static void prepare_subkey(range<std::uint8_t *> subkey, std::uint8_t last_byte_xor);
 
@@ -45,8 +53,9 @@ namespace desfire {
 }
 
 namespace desfire {
-    cmac_provider::cmac_provider(std::size_t block_size, std::uint8_t last_byte_xor)
-            : _block_size{block_size},
+    cmac_provider::cmac_provider(desfire::crypto &crypto, std::size_t block_size, std::uint8_t last_byte_xor)
+            : _crypto{&crypto},
+              _block_size{block_size},
               _last_byte_xor{last_byte_xor},
               _subkey_pad{std::make_unique<std::uint8_t[]>(static_cast<std::size_t>(block_size))},
               _subkey_nopad{std::make_unique<std::uint8_t[]>(static_cast<std::size_t>(block_size))} {}
@@ -62,6 +71,10 @@ namespace desfire {
     }
     range<std::uint8_t *> cmac_provider::key_nopad() const {
         return {_subkey_nopad.get(), _subkey_nopad.get() + block_size()};
+    }
+
+    crypto &cmac_provider::crypto() const {
+        return *_crypto;
     }
 }
 #endif//DESFIRE_CRYPTO_CMAC_HPP

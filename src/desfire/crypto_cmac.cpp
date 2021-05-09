@@ -19,7 +19,7 @@ namespace desfire {
         }
     }
 
-    void cmac_provider::initialize_subkeys(crypto &crypto) {
+    void cmac_provider::initialize_subkeys() {
         auto rg_key_nopad = key_nopad();
         auto rg_key_pad = key_pad();
 
@@ -30,7 +30,7 @@ namespace desfire {
         std::fill(std::begin(rg_key_nopad), std::end(rg_key_nopad), 0);
 
         // Do the initial crypto. Should use a 0-filled IV. We use the padded key which we just reset.
-        crypto.do_crypto(rg_key_nopad, rg_key_pad, crypto_operation::mac);
+        crypto().do_crypto(rg_key_nopad, rg_key_pad, crypto_operation::mac);
 
         // rg_key_pad contains garbage now, process the nopad key first
         prepare_subkey(rg_key_nopad, last_byte_xor());
@@ -46,7 +46,7 @@ namespace desfire {
     }
 
 
-    cmac_provider::mac_t cmac_provider::compute_cmac(crypto &crypto, range<std::uint8_t *> iv, range<std::uint8_t const *> data) {
+    cmac_provider::mac_t cmac_provider::compute_cmac(range<std::uint8_t *> iv, range<std::uint8_t const *> data) {
         mac_t retval{0, 0, 0, 0, 0, 0, 0, 0};
 
         if (iv.size() < block_size()) {
@@ -76,7 +76,7 @@ namespace desfire {
         }
 
         // Return the first 8 bytes of the last block
-        crypto.do_crypto(_cmac_buffer.data_view(), iv, crypto_operation::mac);
+        crypto().do_crypto(_cmac_buffer.data_view(), iv, crypto_operation::mac);
         std::copy(std::begin(iv), std::begin(iv) + retval.size(), std::begin(retval));
         return retval;
     }

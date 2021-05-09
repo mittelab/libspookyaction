@@ -38,6 +38,7 @@ namespace desfire {
     public:
         using mac_t = std::array<std::uint8_t, 8>;
         virtual mac_t do_cmac(range<std::uint8_t const *> data, range<std::uint8_t *> iv);
+        [[nodiscard]] std::size_t block_size() const;
         void setup_with_key(range<std::uint8_t const *> key) override;
     };
 

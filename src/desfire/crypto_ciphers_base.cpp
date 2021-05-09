@@ -132,6 +132,10 @@ namespace desfire {
         _cmac.initialize_subkeys();
     }
 
+    std::size_t crypto_with_cmac::block_size() const {
+        return _cmac.block_size();
+    }
+
     crypto_with_cmac::crypto_with_cmac(std::uint8_t block_size, std::uint8_t last_byte_xor)
         : _cmac{*this, block_size, last_byte_xor}
     {}

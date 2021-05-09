@@ -5,12 +5,22 @@
 #include "desfire/crypto_protocol.hpp"
 #include "desfire/log.h"
 #include "desfire/crypto_algo.hpp"
+#include <cassert>
 
 namespace desfire {
     namespace {
         using mlab::bin_stream;
         using mlab::make_range;
         using mlab::lsb16;
+        using mlab::lsb32;
+    }
+
+    protocol_legacy::protocol_legacy(std::unique_ptr<desfire::crypto> crypto)
+        : _iv{0, 0, 0, 0, 0, 0, 0, 0},
+          _crypto{std::move(crypto)} {}
+
+    crypto &protocol_legacy::crypto() {
+        return *_crypto;
     }
 
     protocol_legacy::block_t &protocol_legacy::get_zeroed_iv() {
@@ -20,7 +30,7 @@ namespace desfire {
     }
 
 
-    protocol_legacy::mac_t protocol_legacy::compute_mac(crypto &crypto, range<bin_data::const_iterator> data) {
+    protocol_legacy::mac_t protocol_legacy::compute_mac(range<bin_data::const_iterator> data) {
         static bin_data buffer{};
 
         // Resize the buffer and copy data
@@ -30,15 +40,19 @@ namespace desfire {
 
         // Return the first 4 bytes of the last block
         block_t &iv = get_zeroed_iv();
-        crypto.do_crypto(buffer.data_view(), make_range(iv), crypto_operation::mac);
+        crypto().do_crypto(buffer.data_view(), make_range(iv), crypto_operation::mac);
         return {iv[0], iv[1], iv[2], iv[3]};
+    }
+
+    void protocol_legacy::reinit_with_session_key(bin_data const &rndab) {
+        crypto().init_session(rndab.data_view());
     }
 
     bool protocol_legacy::drop_padding_verify_crc(bin_data &d) {
         static const auto crc_fn = [](bin_data::const_iterator b, bin_data::const_iterator e, std::uint16_t init) -> std::uint16_t {
           return compute_crc16(range<bin_data::const_iterator>{b, e}, init);
         };
-        const auto [end_payload, did_verify] = find_crc_tail<block_size>(std::begin(d), std::end(d), crc_fn, crc16_init, true);
+        const auto [end_payload, did_verify] = find_crc_tail(std::begin(d), std::end(d), crc_fn, crc16_init, block_size, true);
         if (did_verify) {
             const std::size_t payload_length = std::distance(std::begin(d), end_payload);
             // In case of error, make sure to not get any weird size/number
@@ -48,12 +62,12 @@ namespace desfire {
         return false;
     }
 
-    void protocol_legacy::prepare_tx(crypto &crypto, bin_data &data, std::size_t offset, cipher_mode mode) {
+    void protocol_legacy::prepare_tx(bin_data &data, std::size_t offset, cipher_mode mode) {
         if (offset >= data.size() or mode == cipher_mode::plain) {
             return;// Nothing to do
         }
         if (mode == cipher_mode::maced) {
-            const auto mac = compute_mac(crypto, data.view(offset));
+            const auto mac = compute_mac(data.view(offset));
             ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " TX MAC", mac.data(), mac.size(), ESP_LOG_DEBUG);
             data << mac;
         } else {
@@ -64,12 +78,12 @@ namespace desfire {
                 data.reserve(offset + padded_length<block_size>(data.size() - offset));
             }
             data.resize(offset + padded_length<block_size>(data.size() - offset), 0x00);
-            crypto.do_crypto(data.data_view(offset), make_range(get_zeroed_iv()), crypto_operation::encrypt);
+            crypto().do_crypto(data.data_view(offset), make_range(get_zeroed_iv()), crypto_operation::encrypt);
         }
     }
 
 
-    bool protocol_legacy::confirm_rx(crypto &crypto, bin_data &data, cipher_mode mode) {
+    bool protocol_legacy::confirm_rx(bin_data &data, cipher_mode mode) {
         if (data.size() == 1 or mode == cipher_mode::plain) {
             // Just status byte, return as-is
             return true;
@@ -79,7 +93,7 @@ namespace desfire {
             // Data, followed by mac, followed by status
             const auto data_view = s.read(s.remaining() - mac_size - 1);
             // Compute mac on data
-            const mac_t computed_mac = compute_mac(crypto, data_view);
+            const mac_t computed_mac = compute_mac(data_view);
             ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " RX MAC", computed_mac.data(), computed_mac.size(), ESP_LOG_DEBUG);
             // Extract the transmitted mac
             mac_t rxd_mac{};
@@ -103,7 +117,7 @@ namespace desfire {
                 ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG, data.data(), data.size(), ESP_LOG_WARN);
                 return false;
             }
-            crypto.do_crypto(data.data_view(), make_range(get_zeroed_iv()), crypto_operation::decrypt);
+            crypto().do_crypto(data.data_view(), make_range(get_zeroed_iv()), crypto_operation::decrypt);
             if (mode == cipher_mode::ciphered) {
                 // Truncate the padding and the crc
                 const bool did_verify = drop_padding_verify_crc(data);
@@ -116,6 +130,134 @@ namespace desfire {
                 return true;
             }
         }
+    }
+
+
+    protocol_default::protocol_default(std::unique_ptr<crypto_with_cmac> crypto)
+        : _iv{std::make_unique<std::uint8_t[]>(crypto->block_size())},
+         _crypto{std::move(crypto)}
+    {
+        std::fill_n(_iv.get(), this->crypto().block_size(), 0x00);
+    }
+
+    bool protocol_default::drop_padding_verify_crc(bin_data &d, std::uint8_t status) {
+        const auto crc_fn = [=](bin_data::const_iterator b, bin_data::const_iterator e, std::uint32_t init) -> std::uint32_t {
+          // Here we get a sequence [[ DATA || CRC ]]. But we need to compute the CRC on [[ DATA || STATUS || CRC ]].
+          // So we split into two ranges, b..m and m..e, and chain the CRCs
+          assert(std::distance(b, e) >= 0);
+          const auto sequence_length = static_cast<decltype(crc_size)>(std::distance(b, e));
+          const auto m = b + bin_data::difference_type(std::max(sequence_length, crc_size) - crc_size);
+          assert(std::distance(b, m) >= 0);
+          assert(std::distance(m, e) >= 0);
+          // CRC of [[ DATA ]]
+          const std::uint32_t crc_data = compute_crc32(range<bin_data::const_iterator>{b, m}, init);
+          // CRC of [[ DATA || STATUS ]] = crc32({status}, crc32([[ DATA ]], init)
+          const std::uint32_t crc_data_status = compute_crc32(status, crc_data);
+          // CRC of [[ DATA || STATUS || CRC ]] (should be 0)
+          const std::uint32_t crc_full = compute_crc32(range<bin_data::const_iterator>{m, e}, crc_data_status);
+          return crc_full;
+        };
+        const auto [end_payload, did_verify] = find_crc_tail(std::begin(d), std::end(d), crc_fn, crc32_init, crypto().block_size(), false);
+        if (did_verify) {
+            const std::size_t payload_length = std::distance(std::begin(d), end_payload);
+            // In case of error, make sure to not get any weird size/number
+            d.resize(std::max(payload_length, crc_size) - crc_size);
+            return true;
+        }
+        return false;
+    }
+
+    crypto_with_cmac &protocol_default::crypto() {
+        return *_crypto;
+    }
+
+    range<std::uint8_t *> protocol_default::iv() {
+        return {_iv.get(), _iv.get() + crypto().block_size()};
+    }
+
+    void protocol_default::prepare_tx(bin_data &data, std::size_t offset, cipher_mode mode) {
+        if (mode == cipher_mode::plain or mode == cipher_mode::maced) {
+            // Plain and MAC may still require to pass data through CMAC, unless specified otherwise
+            // CMAC has to be computed on the whole data
+            const auto cmac = crypto().do_cmac(data.data_view(), iv());
+            ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " TX MAC", cmac.data(), cmac.size(), ESP_LOG_DEBUG);
+            if (mode == cipher_mode::maced) {
+                // Only MAC comm mode will actually append
+                data << cmac;
+            }
+        } else {
+            if (offset >= data.size()) {
+                return;// Nothing to do
+            }
+            if (mode == cipher_mode::ciphered) {
+                data.reserve(offset + padded_length(data.size() + crc_size - offset, crypto().block_size()));
+                // CRC has to be computed on the whole data
+                data << lsb32 << compute_crc32(data);
+            } else {
+                data.reserve(offset + padded_length(data.size() - offset, crypto().block_size()));
+            }
+            data.resize(offset + padded_length(data.size() - offset, crypto().block_size()), 0x00);
+            crypto().do_crypto(data.data_view(offset), iv(), crypto_operation::encrypt);
+        }
+    }
+
+    bool protocol_default::confirm_rx(bin_data &data, cipher_mode mode) {
+        if (data.size() == 1) {
+            // Just status byte, return as-is
+            return true;
+        }
+        if (mode == cipher_mode::plain) {
+            // Always pass data + status byte through CMAC
+            // This will keep the IV in sync
+            const auto cmac = crypto().do_cmac(data.data_view(), iv());
+            ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " RX MAC", cmac.data(), cmac.size(), ESP_LOG_DEBUG);
+        } else if (mode == cipher_mode::maced) {
+            // [ data || maced || status ] -> [ data || status || maced ]; rotate mac_size + 1 bytes
+            std::rotate(data.rbegin(), data.rbegin() + 1, data.rbegin() + mac_size + 1);
+            // This will keep the IV in sync
+            const auto computed_mac = crypto().do_cmac(data.data_view(0, data.size() - mac_size), iv());
+            ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " RX MAC", computed_mac.data(), computed_mac.size(), ESP_LOG_DEBUG);
+            // Extract the transmitted maced
+            bin_stream s{data};
+            s.seek(data.size() - mac_size);
+            crypto_with_cmac::mac_t rxd_mac{};
+            s >> rxd_mac;
+            if (rxd_mac == computed_mac) {
+                // Good, drop the maced
+                data.resize(data.size() - mac_size);
+                return true;
+            }
+            ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " != MAC", rxd_mac.data(), rxd_mac.size(), ESP_LOG_DEBUG);
+            return false;
+        } else {
+            // Pop the status byte
+            const std::uint8_t status = data.back();
+            data.pop_back();
+            // Decipher what's left
+            if (data.size() % crypto().block_size() != 0) {
+                DESFIRE_LOGW("Received enciphered data of length %u, not a multiple of the block size %u.",
+                             data.size(), crypto().block_size());
+                ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG, data.data(), data.size(), ESP_LOG_WARN);
+                return false;
+            }
+            crypto().do_crypto(data.data_view(), iv(), crypto_operation::decrypt);
+            if (mode == cipher_mode::ciphered) {
+                // Truncate the padding and the crc
+                const bool did_verify = drop_padding_verify_crc(data, status);
+                // Reappend the status byte
+                data << status;
+                return did_verify;
+            } else {
+                // Reappend the status byte
+                data << status;
+                return true;
+            }
+        }
+        return true;
+    }
+
+    void protocol_default::reinit_with_session_key(bin_data const &rndab) {
+        crypto().init_session(rndab.data_view());
     }
 
 }

@@ -2,7 +2,7 @@
 // Created by spak on 5/4/21.
 //
 
-#include "desfire/esp32/ciphers.hpp"
+#include "desfire/esp32/crypto.hpp"
 #include "desfire/msg.hpp"
 
 namespace desfire::esp32 {
@@ -118,7 +118,7 @@ namespace desfire::esp32 {
         ESP_LOG_BUFFER_HEX_LEVEL(output_tag(op), data.data(), data.size(), ESP_LOG_DEBUG);
     }
 
-    void crypto_3k3des::setup_with_key(range<std::uint8_t const *> key) {
+    void crypto_3k3des::setup_primitives_with_key(range<std::uint8_t const *> key) {
         if (key.size() != 24) {
             DESFIRE_LOGE("3K3DES: invalid key size %d, expected 24 bytes.", key.size());
             return;
@@ -155,7 +155,7 @@ namespace desfire::esp32 {
         ESP_LOG_BUFFER_HEX_LEVEL(output_tag(op), data.data(), data.size(), ESP_LOG_DEBUG);
     }
 
-    void crypto_aes::setup_with_key(range<std::uint8_t const *> key) {
+    void crypto_aes::setup_primitives_with_key(range<std::uint8_t const *> key) {
         if (key.size() != 16) {
             DESFIRE_LOGE("AES: invalid key size %d, expected 24 bytes.", key.size());
             return;

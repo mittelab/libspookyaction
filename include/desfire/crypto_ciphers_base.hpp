@@ -30,7 +30,7 @@ namespace desfire {
         virtual ~crypto() = default;
     };
 
-    class crypto_with_cmac : public virtual crypto {
+    class crypto_with_cmac : public crypto {
         cmac_provider _cmac;
     protected:
         crypto_with_cmac(std::uint8_t block_size, std::uint8_t last_byte_xor);
@@ -41,13 +41,13 @@ namespace desfire {
         void setup_with_key(range<std::uint8_t const *> key) override;
     };
 
-    class crypto_des_base : public virtual crypto {
+    class crypto_des_base : public crypto {
     public:
         [[nodiscard]] inline bits::cipher_type cipher_type() const final;
         void init_session(range<std::uint8_t const *> random_data) final;
     };
 
-    class crypto_2k3des_base : public virtual crypto {
+    class crypto_2k3des_base : public crypto {
         bool _degenerate = false;
     public:
         [[nodiscard]] inline bool is_degenerate() const;
@@ -56,14 +56,14 @@ namespace desfire {
         void init_session(range<std::uint8_t const *> random_data) final;
     };
 
-    class crypto_3k3des_base : public virtual crypto_with_cmac {
+    class crypto_3k3des_base : public crypto_with_cmac {
     public:
         crypto_3k3des_base();
         [[nodiscard]] inline bits::cipher_type cipher_type() const final;
         void init_session(range<std::uint8_t const *> random_data) final;
     };
 
-    class crypto_aes_base : public virtual crypto_with_cmac {
+    class crypto_aes_base : public crypto_with_cmac {
     public:
         crypto_aes_base();
         [[nodiscard]] inline bits::cipher_type cipher_type() const final;

@@ -2,8 +2,8 @@
 // Created by spak on 5/4/21.
 //
 
-#ifndef DESFIRE_ESP32_CIPHERS_HPP
-#define DESFIRE_ESP32_CIPHERS_HPP
+#ifndef DESFIRE_ESP32_CRYPTO_HPP
+#define DESFIRE_ESP32_CRYPTO_HPP
 
 #include <desfire/crypto_ciphers_base.hpp>
 
@@ -47,22 +47,24 @@ namespace desfire::esp32 {
         mbedtls_des3_context _enc_context;
         mbedtls_des3_context _dec_context;
     public:
-        void setup_with_key(range<std::uint8_t const *> key) override;
         void do_crypto(range<std::uint8_t *> data, range<std::uint8_t *> iv, crypto_operation op) override;
         crypto_3k3des();
         ~crypto_3k3des() override;
+    protected:
+        void setup_primitives_with_key(range<std::uint8_t const *> key) override;
     };
 
     class crypto_aes final : public crypto_aes_base {
         mbedtls_aes_context _enc_context;
         mbedtls_aes_context _dec_context;
     public:
-        void setup_with_key(range<std::uint8_t const *> key) override;
         void do_crypto(range<std::uint8_t *> data, range<std::uint8_t *> iv, crypto_operation op) override;
         crypto_aes();
         ~crypto_aes() override;
+    protected:
+        void setup_primitives_with_key(range<std::uint8_t const *> key) override;
     };
 
 }
 
-#endif//DESFIRE_ESP32_CIPHERS_HPP
+#endif//DESFIRE_ESP32_CRYPTO_HPP

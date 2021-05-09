@@ -2,9 +2,9 @@
 // Created by spak on 5/7/21.
 //
 
-#include "desfire/crypto_protocol.hpp"
-#include "desfire/log.h"
+#include "desfire/crypto_ciphers.hpp"
 #include "desfire/crypto_algo.hpp"
+#include "desfire/log.h"
 #include <cassert>
 
 namespace desfire {
@@ -15,22 +15,22 @@ namespace desfire {
         using mlab::lsb32;
     }
 
-    protocol_legacy::protocol_legacy(std::unique_ptr<desfire::crypto> crypto)
+    cipher_legacy::cipher_legacy(std::unique_ptr<desfire::crypto> crypto)
         : _iv{0, 0, 0, 0, 0, 0, 0, 0},
           _crypto{std::move(crypto)} {}
 
-    crypto &protocol_legacy::crypto() {
+    crypto &cipher_legacy::crypto() {
         return *_crypto;
     }
 
-    protocol_legacy::block_t &protocol_legacy::get_zeroed_iv() {
+    cipher_legacy::block_t &cipher_legacy::get_zeroed_iv() {
         // Reset every time
         std::fill_n(std::begin(_iv), block_size, 0x00);
         return _iv;
     }
 
 
-    protocol_legacy::mac_t protocol_legacy::compute_mac(range<bin_data::const_iterator> data) {
+    cipher_legacy::mac_t cipher_legacy::compute_mac(range<bin_data::const_iterator> data) {
         static bin_data buffer{};
 
         // Resize the buffer and copy data
@@ -44,11 +44,11 @@ namespace desfire {
         return {iv[0], iv[1], iv[2], iv[3]};
     }
 
-    void protocol_legacy::reinit_with_session_key(bin_data const &rndab) {
+    void cipher_legacy::reinit_with_session_key(bin_data const &rndab) {
         crypto().init_session(rndab.data_view());
     }
 
-    bool protocol_legacy::drop_padding_verify_crc(bin_data &d) {
+    bool cipher_legacy::drop_padding_verify_crc(bin_data &d) {
         static const auto crc_fn = [](bin_data::const_iterator b, bin_data::const_iterator e, std::uint16_t init) -> std::uint16_t {
           return compute_crc16(range<bin_data::const_iterator>{b, e}, init);
         };
@@ -62,7 +62,7 @@ namespace desfire {
         return false;
     }
 
-    void protocol_legacy::prepare_tx(bin_data &data, std::size_t offset, cipher_mode mode) {
+    void cipher_legacy::prepare_tx(bin_data &data, std::size_t offset, cipher_mode mode) {
         if (offset >= data.size() or mode == cipher_mode::plain) {
             return;// Nothing to do
         }
@@ -83,7 +83,7 @@ namespace desfire {
     }
 
 
-    bool protocol_legacy::confirm_rx(bin_data &data, cipher_mode mode) {
+    bool cipher_legacy::confirm_rx(bin_data &data, cipher_mode mode) {
         if (data.size() == 1 or mode == cipher_mode::plain) {
             // Just status byte, return as-is
             return true;
@@ -133,14 +133,14 @@ namespace desfire {
     }
 
 
-    protocol_default::protocol_default(std::unique_ptr<crypto_with_cmac> crypto)
+    cipher_default::cipher_default(std::unique_ptr<crypto_with_cmac> crypto)
         : _iv{std::make_unique<std::uint8_t[]>(crypto->block_size())},
          _crypto{std::move(crypto)}
     {
         std::fill_n(_iv.get(), this->crypto().block_size(), 0x00);
     }
 
-    bool protocol_default::drop_padding_verify_crc(bin_data &d, std::uint8_t status) {
+    bool cipher_default::drop_padding_verify_crc(bin_data &d, std::uint8_t status) {
         const auto crc_fn = [=](bin_data::const_iterator b, bin_data::const_iterator e, std::uint32_t init) -> std::uint32_t {
           // Here we get a sequence [[ DATA || CRC ]]. But we need to compute the CRC on [[ DATA || STATUS || CRC ]].
           // So we split into two ranges, b..m and m..e, and chain the CRCs
@@ -167,15 +167,15 @@ namespace desfire {
         return false;
     }
 
-    crypto_with_cmac &protocol_default::crypto() {
+    crypto_with_cmac &cipher_default::crypto() {
         return *_crypto;
     }
 
-    range<std::uint8_t *> protocol_default::iv() {
+    range<std::uint8_t *> cipher_default::iv() {
         return {_iv.get(), _iv.get() + crypto().block_size()};
     }
 
-    void protocol_default::prepare_tx(bin_data &data, std::size_t offset, cipher_mode mode) {
+    void cipher_default::prepare_tx(bin_data &data, std::size_t offset, cipher_mode mode) {
         if (mode == cipher_mode::plain or mode == cipher_mode::maced) {
             // Plain and MAC may still require to pass data through CMAC, unless specified otherwise
             // CMAC has to be computed on the whole data
@@ -201,7 +201,7 @@ namespace desfire {
         }
     }
 
-    bool protocol_default::confirm_rx(bin_data &data, cipher_mode mode) {
+    bool cipher_default::confirm_rx(bin_data &data, cipher_mode mode) {
         if (data.size() == 1) {
             // Just status byte, return as-is
             return true;
@@ -256,7 +256,7 @@ namespace desfire {
         return true;
     }
 
-    void protocol_default::reinit_with_session_key(bin_data const &rndab) {
+    void cipher_default::reinit_with_session_key(bin_data const &rndab) {
         crypto().init_session(rndab.data_view());
     }
 

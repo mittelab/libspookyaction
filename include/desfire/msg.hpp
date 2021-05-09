@@ -6,7 +6,7 @@
 #define DESFIRE_MSG_HPP
 
 #include "bits.hpp"
-#include "crypto_ciphers_base.hpp"
+#include "crypto.hpp"
 #include "data.hpp"
 
 namespace desfire {

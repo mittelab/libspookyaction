@@ -2,8 +2,8 @@
 // Created by spak on 5/6/21.
 //
 
-#ifndef DESFIRE_CRYPTO_CIPHERS_BASE_HPP
-#define DESFIRE_CRYPTO_CIPHERS_BASE_HPP
+#ifndef DESFIRE_CRYPTO_HPP
+#define DESFIRE_CRYPTO_HPP
 
 #include <cstdint>
 #include <mlab/bin_data.hpp>
@@ -96,4 +96,4 @@ namespace desfire {
 
 }
 
-#endif//DESFIRE_CRYPTO_CIPHERS_BASE_HPP
+#endif//DESFIRE_CRYPTO_HPP

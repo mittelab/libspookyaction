@@ -2,18 +2,18 @@
 // Created by spak on 5/7/21.
 //
 
-#ifndef DESFIRE_CRYPTO_PROTOCOL_HPP
-#define DESFIRE_CRYPTO_PROTOCOL_HPP
+#ifndef DESFIRE_CRYPTO_CIPHERS_HPP
+#define DESFIRE_CRYPTO_CIPHERS_HPP
 
 #include <desfire/bits.hpp>
 #include <desfire/cipher.hpp>
-#include <desfire/crypto_ciphers_base.hpp>
+#include <desfire/crypto.hpp>
 #include <memory>
 
 namespace desfire {
     using bits::cipher_mode;
 
-    class protocol_legacy final : public cipher {
+    class cipher_legacy final : public cipher {
     public:
         static constexpr std::size_t block_size = 8;
         static constexpr std::size_t mac_size = 4;
@@ -22,7 +22,7 @@ namespace desfire {
         using block_t = std::array<std::uint8_t, block_size>;
         using mac_t = std::array<std::uint8_t, mac_size>;
 
-        explicit protocol_legacy(std::unique_ptr<crypto> crypto);
+        explicit cipher_legacy(std::unique_ptr<crypto> crypto);
 
         void prepare_tx(bin_data &data, std::size_t offset, cipher_mode mode) override;
         bool confirm_rx(bin_data &data, cipher_mode mode) override;
@@ -44,12 +44,12 @@ namespace desfire {
     };
 
 
-    class protocol_default final : public cipher {
+    class cipher_default final : public cipher {
     public:
         static constexpr std::size_t mac_size = 8;
         static constexpr std::size_t crc_size = 4;
 
-        explicit protocol_default(std::unique_ptr<crypto_with_cmac> crypto);
+        explicit cipher_default(std::unique_ptr<crypto_with_cmac> crypto);
 
         void prepare_tx(bin_data &data, std::size_t offset, cipher_mode mode) override;
         bool confirm_rx(bin_data &data, cipher_mode mode) override;
@@ -71,4 +71,4 @@ namespace desfire {
 namespace desfire {
 }
 
-#endif//DESFIRE_CRYPTO_PROTOCOL_HPP
+#endif//DESFIRE_CRYPTO_CIPHERS_HPP

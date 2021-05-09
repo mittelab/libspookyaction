@@ -2,10 +2,10 @@
 // Created by spak on 5/4/21.
 //
 
-#ifndef DESFIRE_ESP32_CRYPTO_HPP
-#define DESFIRE_ESP32_CRYPTO_HPP
+#ifndef DESFIRE_ESP32_CRYPTO_IMPL_HPP
+#define DESFIRE_ESP32_CRYPTO_IMPL_HPP
 
-#include <desfire/crypto_ciphers_base.hpp>
+#include <desfire/crypto.hpp>
 
 /**
  * @note ''esp_config.h'' must be included before ''aes.h'' to enable hardware AES.
@@ -67,4 +67,4 @@ namespace desfire::esp32 {
 
 }
 
-#endif//DESFIRE_ESP32_CRYPTO_HPP
+#endif//DESFIRE_ESP32_CRYPTO_IMPL_HPP

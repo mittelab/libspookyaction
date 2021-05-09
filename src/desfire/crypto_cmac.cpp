@@ -3,9 +3,9 @@
 //
 
 #include "desfire/crypto_cmac.hpp"
-#include "desfire/crypto_algo.hpp"
-#include "desfire/crypto_ciphers_base.hpp"
 #include "desfire/bits.hpp"
+#include "desfire/crypto.hpp"
+#include "desfire/crypto_algo.hpp"
 
 namespace desfire {
 

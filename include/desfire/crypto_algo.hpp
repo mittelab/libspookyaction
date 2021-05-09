@@ -35,7 +35,6 @@ namespace desfire {
 
     /**
      *
-     * @tparam BlockSize
      * @tparam ByteIterator
      * @tparam N A unsigned integer size matching the crc size, e.g. ''std::uint32_t'' for a CRC32.
      * @tparam Fn Must match signature ''N crc_fn(ByteIterator b, ByteIterator e, N init)''.
@@ -60,9 +59,9 @@ namespace desfire {
      * @endcode
      * @return
      */
-    template <std::size_t BlockSize, class ByteIterator, class N, class Fn, std::size_t NPaddingBytes = 2>
-    std::pair<ByteIterator, bool> find_crc_tail(ByteIterator begin, ByteIterator end, Fn &&crc_fn, N init, bool incremental_crc,
-                                                std::array<std::uint8_t, NPaddingBytes> const &valid_padding_bytes = default_padding_bytes);
+    template <class ByteIterator, class N, class Fn, std::size_t NPaddingBytes = 2>
+    std::pair<ByteIterator, bool> find_crc_tail(ByteIterator begin, ByteIterator end, Fn &&crc_fn, N init, std::size_t block_size,
+                                                bool incremental_crc, std::array<std::uint8_t, NPaddingBytes> const &valid_padding_bytes = default_padding_bytes);
 
     struct randbytes {
         std::size_t n;
@@ -117,14 +116,14 @@ namespace desfire {
         }
     }
 
-    template <std::size_t BlockSize, class ByteIterator, class N, class Fn, std::size_t NPaddingBytes>
+    template <class ByteIterator, class N, class Fn, std::size_t NPaddingBytes>
     std::pair<ByteIterator, bool> find_crc_tail(ByteIterator begin, ByteIterator end, Fn &&crc_fn, N init,
-                                                bool incremental_crc,
+                                                std::size_t block_size, bool incremental_crc,
                                                 std::array<std::uint8_t, NPaddingBytes> const &valid_padding_bytes) {
         static const auto nonzero_byte_pred = [&](std::uint8_t b) -> bool {
             return std::find(std::begin(valid_padding_bytes), std::end(valid_padding_bytes), b) == std::end(valid_padding_bytes);
         };
-        const bool multiple_of_block_size = std::distance(begin, end) % BlockSize == 0;
+        const bool multiple_of_block_size = std::distance(begin, end) % block_size == 0;
         if (not multiple_of_block_size) {
             DESFIRE_LOGE("Cannot scan for CRC tail if data length is not a multiple of the block size.");
         }
@@ -136,7 +135,7 @@ namespace desfire {
             // Since the reverse iterator holds an underlying iterator to the next element (in the normal traversal
             // sense), we can just get that.
             const auto rev_end = std::reverse_iterator<ByteIterator>(end);
-            auto end_payload = std::find_if(rev_end, rev_end + BlockSize, nonzero_byte_pred).base();
+            auto end_payload = std::find_if(rev_end, rev_end + block_size, nonzero_byte_pred).base();
             // Compute the crc until the supposed end of the payload
             N crc = crc_fn(begin, end_payload, init);
             while (crc != N(0) and end_payload != end) {

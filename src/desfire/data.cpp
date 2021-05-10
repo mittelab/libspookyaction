@@ -84,22 +84,6 @@ namespace desfire {
         return std::numeric_limits<std::uint8_t>::max();
     }
 
-    std::unique_ptr<cipher> any_key::make_cipher() const {
-        switch (type()) {
-            case cipher_type::none:
-                return get<cipher_type::none>().make_cipher();
-            case cipher_type::des:
-                return get<cipher_type::des>().make_cipher();
-            case cipher_type::des3_2k:
-                return get<cipher_type::des3_2k>().make_cipher();
-            case cipher_type::des3_3k:
-                return get<cipher_type::des3_3k>().make_cipher();
-            case cipher_type::aes128:
-                return get<cipher_type::aes128>().make_cipher();
-        }
-        return nullptr;
-    }
-
     command_code auth_command(cipher_type t) {
         switch (t) {
             case cipher_type::des3_2k:

@@ -315,8 +315,6 @@ namespace desfire {
          */
         [[nodiscard]] std::size_t size() const;
 
-        [[nodiscard]] std::unique_ptr<cipher> make_cipher() const;
-
         [[nodiscard]] bool parity_bits_are_version() const;
 
         /**
@@ -370,7 +368,7 @@ namespace desfire {
     };
 
 
-    template <std::size_t KeyLength, class Cipher, bool ParityBitsAreVersion>
+    template <std::size_t KeyLength, bool ParityBitsAreVersion>
     struct key_base : public key_storage<KeyLength, ParityBitsAreVersion> {
         using storage = key_storage<KeyLength, ParityBitsAreVersion>;
         static constexpr bool parity_bits_are_version = ParityBitsAreVersion;
@@ -380,32 +378,26 @@ namespace desfire {
         key_base();
         key_base(std::uint8_t key_no, key_t k_);
         key_base(std::uint8_t key_no, key_t k_, std::uint8_t v_);
-        [[nodiscard]] std::unique_ptr<cipher> make_cipher() const;
     };
 
     template <>
-    struct key<cipher_type::none> {
-        [[nodiscard]] inline std::unique_ptr<cipher> make_cipher() const;
+    struct key<cipher_type::des> : public key_base<8, true> {
+        using key_base<8, true>::key_base;
     };
 
     template <>
-    struct key<cipher_type::des> : public key_base<8, cipher_des, true> {
-        using key_base<8, cipher_des, true>::key_base;
+    struct key<cipher_type::des3_2k> : public key_base<16, true> {
+        using key_base<16, true>::key_base;
     };
 
     template <>
-    struct key<cipher_type::des3_2k> : public key_base<16, cipher_2k3des, true> {
-        using key_base<16, cipher_2k3des, true>::key_base;
+    struct key<cipher_type::des3_3k> : public key_base<24, true> {
+        using key_base<24, true>::key_base;
     };
 
     template <>
-    struct key<cipher_type::des3_3k> : public key_base<24, cipher_3k3des, true> {
-        using key_base<24, cipher_3k3des, true>::key_base;
-    };
-
-    template <>
-    struct key<cipher_type::aes128> : public key_base<16, cipher_aes, false> {
-        using key_base<16, cipher_aes, false>::key_base;
+    struct key<cipher_type::aes128> : public key_base<16, false> {
+        using key_base<16, false>::key_base;
     };
 
 }// namespace desfire
@@ -445,23 +437,14 @@ namespace mlab {
 
 namespace desfire {
 
-    template <std::size_t KeyLength, class Cipher, bool ParityBitsAreVersion>
-    key_base<KeyLength, Cipher, ParityBitsAreVersion>::key_base() : storage{}, key_number{0} {}
+    template <std::size_t KeyLength, bool ParityBitsAreVersion>
+    key_base<KeyLength, ParityBitsAreVersion>::key_base() : storage{}, key_number{0} {}
 
-    template <std::size_t KeyLength, class Cipher, bool ParityBitsAreVersion>
-    key_base<KeyLength, Cipher, ParityBitsAreVersion>::key_base(std::uint8_t key_no, key_t k_) : storage{k_}, key_number{key_no} {}
+    template <std::size_t KeyLength, bool ParityBitsAreVersion>
+    key_base<KeyLength, ParityBitsAreVersion>::key_base(std::uint8_t key_no, key_t k_) : storage{k_}, key_number{key_no} {}
 
-    template <std::size_t KeyLength, class Cipher, bool ParityBitsAreVersion>
-    key_base<KeyLength, Cipher, ParityBitsAreVersion>::key_base(std::uint8_t key_no, key_t k_, std::uint8_t v_) : storage{k_, v_}, key_number{key_no} {}
-
-    template <std::size_t KeyLength, class Cipher, bool ParityBitsAreVersion>
-    std::unique_ptr<cipher> key_base<KeyLength, Cipher, ParityBitsAreVersion>::make_cipher() const {
-        return std::make_unique<Cipher>(storage::k);
-    }
-
-    std::unique_ptr<cipher> key<cipher_type::none>::make_cipher() const {
-        return std::make_unique<cipher_dummy>();
-    }
+    template <std::size_t KeyLength, bool ParityBitsAreVersion>
+    key_base<KeyLength, ParityBitsAreVersion>::key_base(std::uint8_t key_no, key_t k_, std::uint8_t v_) : storage{k_, v_}, key_number{key_no} {}
 
     app_settings::app_settings(app_crypto crypto_, key_rights rights_, std::uint8_t max_num_keys_) : rights{rights_}, max_num_keys{max_num_keys_}, crypto{crypto_} {}
 

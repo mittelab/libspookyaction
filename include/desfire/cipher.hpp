@@ -31,7 +31,7 @@ namespace desfire {
 
         virtual void init_session(bin_data const &random_data) = 0;
 
-        [[nodiscard]] inline static bool is_legacy(bits::cipher_type type);
+        [[nodiscard]] virtual bool is_legacy() const = 0;
 
         virtual ~cipher() = default;
     };
@@ -43,6 +43,8 @@ namespace desfire {
         inline bool confirm_rx(bin_data &, cipher_mode mode) override;
 
         inline void init_session(bin_data const &) override;
+
+        [[nodiscard]] bool is_legacy() const override;
     };
 
     class cipher_legacy final : public cipher {
@@ -59,6 +61,7 @@ namespace desfire {
         void prepare_tx(bin_data &data, std::size_t offset, cipher_mode mode) override;
         bool confirm_rx(bin_data &data, cipher_mode mode) override;
         void init_session(bin_data const &random_data) override;
+        [[nodiscard]] bool is_legacy() const override;
 
     private:
         [[nodiscard]] block_t &get_zeroed_iv();
@@ -86,6 +89,7 @@ namespace desfire {
         void prepare_tx(bin_data &data, std::size_t offset, cipher_mode mode) override;
         bool confirm_rx(bin_data &data, cipher_mode mode) override;
         void init_session(bin_data const &random_data) override;
+        [[nodiscard]] bool is_legacy() const override;
 
     private:
         [[nodiscard]] crypto_with_cmac &crypto_provider();
@@ -101,23 +105,6 @@ namespace desfire {
 }// namespace desfire
 
 namespace desfire {
-
-    bool cipher::is_legacy(bits::cipher_type type) {
-        switch (type) {
-            case bits::cipher_type::des:
-                [[fallthrough]];
-            case bits::cipher_type::des3_2k:
-                return true;
-            case bits::cipher_type::des3_3k:
-                [[fallthrough]];
-            case bits::cipher_type::aes128:
-                return false;
-            default:
-                DESFIRE_LOGE("Requesting whether a cipher is legacy with no cipher!");
-                return true;
-        }
-    }
-
 
     void cipher_dummy::prepare_tx(bin_data &, std::size_t, cipher_mode mode) {
         if (mode != cipher_mode::plain) {

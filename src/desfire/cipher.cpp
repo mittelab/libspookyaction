@@ -15,6 +15,19 @@ namespace desfire {
         using mlab::make_range;
     }// namespace
 
+
+    bool cipher_dummy::is_legacy() const {
+        return true;
+    }
+
+    bool cipher_default::is_legacy() const {
+        return false;
+    }
+
+    bool cipher_legacy::is_legacy() const {
+        return true;
+    }
+
     cipher_legacy::cipher_legacy(std::unique_ptr<desfire::crypto> crypto)
         : _iv{0, 0, 0, 0, 0, 0, 0, 0},
           _crypto{std::move(crypto)} {}

@@ -98,8 +98,12 @@ namespace desfire {
         }
     };
 
+    bool tag::active_cipher_is_legacy() const {
+        return _active_cipher == nullptr or _active_cipher->is_legacy();
+    }
+
     tag::comm_cfg const &tag::default_comm_cfg() const {
-        if (active_key_type() == cipher_type::none or cipher::is_legacy(active_key_type())) {
+        if (active_cipher_is_legacy()) {
             static const comm_cfg _legacy_plain{cipher_mode::plain};
             return _legacy_plain;
         } else {
@@ -113,7 +117,7 @@ namespace desfire {
             DESFIRE_LOGE("Authentication will have to be performed again.");
         }
         _active_cipher = std::make_unique<cipher_dummy>();
-        _active_cipher_type = cipher_type::none;
+        _active_key_type = cipher_type::none;
         _active_key_number = std::numeric_limits<std::uint8_t>::max();
     }
 
@@ -338,7 +342,7 @@ namespace desfire {
         DESFIRE_LOGD("Authenticated with key %u (%s).", k.key_number(), to_string(k.type()));
 
         _active_cipher = std::move(pcipher);
-        _active_cipher_type = k.type();
+        _active_key_type = k.type();
         _active_key_number = k.key_number();
 
         return result_success;
@@ -475,7 +479,7 @@ namespace desfire {
 
         // Now we need to compute CRCs, here we need to make distinction depending on legacy/non-legacy protocol.
         // There is no way to fit this business into the cipher model.
-        if (cipher::is_legacy(active_key_type())) {
+        if (active_cipher_is_legacy()) {
             // CRC on (maybe xored data). However, skip the key number
             payload << lsb16 << compute_crc16(payload.view(1));
             if (current_key != nullptr) {

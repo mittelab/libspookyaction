@@ -1120,15 +1120,15 @@ namespace desfire {
         void logout(bool due_to_error);
 
         [[nodiscard]] comm_cfg const &default_comm_cfg() const;
+        [[nodiscard]] bool active_cipher_is_legacy() const;
 
         struct auto_logout;
-
 
         desfire::pcd *_pcd;
 
         std::unique_ptr<cipher_provider> _provider;
         std::unique_ptr<cipher> _active_cipher;
-        cipher_type _active_cipher_type;
+        cipher_type _active_key_type;
         std::uint8_t _active_key_number;
         app_id _active_app;
     };
@@ -1153,7 +1153,7 @@ namespace desfire {
     tag::tag(desfire::pcd &pcd, std::unique_ptr<cipher_provider> provider) : _pcd{&pcd},
                                                                              _provider{std::move(provider)},
                                                                              _active_cipher{std::make_unique<cipher_dummy>()},
-                                                                             _active_cipher_type{cipher_type::none},
+                                                                             _active_key_type{cipher_type::none},
                                                                              _active_key_number{std::numeric_limits<std::uint8_t>::max()},
                                                                              _active_app{root_app} {}
 
@@ -1176,7 +1176,7 @@ namespace desfire {
         return _active_app;
     }
     cipher_type tag::active_key_type() const {
-        return _active_cipher_type;
+        return _active_key_type;
     }
     std::uint8_t tag::active_key_no() const {
         return _active_key_number;
@@ -1218,7 +1218,7 @@ namespace desfire {
     void tag::ut_init_session(desfire::key<Cipher> const &session_key, desfire::app_id app, std::uint8_t key_no) {
         _active_cipher = _provider->setup_from_key(session_key);
         _active_app = app;
-        _active_cipher_type = Cipher;
+        _active_key_type = Cipher;
         _active_key_number = key_no;
     }
 

@@ -7,7 +7,7 @@
 
 #include <cstdint>
 #include <desfire/bits.hpp>
-#include <desfire/crypto_cmac.hpp>
+#include <desfire/cmac_provider.hpp>
 #include <mlab/bin_data.hpp>
 
 namespace desfire {

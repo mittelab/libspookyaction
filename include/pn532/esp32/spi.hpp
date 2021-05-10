@@ -81,8 +81,8 @@ namespace pn532::esp32 {
         result<> perform_transaction(capable_buffer &buffer, spi_command cmd, channel::comm_mode mode, ms timeout);
 
     protected:
-        result<> raw_send(mlab::range<bin_data::const_iterator> const &buffer, ms timeout) override;
-        result<> raw_receive(mlab::range<bin_data::iterator> const &buffer, ms timeout) override;
+        result<> raw_send(mlab::range<bin_data::const_iterator> buffer, ms timeout) override;
+        result<> raw_receive(mlab::range<bin_data::iterator> buffer, ms timeout) override;
         result<> raw_poll_status(ms timeout);
 
         bool on_receive_prepare(ms timeout) override;

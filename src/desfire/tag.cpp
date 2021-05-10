@@ -81,7 +81,7 @@ namespace desfire {
         return result.error();
     }
 
-    void tag::log_not_empty(command_code cmd, range<bin_data::const_iterator> const &data) {
+    void tag::log_not_empty(command_code cmd, range<bin_data::const_iterator> data) {
         DESFIRE_LOGW("%s: stray data (%d bytes) in response.", to_string(cmd), data.size());
         ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG, data.data(), data.size(), ESP_LOG_DEBUG);
     }

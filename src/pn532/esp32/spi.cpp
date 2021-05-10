@@ -61,7 +61,7 @@ namespace pn532::esp32 {
         return mlab::result_success;
     }
 
-    channel::result<> spi_channel::raw_send(mlab::range<bin_data::const_iterator> const &buffer, ms timeout) {
+    channel::result<> spi_channel::raw_send(mlab::range<bin_data::const_iterator> buffer, ms timeout) {
         if (_device == nullptr) {
             return error::comm_error;
         }
@@ -97,7 +97,7 @@ namespace pn532::esp32 {
         return error::comm_timeout;
     }
 
-    channel::result<> spi_channel::raw_receive(mlab::range<bin_data::iterator> const &buffer, ms timeout) {
+    channel::result<> spi_channel::raw_receive(mlab::range<bin_data::iterator> buffer, ms timeout) {
         if (_device == nullptr) {
             return error::comm_error;
         }

@@ -1100,7 +1100,7 @@ namespace desfire {
         [[nodiscard]] file_security determine_file_security(file_access access, any_file_settings const &settings) const;
 
         [[nodiscard]] static result<> safe_drop_payload(command_code cmd, tag::result<bin_data> const &result);
-        static void log_not_empty(command_code cmd, range<bin_data::const_iterator> const &data);
+        static void log_not_empty(command_code cmd, range<bin_data::const_iterator> data);
 
         [[nodiscard]] inline desfire::pcd &pcd();
 

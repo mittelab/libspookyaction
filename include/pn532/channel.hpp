@@ -219,7 +219,7 @@ namespace pn532 {
         };
 
 
-        virtual result<> raw_send(mlab::range<bin_data::const_iterator> const &buffer, ms timeout) = 0;
+        virtual result<> raw_send(mlab::range<bin_data::const_iterator> buffer, ms timeout) = 0;
 
         /**
          * @param buffer
@@ -231,7 +231,7 @@ namespace pn532 {
          * @return
          * @see receive_mode
          */
-        virtual result<> raw_receive(mlab::range<bin_data::iterator> const &buffer, ms timeout) = 0;
+        virtual result<> raw_receive(mlab::range<bin_data::iterator> buffer, ms timeout) = 0;
 
         /**
          * Determines whether multiple calls to @ref raw_receive can be performed as part of a single

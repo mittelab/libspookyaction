@@ -17,8 +17,8 @@ namespace pn532::esp32 {
         uart_port_t _port;
 
     protected:
-        result<> raw_send(mlab::range<bin_data::const_iterator> const &buffer, ms timeout) override;
-        result<> raw_receive(mlab::range<bin_data::iterator> const &buffer, ms timeout) override;
+        result<> raw_send(mlab::range<bin_data::const_iterator> buffer, ms timeout) override;
+        result<> raw_receive(mlab::range<bin_data::iterator> buffer, ms timeout) override;
 
         [[nodiscard]] inline receive_mode raw_receive_mode() const override;
 

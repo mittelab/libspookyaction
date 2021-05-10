@@ -28,7 +28,7 @@ namespace mlab {
         explicit range(Container &c) : range{std::begin(c), std::end(c)} {}
 
         template <class Jterator, class = typename std::enable_if<std::is_convertible_v<Jterator, Iterator>>::type>
-        range(range<Jterator> const &other) : it_begin{other.it_begin}, it_end{other.it_end} {}
+        range(range<Jterator> other) : it_begin{other.it_begin}, it_end{other.it_end} {}
 
         template <class Jterator = Iterator, class = std::enable_if_t<std::is_same_v<typename std::iterator_traits<Jterator>::iterator_category, std::random_access_iterator_tag>>>
         [[nodiscard]] inline typename std::iterator_traits<Iterator>::difference_type size() const {
@@ -36,14 +36,14 @@ namespace mlab {
         }
 
         /**
-         * @todo Deprecate
+         * @todo Deprecate, we have no knowledge about data contiguity at this point. Used only in log statements FTTB.
          */
         [[nodiscard]] inline typename std::add_const_t<typename std::iterator_traits<Iterator>::pointer> data() const {
             return &*it_begin;
         }
 
         /**
-         * @todo Deprecate
+         * @todo Deprecate, we have no knowledge about data contiguity at this point. Used only in log statements FTTB.
          */
         [[nodiscard]] inline typename std::iterator_traits<Iterator>::pointer data() {
             return &*it_begin;
@@ -86,7 +86,7 @@ namespace mlab {
 
         inline bin_data(std::initializer_list<std::uint8_t> data);
 
-        inline explicit bin_data(range<const_iterator> const &view);
+        inline explicit bin_data(range<bin_data::const_iterator> view);
 
         inline explicit bin_data(std::vector<std::uint8_t> &&data);
 
@@ -95,7 +95,7 @@ namespace mlab {
         template <class ByteIterator>
         inline bin_data(ByteIterator begin, ByteIterator end);
 
-        [[nodiscard]] inline range<const_iterator> view(
+        [[nodiscard]] inline range<bin_data::const_iterator> view(
                 std::size_t start = 0,
                 std::size_t length = std::numeric_limits<std::size_t>::max()) const;
 
@@ -295,7 +295,7 @@ namespace mlab {
         reserve(pa.requested_size);
     }
 
-    bin_data::bin_data(range<const_iterator> const &view) : bin_data{std::begin(view), std::end(view)} {}
+    bin_data::bin_data(range<bin_data::const_iterator> view) : bin_data{std::begin(view), std::end(view)} {}
 
     template <class ByteIterator>
     bin_data::bin_data(ByteIterator begin, ByteIterator end) : std::vector<uint8_t>{begin, end} {}

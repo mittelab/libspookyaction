@@ -63,7 +63,7 @@ namespace pn532::esp32 {
         }
 
 
-        void command::write(mlab::range<const uint8_t *> const &data, bool enable_ack_check) {
+        void command::write(mlab::range<const uint8_t *> data, bool enable_ack_check) {
             if (assert_unused()) {
                 if (const auto res = i2c_master_write(_handle, const_cast<std::uint8_t *>(&*std::begin(data)), data.size(), enable_ack_check); res != ESP_OK) {
                     ESP_LOGE(PN532_I2C_TAG, "i2c_master_write failed with status %d (%s).", res, esp_err_to_name(res));
@@ -71,7 +71,7 @@ namespace pn532::esp32 {
             }
         }
 
-        void command::read(mlab::range<uint8_t *> const &buffer, i2c_ack_type_t ack) {
+        void command::read(mlab::range<uint8_t *> buffer, i2c_ack_type_t ack) {
             if (assert_unused()) {
                 if (const auto res = i2c_master_read(_handle, &*std::begin(buffer), buffer.size(), ack); res != ESP_OK) {
                     ESP_LOGE(PN532_I2C_TAG, "i2c_master_read failed with status %d (%s).", res, esp_err_to_name(res));
@@ -121,7 +121,7 @@ namespace pn532::esp32 {
         return cmd;
     }
 
-    channel::result<> i2c_channel::raw_send(mlab::range<bin_data::const_iterator> const &buffer, ms timeout) {
+    channel::result<> i2c_channel::raw_send(mlab::range<bin_data::const_iterator> buffer, ms timeout) {
         if (_port == I2C_NUM_MAX) {
             return error::comm_error;
         }
@@ -138,7 +138,7 @@ namespace pn532::esp32 {
         return mlab::result_success;
     }
 
-    channel::result<> i2c_channel::raw_receive(mlab::range<bin_data::iterator> const &buffer, ms timeout) {
+    channel::result<> i2c_channel::raw_receive(mlab::range<bin_data::iterator> buffer, ms timeout) {
         if (_port == I2C_NUM_MAX) {
             return error::comm_error;
         }

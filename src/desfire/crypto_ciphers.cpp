@@ -144,7 +144,7 @@ namespace desfire {
             // Here we get a sequence [[ DATA || CRC ]]. But we need to compute the CRC on [[ DATA || STATUS || CRC ]].
             // So we split into two ranges, b..m and m..e, and chain the CRCs
             assert(std::distance(b, e) >= 0);
-            const auto sequence_length = static_cast<decltype(crc_size)>(std::distance(b, e));
+            const auto sequence_length = static_cast<std::size_t>(std::distance(b, e));
             const auto m = b + bin_data::difference_type(std::max(sequence_length, crc_size) - crc_size);
             assert(std::distance(b, m) >= 0);
             assert(std::distance(m, e) >= 0);

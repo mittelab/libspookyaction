@@ -13,7 +13,6 @@
 
 namespace desfire {
     using bits::cipher_mode;
-    using bits::file_security;
 
     namespace {
         using mlab::bin_data;

@@ -42,6 +42,7 @@
 #define DESFIRE_TAG_HPP
 
 #include "cipher.hpp"
+#include "cipher_provider.hpp"
 #include "data.hpp"
 #include "mlab/result.hpp"
 #include "msg.hpp"
@@ -72,9 +73,10 @@ namespace desfire {
          * @brief Construct a new tag object
          * @note if you want to create a custom pcd, you should extend  @ref desfire::pcd and implement @ref desfire::pcd::communicate
          *
-         * @param pcd_ a @ref desfire::pcd class that handles the tag communication
+         * @param pcd_ a @ref desfire::pcd class that handles the tag communication. This must be alive at least as long as the @ref tag object.
+         * @param provider Any @ref cipher_provider implementation to convert keys into the respective cipher.
          */
-        inline explicit tag(desfire::pcd &pcd);
+        inline tag(desfire::pcd &pcd, std::unique_ptr<cipher_provider> provider);
 
         tag(tag const &) = delete;
 
@@ -1124,6 +1126,7 @@ namespace desfire {
 
         desfire::pcd *_pcd;
 
+        std::unique_ptr<cipher_provider> _provider;
         std::unique_ptr<cipher> _active_cipher;
         cipher_type _active_cipher_type;
         std::uint8_t _active_key_number;
@@ -1147,11 +1150,12 @@ namespace desfire {
         return *_pcd;
     }
 
-    tag::tag(desfire::pcd &pcd) : _pcd{&pcd},
-                                  _active_cipher{std::make_unique<cipher_dummy>()},
-                                  _active_cipher_type{cipher_type::none},
-                                  _active_key_number{std::numeric_limits<std::uint8_t>::max()},
-                                  _active_app{root_app} {}
+    tag::tag(desfire::pcd &pcd, std::unique_ptr<cipher_provider> provider) : _pcd{&pcd},
+                                                                             _provider{std::move(provider)},
+                                                                             _active_cipher{std::make_unique<cipher_dummy>()},
+                                                                             _active_cipher_type{cipher_type::none},
+                                                                             _active_key_number{std::numeric_limits<std::uint8_t>::max()},
+                                                                             _active_app{root_app} {}
 
     template <cipher_type Type>
     tag::result<> tag::authenticate(key<Type> const &k) {
@@ -1212,7 +1216,7 @@ namespace desfire {
 
     template <cipher_type Cipher>
     void tag::ut_init_session(desfire::key<Cipher> const &session_key, desfire::app_id app, std::uint8_t key_no) {
-        _active_cipher = session_key.make_cipher();
+        _active_cipher = _provider->setup_from_key(session_key);
         _active_app = app;
         _active_cipher_type = Cipher;
         _active_key_number = key_no;

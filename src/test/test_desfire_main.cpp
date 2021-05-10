@@ -4,6 +4,7 @@
 
 #include "test_desfire_main.hpp"
 #include "utils.hpp"
+#include <desfire/esp32/crypto_impl.hpp>
 #include <map>
 #include <mbcontroller.h>
 #include <pn532/msg.hpp>
@@ -116,7 +117,7 @@ namespace ut::desfire_main {
     test_data::test_data(std::shared_ptr<ut::pn532::test_instance> pn532_test_instance, std::uint8_t card_logical_index)
         : _pcd{std::make_unique<pn532::desfire_pcd>(pn532_test_instance->tag_reader(), card_logical_index)},
           _hold_test_instance{std::move(pn532_test_instance)},
-          _tag{*_pcd} {
+          _tag{*_pcd, std::make_unique<esp32::default_cipher_provider>()} {
         if (_pcd == nullptr) {
             ESP_LOGE(TEST_TAG, "desfire::tag object was set up with an invalid pcd! If a SEGFAULT did not happen, it is about to.");
         }
@@ -125,7 +126,7 @@ namespace ut::desfire_main {
     test_data::test_data(std::unique_ptr<pn532::desfire_pcd> controller)
         : _pcd{std::move(controller)},
           _hold_test_instance{nullptr},
-          _tag{*_pcd} {
+          _tag{*_pcd, std::make_unique<esp32::default_cipher_provider>()} {
         if (_pcd == nullptr) {
             ESP_LOGE(TEST_TAG, "desfire::tag object was set up with an invalid pcd! If a SEGFAULT did not happen, it is about to.");
         }

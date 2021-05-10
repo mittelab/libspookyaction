@@ -55,6 +55,8 @@ namespace desfire {
                 return std::make_unique<cipher_default>(std::move(crypto));
             }
             case cipher_type::none:
+                [[fallthrough]];
+            default:
                 return std::make_unique<cipher_dummy>();
         }
     }

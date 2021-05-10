@@ -3,6 +3,7 @@
 //
 
 #include "test_desfire_exchanges.hpp"
+#include <desfire/esp32/crypto_impl.hpp>
 #include <desfire/tag.hpp>
 #include <list>
 #include <numeric>
@@ -54,7 +55,7 @@ namespace ut::desfire_exchanges {
 
     void test_change_key_aes() {
         assert_comm_pcd pcd;
-        tag tag{pcd};
+        tag tag{pcd, std::make_unique<esp32::default_cipher_provider>()};
 
         session session{tag, key<cipher_type::aes128>{0, {0xF4, 0x4B, 0x26, 0xF5, 0xC0, 0x5D, 0xDD, 0x71, 0x10, 0x77, 0x22, 0x81, 0xC4, 0xD0, 0x66, 0xE8}}, {0x00, 0xAE, 0x16}, 0};
 
@@ -67,7 +68,7 @@ namespace ut::desfire_exchanges {
 
     void test_change_key_2k3des() {
         assert_comm_pcd pcd;
-        tag tag{pcd};
+        tag tag{pcd, std::make_unique<esp32::default_cipher_provider>()};
 
         session session{tag, key<cipher_type::des>{0, {0xc8, 0x6d, 0xb4, 0x4f, 0xd3, 0x20, 0xd9, 0x39}}, {0x00, 0x00, 0x02}, 0};
 
@@ -79,7 +80,7 @@ namespace ut::desfire_exchanges {
 
     void test_change_key_des() {
         assert_comm_pcd pcd;
-        tag tag{pcd};
+        tag tag{pcd, std::make_unique<esp32::default_cipher_provider>()};
 
         session session{tag, key<cipher_type::des>{0, {0xc8, 0x6d, 0xb4, 0x4f, 0x9e, 0x5d, 0x3a, 0xb9}}, {0x00, 0x00, 0x01}, 0};
 
@@ -91,7 +92,7 @@ namespace ut::desfire_exchanges {
 
     void test_create_write_file_rx_cmac() {
         assert_comm_pcd pcd;
-        tag tag{pcd};
+        tag tag{pcd, std::make_unique<esp32::default_cipher_provider>()};
 
         session session{tag, key<cipher_type::aes128>{0, {0x40, 0xE7, 0xD2, 0x71, 0x62, 0x6F, 0xFB, 0xD4, 0x9C, 0x53, 0x0E, 0x3D, 0x30, 0x4F, 0x5B, 0x17}}, {0x00, 0xae, 0x16}, 0};
 
@@ -113,7 +114,7 @@ namespace ut::desfire_exchanges {
 
     void test_get_key_version_rx_cmac() {
         assert_comm_pcd pcd;
-        tag tag{pcd};
+        tag tag{pcd, std::make_unique<esp32::default_cipher_provider>()};
 
         {
             session session{tag, key<cipher_type::aes128>{0, {0x90, 0xF7, 0xA2, 0x01, 0x91, 0x03, 0x68, 0x45, 0xEC, 0x63, 0xDE, 0xCD, 0x54, 0x4B, 0x99, 0x31}}, {0x00, 0xae, 0x16}, 0};
@@ -133,7 +134,7 @@ namespace ut::desfire_exchanges {
 
     void test_write_data_cmac_des() {
         assert_comm_pcd pcd;
-        tag tag{pcd};
+        tag tag{pcd, std::make_unique<esp32::default_cipher_provider>()};
 
         session session{tag, key<cipher_type::des>{0, {0xc8, 0x6d, 0xb4, 0x4f, 0x23, 0x43, 0xba, 0x56}}, {0x00, 0xde, 0x01}, 0};
 

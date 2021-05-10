@@ -6,12 +6,18 @@
 #define DESFIRE_DATA_HPP
 
 #include "bits.hpp"
-#include "cipher_impl.hpp"
+#include "crypto_algo.hpp"
+#include <mlab/bin_data.hpp>
 #include "key_actor.hpp"
 #include <memory>
 #include <mlab/any_of.hpp>
 
 namespace desfire {
+    namespace {
+        using mlab::bin_stream;
+        using mlab::bin_data;
+    }
+
     using bits::all_records;
     using bits::app_crypto;
     using bits::cipher_mode;

@@ -31,29 +31,6 @@ namespace desfire {
         return "UNKNOWN";
     }
 
-
-    const char *to_string(cipher_iv civ) {
-        switch (civ) {
-            case cipher_iv::global:
-                return "global";
-            case cipher_iv::zero:
-                return "zero (local)";
-        }
-        return "UNKNOWN";
-    }
-
-    const char *to_string(crypto_direction mode) {
-        switch (mode) {
-            case crypto_direction::encrypt:
-                return "encrypt";
-            case crypto_direction::decrypt:
-                return "decrypt";
-            case crypto_direction::mac:
-                return "mac";
-        }
-        return "UNKNOWN";
-    }
-
     const char *to_string(crypto_operation op) {
         switch (op) {
             case crypto_operation::encrypt:

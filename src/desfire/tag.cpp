@@ -31,6 +31,7 @@ namespace desfire {
 
         using mlab::lsb16;
         using mlab::lsb24;
+        using mlab::lsb32;
         using mlab::prealloc;
         using mlab::result_success;
 

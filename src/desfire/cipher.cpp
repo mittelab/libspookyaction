@@ -63,7 +63,7 @@ namespace desfire {
 
     bool cipher_legacy::drop_padding_verify_crc(bin_data &d) {
         static const auto crc_fn = [](bin_data::const_iterator b, bin_data::const_iterator e, std::uint16_t init) -> std::uint16_t {
-            return compute_crc16(range<bin_data::const_iterator>{b, e}, init);
+            return compute_crc16(range<std::uint8_t const *>{&*b, &*b + std::distance(b, e)}, init);
         };
         const auto [end_payload, did_verify] = find_crc_tail(std::begin(d), std::end(d), crc_fn, crc16_init, block_size, true);
         if (did_verify) {
@@ -86,7 +86,7 @@ namespace desfire {
         } else {
             if (mode == cipher_mode::ciphered) {
                 data.reserve(offset + padded_length<block_size>(data.size() + crc_size - offset));
-                data << lsb16 << compute_crc16(data.view(offset));
+                data << lsb16 << compute_crc16(data.data_view(offset));
             } else {
                 data.reserve(offset + padded_length<block_size>(data.size() - offset));
             }
@@ -162,11 +162,11 @@ namespace desfire {
             assert(std::distance(b, m) >= 0);
             assert(std::distance(m, e) >= 0);
             // CRC of [[ DATA ]]
-            const std::uint32_t crc_data = compute_crc32(range<bin_data::const_iterator>{b, m}, init);
+            const std::uint32_t crc_data = compute_crc32(range<std::uint8_t const *>{&*b, &*b + std::distance(b, m)}, init);
             // CRC of [[ DATA || STATUS ]] = crc32({status}, crc32([[ DATA ]], init)
             const std::uint32_t crc_data_status = compute_crc32(status, crc_data);
             // CRC of [[ DATA || STATUS || CRC ]] (should be 0)
-            const std::uint32_t crc_full = compute_crc32(range<bin_data::const_iterator>{m, e}, crc_data_status);
+            const std::uint32_t crc_full = compute_crc32(range<std::uint8_t const *>{&*m, &*m + std::distance(m, e)}, crc_data_status);
             return crc_full;
         };
         const auto [end_payload, did_verify] = find_crc_tail(std::begin(d), std::end(d), crc_fn, crc32_init, crypto_provider().block_size(), false);

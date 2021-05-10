@@ -102,7 +102,7 @@ namespace pn532::esp32 {
              * @param enable_ack_check If true, the driver will check for a corresponding ACK from the slave. If that is not received,
              *  the command as a whole will fail with a @ref error status.
              */
-            void write(mlab::range<bin_data::const_iterator> const &data, bool enable_ack_check);
+            void write(mlab::range<const uint8_t *> const &data, bool enable_ack_check);
 
             /**
              * @brief Append a new read operation to the command, reading a sequence of bytes.
@@ -111,7 +111,7 @@ namespace pn532::esp32 {
              *  directly down to the driver, so beware: it is not documented what happens if you pass an empty range.
              * @param ack The type of ACK to send. See @ref i2c_types.h for further documentation.
              */
-            void read(mlab::range<bin_data::iterator> const &buffer, i2c_ack_type_t ack);
+            void read(mlab::range<uint8_t *> const &buffer, i2c_ack_type_t ack);
 
             /**
              * Append a new read operation to the command, reading a single byte.

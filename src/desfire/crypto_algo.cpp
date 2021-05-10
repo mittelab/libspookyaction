@@ -23,17 +23,17 @@ namespace desfire {
         return ~crc32_le(~init, &extra_byte, 1);
     }
 
-    std::uint16_t compute_crc16(mlab::range<mlab::bin_data::const_iterator> const &data, std::uint16_t init) {
+    std::uint16_t compute_crc16(mlab::range<std::uint8_t const *> data, std::uint16_t init) {
         /* @note This is correct, we need to negate the init value (0x6363, as per spec), negate the output value
          * (that is documented in ESP's CRC header), and remember to send LSB first.
          */
-        return ~crc16_le(~init, data.data(), data.size());
+        return ~crc16_le(~init, std::begin(data), data.size());
     }
-    std::uint32_t compute_crc32(mlab::range<mlab::bin_data::const_iterator> const &data, std::uint32_t init) {
+    std::uint32_t compute_crc32(mlab::range<std::uint8_t const *> data, std::uint32_t init) {
         /* @note This is correct, we need to negate the init value (0xffffffff, as per spec), negate the output value
          * (that is documented in ESP's CRC header), and remember to send LSB first.
          */
-        return ~crc32_le(~init, data.data(), data.size());
+        return ~crc32_le(~init, std::begin(data), data.size());
     }
 }// namespace desfire
 

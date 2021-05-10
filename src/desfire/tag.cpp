@@ -481,7 +481,7 @@ namespace desfire {
         // There is no way to fit this business into the cipher model.
         if (active_cipher_is_legacy()) {
             // CRC on (maybe xored data). However, skip the key number
-            payload << lsb16 << compute_crc16(payload.view(1));
+            payload << lsb16 << compute_crc16(payload.data_view(1));
             if (current_key != nullptr) {
                 // Extra CRC on new key
                 payload << lsb16 << compute_crc16(new_key.get_packed_key_body());

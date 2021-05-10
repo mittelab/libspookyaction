@@ -63,17 +63,17 @@ namespace pn532::esp32 {
         }
 
 
-        void command::write(mlab::range<bin_data::const_iterator> const &data, bool enable_ack_check) {
+        void command::write(mlab::range<const uint8_t *> const &data, bool enable_ack_check) {
             if (assert_unused()) {
-                if (const auto res = i2c_master_write(_handle, const_cast<std::uint8_t *>(data.data()), data.size(), enable_ack_check); res != ESP_OK) {
+                if (const auto res = i2c_master_write(_handle, const_cast<std::uint8_t *>(&*std::begin(data)), data.size(), enable_ack_check); res != ESP_OK) {
                     ESP_LOGE(PN532_I2C_TAG, "i2c_master_write failed with status %d (%s).", res, esp_err_to_name(res));
                 }
             }
         }
 
-        void command::read(mlab::range<bin_data::iterator> const &buffer, i2c_ack_type_t ack) {
+        void command::read(mlab::range<uint8_t *> const &buffer, i2c_ack_type_t ack) {
             if (assert_unused()) {
-                if (const auto res = i2c_master_read(_handle, buffer.data(), buffer.size(), ack); res != ESP_OK) {
+                if (const auto res = i2c_master_read(_handle, &*std::begin(buffer), buffer.size(), ack); res != ESP_OK) {
                     ESP_LOGE(PN532_I2C_TAG, "i2c_master_read failed with status %d (%s).", res, esp_err_to_name(res));
                 }
             }
@@ -128,7 +128,7 @@ namespace pn532::esp32 {
         ESP_LOG_BUFFER_HEX_LEVEL(PN532_I2C_TAG " >>", buffer.data(), buffer.size(), ESP_LOG_VERBOSE);
         auto cmd = raw_prepare_command(comm_mode::send);
         if (buffer.size() > 0) {
-            cmd.write(buffer, true);
+            cmd.write({&*std::begin(buffer), &*std::begin(buffer) + buffer.size()}, true);
         }
         cmd.stop();
         if (const auto res_cmd = cmd(_port, timeout); not res_cmd) {
@@ -148,7 +148,7 @@ namespace pn532::esp32 {
             auto cmd = raw_prepare_command(comm_mode::receive);
             if (buffer.size() > 0) {
                 cmd.read(ready_byte, I2C_MASTER_ACK);
-                cmd.read(buffer, I2C_MASTER_LAST_NACK);
+                cmd.read({&*std::begin(buffer), &*std::begin(buffer) + buffer.size()}, I2C_MASTER_LAST_NACK);
             } else {
                 // Read the ready byte only
                 cmd.read(ready_byte, I2C_MASTER_LAST_NACK);

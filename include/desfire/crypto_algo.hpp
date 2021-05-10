@@ -71,8 +71,8 @@ namespace desfire {
     static constexpr std::uint16_t crc16_init = 0x6363;
     static constexpr std::uint32_t crc32_init = 0xffffffff;
 
-    [[nodiscard]] std::uint16_t compute_crc16(mlab::range<mlab::bin_data::const_iterator> const &data, std::uint16_t init = crc16_init);
-    [[nodiscard]] std::uint32_t compute_crc32(mlab::range<mlab::bin_data::const_iterator> const &data, std::uint32_t init = crc32_init);
+    [[nodiscard]] std::uint16_t compute_crc16(mlab::range<std::uint8_t const *> data, std::uint16_t init = crc16_init);
+    [[nodiscard]] std::uint32_t compute_crc32(mlab::range<std::uint8_t const *> data, std::uint32_t init = crc32_init);
 
     [[nodiscard]] std::uint16_t compute_crc16(std::uint8_t extra_byte, std::uint16_t init = crc16_init);
     [[nodiscard]] std::uint32_t compute_crc32(std::uint8_t extra_byte, std::uint32_t init = crc32_init);
@@ -186,10 +186,10 @@ namespace desfire {
     }
 
     std::uint16_t compute_crc16(mlab::bin_data const &data, std::uint16_t init) {
-        return compute_crc16(data.view(), init);
+        return compute_crc16(data.data_view(), init);
     }
     std::uint32_t compute_crc32(mlab::bin_data const &data, std::uint32_t init) {
-        return compute_crc32(data.view(), init);
+        return compute_crc32(data.data_view(), init);
     }
 
 

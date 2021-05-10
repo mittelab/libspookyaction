@@ -6,6 +6,7 @@
 #define DESFIRE_ESP32_CRYPTO_IMPL_HPP
 
 #include <desfire/crypto.hpp>
+#include <desfire/cipher_provider.hpp>
 
 /**
  * @note ''esp_config.h'' must be included before ''aes.h'' to enable hardware AES.
@@ -65,6 +66,7 @@ namespace desfire::esp32 {
         void setup_primitives_with_key(range<std::uint8_t const *> key) override;
     };
 
+    using default_cipher_provider = typed_cipher_provider<crypto_des, crypto_2k3des, crypto_3k3des, crypto_aes>;
 }
 
 #endif//DESFIRE_ESP32_CRYPTO_IMPL_HPP

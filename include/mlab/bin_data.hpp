@@ -30,9 +30,7 @@ namespace mlab {
         template <class Jterator, class = typename std::enable_if<std::is_convertible_v<Jterator, Iterator>>::type>
         range(range<Jterator> const &other) : it_begin{other.it_begin}, it_end{other.it_end} {}
 
-        /**
-         * @todo Enable only if random access
-         */
+        template <class Jterator = Iterator, class = std::enable_if_t<std::is_same_v<typename std::iterator_traits<Jterator>::iterator_category, std::random_access_iterator_tag>>>
         [[nodiscard]] inline typename std::iterator_traits<Iterator>::difference_type size() const {
             return std::distance(it_begin, it_end);
         }

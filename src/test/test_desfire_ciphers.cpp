@@ -3,8 +3,8 @@
 //
 
 #include "test_desfire_ciphers.hpp"
-#include <desfire/esp32/crypto_impl.hpp>
 #include <desfire/data.hpp>
+#include <desfire/esp32/crypto_impl.hpp>
 #include <unity.h>
 
 namespace ut::desfire_ciphers {

@@ -2,7 +2,7 @@
 // Created by spak on 5/7/21.
 //
 
-#include "desfire/crypto_ciphers.hpp"
+#include "desfire/cipher.hpp"
 #include "desfire/crypto_algo.hpp"
 #include "desfire/log.h"
 #include <cassert>
@@ -44,8 +44,8 @@ namespace desfire {
         return {iv[0], iv[1], iv[2], iv[3]};
     }
 
-    void cipher_legacy::reinit_with_session_key(bin_data const &rndab) {
-        crypto_provider().init_session(rndab.data_view());
+    void cipher_legacy::init_session(bin_data const &random_data) {
+        crypto_provider().init_session(random_data.data_view());
     }
 
     bool cipher_legacy::drop_padding_verify_crc(bin_data &d) {
@@ -255,8 +255,8 @@ namespace desfire {
         return true;
     }
 
-    void cipher_default::reinit_with_session_key(bin_data const &rndab) {
-        crypto_provider().init_session(rndab.data_view());
+    void cipher_default::init_session(bin_data const &random_data) {
+        crypto_provider().init_session(random_data.data_view());
     }
 
 }// namespace desfire

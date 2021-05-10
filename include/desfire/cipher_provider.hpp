@@ -5,7 +5,7 @@
 #ifndef DESFIRE_CIPHER_PROVIDER_HPP
 #define DESFIRE_CIPHER_PROVIDER_HPP
 
-#include <desfire/crypto_ciphers.hpp>
+#include <desfire/cipher.hpp>
 #include <desfire/data.hpp>
 
 namespace desfire {

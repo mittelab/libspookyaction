@@ -7,16 +7,16 @@
 
 #include "bits.hpp"
 #include "crypto_algo.hpp"
-#include <mlab/bin_data.hpp>
 #include "key_actor.hpp"
 #include <memory>
 #include <mlab/any_of.hpp>
+#include <mlab/bin_data.hpp>
 
 namespace desfire {
     namespace {
-        using mlab::bin_stream;
         using mlab::bin_data;
-    }
+        using mlab::bin_stream;
+    }// namespace
 
     using bits::all_records;
     using bits::app_crypto;

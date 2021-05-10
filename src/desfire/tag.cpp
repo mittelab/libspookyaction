@@ -56,6 +56,19 @@ namespace desfire {
             const auto div_result = std::div(larger_signed(n), larger_signed(divisor));
             return T(div_result.quot) + (div_result.rem == 0 ? 0 : 1);
         }
+
+
+        [[nodiscard]] cipher_mode cipher_mode_from_security(file_security security) {
+            switch (security) {
+                case file_security::none:
+                    return cipher_mode::plain;
+                case file_security::authenticated:
+                    return cipher_mode::maced;
+                case file_security::encrypted:
+                    return cipher_mode::ciphered;
+            }
+            return cipher_mode::plain;
+        }
     }// namespace
 
     tag::result<> tag::safe_drop_payload(command_code cmd, tag::result<bin_data> const &result) {
@@ -321,7 +334,7 @@ namespace desfire {
         }
 
         DESFIRE_LOGD("Authentication: deriving session key...");
-        pcipher->reinit_with_session_key(bin_data::chain(prealloc(2 * rndb.size()), rnda, rndb));
+        pcipher->init_session(bin_data::chain(prealloc(2 * rndb.size()), rnda, rndb));
         DESFIRE_LOGD("Authenticated with key %u (%s).", k.key_number(), to_string(k.type()));
 
         _active_cipher = std::move(pcipher);

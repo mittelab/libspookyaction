@@ -69,7 +69,6 @@ namespace desfire::esp32 {
                 break;
         }
         ESP_LOG_BUFFER_HEX_LEVEL(output_tag(op), data.data(), data.size(), ESP_LOG_DEBUG);
-
     }
 
     void crypto_2k3des::setup_with_key(range<std::uint8_t const *> key) {
@@ -166,7 +165,8 @@ namespace desfire::esp32 {
 
     crypto_aes::crypto_aes() : _enc_context{}, _dec_context{} {
         mbedtls_aes_init(&_enc_context);
-        mbedtls_aes_init(&_dec_context);}
+        mbedtls_aes_init(&_dec_context);
+    }
 
     crypto_aes::~crypto_aes() {
         mbedtls_aes_free(&_enc_context);
@@ -190,4 +190,4 @@ namespace desfire::esp32 {
         }
         ESP_LOG_BUFFER_HEX_LEVEL(output_tag(op), data.data(), data.size(), ESP_LOG_DEBUG);
     }
-}
+}// namespace desfire::esp32

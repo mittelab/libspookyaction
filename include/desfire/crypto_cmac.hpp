@@ -11,9 +11,9 @@
 namespace desfire {
 
     namespace {
-        using mlab::range;
         using mlab::bin_data;
-    }
+        using mlab::range;
+    }// namespace
 
     class crypto;
 
@@ -48,17 +48,16 @@ namespace desfire {
         mac_t compute_cmac(range<std::uint8_t *> iv, range<std::uint8_t const *> data);
 
         static void prepare_subkey(range<std::uint8_t *> subkey, std::uint8_t last_byte_xor);
-
     };
-}
+}// namespace desfire
 
 namespace desfire {
     cmac_provider::cmac_provider(crypto &crypto, std::size_t block_size, std::uint8_t last_byte_xor)
-            : _crypto{&crypto},
-              _block_size{block_size},
-              _last_byte_xor{last_byte_xor},
-              _subkey_pad{std::make_unique<std::uint8_t[]>(static_cast<std::size_t>(block_size))},
-              _subkey_nopad{std::make_unique<std::uint8_t[]>(static_cast<std::size_t>(block_size))} {}
+        : _crypto{&crypto},
+          _block_size{block_size},
+          _last_byte_xor{last_byte_xor},
+          _subkey_pad{std::make_unique<std::uint8_t[]>(static_cast<std::size_t>(block_size))},
+          _subkey_nopad{std::make_unique<std::uint8_t[]>(static_cast<std::size_t>(block_size))} {}
 
     std::size_t cmac_provider::block_size() const {
         return _block_size;
@@ -76,5 +75,5 @@ namespace desfire {
     crypto &cmac_provider::crypto_provider() const {
         return *_crypto;
     }
-}
+}// namespace desfire
 #endif//DESFIRE_CRYPTO_CMAC_HPP

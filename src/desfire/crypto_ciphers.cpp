@@ -10,10 +10,10 @@
 namespace desfire {
     namespace {
         using mlab::bin_stream;
-        using mlab::make_range;
         using mlab::lsb16;
         using mlab::lsb32;
-    }
+        using mlab::make_range;
+    }// namespace
 
     cipher_legacy::cipher_legacy(std::unique_ptr<desfire::crypto> crypto)
         : _iv{0, 0, 0, 0, 0, 0, 0, 0},
@@ -50,7 +50,7 @@ namespace desfire {
 
     bool cipher_legacy::drop_padding_verify_crc(bin_data &d) {
         static const auto crc_fn = [](bin_data::const_iterator b, bin_data::const_iterator e, std::uint16_t init) -> std::uint16_t {
-          return compute_crc16(range<bin_data::const_iterator>{b, e}, init);
+            return compute_crc16(range<bin_data::const_iterator>{b, e}, init);
         };
         const auto [end_payload, did_verify] = find_crc_tail(std::begin(d), std::end(d), crc_fn, crc16_init, block_size, true);
         if (did_verify) {
@@ -135,27 +135,26 @@ namespace desfire {
 
     cipher_default::cipher_default(std::unique_ptr<crypto_with_cmac> crypto)
         : _iv{std::make_unique<std::uint8_t[]>(crypto->block_size())},
-         _crypto{std::move(crypto)}
-    {
+          _crypto{std::move(crypto)} {
         std::fill_n(_iv.get(), this->crypto_provider().block_size(), 0x00);
     }
 
     bool cipher_default::drop_padding_verify_crc(bin_data &d, std::uint8_t status) {
         const auto crc_fn = [=](bin_data::const_iterator b, bin_data::const_iterator e, std::uint32_t init) -> std::uint32_t {
-          // Here we get a sequence [[ DATA || CRC ]]. But we need to compute the CRC on [[ DATA || STATUS || CRC ]].
-          // So we split into two ranges, b..m and m..e, and chain the CRCs
-          assert(std::distance(b, e) >= 0);
-          const auto sequence_length = static_cast<decltype(crc_size)>(std::distance(b, e));
-          const auto m = b + bin_data::difference_type(std::max(sequence_length, crc_size) - crc_size);
-          assert(std::distance(b, m) >= 0);
-          assert(std::distance(m, e) >= 0);
-          // CRC of [[ DATA ]]
-          const std::uint32_t crc_data = compute_crc32(range<bin_data::const_iterator>{b, m}, init);
-          // CRC of [[ DATA || STATUS ]] = crc32({status}, crc32([[ DATA ]], init)
-          const std::uint32_t crc_data_status = compute_crc32(status, crc_data);
-          // CRC of [[ DATA || STATUS || CRC ]] (should be 0)
-          const std::uint32_t crc_full = compute_crc32(range<bin_data::const_iterator>{m, e}, crc_data_status);
-          return crc_full;
+            // Here we get a sequence [[ DATA || CRC ]]. But we need to compute the CRC on [[ DATA || STATUS || CRC ]].
+            // So we split into two ranges, b..m and m..e, and chain the CRCs
+            assert(std::distance(b, e) >= 0);
+            const auto sequence_length = static_cast<decltype(crc_size)>(std::distance(b, e));
+            const auto m = b + bin_data::difference_type(std::max(sequence_length, crc_size) - crc_size);
+            assert(std::distance(b, m) >= 0);
+            assert(std::distance(m, e) >= 0);
+            // CRC of [[ DATA ]]
+            const std::uint32_t crc_data = compute_crc32(range<bin_data::const_iterator>{b, m}, init);
+            // CRC of [[ DATA || STATUS ]] = crc32({status}, crc32([[ DATA ]], init)
+            const std::uint32_t crc_data_status = compute_crc32(status, crc_data);
+            // CRC of [[ DATA || STATUS || CRC ]] (should be 0)
+            const std::uint32_t crc_full = compute_crc32(range<bin_data::const_iterator>{m, e}, crc_data_status);
+            return crc_full;
         };
         const auto [end_payload, did_verify] = find_crc_tail(std::begin(d), std::end(d), crc_fn, crc32_init, crypto_provider().block_size(), false);
         if (did_verify) {
@@ -260,4 +259,4 @@ namespace desfire {
         crypto_provider().init_session(rndab.data_view());
     }
 
-}
+}// namespace desfire

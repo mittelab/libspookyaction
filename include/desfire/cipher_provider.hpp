@@ -5,8 +5,8 @@
 #ifndef DESFIRE_CIPHER_PROVIDER_HPP
 #define DESFIRE_CIPHER_PROVIDER_HPP
 
-#include <desfire/data.hpp>
 #include <desfire/crypto_ciphers.hpp>
+#include <desfire/data.hpp>
 
 namespace desfire {
     namespace {
@@ -27,7 +27,7 @@ namespace desfire {
 
         [[nodiscard]] std::unique_ptr<cipher> setup_from_key(any_key const &key) override;
     };
-}
+}// namespace desfire
 
 namespace desfire {
 

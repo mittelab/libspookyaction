@@ -80,4 +80,4 @@ namespace desfire {
         std::copy(std::begin(iv), std::begin(iv) + retval.size(), std::begin(retval));
         return retval;
     }
-}
+}// namespace desfire

@@ -6,15 +6,15 @@
 #define DESFIRE_CRYPTO_HPP
 
 #include <cstdint>
-#include <mlab/bin_data.hpp>
-#include <desfire/crypto_cmac.hpp>
 #include <desfire/bits.hpp>
+#include <desfire/crypto_cmac.hpp>
+#include <mlab/bin_data.hpp>
 
 namespace desfire {
     namespace {
         using mlab::bin_data;
         using mlab::range;
-    }
+    }// namespace
     using bits::cipher_type;
 
     enum struct crypto_operation {
@@ -34,9 +34,11 @@ namespace desfire {
 
     class crypto_with_cmac : public crypto {
         cmac_provider _cmac;
+
     protected:
         crypto_with_cmac(std::uint8_t block_size, std::uint8_t last_byte_xor);
         virtual void setup_primitives_with_key(range<std::uint8_t const *> key) = 0;
+
     public:
         using mac_t = std::array<std::uint8_t, 8>;
         virtual mac_t do_cmac(range<std::uint8_t const *> data, range<std::uint8_t *> iv);
@@ -52,6 +54,7 @@ namespace desfire {
 
     class crypto_2k3des_base : public crypto {
         bool _degenerate = false;
+
     public:
         [[nodiscard]] inline bool is_degenerate() const;
         [[nodiscard]] inline desfire::cipher_type cipher_type() const final;
@@ -73,7 +76,7 @@ namespace desfire {
         void init_session(range<std::uint8_t const *> random_data) final;
     };
 
-}
+}// namespace desfire
 
 namespace desfire {
     bool crypto_2k3des_base::is_degenerate() const {
@@ -96,6 +99,6 @@ namespace desfire {
         return cipher_type::aes128;
     }
 
-}
+}// namespace desfire
 
 #endif//DESFIRE_CRYPTO_HPP

@@ -66,6 +66,6 @@ namespace desfire {
         std::unique_ptr<std::uint8_t[]> _iv;
         std::unique_ptr<crypto_with_cmac> _crypto;
     };
-}
+}// namespace desfire
 
 #endif//DESFIRE_CRYPTO_CIPHERS_HPP

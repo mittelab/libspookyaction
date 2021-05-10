@@ -137,8 +137,7 @@ namespace desfire {
     }
 
     crypto_with_cmac::crypto_with_cmac(std::uint8_t block_size, std::uint8_t last_byte_xor)
-        : _cmac{*this, block_size, last_byte_xor}
-    {}
+        : _cmac{*this, block_size, last_byte_xor} {}
 
     crypto_with_cmac::mac_t crypto_with_cmac::do_cmac(range<std::uint8_t const *> data, range<std::uint8_t *> iv) {
         return _cmac.compute_cmac(iv, data);

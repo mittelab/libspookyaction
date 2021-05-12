@@ -14,8 +14,8 @@ namespace ut::desfire_ciphers {
     void test_des() {
         {
             // Test using examples from https://hack.cert.pl/files/desfire-9f122c71e0057d4f747d2ee295b0f5f6eef8ac32.html
-            auto c = desfire::esp32::default_cipher_provider{}.setup_from_key(key<cipher_type::des>{});
             // The examples from the website use ISO auth also for legacy auth, which means we need to use global IV
+            auto c = always_default_cipher_provider{}.setup_from_key(key<cipher_type::des>{});
             {
                 {
                     bin_data enc_data = {0x5D, 0x99, 0x4C, 0xE0, 0x85, 0xF2, 0x40, 0x89, /* status */ 0xAF};
@@ -58,9 +58,9 @@ namespace ut::desfire_ciphers {
 
     void test_2k3des() {
         // Test using examples from https://hack.cert.pl/files/desfire-9f122c71e0057d4f747d2ee295b0f5f6eef8ac32.html
+        // The examples from the website use ISO auth also for legacy auth, which means we need to use global IV
         {
-            auto c = desfire::esp32::default_cipher_provider{}.setup_from_key(key<cipher_type::des3_2k>{});
-            // The examples from the website use ISO auth also for legacy auth, which means we need to use global IV
+            auto c = always_default_cipher_provider{}.setup_from_key(key<cipher_type::des>{});
             {
                 {
                     bin_data enc_data = {0xDE, 0x50, 0xF9, 0x23, 0x10, 0xCA, 0xF5, 0xA5, /* status */ 0xAF};
@@ -88,7 +88,7 @@ namespace ut::desfire_ciphers {
         {
             /// @note This key has a nonzero version (see k.k[3] & 0x1 != 0)
             const auto k = key<cipher_type::des3_2k>{0, {0x00, 0x10, 0x20, 0x31, 0x40, 0x50, 0x60, 0x70, 0x80, 0x90, 0xA0, 0xB0, 0xB0, 0xA0, 0x90, 0x80}};
-            auto c = desfire::esp32::default_cipher_provider{}.setup_from_key(k);
+            auto c = always_default_cipher_provider{}.setup_from_key(k);
             {
                 bin_data enc_data = {0xB2, 0x95, 0x57, 0x99, 0x26, 0x15, 0x5A, 0xE3, /* status */ 0xAF};
                 const bin_data dec_data = {0xBC, 0xD8, 0x29, 0x97, 0x47, 0x33, 0x2D, 0xAF, /* status */ 0xAF};

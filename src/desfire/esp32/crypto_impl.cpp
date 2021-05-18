@@ -83,7 +83,7 @@ namespace desfire::esp32 {
          */
         mbedtls_des3_set2key_dec(&_enc_context, std::begin(key));
         mbedtls_des3_set2key_dec(&_dec_context, std::begin(key));
-        mbedtls_des3_set3key_enc(&_mac_enc_context, std::begin(key));
+        mbedtls_des3_set2key_enc(&_mac_enc_context, std::begin(key));
     }
 
     crypto_2k3des::crypto_2k3des() : _enc_context{}, _dec_context{}, _mac_enc_context{} {

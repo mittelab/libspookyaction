@@ -69,8 +69,7 @@ namespace ut::desfire_exchanges {
 
     void test_change_key_2k3des() {
         assert_comm_pcd pcd;
-        // The examples from the website use ISO auth also for legacy auth, which means we need to use global IV
-        tag tag{pcd, std::make_unique<always_default_cipher_provider>()};
+        tag tag{pcd, std::make_unique<desfire::esp32::default_cipher_provider>()};
 
         session session{tag, key<cipher_type::des>{0, {0xc8, 0x6d, 0xb4, 0x4f, 0xd3, 0x20, 0xd9, 0x39}}, {0x00, 0x00, 0x02}, 0};
 
@@ -82,8 +81,7 @@ namespace ut::desfire_exchanges {
 
     void test_change_key_des() {
         assert_comm_pcd pcd;
-        // The examples from the website use ISO auth also for legacy auth, which means we need to use global IV
-        tag tag{pcd, std::make_unique<always_default_cipher_provider>()};
+        tag tag{pcd, std::make_unique<desfire::esp32::default_cipher_provider>()};
 
         session session{tag, key<cipher_type::des>{0, {0xc8, 0x6d, 0xb4, 0x4f, 0x9e, 0x5d, 0x3a, 0xb9}}, {0x00, 0x00, 0x01}, 0};
 

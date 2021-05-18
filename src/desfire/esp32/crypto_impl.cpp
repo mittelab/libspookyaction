@@ -72,6 +72,7 @@ namespace desfire::esp32 {
     }
 
     void crypto_2k3des::setup_with_key(range<std::uint8_t const *> key) {
+        crypto_2k3des_base::setup_with_key(key);
         if (key.size() != 16) {
             DESFIRE_LOGE("2K3DES: invalid key size %d, expected 16 bytes.", key.size());
             return;

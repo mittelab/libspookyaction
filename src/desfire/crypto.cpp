@@ -65,7 +65,7 @@ namespace desfire {
          * @note When the key is actually a DES key, i.e. the two halves are the same, here we should be deriving a DES
          * session key, i.e. we should preserve the property.
          */
-        if (_degenerate) {
+        if (is_degenerate()) {
             std::copy_n(btrg, 8, btrg + 8);
         } else {
             std::copy_n(bsrc + 4, 4, btrg + 8);

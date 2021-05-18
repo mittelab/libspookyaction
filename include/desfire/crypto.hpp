@@ -52,6 +52,9 @@ namespace desfire {
         void init_session(range<std::uint8_t const *> random_data) final;
     };
 
+    /**
+     * @todo Enforce setup_with_key by making final and adding extra virtual fn
+     */
     class crypto_2k3des_base : public crypto {
         bool _degenerate = false;
 

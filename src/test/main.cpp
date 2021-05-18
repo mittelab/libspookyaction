@@ -27,6 +27,7 @@ void unity_perform_cipher_tests() {
     RUN_TEST(ut::desfire_exchanges::test_change_key_aes);
     RUN_TEST(ut::desfire_exchanges::test_change_key_des);
     RUN_TEST(ut::desfire_exchanges::test_change_key_2k3des);
+    RUN_TEST(ut::desfire_exchanges::test_change_key_2k3des_regression);
     RUN_TEST(ut::desfire_exchanges::test_create_write_file_rx_cmac);
     RUN_TEST(ut::desfire_exchanges::test_get_key_version_rx_cmac);
     RUN_TEST(ut::desfire_exchanges::test_write_data_cmac_des);

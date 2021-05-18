@@ -30,14 +30,14 @@ namespace desfire {
         std::fill(std::begin(rg_key_nopad), std::end(rg_key_nopad), 0);
 
         // Do the initial crypto_provider. Should use a 0-filled IV. We use the padded key which we just reset.
-        crypto_provider().do_crypto(rg_key_nopad, rg_key_pad, crypto_operation::mac);
+        crypto_provider().do_crypto(rg_key_pad, rg_key_nopad, crypto_operation::mac);
 
-        // rg_key_pad contains garbage now, process the nopad key first
-        prepare_subkey(rg_key_nopad, last_byte_xor());
+        // rg_key_nopad contains garbage now, process the nopad key first
+        prepare_subkey(rg_key_pad, last_byte_xor());
 
         // Copy the nopad key to the pad key, and do it again
-        std::copy(std::begin(rg_key_nopad), std::end(rg_key_nopad), std::begin(rg_key_pad));
-        prepare_subkey(rg_key_nopad, last_byte_xor());
+        std::copy(std::begin(rg_key_pad), std::end(rg_key_pad), std::begin(rg_key_nopad));
+        prepare_subkey(rg_key_pad, last_byte_xor());
 
         ESP_LOGD(DESFIRE_TAG " KEY", "CMAC key for unpadded data:");
         ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " KEY", _subkey_nopad.get(), block_size(), ESP_LOG_DEBUG);

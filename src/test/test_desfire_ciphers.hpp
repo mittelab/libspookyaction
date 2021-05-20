@@ -5,11 +5,11 @@
 #ifndef KEYCARD_ACCESS_TEST_DESFIRE_CIPHERS_HPP
 #define KEYCARD_ACCESS_TEST_DESFIRE_CIPHERS_HPP
 
-#include <desfire/crypto.hpp>
 #include <desfire/cipher_provider.hpp>
+#include <desfire/crypto.hpp>
+#include <desfire/esp32/crypto_impl.hpp>
 #include <mlab/bin_data.hpp>
 #include <unity.h>
-#include <desfire/esp32/crypto_impl.hpp>
 
 namespace ut {
     namespace {
@@ -30,6 +30,7 @@ namespace ut {
 
     protected:
         void setup_primitives_with_key(range<std::uint8_t const *> key) override;
+
     public:
         fake_cmac_crypto();
 
@@ -94,6 +95,6 @@ namespace ut {
     void fake_cmac_crypto<CryptoImpl, BlockSize>::do_crypto(range<std::uint8_t *> data, range<std::uint8_t *> iv, desfire::crypto_operation op) {
         _impl.do_crypto(data, iv, op);
     }
-}
+}// namespace ut
 
 #endif//KEYCARD_ACCESS_TEST_DESFIRE_CIPHERS_HPP

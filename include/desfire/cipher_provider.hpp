@@ -38,10 +38,9 @@ namespace desfire {
 namespace desfire {
 
     template <class CryptoDES, class Crypto2K3DES, class Crypto3K3DES, class CryptoAES,
-            class CipherDES, class Cipher2K3DES, class Cipher3K3DES, class CipherAES>
+              class CipherDES, class Cipher2K3DES, class Cipher3K3DES, class CipherAES>
     std::unique_ptr<cipher> typed_cipher_provider<CryptoDES, Crypto2K3DES, Crypto3K3DES, CryptoAES,
-            CipherDES, Cipher2K3DES, Cipher3K3DES, CipherAES>::setup_from_key(any_key const &key)
-    {
+                                                  CipherDES, Cipher2K3DES, Cipher3K3DES, CipherAES>::setup_from_key(any_key const &key) {
         switch (key.type()) {
             case cipher_type::des: {
                 auto crypto = std::make_unique<CryptoDES>();

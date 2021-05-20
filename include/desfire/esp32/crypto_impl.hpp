@@ -41,6 +41,7 @@ namespace desfire::esp32 {
 
     protected:
         void setup_with_key_internal(range<std::uint8_t const *> key) override;
+
     public:
         void do_crypto(range<std::uint8_t *> data, range<std::uint8_t *> iv, crypto_operation op) override;
         crypto_2k3des();

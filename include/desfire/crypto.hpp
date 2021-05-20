@@ -57,6 +57,7 @@ namespace desfire {
 
     protected:
         virtual void setup_with_key_internal(range<std::uint8_t const *> key) = 0;
+
     public:
         [[nodiscard]] inline bool is_degenerate() const;
         [[nodiscard]] inline desfire::cipher_type cipher_type() const final;

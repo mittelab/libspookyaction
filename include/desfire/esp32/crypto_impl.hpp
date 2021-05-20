@@ -39,8 +39,9 @@ namespace desfire::esp32 {
         mbedtls_des3_context _dec_context;
         mbedtls_des3_context _mac_enc_context;
 
+    protected:
+        void setup_with_key_internal(range<std::uint8_t const *> key) override;
     public:
-        void setup_with_key(range<std::uint8_t const *> key) override;
         void do_crypto(range<std::uint8_t *> data, range<std::uint8_t *> iv, crypto_operation op) override;
         crypto_2k3des();
         ~crypto_2k3des() override;

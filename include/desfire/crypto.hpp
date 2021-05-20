@@ -52,16 +52,15 @@ namespace desfire {
         void init_session(range<std::uint8_t const *> random_data) final;
     };
 
-    /**
-     * @todo Enforce setup_with_key by making final and adding extra virtual fn
-     */
     class crypto_2k3des_base : public crypto {
         bool _degenerate = false;
 
+    protected:
+        virtual void setup_with_key_internal(range<std::uint8_t const *> key) = 0;
     public:
         [[nodiscard]] inline bool is_degenerate() const;
         [[nodiscard]] inline desfire::cipher_type cipher_type() const final;
-        void setup_with_key(range<std::uint8_t const *> key) override;
+        void setup_with_key(range<std::uint8_t const *> key) final;
         void init_session(range<std::uint8_t const *> random_data) final;
     };
 

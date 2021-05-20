@@ -270,6 +270,8 @@ namespace desfire {
 
     void cipher_default::init_session(bin_data const &random_data) {
         crypto_provider().init_session(random_data.data_view());
+        // Reset the IV
+        std::fill_n(_iv.get(), this->crypto_provider().block_size(), 0x00);
     }
 
 }// namespace desfire

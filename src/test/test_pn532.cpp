@@ -12,44 +12,44 @@
 #define TEST_TAG "UT"
 
 #ifndef PN532_SERIAL_RX
-#define PN532_SERIAL_RX (GPIO_NUM_16)
+#define PN532_SERIAL_RX (GPIO_NUM_33)
 #endif
 #ifndef PN532_SERIAL_TX
-#define PN532_SERIAL_TX (GPIO_NUM_17)
+#define PN532_SERIAL_TX (GPIO_NUM_32)
 #endif
 
 #ifndef PN532_I2C_SCL
-#define PN532_I2C_SCL (GPIO_NUM_16)
+#define PN532_I2C_SCL (GPIO_NUM_33)
 #endif
 #ifndef PN532_I2C_SDA
-#define PN532_I2C_SDA (GPIO_NUM_17)
+#define PN532_I2C_SDA (GPIO_NUM_32)
 #endif
 
 #ifndef PN532_SPI_MISO
-#define PN532_SPI_MISO (GPIO_NUM_27)
+#define PN532_SPI_MISO (GPIO_NUM_5)
 #endif
 #ifndef PN532_SPI_MOSI
-#define PN532_SPI_MOSI (GPIO_NUM_25)
+#define PN532_SPI_MOSI (GPIO_NUM_17)
 #endif
 #ifndef PN532_SPI_SCK
-#define PN532_SPI_SCK (GPIO_NUM_14)
+#define PN532_SPI_SCK (GPIO_NUM_18)
 #endif
 #ifndef PN532_SPI_SS
-#define PN532_SPI_SS (GPIO_NUM_26)
+#define PN532_SPI_SS (GPIO_NUM_16)
 #endif
 
 #ifndef PN532_I0
-#define PN532_I0 (GPIO_NUM_18)
+#define PN532_I0 (GPIO_NUM_23)
 #endif
 #ifndef PN532_I1
-#define PN532_I1 (GPIO_NUM_19)
+#define PN532_I1 (GPIO_NUM_22)
 #endif
 #ifndef PN532_RSTN
-#define PN532_RSTN (GPIO_NUM_21)
+#define PN532_RSTN (GPIO_NUM_19)
 #endif
 
 #ifndef PN532_IRQ
-#define PN532_IRQ (GPIO_NUM_13)
+#define PN532_IRQ (GPIO_NUM_4)
 #endif
 
 namespace ut::pn532 {

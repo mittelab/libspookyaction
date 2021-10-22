@@ -13,9 +13,9 @@ framework = espidf
 ;   the reset line with the GPIO pins. We have such machine configured to handle CI/CD jobs. When this macro is defined,
 ;   the code will handle correctly the pins used to switch channel and reset the line.
 
-build_unflags = -std=gnu++11 -std=gnu++14 -std=c++11 -std=c++14
+build_unflags = -std=gnu++11 -std=gnu++14 -std=c++11 -std=c++14 -std=c++17
 build_flags =
-	-std=c++17
+	-std=gnu++17
     -Wall -Wextra
 	-D CONFIG_MBEDTLS_DES_C
 	-D KEYCARD_UNIT_TEST_MAIN

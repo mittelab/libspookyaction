@@ -42,7 +42,7 @@ check format:
   image: alpine
   allow_failure: true
   before_script:
-    - apk add --update --no-cache git clang
+    - apk add --update --no-cache git clang clang-extra-tools
   script:
     - >
       find . \( -not -path '\./\.*' \) -and \( -name '*.[hc]' -or -name '*.[hc]pp' \) | while read -r FILE; do

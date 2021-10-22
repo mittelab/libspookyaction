@@ -6,10 +6,10 @@
 #define DESFIRE_CRYPTO_ALGO_HPP
 
 #include "log.h"
-#include "mlab/bin_data.hpp"
 #include <algorithm>
 #include <cstdint>
 #include <iterator>
+#include <mlab/bin_data.hpp>
 #include <utility>
 
 namespace desfire {

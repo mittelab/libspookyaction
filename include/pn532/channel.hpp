@@ -5,10 +5,10 @@
 #ifndef PN532_CHANNEL_REPL_HPP
 #define PN532_CHANNEL_REPL_HPP
 
-#include "mlab/bin_data.hpp"
-#include "mlab/result.hpp"
-#include "mlab/time.hpp"
 #include <chrono>
+#include <mlab/bin_data.hpp>
+#include <mlab/result.hpp>
+#include <mlab/time.hpp>
 #include <pn532/bits.hpp>
 #include <pn532/log.h>
 #include <pn532/msg.hpp>

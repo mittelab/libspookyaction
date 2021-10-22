@@ -7,10 +7,10 @@
 
 #include "bits.hpp"
 #include "log.h"
-#include "mlab/bin_data.hpp"
-#include "mlab/result.hpp"
 #include "msg.hpp"
 #include <limits>
+#include <mlab/bin_data.hpp>
+#include <mlab/result.hpp>
 
 namespace pn532 {
     using controller_error = bits::error;

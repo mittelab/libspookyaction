@@ -37,8 +37,8 @@
 #include "bits.hpp"
 #include "channel.hpp"
 #include "data.hpp"
-#include "mlab/result.hpp"
 #include "msg.hpp"
+#include <mlab/result.hpp>
 
 namespace pn532 {
     namespace {

@@ -8,8 +8,8 @@
 #include "bits.hpp"
 #include "crypto.hpp"
 #include "log.h"
-#include "mlab/bin_data.hpp"
 #include <memory>
+#include <mlab/bin_data.hpp>
 
 namespace desfire {
     using bits::cipher_mode;

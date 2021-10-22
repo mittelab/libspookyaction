@@ -27,6 +27,7 @@ build_flags =
 test_transport = custom
 monitor_flags = --raw
 test_build_project_src = yes
+lib_deps = https://git.mittelab.org/proj/mittelib.git
 
 ;upload_port=/dev/ttyUSB0
 ;monitor_port=/dev/ttyUSB0

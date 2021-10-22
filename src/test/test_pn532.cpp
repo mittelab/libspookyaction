@@ -72,7 +72,8 @@ namespace ut::pn532 {
                 .scl_io_num = PN532_I2C_SCL,
                 .sda_pullup_en = GPIO_PULLUP_ENABLE,
                 .scl_pullup_en = GPIO_PULLUP_ENABLE,
-                .master = {.clk_speed = 400000}};
+                .master = {.clk_speed = 400000},
+                .clk_flags = I2C_SCLK_SRC_FLAG_FOR_NOMAL};
 
         constexpr spi_bus_config_t spi_bus_config = {
                 .mosi_io_num = PN532_SPI_MOSI,

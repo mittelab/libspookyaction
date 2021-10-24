@@ -4,7 +4,6 @@ include:
 
 stages:
   - check
-  - container
   - build
   - test
   - deploy
@@ -61,40 +60,9 @@ check format:
     - when: always
 
 
-build hardware container:
-  stage: container
-  image: jdrouet/docker-with-buildx
-  needs: []
-  tags:
-    - docker
-  variables:
-    BUILDX_INSTANCE: bad_boy_builder
-  before_script:
-    - docker login -u "${CI_REGISTRY_USER}" -p "${CI_REGISTRY_PASSWORD}" "${CI_REGISTRY}"
-    - docker buildx create --name ${BUILDX_INSTANCE}
-    - docker buildx inspect --bootstrap
-    - docker buildx ls
-    - docker buildx use ${BUILDX_INSTANCE}
-  script:
-    - docker buildx build --platform linux/arm/v7,linux/amd64 --push -t "${CI_REGISTRY}/${CI_PROJECT_PATH}/testinator:latest" cicd
-  after_script:
-    - docker buildx rm ${BUILDX_INSTANCE}
-  rules:
-    # [skip hw container] [rebuild hw container] tags
-    - if: '$CI_COMMIT_BRANCH == "master" && $CI_COMMIT_MESSAGE =~ /rebuild hw container/'
-      when: always
-    - if: '$CI_COMMIT_MESSAGE =~ /skip hw container/'
-      when: never
-    # Otherwise automatically rebuild on master and on merge requests that change the pipeline
-    - <<: *rules-merge-to-master
-      <<: *rules-changes-cicd
-    - <<: *rules-master
-      <<: *rules-changes-cicd
-
-
 build test firmware:
   stage: build
-  image: ${CI_REGISTRY}/${CI_PROJECT_PATH}/testinator:latest
+  image: ${CI_REGISTRY}/proj/testinator/esp32:latest
   <<: *pio-cache
   before_script:
     - cp cicd/platformio.ini platformio.ini
@@ -113,7 +81,7 @@ build test firmware:
 
 
 build examples:
-  image: ${CI_REGISTRY}/${CI_PROJECT_PATH}/testinator:latest
+  image: ${CI_REGISTRY}/proj/testinator/esp32:latest
   stage: build
   <<: *pio-cache
   script:
@@ -137,7 +105,7 @@ build examples:
 
 test hardware:
   stage: test
-  image: ${CI_REGISTRY}/${CI_PROJECT_PATH}/testinator:latest
+  image: ${CI_REGISTRY}/proj/testinator/esp32:latest
   tags:
     - pn532
   dependencies:

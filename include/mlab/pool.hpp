@@ -5,7 +5,7 @@
 #ifndef MLAB_POOL_HPP
 #define MLAB_POOL_HPP
 
-#include "bin_data.hpp"
+#include <mlab/bin_data.hpp>
 
 namespace mlab {
 
@@ -28,12 +28,11 @@ namespace mlab {
         template <class T>
         struct is_clearable_container {
             template <class U>
-            static constexpr decltype(
-            std::begin(std::declval<U const &>()) != std::end(std::declval<U const &>()),
-                    *std::begin(std::declval<U const &>()),
-                    std::next(std::begin(std::declval<U const &>())),
-                    std::declval<U &>().clear(),
-                    bool())
+            static constexpr decltype(std::begin(std::declval<U const &>()) != std::end(std::declval<U const &>()),
+                                      *std::begin(std::declval<U const &>()),
+                                      std::next(std::begin(std::declval<U const &>())),
+                                      std::declval<U &>().clear(),
+                                      bool())
             test_get(int) {
                 return true;
             }
@@ -48,7 +47,7 @@ namespace mlab {
 
         template <class T>
         static constexpr bool is_clearable_container_v = is_clearable_container<T>::value;
-    }
+    }// namespace impl
 
     template <class T>
     using default_borrow_policy = std::conditional_t<impl::is_clearable_container_v<T>, clear_container_policy<T>, no_policy<T>>;
@@ -57,6 +56,7 @@ namespace mlab {
     class pool : public std::enable_shared_from_this<pool<T, Policy>> {
         std::vector<T> _queue{};
         Policy _policy;
+
     public:
         using std::enable_shared_from_this<pool<T, Policy>>::weak_from_this;
 
@@ -82,6 +82,9 @@ namespace mlab {
     class borrowed {
         std::weak_ptr<pool<T, Policy>> _owner{};
         T _obj;
+        bool _was_released;
+
+        [[nodiscard]] bool assert_not_released() const;
 
     public:
         borrowed(borrowed const &) = delete;
@@ -97,6 +100,8 @@ namespace mlab {
 
         inline T *operator->();
         inline T const *operator->() const;
+
+        explicit inline operator bool() const;
 
         bool give_back();
         T release();
@@ -128,35 +133,57 @@ namespace mlab {
 namespace mlab {
 
     template <class T, class Policy>
-    borrowed<T, Policy>::borrowed(std::weak_ptr<pool<T, Policy>> owner) : _owner{std::move(owner)}, _obj{} {}
+    borrowed<T, Policy>::borrowed(std::weak_ptr<pool<T, Policy>> owner) : _owner{std::move(owner)}, _obj{}, _was_released{false} {}
 
     template <class T, class Policy>
-    borrowed<T, Policy>::borrowed(std::weak_ptr<pool<T, Policy>> owner, T &&obj) : _owner{std::move(owner)}, _obj{std::move(obj)} {}
+    borrowed<T, Policy>::borrowed(std::weak_ptr<pool<T, Policy>> owner, T &&obj) : _owner{std::move(owner)}, _obj{std::move(obj)}, _was_released{false} {}
+
+    template <class T, class Policy>
+    borrowed<T, Policy>::operator bool() const {
+        return not _was_released;
+    }
 
     template <class T, class Policy>
     T &borrowed<T, Policy>::operator*() {
+        static_cast<void>(assert_not_released());
         return _obj;
     }
 
     template <class T, class Policy>
     T const &borrowed<T, Policy>::operator*() const {
+        static_cast<void>(assert_not_released());
         return _obj;
     }
 
     template <class T, class Policy>
     T *borrowed<T, Policy>::operator->() {
+        static_cast<void>(assert_not_released());
         return &_obj;
     }
 
     template <class T, class Policy>
     T const *borrowed<T, Policy>::operator->() const {
+        static_cast<void>(assert_not_released());
         return &_obj;
     }
 
     template <class T, class Policy>
     T borrowed<T, Policy>::release() {
-        _owner.reset();
-        return std::move(_obj);
+        if (assert_not_released()) {
+            _was_released = true;
+            _owner.reset();
+            return std::move(_obj);
+        }
+        return T{};
+    }
+
+    template <class T, class Policy>
+    bool borrowed<T, Policy>::assert_not_released() const {
+        if (not bool(*this)) {
+            ESP_LOGE("MLAB", "Attempt at referencing a borrowed object that was already released or returned.");
+            return false;
+        }
+        return true;
     }
 
     template <class T, class Policy>

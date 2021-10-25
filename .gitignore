@@ -8,6 +8,6 @@ build
 platformio.ini
 compile_commands.json
 sdkconfig
-sdkconfig.h
+sdkconfig.*
 docs/_build
 compile_commands.json.bak

@@ -1,36 +1,83 @@
-[env:m5stack-core-esp32]
+[env:esp32dev]
 platform = espressif32
 framework = espidf
+; board = esp32dev
+lib_deps = https://git.mittelab.org/proj/mittelib.git
 
+; upload_port=/dev/ttyUSB0
+; monitor_port=/dev/ttyUSB0
+; test_port=/dev/ttyUSB0
+; monitor_speed = 115200
+
+; Configuration macro explanation
+; ----
+;
 ; CONFIG_MBEDTLS_DES_C: DES is not included by default in Mbedtls, we have to define this.
+;
 ; KEYCARD_UNIT_TEST_MAIN: when defined, compiles a `void app_main()` that kicks off the unit tests.
-; KEYCARD_HSU: define to test over the HSU channel
-; KEYCARD_I2C: define to test over the I2C channel
-; KEYCARD_I2C_IRQ: define to test over the I2C channel with the IRQ line instead of polling answer
-; KEYCARD_SPI: define to test over the SPI channel
-; KEYCARD_SPI: define to test over the SPI channel with the IRQ line instead of polling answer
+;
+; KEYCARD_HSU: define to test over the HSU channel, requires to define the macros
+;   PN532_SERIAL_TX: the GPIO pin number connected to the TX line on the PN532
+;   PN532_SERIAL_RX: the GPIO pin number connected to the RX line on the PN532
+;
+; KEYCARD_I2C: define to test over the I2C channel, requires to define the macros
+;   PN532_I2C_SCL: the GPIO pin number connected to I2C SCL
+;   PN532_I2C_SDA: the GPIO pin number connected to I2C SDA
+;
+; KEYCARD_I2C_IRQ: define to test over the I2C channel with the IRQ line instead of polling answer, requires to define
+;   PN532_I2C_SCL: the GPIO pin number connected to I2C SCL
+;   PN532_I2C_SDA: the GPIO pin number connected to I2C SDA
+;   PN532_IRQ: the GPIO pin number connected to the IRQ line of the PN532
+;
+; KEYCARD_SPI: define to test over the SPI channel, requires to define the macros
+;   PN532_SPI_MISO: the GPIO pin number connected to SPI MISO
+;   PN532_SPI_MOSI: the GPIO pin number connected to SPI MOSI
+;   PN532_SPI_SCK: the GPIO pin number connected to SPI SCK
+;   PN532_SPI_SS: the GPIO pin number connected to SPI SS
+;
+; KEYCARD_SPI_IRQ: define to test over the SPI channel with the IRQ line instead of polling answer
+;   PN532_SPI_MISO: the GPIO pin number connected to SPI MISO
+;   PN532_SPI_MOSI: the GPIO pin number connected to SPI MOSI
+;   PN532_SPI_SCK: the GPIO pin number connected to SPI SCK
+;   PN532_SPI_SS: the GPIO pin number connected to SPI SS
+;   PN532_IRQ: the GPIO pin number connected to the IRQ line of the PN532
+;
 ; KEYCARD_CI_CD_MACHINE: it is possible to make the PN532 automatically switch channel by controlling the switches and
 ;   the reset line with the GPIO pins. We have such machine configured to handle CI/CD jobs. When this macro is defined,
-;   the code will handle correctly the pins used to switch channel and reset the line.
+;   the code will handle correctly the pins used to switch channel and reset the line. Requires to define the macros
+;   PN532_I0: the GPIO pin number which connects to the I0 switch on the PN532
+;   PN532_I1: the GPIO pin number which connects to the I1 switch on the PN532
+;   PN532_RSTN: the GPIO pin number which connects to the RSTN line on the PN532
+;
 
 build_unflags = -std=gnu++11 -std=gnu++14 -std=c++11 -std=c++14 -std=c++17
 build_flags =
-	-std=gnu++17
+    -std=gnu++17
     -Wall -Wextra
-	-D CONFIG_MBEDTLS_DES_C
-	-D KEYCARD_UNIT_TEST_MAIN
-	-D KEYCARD_HSU
-;    -D LOG_LOCAL_LEVEL=ESP_LOG_DEBUG
-;    -D CORE_DEBUG_LEVEL=5
+    -D CONFIG_MBEDTLS_DES_C
+    -D KEYCARD_UNIT_TEST_MAIN
+;       -D PN532_IRQ 4
+    -D KEYCARD_HSU
+;       -D PN532_SERIAL_TX 32
+;       -D PN532_SERIAL_RX 33
+;   -D KEYCARD_I2C
+;   -D KEYCARD_I2C_IRQ
+;       -D PN532_I2C_SCL 33
+;       -D PN532_I2C_SDA 32
+;   -D KEYCARD_SPI
+;   -D KEYCARD_SPI_IRQ
+;       -D PN532_SPI_MISO 5
+;       -D PN532_SPI_MOSI 17
+;       -D PN532_SPI_SCK 18
+;       -D PN532_SPI_SS 16
+;   -D KEYCARD_CI_CD_MACHINE
+;       -D PN532_I0 23
+;       -D PN532_I1 22
+;       -D PN532_RSTN 19
+;   -D LOG_LOCAL_LEVEL=ESP_LOG_DEBUG
+;   -D CORE_DEBUG_LEVEL=5
 
 ; These settings combined with -D KEYCARD_UNIT_TEST_MAIN allow to compile the tests with `pio run` which is not
 test_transport = custom
 monitor_flags = --raw
 test_build_project_src = yes
-lib_deps = https://git.mittelab.org/proj/mittelib.git
-
-;upload_port=/dev/ttyUSB0
-;monitor_port=/dev/ttyUSB0
-;test_port=/dev/ttyUSB0
-;monitor_speed = 115200
-;board = m5stack-core-esp32

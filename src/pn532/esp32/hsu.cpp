@@ -44,9 +44,7 @@ namespace pn532::esp32 {
 
     hsu_channel::~hsu_channel() {
         if (_port != UART_NUM_MAX) {
-            if (const auto res = uart_driver_delete(_port); res != ESP_OK) {
-                ESP_LOGW(PN532_HSU_TAG, "uart_driver_delete failed, return code %d (%s).", res, esp_err_to_name(res));
-            }
+            ESP_ERROR_CHECK_WITHOUT_ABORT(uart_driver_delete(_port));
         }
     }
 
@@ -98,9 +96,7 @@ namespace pn532::esp32 {
         std::size_t read_length = 0;
         while (read_length < buffer.size() and rt) {
             std::size_t buffer_length = 0;
-            if (const auto res = uart_get_buffered_data_len(_port, &buffer_length); res != ESP_OK) {
-                ESP_LOGE(PN532_HSU_TAG, "uart_get_buffered_data_len failed with status %d (%s).", res, esp_err_to_name(res));
-            }
+            ESP_ERROR_CHECK_WITHOUT_ABORT(uart_get_buffered_data_len(_port, &buffer_length));
             if (buffer_length == 0) {
                 // Wait a bit before retrying
                 vTaskDelay(duration_cast(10ms));

@@ -56,42 +56,32 @@ namespace pn532::esp32 {
 
         void command::write(std::uint8_t b, bool enable_ack_check) {
             if (assert_unused()) {
-                if (const auto res = i2c_master_write_byte(_handle, b, enable_ack_check); res != ESP_OK) {
-                    ESP_LOGE(PN532_I2C_TAG, "i2c_master_write_byte failed with status %d (%s).", res, esp_err_to_name(res));
-                }
+                ESP_ERROR_CHECK_WITHOUT_ABORT(i2c_master_write_byte(_handle, b, enable_ack_check));
             }
         }
 
 
         void command::write(mlab::range<const uint8_t *> data, bool enable_ack_check) {
             if (assert_unused()) {
-                if (const auto res = i2c_master_write(_handle, const_cast<std::uint8_t *>(&*std::begin(data)), data.size(), enable_ack_check); res != ESP_OK) {
-                    ESP_LOGE(PN532_I2C_TAG, "i2c_master_write failed with status %d (%s).", res, esp_err_to_name(res));
-                }
+                ESP_ERROR_CHECK_WITHOUT_ABORT(i2c_master_write(_handle, const_cast<std::uint8_t *>(&*std::begin(data)), data.size(), enable_ack_check));
             }
         }
 
         void command::read(mlab::range<uint8_t *> buffer, i2c_ack_type_t ack) {
             if (assert_unused()) {
-                if (const auto res = i2c_master_read(_handle, &*std::begin(buffer), buffer.size(), ack); res != ESP_OK) {
-                    ESP_LOGE(PN532_I2C_TAG, "i2c_master_read failed with status %d (%s).", res, esp_err_to_name(res));
-                }
+                ESP_ERROR_CHECK_WITHOUT_ABORT(i2c_master_read(_handle, &*std::begin(buffer), buffer.size(), ack));
             }
         }
 
         void command::read(std::uint8_t &b, i2c_ack_type_t ack) {
             if (assert_unused()) {
-                if (const auto res = i2c_master_read_byte(_handle, &b, ack); res != ESP_OK) {
-                    ESP_LOGE(PN532_I2C_TAG, "i2c_master_read_byte failed with status %d (%s).", res, esp_err_to_name(res));
-                }
+                ESP_ERROR_CHECK_WITHOUT_ABORT(i2c_master_read_byte(_handle, &b, ack));
             }
         }
 
         void command::stop() {
             if (assert_unused()) {
-                if (const auto res = i2c_master_stop(_handle); res != ESP_OK) {
-                    ESP_LOGE(PN532_I2C_TAG, "i2c_master_stop failed with status %d (%s).", res, esp_err_to_name(res));
-                }
+                ESP_ERROR_CHECK_WITHOUT_ABORT(i2c_master_stop(_handle));
             }
         }
 
@@ -180,9 +170,7 @@ namespace pn532::esp32 {
             _port = I2C_NUM_MAX;
             return;
         }
-        if (const auto res = i2c_set_timeout(port, i2c_driver_timeout); res != ESP_OK) {
-            ESP_LOGW(PN532_I2C_TAG, "i2c_set_timeout failed, return code %d (%s). Proceeding anyway.", res, esp_err_to_name(res));
-        }
+        ESP_ERROR_CHECK_WITHOUT_ABORT(i2c_set_timeout(port, i2c_driver_timeout));
     }
     i2c_channel::i2c_channel(i2c_port_t port, i2c_config_t config, gpio_num_t response_irq_line, bool manage_isr_service, std::uint8_t slave_address) : i2c_channel{port, config, slave_address} {
         // Prepare the IRQ assertion too
@@ -191,9 +179,7 @@ namespace pn532::esp32 {
 
     i2c_channel::~i2c_channel() {
         if (_port != I2C_NUM_MAX) {
-            if (const auto res = i2c_driver_delete(_port); res != ESP_OK) {
-                ESP_LOGW(PN532_I2C_TAG, "i2c_driver_delete failed, return code %d (%s).", res, esp_err_to_name(res));
-            }
+            ESP_ERROR_CHECK_WITHOUT_ABORT(i2c_driver_delete(_port));
         }
     }
 

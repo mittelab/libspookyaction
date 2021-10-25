@@ -150,7 +150,7 @@ namespace pn532::esp32 {
             ESP_LOGE(PN532_SPI_TAG, "spi_bus_initialize failed, return code %d (%s).", res, esp_err_to_name(res));
             return;
         }
-        // Save the host so we know we have to free it
+        // Save the host, so we know we have to free it
         _host = host;
         // Patch the device options
         device_cfg.address_bits = 0;
@@ -164,6 +164,7 @@ namespace pn532::esp32 {
         }
         if (const auto res = spi_bus_add_device(host, &device_cfg, &_device); res != ESP_OK) {
             ESP_LOGE(PN532_SPI_TAG, "spi_bus_add_device failed, return code %d (%s).", res, esp_err_to_name(res));
+            // Make sure we will not try to do anything with _device:
             _device = nullptr;
         }
     }
@@ -176,15 +177,11 @@ namespace pn532::esp32 {
 
     spi_channel::~spi_channel() {
         if (_device != nullptr) {
-            if (const auto res = spi_bus_remove_device(_device); res != ESP_OK) {
-                ESP_LOGW(PN532_SPI_TAG, "spi_bus_remove_device failed, return code %d (%s).", res, esp_err_to_name(res));
-            }
+            ESP_ERROR_CHECK_WITHOUT_ABORT(spi_bus_remove_device(_device));
             _device = nullptr;
         }
         if (_host) {
-            if (const auto res = spi_bus_free(_host.value()); res != ESP_OK) {
-                ESP_LOGW(PN532_SPI_TAG, "spi_bus_free failed, return code %d (%s).", res, esp_err_to_name(res));
-            }
+            ESP_ERROR_CHECK_WITHOUT_ABORT(spi_bus_free(_host.value()));
             _host = std::nullopt;
         }
     }

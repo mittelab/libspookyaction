@@ -499,7 +499,7 @@ namespace pn532 {
          * @return The same result as the one specified
          */
         template <class... Tn, class... Args>
-        [[nodiscard]] inline result<Tn...> update(Args &&... args);
+        [[nodiscard]] inline result<Tn...> update(Args &&...args);
         /**
          * @}
          */
@@ -551,7 +551,7 @@ namespace pn532 {
     }
 
     template <class... Tn, class... Args>
-    channel::result<Tn...> channel::comm_operation::update(Args &&... args) {
+    channel::result<Tn...> channel::comm_operation::update(Args &&...args) {
         result<Tn...> retval{std::forward<Args>(args)...};
         if (retval) {
             _result = mlab::result_success;

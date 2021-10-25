@@ -1,3 +1,4 @@
+#include "pn532_pinout.hpp"
 #include "test_desfire_ciphers.hpp"
 #include "test_desfire_exchanges.hpp"
 #include "test_desfire_files.hpp"
@@ -35,11 +36,10 @@ void unity_perform_cipher_tests() {
 
 std::shared_ptr<ut::pn532::test_instance> unity_perform_pn532_tests(ut::pn532::channel_type channel) {
     if (not ut::pn532::channel_is_supported(channel)) {
-#ifdef KEYCARD_CI_CD_MACHINE
-        ESP_LOGE(TEST_TAG, "Unsupported channel %s.", ut::pn532::to_string(channel));
-#else
-        ESP_LOGW(TEST_TAG, "Unsupported channel %s.", ut::pn532::to_string(channel));
-#endif
+        ESP_LOG_LEVEL(
+                (ut::pn532::supports_cicd_machine ? ESP_LOG_ERROR : ESP_LOG_WARN),
+                TEST_TAG,
+                "Unsupported channel %s.", ut::pn532::to_string(channel));
         return nullptr;
     }
     auto instance = ut::pn532::try_activate_channel(channel);

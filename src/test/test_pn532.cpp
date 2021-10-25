@@ -3,7 +3,6 @@
 //
 
 #include "test_pn532.hpp"
-#include "ensure_pn532_pinout.hpp"
 #include <pn532/esp32/hsu.hpp>
 #include <pn532/esp32/i2c.hpp>
 #include <pn532/esp32/spi.hpp>
@@ -28,17 +27,17 @@ namespace ut::pn532 {
 
         constexpr i2c_config_t i2c_config = {
                 .mode = I2C_MODE_MASTER,
-                .sda_io_num = config::pn532_i2c_sda,
-                .scl_io_num = config::pn532_i2c_scl,
+                .sda_io_num = pinout::pn532_i2c_sda,
+                .scl_io_num = pinout::pn532_i2c_scl,
                 .sda_pullup_en = GPIO_PULLUP_ENABLE,
                 .scl_pullup_en = GPIO_PULLUP_ENABLE,
                 .master = {.clk_speed = 400000},
                 .clk_flags = I2C_SCLK_SRC_FLAG_FOR_NOMAL};
 
         constexpr spi_bus_config_t spi_bus_config = {
-                .mosi_io_num = config::pn532_spi_mosi,
-                .miso_io_num = config::pn532_spi_miso,
-                .sclk_io_num = config::pn532_spi_sck,
+                .mosi_io_num = pinout::pn532_spi_mosi,
+                .miso_io_num = pinout::pn532_spi_miso,
+                .sclk_io_num = pinout::pn532_spi_sck,
                 .quadwp_io_num = GPIO_NUM_NC,
                 .quadhd_io_num = GPIO_NUM_NC,
                 .max_transfer_sz = 0,
@@ -55,7 +54,7 @@ namespace ut::pn532 {
                 .cs_ena_posttrans = 0,
                 .clock_speed_hz = 1'000'000 /** @note Max supported 5MHz by PN532, but it will not pass comm tests o/w. **/,
                 .input_delay_ns = 0,
-                .spics_io_num = config::pn532_spi_ss,
+                .spics_io_num = pinout::pn532_spi_ss,
                 .flags = 0,
                 .queue_size = 1,
                 .pre_cb = nullptr,
@@ -224,12 +223,12 @@ namespace ut::pn532 {
      */
 
     std::shared_ptr<test_instance> try_activate_channel(channel_type type) {
-        if constexpr (config::supports_cicd_machine) {
-            gpio_set_direction(config::pn532_cicd_rstn, GPIO_MODE_OUTPUT);
-            gpio_set_direction(config::pn532_cicd_i0, GPIO_MODE_OUTPUT);
-            gpio_set_direction(config::pn532_cicd_i1, GPIO_MODE_OUTPUT);
+        if constexpr (supports_cicd_machine) {
+            gpio_set_direction(pinout::pn532_cicd_rstn, GPIO_MODE_OUTPUT);
+            gpio_set_direction(pinout::pn532_cicd_i0, GPIO_MODE_OUTPUT);
+            gpio_set_direction(pinout::pn532_cicd_i1, GPIO_MODE_OUTPUT);
             // Power cycle the pn532
-            gpio_set_level(config::pn532_cicd_rstn, 0);
+            gpio_set_level(pinout::pn532_cicd_rstn, 0);
             vTaskDelay(pdMS_TO_TICKS(500));
         } else {
             ESP_LOGW(TEST_TAG, "Not running on multi-channel CI/CD machine, the PN532 will not be power-cycled.");
@@ -241,47 +240,47 @@ namespace ut::pn532 {
         }
         ESP_LOGI(TEST_TAG, "Activating channel %s...", to_string(type));
 
-        if constexpr (config::supports_cicd_machine) {
+        if constexpr (supports_cicd_machine) {
             // Configure I0/I1 for the selected mode
             switch (type) {
                 case channel_type::hsu:
-                    gpio_set_level(config::pn532_cicd_i0, 0);
-                    gpio_set_level(config::pn532_cicd_i1, 0);
+                    gpio_set_level(pinout::pn532_cicd_i0, 0);
+                    gpio_set_level(pinout::pn532_cicd_i1, 0);
                     break;
                 case channel_type::i2c:
                     [[fallthrough]];
                 case channel_type::i2c_irq:
-                    gpio_set_level(config::pn532_cicd_i0, 1);
-                    gpio_set_level(config::pn532_cicd_i1, 0);
+                    gpio_set_level(pinout::pn532_cicd_i0, 1);
+                    gpio_set_level(pinout::pn532_cicd_i1, 0);
                     break;
                 case channel_type::spi:
                     [[fallthrough]];
                 case channel_type::spi_irq:
-                    gpio_set_level(config::pn532_cicd_i0, 0);
-                    gpio_set_level(config::pn532_cicd_i1, 1);
+                    gpio_set_level(pinout::pn532_cicd_i0, 0);
+                    gpio_set_level(pinout::pn532_cicd_i1, 1);
                     break;
             }
             // Release reset line to power cycle
-            gpio_set_level(config::pn532_cicd_rstn, 1);
+            gpio_set_level(pinout::pn532_cicd_rstn, 1);
             vTaskDelay(pdMS_TO_TICKS(500));
         }
 
         std::unique_ptr<pn532::channel> channel = nullptr;
         switch (type) {
             case channel_type::hsu:
-                channel = std::make_unique<pn532::esp32::hsu_channel>(UART_NUM_1, uart_config, config::pn532_hsu_tx, config::pn532_hsu_rx);
+                channel = std::make_unique<pn532::esp32::hsu_channel>(UART_NUM_1, uart_config, pinout::pn532_hsu_tx, pinout::pn532_hsu_rx);
                 break;
             case channel_type::i2c:
                 channel = std::make_unique<pn532::esp32::i2c_channel>(I2C_NUM_0, i2c_config);
                 break;
             case channel_type::i2c_irq:
-                channel = std::make_unique<pn532::esp32::i2c_channel>(I2C_NUM_0, i2c_config, config::pn532_irq, true);
+                channel = std::make_unique<pn532::esp32::i2c_channel>(I2C_NUM_0, i2c_config, pinout::pn532_irq, true);
                 break;
             case channel_type::spi:
                 channel = std::make_unique<pn532::esp32::spi_channel>(SPI2_HOST, spi_bus_config, spi_device_config, 1);
                 break;
             case channel_type::spi_irq:
-                channel = std::make_unique<pn532::esp32::spi_channel>(SPI2_HOST, spi_bus_config, spi_device_config, 1, config::pn532_irq, true);
+                channel = std::make_unique<pn532::esp32::spi_channel>(SPI2_HOST, spi_bus_config, spi_device_config, 1, pinout::pn532_irq, true);
                 break;
         }
         ESP_LOGI(TEST_TAG, "Channel %s ready.", to_string(type));

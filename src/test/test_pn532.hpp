@@ -5,6 +5,7 @@
 #ifndef KEYCARD_ACCESS_TEST_PN532_HPP
 #define KEYCARD_ACCESS_TEST_PN532_HPP
 
+#include "pn532_pinout.hpp"
 #include "registrar.hpp"
 #include <memory>
 #include <pn532/controller.hpp>
@@ -42,16 +43,6 @@ namespace ut {
 
     namespace pn532 {
         using test_instance = test_instance<test_tag>;
-
-        enum struct channel_type {
-            hsu,
-            i2c,
-            i2c_irq,
-            spi,
-            spi_irq
-        };
-
-        [[nodiscard]] bool channel_is_supported(channel_type type);
 
         std::shared_ptr<test_instance> try_activate_channel(channel_type type);
 

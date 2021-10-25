@@ -2,8 +2,8 @@
 // Created by spak on 3/16/21.
 //
 
-#ifndef KEYCARD_ACCESS_TEST_DESFIRE_CIPHERS_HPP
-#define KEYCARD_ACCESS_TEST_DESFIRE_CIPHERS_HPP
+#ifndef SPOOKY_ACTION_TEST_DESFIRE_CIPHERS_HPP
+#define SPOOKY_ACTION_TEST_DESFIRE_CIPHERS_HPP
 
 #include <desfire/cipher_provider.hpp>
 #include <desfire/crypto.hpp>
@@ -97,4 +97,4 @@ namespace ut {
     }
 }// namespace ut
 
-#endif//KEYCARD_ACCESS_TEST_DESFIRE_CIPHERS_HPP
+#endif//SPOOKY_ACTION_TEST_DESFIRE_CIPHERS_HPP

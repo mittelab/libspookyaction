@@ -2,8 +2,8 @@
 // Created by spak on 3/23/21.
 //
 
-#ifndef KEYCARD_ACCESS_TEST_DESFIRE_FILES_HPP
-#define KEYCARD_ACCESS_TEST_DESFIRE_FILES_HPP
+#ifndef SPOOKY_ACTION_TEST_DESFIRE_FILES_HPP
+#define SPOOKY_ACTION_TEST_DESFIRE_FILES_HPP
 
 #include "registrar.hpp"
 #include "test_desfire_main.hpp"
@@ -70,4 +70,4 @@ namespace ut {
     }// namespace desfire_files
 }// namespace ut
 
-#endif//KEYCARD_ACCESS_TEST_DESFIRE_FILES_HPP
+#endif//SPOOKY_ACTION_TEST_DESFIRE_FILES_HPP

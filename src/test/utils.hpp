@@ -2,8 +2,8 @@
 // Created by spak on 2/7/21.
 //
 
-#ifndef KEYCARD_ACCESS_UTILS_HPP
-#define KEYCARD_ACCESS_UTILS_HPP
+#ifndef SPOOKY_ACTION_UTILS_HPP
+#define SPOOKY_ACTION_UTILS_HPP
 
 namespace ut {
 
@@ -23,4 +23,4 @@ namespace ut {
 
 }// namespace ut
 
-#endif//KEYCARD_ACCESS_UTILS_HPP
+#endif//SPOOKY_ACTION_UTILS_HPP

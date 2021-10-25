@@ -2,8 +2,8 @@
 // Created by spak on 10/25/21.
 //
 
-#ifndef KEYCARD_ACCESS_PN532_PINOUT_HPP
-#define KEYCARD_ACCESS_PN532_PINOUT_HPP
+#ifndef SPOOKY_ACTION_PN532_PINOUT_HPP
+#define SPOOKY_ACTION_PN532_PINOUT_HPP
 
 #include <driver/gpio.h>
 
@@ -92,36 +92,36 @@ namespace ut::pn532 {
 #endif
     }// namespace pinout
 
-#ifdef KEYCARD_I2C
+#ifdef SPOOKY_I2C
     static constexpr bool supports_i2c = true;
 #else
     static constexpr bool supports_i2c = false;
 #endif
-#ifdef KEYCARD_I2C_IRQ
+#ifdef SPOOKY_I2C_IRQ
     static constexpr bool supports_i2c_irq = true;
 #else
     static constexpr bool supports_i2c_irq = false;
 #endif
 
-#ifdef KEYCARD_SPI
+#ifdef SPOOKY_SPI
     static constexpr bool supports_spi = true;
 #else
     static constexpr bool supports_spi = false;
 #endif
-#ifdef KEYCARD_SPI_IRQ
+#ifdef SPOOKY_SPI_IRQ
     static constexpr bool supports_spi_irq = true;
 #else
     static constexpr bool supports_spi_irq = false;
 #endif
 
 
-#ifdef KEYCARD_HSU
+#ifdef SPOOKY_HSU
     static constexpr bool supports_hsu = true;
 #else
     static constexpr bool supports_hsu = false;
 #endif
 
-#ifdef KEYCARD_CI_CD_MACHINE
+#ifdef SPOOKY_CI_CD_MACHINE
     static constexpr bool supports_cicd_machine = true;
 #else
     static constexpr bool supports_cicd_machine = false;
@@ -147,28 +147,28 @@ namespace ut::pn532 {
 #define PN532_ASSERT_DEFINED_PIN(PIN_MACRO) \
     static_assert(PIN_MACRO > GPIO_NUM_NC and PIN_MACRO < GPIO_NUM_MAX, "You did not define macro " #PIN_MACRO " (must be a valid GPIO pin).")
 
-#if defined(KEYCARD_I2C) || defined(KEYCARD_I2C_IRQ)
+#if defined(SPOOKY_I2C) || defined(SPOOKY_I2C_IRQ)
     PN532_ASSERT_DEFINED_PIN(PN532_I2C_SCL);
     PN532_ASSERT_DEFINED_PIN(PN532_I2C_SDA);
 #endif
 
-#if defined(KEYCARD_SPI) || defined(KEYCARD_SPI_IRQ)
+#if defined(SPOOKY_SPI) || defined(SPOOKY_SPI_IRQ)
     PN532_ASSERT_DEFINED_PIN(PN532_SPI_MISO);
     PN532_ASSERT_DEFINED_PIN(PN532_SPI_MOSI);
     PN532_ASSERT_DEFINED_PIN(PN532_SPI_SCK);
     PN532_ASSERT_DEFINED_PIN(PN532_SPI_SS);
 #endif
 
-#if defined(KEYCARD_SPI_IRQ) || defined(KEYCARD_I2C_IRQ)
+#if defined(SPOOKY_SPI_IRQ) || defined(SPOOKY_I2C_IRQ)
     PN532_ASSERT_DEFINED_PIN(PN532_IRQ);
 #endif
 
-#if defined(KEYCARD_HSU)
+#if defined(SPOOKY_HSU)
     PN532_ASSERT_DEFINED_PIN(PN532_SERIAL_TX);
     PN532_ASSERT_DEFINED_PIN(PN532_SERIAL_RX);
 #endif
 
-#if defined(KEYCARD_CI_CD_MACHINE)
+#if defined(SPOOKY_CI_CD_MACHINE)
     PN532_ASSERT_DEFINED_PIN(PN532_I0);
     PN532_ASSERT_DEFINED_PIN(PN532_I1);
     PN532_ASSERT_DEFINED_PIN(PN532_RSTN);
@@ -178,4 +178,4 @@ namespace ut::pn532 {
 
 }// namespace ut::pn532
 
-#endif//KEYCARD_ACCESS_PN532_PINOUT_HPP
+#endif//SPOOKY_ACTION_PN532_PINOUT_HPP

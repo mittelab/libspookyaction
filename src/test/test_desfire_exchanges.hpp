@@ -2,8 +2,8 @@
 // Created by spak on 3/17/21.
 //
 
-#ifndef KEYCARD_ACCESS_TEST_DESFIRE_EXCHANGES_HPP
-#define KEYCARD_ACCESS_TEST_DESFIRE_EXCHANGES_HPP
+#ifndef SPOOKY_ACTION_TEST_DESFIRE_EXCHANGES_HPP
+#define SPOOKY_ACTION_TEST_DESFIRE_EXCHANGES_HPP
 
 namespace ut::desfire_exchanges {
     void test_change_key_aes();
@@ -15,4 +15,4 @@ namespace ut::desfire_exchanges {
     void test_write_data_cmac_des();
 }// namespace ut::desfire_exchanges
 
-#endif//KEYCARD_ACCESS_TEST_DESFIRE_EXCHANGES_HPP
+#endif//SPOOKY_ACTION_TEST_DESFIRE_EXCHANGES_HPP

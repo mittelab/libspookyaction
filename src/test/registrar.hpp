@@ -2,8 +2,8 @@
 // Created by spak on 3/22/21.
 //
 
-#ifndef KEYCARD_ACCESS_REGISTRAR_HPP
-#define KEYCARD_ACCESS_REGISTRAR_HPP
+#ifndef SPOOKY_ACTION_REGISTRAR_HPP
+#define SPOOKY_ACTION_REGISTRAR_HPP
 
 #include <map>
 #include <memory>
@@ -74,4 +74,4 @@ namespace ut {
 
 }// namespace ut
 
-#endif//KEYCARD_ACCESS_REGISTRAR_HPP
+#endif//SPOOKY_ACTION_REGISTRAR_HPP

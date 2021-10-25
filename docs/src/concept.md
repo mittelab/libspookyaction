@@ -4,7 +4,7 @@ Concepts
 This library is split in 3 main part
 
 \dot
-digraph libpn532 {
+digraph libspookyaction {
     graph [nodesep=0.2, ranksep=1];
     node [shape = "record"];
 

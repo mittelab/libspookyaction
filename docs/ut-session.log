@@ -82,7 +82,7 @@ D (531) boot: configure drom and irom and start
 D (535) boot: start: 0x400812c4
 I (538) cpu_start: Pro cpu up.
 I (542) cpu_start: Application information:
-I (547) cpu_start: Project name:     keycard-access
+I (547) cpu_start: Project name:     libSpookyAction
 I (553) cpu_start: App version:      33fcd01-dirty
 I (558) cpu_start: Compile time:     Feb 16 2021 01:24:37
 I (564) cpu_start: ELF file SHA256:  e71d7aa8a79cdd70...

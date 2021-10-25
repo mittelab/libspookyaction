@@ -138,7 +138,7 @@ void unity_perform_all_tests() {
     UNITY_END();
 }
 
-#ifdef KEYCARD_UNIT_TEST_MAIN
+#ifdef SPOOKY_UNIT_TEST_MAIN
 
 #ifdef __cplusplus
 extern "C" {

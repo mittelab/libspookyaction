@@ -2,8 +2,8 @@
 // Created by spak on 3/17/21.
 //
 
-#ifndef KEYCARD_ACCESS_TEST_PN532_HPP
-#define KEYCARD_ACCESS_TEST_PN532_HPP
+#ifndef SPOOKY_ACTION_TEST_PN532_HPP
+#define SPOOKY_ACTION_TEST_PN532_HPP
 
 #include "pn532_pinout.hpp"
 #include "registrar.hpp"
@@ -70,4 +70,4 @@ namespace ut::pn532 {
     }
 }// namespace ut::pn532
 
-#endif//KEYCARD_ACCESS_TEST_PN532_HPP
+#endif//SPOOKY_ACTION_TEST_PN532_HPP

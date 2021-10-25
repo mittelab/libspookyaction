@@ -2,8 +2,8 @@
 // Created by spak on 3/18/21.
 //
 
-#ifndef KEYCARD_ACCESS_TEST_DESFIRE_MAIN_HPP
-#define KEYCARD_ACCESS_TEST_DESFIRE_MAIN_HPP
+#ifndef SPOOKY_ACTION_TEST_DESFIRE_MAIN_HPP
+#define SPOOKY_ACTION_TEST_DESFIRE_MAIN_HPP
 
 #include "registrar.hpp"
 #include "test_pn532.hpp"
@@ -63,4 +63,4 @@ namespace ut {
     }// namespace desfire_main
 }// namespace ut
 
-#endif//KEYCARD_ACCESS_TEST_DESFIRE_MAIN_HPP
+#endif//SPOOKY_ACTION_TEST_DESFIRE_MAIN_HPP

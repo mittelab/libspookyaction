@@ -6,6 +6,7 @@
 #include "ut/test_pn532.hpp"
 #include <mbcontroller.h>
 #include <unity.h>
+#include <mlab/pool.hpp>
 
 #define TEST_TAG "UT"
 

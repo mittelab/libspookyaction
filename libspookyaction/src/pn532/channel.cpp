@@ -16,7 +16,7 @@ namespace pn532 {
     namespace {
 
         [[nodiscard]] bin_data &get_clean_buffer() {
-            static bin_data _buffer{prealloc(384)};
+            static bin_data _buffer{prealloc(384)};  // TODO Borrow buffer
             _buffer.clear();
             return _buffer;
         }

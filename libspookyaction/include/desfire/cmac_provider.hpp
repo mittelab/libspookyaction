@@ -144,7 +144,7 @@ namespace desfire {
      */
     class cmac_provider {
         cmac_keychain _keychain;
-        bin_data _cmac_buffer;
+        bin_data _cmac_buffer; // TODO Investigate whether this can become a borrowed buffer
 
     public:
         /**

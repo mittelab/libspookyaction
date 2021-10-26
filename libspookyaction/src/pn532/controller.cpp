@@ -27,15 +27,15 @@ namespace pn532 {
     controller::result<bool> controller::diagnose_comm_line(ms timeout) {
         PN532_LOGI("%s: running %s...", to_string(command_code::diagnose), to_string(bits::test::comm_line));
         // Generate 256 bytes of random data to test
-        bin_data payload;
-        payload.resize(0xff);
-        std::iota(std::begin(payload), std::end(payload), 0x00);
+        auto payload = borrow_buffer(0xff);
+        payload->resize(0xff);
+        std::iota(std::begin(*payload), std::end(*payload), 0x00);
         // Set the first byte to be the test number
-        payload[0] = static_cast<std::uint8_t>(bits::test::comm_line);
-        if (const auto res_cmd = chn().command_response(command_code::diagnose, /* copy */ payload, timeout); res_cmd) {
+        (*payload)[0] = static_cast<std::uint8_t>(bits::test::comm_line);
+        if (const auto res_cmd = chn().command_response(command_code::diagnose, /* copy */ *payload, timeout); res_cmd) {
             // Test that the reurned data coincides
-            if (payload.size() == res_cmd->size() and
-                std::equal(std::begin(payload), std::end(payload), std::begin(*res_cmd))) {
+            if (payload->size() == res_cmd->size() and
+                std::equal(std::begin(*payload), std::end(*payload), std::begin(*res_cmd))) {
                 PN532_LOGI("%s: %s test succeeded.", to_string(command_code::diagnose), to_string(bits::test::comm_line));
                 return true;
             } else {
@@ -54,6 +54,7 @@ namespace pn532 {
                 channel &chn, bits::test test, std::uint8_t expected, ms timeout,
                 std::size_t expected_body_size = 0, Args &&...append_to_body) {
             PN532_LOGI("%s: running %s...", to_string(command_code::diagnose), to_string(test));
+            // TODO Investigate whether this can become a borrowed buffer
             bin_data payload = bin_data::chain(prealloc(expected_body_size + 1), test,
                                                std::forward<Args>(append_to_body)...);
             if (const auto res_cmd = chn.command_response(command_code::diagnose, std::move(payload), timeout); res_cmd) {
@@ -310,6 +311,14 @@ namespace pn532 {
                 bits::rf_config_item::analog_iso_iec_14443_4,
                 config);
         return chn().command_response(command_code::rf_configuration, std::move(payload), timeout);
+    }
+
+    borrowed_buffer controller::borrow_buffer(std::size_t prealloc_size) const {
+        auto buffer = _pool->take();
+        if (prealloc_size < std::numeric_limits<std::size_t>::max()) {
+            buffer << prealloc(prealloc_size);
+        }
+        return buffer;
     }
 
     std::uint8_t controller::get_target(command_code cmd, std::uint8_t target_logical_index, bool expect_more_data) {

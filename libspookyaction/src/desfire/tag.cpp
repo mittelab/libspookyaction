@@ -123,12 +123,12 @@ namespace desfire {
 
     tag::result<bin_data> tag::raw_command_response(bin_stream &tx_data, bool rx_fetch_additional_frames) {
         static constexpr auto chunk_size = bits::max_packet_length;
-        static bin_data tx_chunk{prealloc(chunk_size)};
+        static bin_data tx_chunk{prealloc(chunk_size)};   // TODO Borrow buffer
         const auto num_tx_chunks = 1 + div_round_up(saturate_sub(tx_data.remaining(), chunk_size), chunk_size - 1);
 
         tx_chunk.clear();
         status last_status = status::additional_frame;
-        bin_data rx_data;
+        bin_data rx_data;  // TODO Investigate whether this can become a borrowed buffer
 
         for (std::size_t chunk_idx = 0; last_status == status::additional_frame; ++chunk_idx, tx_chunk.clear()) {
             assert(tx_chunk.empty());
@@ -198,7 +198,7 @@ namespace desfire {
         cipher &c = override_cipher == nullptr ? *_active_cipher : *override_cipher;
 
         // Assemble data to transmit and preprocess
-        static bin_data tx_data;
+        static bin_data tx_data;   // TODO Borrow buffer
         tx_data.clear();
         tx_data << prealloc(data.size() + 1) << cmd << data;
 
@@ -463,7 +463,7 @@ namespace desfire {
         const std::uint8_t key_no_flag = (active_app() == root_app
                                                   ? key_no_to_change | static_cast<std::uint8_t>(app_crypto_from_cipher(new_key.type()))
                                                   : key_no_to_change);
-        bin_data payload{prealloc(33)};
+        bin_data payload{prealloc(33)};   // TODO Borrow buffer
         payload << key_no_flag;
         // Changing from a different key requires to xor it with that other key
         if (current_key != nullptr) {
@@ -587,7 +587,7 @@ namespace desfire {
         }
         // RX happens with the chosen file protection, except on nonlegacy ciphers where plain becomes maced
         const auto rx_cipher_mode = cipher_mode_most_secure(cipher_mode_from_security(security), default_comm_cfg().rx);
-        bin_data payload{prealloc(7)};
+        bin_data payload{prealloc(7)};  // TODO Borrow buffer
         payload << fid << lsb24 << offset << lsb24 << length;
         return command_response(command_code::read_data, payload, comm_cfg{default_comm_cfg().tx, rx_cipher_mode});
     }
@@ -618,7 +618,7 @@ namespace desfire {
         const comm_cfg cfg{cipher_mode_from_security(security), default_comm_cfg().rx,
                            8 /* secure with legacy MAC only data */};
 
-        bin_data payload{prealloc(data.size() + 7)};
+        bin_data payload{prealloc(data.size() + 7)};  // TODO Borrow buffer
         payload << fid << lsb24 << offset << lsb24 << data.size() << data;
 
         return safe_drop_payload(command_code::write_data, command_response(command_code::write_data, payload, cfg));
@@ -659,7 +659,7 @@ namespace desfire {
             return error::parameter_error;
         }
         const comm_cfg cfg{cipher_mode_from_security(security), default_comm_cfg().rx, 2 /* after FID */};
-        bin_data payload{prealloc(5)};
+        bin_data payload{prealloc(5)};  // TODO Borrow buffer
         payload << fid << lsb32 << amount;
         return safe_drop_payload(cmd, command_response(cmd, payload, cfg));
     }
@@ -726,7 +726,7 @@ namespace desfire {
         const comm_cfg cfg{cipher_mode_from_security(security), default_comm_cfg().rx,
                            8 /* secure with legacy MAC only data */};
 
-        bin_data payload{prealloc(data.size() + 7)};
+        bin_data payload{prealloc(data.size() + 7)};  // TODO Borrow buffer
         payload << fid << lsb24 << offset << lsb24 << data.size() << data;
 
         return safe_drop_payload(command_code::write_record,
@@ -758,7 +758,7 @@ namespace desfire {
         }
         // RX happens with the chosen file protection, except on nonlegacy ciphers where plain becomes maced
         const auto rx_cipher_mode = cipher_mode_most_secure(cipher_mode_from_security(security), default_comm_cfg().rx);
-        bin_data payload{prealloc(record_count + 7)};
+        bin_data payload{prealloc(record_count + 7)};  // TODO Borrow buffer
         payload << fid << lsb24 << record_index << lsb24 << record_count;
 
         return command_response(command_code::read_records, payload, comm_cfg{default_comm_cfg().tx, rx_cipher_mode});

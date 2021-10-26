@@ -49,7 +49,7 @@ namespace pn532 {
     struct frame<frame_type::info> {
         bits::transport transport = bits::transport::host_to_pn532;
         bits::command command = bits::command::diagnose;
-        bin_data data;
+        bin_data data; // TODO Investigate whether this can become a borrowed buffer. This especially has consequences on the signature of send
     };
 
     /**

@@ -44,7 +44,7 @@ namespace desfire {
 
 
     cipher_legacy::mac_t cipher_legacy::compute_mac(range<bin_data::const_iterator> data) {
-        static bin_data buffer{};
+        static bin_data buffer{};   // TODO Borrow buffer
 
         // Resize the buffer and copy data
         buffer.clear();

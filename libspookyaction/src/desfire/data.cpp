@@ -166,7 +166,7 @@ namespace desfire {
     }
 
     bin_data any_key::get_packed_key_body() const {
-        bin_data body{};
+        bin_data body{}; // TODO Investigate whether this can become a borrowed buffer
         // Extract packed key data from the other key
         switch (type()) {
             case cipher_type::none:
@@ -199,7 +199,7 @@ namespace desfire {
         if (their_data.empty()) {
             return {};
         }
-        bin_data our_data = get_packed_key_body();
+        bin_data our_data = get_packed_key_body();  // TODO Investigate whether this can become a borrowed buffer
         if (our_data.empty()) {
             return {};
         }

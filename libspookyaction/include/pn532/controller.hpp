@@ -39,8 +39,12 @@
 #include "data.hpp"
 #include "msg.hpp"
 #include <mlab/result.hpp>
+#include <mlab/pool.hpp>
 
 namespace pn532 {
+    using buffer_pool = mlab::pool<bin_data>;
+    using borrowed_buffer = mlab::borrowed<bin_data>;
+
     namespace {
         using namespace std::chrono_literals;
     }
@@ -54,7 +58,7 @@ namespace pn532 {
         template <class... Tn>
         using result = channel::result<Tn...>;
 
-        inline explicit controller(channel &chn);
+        inline explicit controller(channel &chn, std::shared_ptr<buffer_pool> pool = nullptr);
 
         controller(controller const &) = delete;
 
@@ -1286,6 +1290,9 @@ namespace pn532 {
 
     private:
         channel *_channel;
+        mutable std::shared_ptr<buffer_pool> _pool;
+
+        [[nodiscard]] borrowed_buffer borrow_buffer(std::size_t prealloc_size = std::numeric_limits<std::size_t>::max()) const;
 
         [[nodiscard]] inline channel &chn() const;
 
@@ -1302,7 +1309,12 @@ namespace pn532 {
 
 namespace pn532 {
 
-    controller::controller(channel &chn) : _channel{&chn} {}
+    controller::controller(channel &chn, std::shared_ptr<buffer_pool> pool) : _channel{&chn}, _pool{std::move(pool)}
+    {
+        if (_pool == nullptr) {
+            _pool = std::make_shared<buffer_pool>();
+        }
+    }
 
     channel &controller::chn() const { return *_channel; }
 
@@ -1320,10 +1332,9 @@ namespace pn532 {
 
     template <class T, class>
     controller::result<rf_status, bin_data> controller::initiator_data_exchange(std::uint8_t target_logical_index, T &&data, ms timeout) {
-        static bin_data buffer{};
-        buffer.clear();
+        auto buffer = borrow_buffer();
         buffer << std::forward<T>(data);
-        return initiator_data_exchange(target_logical_index, buffer, timeout);
+        return initiator_data_exchange(target_logical_index, *buffer, timeout);
     }
 
 }// namespace pn532

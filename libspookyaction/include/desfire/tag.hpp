@@ -1238,7 +1238,7 @@ namespace desfire {
 
     template <class T>
     tag::result<> tag::write_record(file_id fid, T &&record, file_security security) {
-        static bin_data buffer{};
+        static bin_data buffer{};  // TODO Borrow buffer
         buffer.clear();
         buffer << std::forward<T>(record);
         return write_record(fid, 0, buffer, security);
@@ -1246,7 +1246,7 @@ namespace desfire {
 
     template <class T>
     tag::result<> tag::write_record(file_id fid, T &&record) {
-        static bin_data buffer{};
+        static bin_data buffer{};  // TODO Borrow buffer
         buffer.clear();
         buffer << std::forward<T>(record);
         return write_record(fid, 0, buffer);

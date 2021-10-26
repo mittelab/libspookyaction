@@ -78,7 +78,7 @@ namespace mlab {
         [[nodiscard]] inline bool empty() const;
     };
 
-    template <class T, class Policy>
+    template <class T, class Policy = default_borrow_policy<T>>
     class borrowed {
         std::weak_ptr<pool<T, Policy>> _owner{};
         T _obj;
@@ -109,22 +109,22 @@ namespace mlab {
         ~borrowed();
     };
 
-    template <class T, class Policy, class U>
-    decltype(auto) operator<<(borrowed<T, Policy> &borrowed_obj, U &&rhs) {
+    template <class Policy, class U>
+    decltype(auto) operator<<(borrowed<bin_data, Policy> &borrowed_obj, U &&rhs) {
         return *borrowed_obj << rhs;
     }
 
-    template <class T, class Policy, class U>
-    decltype(auto) operator<<(borrowed<T, Policy> const &borrowed_obj, U &&rhs) {
+    template <class Policy, class U>
+    decltype(auto) operator<<(borrowed<bin_data, Policy> const &borrowed_obj, U &&rhs) {
         return *borrowed_obj << rhs;
     }
-    template <class T, class Policy, class U>
-    decltype(auto) operator>>(borrowed<T, Policy> &borrowed_obj, U &&rhs) {
+    template <class Policy, class U>
+    decltype(auto) operator>>(borrowed<bin_data, Policy> &borrowed_obj, U &&rhs) {
         return *borrowed_obj << rhs;
     }
 
-    template <class T, class Policy, class U>
-    decltype(auto) operator>>(borrowed<T, Policy> const &borrowed_obj, U &&rhs) {
+    template <class Policy, class U>
+    decltype(auto) operator>>(borrowed<bin_data, Policy> const &borrowed_obj, U &&rhs) {
         return *borrowed_obj << rhs;
     }
 

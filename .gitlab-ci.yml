@@ -13,7 +13,7 @@ stages:
   cache:
     key: ${CI_COMMIT_REF_SLUG}
     paths:
-      - .pio    
+      - .pio
 
 .rules-changes-sources: &rules-changes-sources
   changes:
@@ -122,6 +122,21 @@ test hardware:
     # But skip by default if the sources did not change
     - <<: *rules-changes-sources
     - <<: *rules-changes-cicd
+
+
+publish library:
+  image: ${CI_REGISTRY}/proj/testinator/esp32:latest
+  stage: deploy
+  before_script:
+    - python3 -m pip install --user gitpython
+  script:
+    - |
+      python3 cicd/check_version.py && \
+      pio package publish --owner ${PLATFORMIO_ORG} --non-interactive
+  only:
+    - tags
+  except:
+    - branches
 
 
 pages:

@@ -5,6 +5,14 @@
 #include <desfire/esp32/crypto_impl.hpp>
 #include <desfire/msg.hpp>
 
+/**
+ * Guard against missing the definition of CONFIG_MBEDTLS_DES_C.
+ */
+#if !defined(CONFIG_MBEDTLS_DES_C) || CONFIG_MBEDTLS_DES_C == 0
+#error "libSpookyAction: config macro CONFIG_MBEDTLS_DES_C not found; make sure you have CONFIG_MBEDTLS_DES_C=y in your sdkconfig!"
+#endif
+
+
 namespace desfire::esp32 {
 
     namespace {

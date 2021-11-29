@@ -2,7 +2,7 @@
 // Created by Pietro Saccardi on 22/12/2020.
 //
 
-#include "pn532/data.hpp"
+#include <pn532/data.hpp>
 
 namespace mlab {
 

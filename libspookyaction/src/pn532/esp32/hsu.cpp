@@ -3,8 +3,8 @@
 //
 
 
-#include "pn532/esp32/hsu.hpp"
-#include "pn532/log.h"
+#include <pn532/esp32/hsu.hpp>
+#include <pn532/log.h>
 
 #define PN532_HSU_TAG "PN532-HSU"
 

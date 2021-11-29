@@ -2,7 +2,7 @@
 // Created by spak on 3/3/21.
 //
 
-#include "pn532/channel.hpp"
+#include <pn532/channel.hpp>
 #include <pn532/bits_algo.hpp>
 
 namespace pn532 {

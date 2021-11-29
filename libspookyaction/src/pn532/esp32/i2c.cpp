@@ -3,7 +3,7 @@
 //
 
 
-#include "pn532/esp32/i2c.hpp"
+#include <pn532/esp32/i2c.hpp>
 #include <memory>
 
 #define PN532_I2C_TAG "PN532-I2C"

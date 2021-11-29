@@ -2,7 +2,7 @@
 // Created by spak on 3/25/21.
 //
 
-#include "pn532/esp32/spi.hpp"
+#include <pn532/esp32/spi.hpp>
 #include <mbcontroller.h>
 
 #define PN532_SPI_TAG "PN532-SPI"

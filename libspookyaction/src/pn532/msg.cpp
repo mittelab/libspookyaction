@@ -2,8 +2,8 @@
 // Created by Pietro Saccardi on 22/12/2020.
 //
 
-#include "pn532/msg.hpp"
-#include "pn532/channel.hpp"
+#include <pn532/msg.hpp>
+#include <pn532/channel.hpp>
 
 namespace pn532 {
     const char *to_string(bits::baudrate s) {

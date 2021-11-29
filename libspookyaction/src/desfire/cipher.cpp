@@ -2,9 +2,9 @@
 // Created by spak on 5/7/21.
 //
 
-#include "desfire/cipher.hpp"
-#include "desfire/crypto_algo.hpp"
-#include "desfire/log.h"
+#include <desfire/cipher.hpp>
+#include <desfire/crypto_algo.hpp>
+#include <desfire/log.h>
 #include <cassert>
 
 namespace desfire {

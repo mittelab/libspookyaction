@@ -90,12 +90,15 @@ build examples:
   image: ${CI_REGISTRY}/proj/testinator/esp32:latest
   stage: build
   <<: *pio-cache
-  script:  # TODO This needs to be updated
+  script:  # Note that we need to setup sdkconfig.defaults before, so we make our own folder
     - >
-      for file in libspookyaction/examples/*; do
+      for file in libspookyaction/examples/*.cpp; do
+        BUILD_FOLDER="$(mktemp -d)"
+        cp libspookyaction/examples/sdkconfig.defaults "${BUILD_FOLDER}"
         pio ci \
+          --build-dir="${BUILD_FOLDER}"
           --project-conf=cicd/platformio.ini \
-          --lib="." \
+          --lib=libspookyaction \
           $file
       done
   rules:

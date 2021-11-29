@@ -147,7 +147,7 @@ pages:
   before_script:
     - apk add --update --no-cache doxygen graphviz ttf-opensans
   script:
-    - doxygen ./docs/doxigen.conf
+    - doxygen ./docs/doxygen.conf
     - mkdir -p public
     - cp -r docs/_build/html/* public
   artifacts:

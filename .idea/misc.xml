@@ -3,8 +3,7 @@
   <component name="CMakeWorkspace" PROJECT_DIR="$PROJECT_DIR$" />
   <component name="CidrRootsConfiguration">
     <excludeRoots>
-      <file path="$PROJECT_DIR$/.pio" />
-      <file path="$PROJECT_DIR$/cmake-build-m5stack-core-esp32" />
+      <file path="$PROJECT_DIR$/tests/.pio" />
     </excludeRoots>
   </component>
   <component name="CompDBSettings">

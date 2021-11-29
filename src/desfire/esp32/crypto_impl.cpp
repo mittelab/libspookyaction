@@ -71,7 +71,7 @@ namespace desfire::esp32 {
         ESP_LOG_BUFFER_HEX_LEVEL(output_tag(op), data.data(), data.size(), ESP_LOG_DEBUG);
     }
 
-    void crypto_2k3des::setup_with_key_internal(range<std::uint8_t const *> key) {
+    void crypto_2k3des::setup_primitives_with_key(range<std::uint8_t const *> key) {
         if (key.size() != 16) {
             DESFIRE_LOGE("2K3DES: invalid key size %d, expected 16 bytes.", key.size());
             return;

@@ -18,6 +18,7 @@ namespace pn532::esp32 {
 
     /**
      * @brief Implementation of SPI channel protocol for PN532 over ESP32's SPI driver.
+     *
      * This class supports, when specified, the possibility of using a GPIO pin for the PN532's IRQ line; in that case, the
      * class does not have to poll the controller until the answers are ready, but it will instead idle and wait for the IRQ
      * line to become active, and read the answer only then once it's ready. That is done through a semaphore and an interrupt
@@ -53,6 +54,7 @@ namespace pn532::esp32 {
 
         /**
          * @brief SPI-specific prefixes.
+         *
          * This is directly from the PN532's manual. Further, we define a @ref spi_command::none prefix which is used
          * when a single logical receive operation is split into multiple operations to determine the appropriate data
          * buffer size.
@@ -107,6 +109,7 @@ namespace pn532::esp32 {
 
         /**
          * @brief Construct an SPI channel for a PN532 with the given settings, using GPIO pin to signal when the answer is ready.
+         *
          * This reduces the amount of noise on the line because it will only read the answer once it's available.
          * @param host SPI Host to use. Note that on ESP32-S2 `SPI1_HOST` is not supported (as per ESP32's documentation).
          * @param bus_config SPI bus configuration.

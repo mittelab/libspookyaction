@@ -35,6 +35,7 @@ namespace pn532 {
 
     /**
      * @brief Data structure holding data for the PN532 frame.
+     *
      * For @ref frame_type::ack, @ref frame_type::nack, @ref frame_type::error, the type carries all the information.
      * The only relevant template specialization is @ref frame<frame_type::info>
      */
@@ -70,6 +71,7 @@ namespace pn532 {
 
     /**
      * @brief Helper data structure used to progressively identify frame size.
+     *
      * Frame length is dynamically determined by the presence of preamble/postamble and by the frame type.
      * Only some channels support reading one byte at a time in order to determine the full frame length. Others
      * require to request the frame over and over again by sending a NACK. This data structure helps in tracking
@@ -104,6 +106,7 @@ namespace pn532 {
 
         /**
          * @brief Determined data length for an info frame.
+         *
          * This includes @ref frame<frame_type::info>::transport and @ref frame<frame_type::info>::command, not
          * just @ref frame<frame_type::info>::data.
          */
@@ -149,6 +152,7 @@ namespace pn532 {
 
     /**
      * @brief Abstract class for the PN532 communication channel.
+     *
      * Each channel class must support send and receive over a hardware channel. Only one operation
      * among @ref comm_mode::send and @ref comm_mode::receive can be performed at a given time. Before
      * another communication operation is performed, the previous one is guaranteed to be completed;
@@ -351,6 +355,7 @@ namespace pn532 {
 
     /**
      * @brief Class managing the correct firing of the events in the PN532.
+     *
      * This class is a RAII wrapper that fires the correct events at construction and destruction. It holds the
      * transmission result @ref channel::result<> obtained so far (or the corresponding error), in such a way that it
      * can pass it to @ref on_receive_complete or @ref on_send_complete. Always call @ref raw_send and @ref raw_receive

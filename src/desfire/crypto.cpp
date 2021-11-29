@@ -49,7 +49,7 @@ namespace desfire {
         const auto it_begin_2nd_half = std::begin(key) + 8;
         _degenerate = std::equal(std::begin(key), it_begin_2nd_half, it_begin_2nd_half, eq_except_parity);
 
-        setup_with_key_internal(key);
+        setup_primitives_with_key(key);
     }
 
     void crypto_2k3des_base::init_session(range<const std::uint8_t *> random_data) {

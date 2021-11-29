@@ -35,6 +35,7 @@ namespace pn532::esp32 {
 
         /**
          * @brief Class that wraps an I2C ESP32's command.
+         *
          * ESP32's I2C driver does not allow direct control of the bus; it rather packs all the operations into a prebuild command
          * (repesented by a `i2c_cmd_handle_t`) which is single use. This class is a wrapper for it. Since there is a resource
          * associated to this command, this class is moveable but not copiable.
@@ -140,6 +141,7 @@ namespace pn532::esp32 {
 
     /**
      * @brief Implementation of I2C channel protocol for PN532 over ESP32's I2C driver.
+     *
      * This class supports, when specified, the possibility of using a GPIO pin for the PN532's IRQ line; in that case, the
      * class does not have to poll the controller until the answers are ready, but it will instead idle and wait for the IRQ
      * line to become active, and read the answer only then once it's ready. That is done through a semaphore and an interrupt
@@ -197,6 +199,7 @@ namespace pn532::esp32 {
 
         /**
          * @brief Construct an I2C channel for a PN532 with the given settings, using GPIO pin to signal when the answer is ready.
+         *
          * This reduces the amount of I2C noise on the line because it will only read the answer once it's available.
          * @param port Communication port for the I2C channel. This is passed as-is to the I2C driver.
          * @param config Configuration for the I2C channel. This is passed as-is to the I2C driver.

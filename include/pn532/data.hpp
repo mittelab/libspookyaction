@@ -64,6 +64,7 @@ namespace pn532 {
 
     /**
      * @brief "Concept-like" wrapper that adds a signalling "infinity" value to an integral type.
+     *
      * In the PN532, sometimes the natural maximum (`std::numeric_limits<Integral>::max()`) of an integral type is used
      * to signal infinity, e.g. repeat an operation indefinitely. This template explicitly marks this property by adding some
      * syntactic sugar to the type. This type behaves exactly like the underlying integral type, but moreover can be assigned

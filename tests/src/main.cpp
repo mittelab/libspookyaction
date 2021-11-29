@@ -1,9 +1,9 @@
-#include "pn532_pinout.hpp"
-#include "test_desfire_ciphers.hpp"
-#include "test_desfire_exchanges.hpp"
-#include "test_desfire_files.hpp"
-#include "test_desfire_main.hpp"
-#include "test_pn532.hpp"
+#include "test/pn532_pinout.hpp"
+#include "test/test_desfire_ciphers.hpp"
+#include "test/test_desfire_exchanges.hpp"
+#include "test/test_desfire_files.hpp"
+#include "test/test_desfire_main.hpp"
+#include "test/test_pn532.hpp"
 #include <mbcontroller.h>
 #include <unity.h>
 
@@ -138,8 +138,6 @@ void unity_perform_all_tests() {
     UNITY_END();
 }
 
-#ifdef SPOOKY_UNIT_TEST_MAIN
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -152,4 +150,3 @@ void app_main() {
 }
 #endif
 
-#endif

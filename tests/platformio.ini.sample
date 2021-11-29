@@ -14,8 +14,6 @@ lib_deps = https://git.mittelab.org/proj/mittelib.git
 ;
 ; CONFIG_MBEDTLS_DES_C: DES is not included by default in Mbedtls, we have to define this.
 ;
-; SPOOKY_UNIT_TEST_MAIN: when defined, compiles a `void app_main()` that kicks off the unit tests.
-;
 ; SPOOKY_HSU: define to test over the HSU channel, requires to define the macros
 ;   PN532_SERIAL_TX: the GPIO pin number connected to the TX line on the PN532
 ;   PN532_SERIAL_RX: the GPIO pin number connected to the RX line on the PN532
@@ -55,8 +53,7 @@ build_flags =
     -std=gnu++17
     -Wall -Wextra
     -D CONFIG_MBEDTLS_DES_C
-    -D SPOOKY_UNIT_TEST_MAIN
-;       -D PN532_IRQ=4
+;   -D PN532_IRQ=4
     -D SPOOKY_HSU
 ;       -D PN532_SERIAL_TX=32
 ;       -D PN532_SERIAL_RX=33
@@ -77,7 +74,7 @@ build_flags =
 ;   -D LOG_LOCAL_LEVEL=ESP_LOG_DEBUG
 ;   -D CORE_DEBUG_LEVEL=5
 
-; These settings combined with -D SPOOKY_UNIT_TEST_MAIN allow to compile the tests with `pio run` which is not
+; These settings allow to compile the tests with `pio run` as well as `pio test`
 test_transport = custom
 monitor_flags = --raw
 test_build_project_src = yes

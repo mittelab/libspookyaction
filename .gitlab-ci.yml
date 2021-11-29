@@ -147,7 +147,7 @@ publish library:
   except:
     - branches
   variables:
-    PIO_LIB_FOLDER: mittelib
+    PIO_LIB_FOLDER: libspookyaction
 
 
 pages:

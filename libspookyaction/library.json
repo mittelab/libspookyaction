@@ -62,8 +62,7 @@
   "flags": [
     "-std=gnu++17",
     "-Wall",
-    "-Wextra",
-    "-D CONFIG_MBEDTLS_DES_C"
+    "-Wextra"
   ],
   "unflags": [
     "-std=gnu++11",

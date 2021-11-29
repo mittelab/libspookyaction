@@ -13,13 +13,16 @@ stages:
   cache:
     key: ${CI_COMMIT_REF_SLUG}
     paths:
-      - .pio
+      - "${PIO_PROJ_FOLDER}/.pio"
 
 .rules-changes-sources: &rules-changes-sources
   changes:
-    - src/**/*
-    - include/**/*
-    - examples/**/*
+    - libspookyaction/src/**/*
+    - libspookyaction/include/**/*
+    - libspookyaction/examples/**/*
+    - tests/src/**/*
+    - tests/include/**/*
+    - tests/lib/**/*
     - cicd/platformio.ini
 
 .rules-changes-cicd: &rules-changes-cicd
@@ -44,7 +47,7 @@ check format:
     - apk add --update --no-cache git clang clang-extra-tools
   script:
     - >
-      find . \( -not -path '\./\.*' \) -and \( -name '*.[hc]' -or -name '*.[hc]pp' \) | while read -r FILE; do
+      find . -not -path '*/\.*' -and \( -name '*.[hc]' -or -name '*.[hc]pp' \) | while read -r FILE; do
           echo "Formatting $FILE"
           clang-format --style file -i "$FILE"
       done
@@ -65,7 +68,8 @@ build test firmware:
   image: ${CI_REGISTRY}/proj/testinator/esp32:latest
   <<: *pio-cache
   before_script:
-    - cp cicd/platformio.ini platformio.ini
+    - cp cicd/platformio.ini "${PIO_PROJ_FOLDER}/platformio.ini"
+    - cd "${PIO_PROJ_FOLDER}"
   script:
     # Remove the cached firmwares to ensure we will rebuild
     - rm -f .pio/**/firmware.{bin,elf}
@@ -73,20 +77,22 @@ build test firmware:
     - pio test --without-uploading --without-testing
   artifacts:
     paths:
-      - .pio/**/*.checksum  # Without this, `pio run` deletes the firmware
-      - .pio/**/firmware.bin
-      - .pio/**/firmware.elf
+      - "${PIO_PROJ_FOLDER}/.pio/**/*.checksum"  # Without this, `pio run` deletes the firmware
+      - "${PIO_PROJ_FOLDER}/.pio/**/firmware.bin"
+      - "${PIO_PROJ_FOLDER}/.pio/**/firmware.elf"
   rules:
     - when: always
+  variables:
+    PIO_PROJ_FOLDER: tests
 
 
 build examples:
   image: ${CI_REGISTRY}/proj/testinator/esp32:latest
   stage: build
   <<: *pio-cache
-  script:
+  script:  # TODO This needs to be updated
     - >
-      for file in examples/*; do
+      for file in libspookyaction/examples/*; do
         pio ci \
           --project-conf=cicd/platformio.ini \
           --lib="." \
@@ -111,7 +117,8 @@ test hardware:
   dependencies:
     - build test firmware
   before_script:
-    - cp cicd/platformio.ini platformio.ini
+    - cp cicd/platformio.ini "${PIO_PROJ_FOLDER}/platformio.ini"
+    - cd "${PIO_PROJ_FOLDER}"
   script:
     # Make two attempts at uploading. Do not use pio test beause it always returns 0
     - pio run -t nobuild -t upload --verbose || pio run -t nobuild -t upload --verbose
@@ -122,6 +129,8 @@ test hardware:
     # But skip by default if the sources did not change
     - <<: *rules-changes-sources
     - <<: *rules-changes-cicd
+  variables:
+    PIO_PROJ_FOLDER: tests
 
 
 publish library:
@@ -131,12 +140,14 @@ publish library:
     - python3 -m pip install --user gitpython
   script:
     - |
-      python3 cicd/check_version.py && \
-      pio package publish --owner ${PLATFORMIO_ORG} --non-interactive
+      python3 cicd/check_version.py ${PIO_LIB_FOLDER}/library.json && \
+      pio package publish --owner ${PLATFORMIO_ORG} --non-interactive ${PIO_LIB_FOLDER}
   only:
     - tags
   except:
     - branches
+  variables:
+    PIO_LIB_FOLDER: mittelib
 
 
 pages:
@@ -147,7 +158,7 @@ pages:
   before_script:
     - apk add --update --no-cache doxygen graphviz ttf-opensans
   script:
-    - doxygen ./docs/doxygen.conf
+    - doxygen ./doxygen.conf
     - mkdir -p public
     - cp -r docs/_build/html/* public
   artifacts:

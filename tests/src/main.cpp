@@ -1,9 +1,9 @@
-#include "test/pn532_pinout.hpp"
-#include "test/test_desfire_ciphers.hpp"
-#include "test/test_desfire_exchanges.hpp"
-#include "test/test_desfire_files.hpp"
-#include "test/test_desfire_main.hpp"
-#include "test/test_pn532.hpp"
+#include "ut/pn532_pinout.hpp"
+#include "ut/test_desfire_ciphers.hpp"
+#include "ut/test_desfire_exchanges.hpp"
+#include "ut/test_desfire_files.hpp"
+#include "ut/test_desfire_main.hpp"
+#include "ut/test_pn532.hpp"
 #include <mbcontroller.h>
 #include <unity.h>
 

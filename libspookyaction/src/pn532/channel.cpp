@@ -2,8 +2,8 @@
 // Created by spak on 3/3/21.
 //
 
-#include <pn532/channel.hpp>
 #include <pn532/bits_algo.hpp>
+#include <pn532/channel.hpp>
 
 namespace pn532 {
     using mlab::bin_stream;

@@ -1,9 +1,9 @@
 //
 // Created by Pietro Saccardi on 20/12/2020.
 //
-#include <pn532/controller.hpp>
-#include <pn532/bits_algo.hpp>
 #include <mlab/time.hpp>
+#include <pn532/bits_algo.hpp>
+#include <pn532/controller.hpp>
 
 namespace pn532 {
     namespace {

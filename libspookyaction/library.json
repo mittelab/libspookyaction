@@ -27,21 +27,24 @@
       "name": "Initialize pn532",
       "base": "examples",
       "files": [
-        "initialize.cpp"
+        "initialize.cpp",
+        "sdkconfig.defaults"
       ]
     },
     {
       "name": "read tag UUID",
       "base": "examples",
       "files": [
-        "select_tag.cpp"
+        "select_tag.cpp",
+        "sdkconfig.defaults"
       ]
     },
     {
       "name": "reader selftest",
       "base": "examples",
       "files": [
-        "selftest.cpp"
+        "selftest.cpp",
+        "sdkconfig.defaults"
       ]
     }
   ],

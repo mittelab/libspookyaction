@@ -20,10 +20,6 @@
       "src/*",
       "include/*",
       "examples/*"
-    ],
-    "exclude": [
-      "src/test/*",
-      "src/unittest_transport.h"
     ]
   },
   "examples": [

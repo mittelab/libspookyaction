@@ -1,5 +1,6 @@
 #include <pn532/controller.hpp>
 #include <pn532/esp32/hsu.hpp>
+#include <thread>
 
 #define TAG "EXAMPLE"
 
@@ -9,9 +10,13 @@ using namespace std::chrono_literals;
  * @note This is the new function introduced in this example
  */
 void scan_uuids(pn532::controller &pn532) {
-    if (auto res = pn532.initiator_auto_poll(); res) {
-        for (std::size_t i = 0; i < res->size(); ++i) {
-            ESP_LOGI(TAG, "%u. %s", i + 1, pn532::to_string(res->at(i).type()));
+    if (const auto res = pn532.initiator_auto_poll(); res) {
+        if (res->empty()) {
+            ESP_LOGW(TAG, "No target found.");
+        } else {
+            for (std::size_t i = 0; i < res->size(); ++i) {
+                ESP_LOGI(TAG, "%u. %s", i + 1, pn532::to_string(res->at(i).type()));
+            }
         }
     } else {
         ESP_LOGE(TAG, "Failed to scan for any target, error: %s", pn532::to_string(res.error()));
@@ -47,5 +52,11 @@ extern "C" void app_main() {
         ESP_LOGE(TAG, "Failed to switch RF field on");
         return;
     }
-    scan_uuids(pn532);
+    ESP_LOGI(TAG, "PN532 initialization successful.");
+    static constexpr auto retry_time = 3s;
+    while (true) {
+        scan_uuids(pn532);
+        ESP_LOGI(TAG, "Retrying in %lld seconds.", retry_time.count());
+        std::this_thread::sleep_for(retry_time);
+    }
 }

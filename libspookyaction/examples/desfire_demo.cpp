@@ -211,5 +211,6 @@ extern "C" void app_main() {
         print_card_info(tag);
         list_apps(tag);
         demo_app_and_file(tag);
+        ESP_LOGI(TAG, "Desfire demo complete.");
     }
 }

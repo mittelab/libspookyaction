@@ -1,5 +1,6 @@
 #include <pn532/controller.hpp>
 #include <pn532/esp32/hsu.hpp>
+#include <thread>
 
 #define TAG "EXAMPLE"
 
@@ -9,10 +10,14 @@ using namespace std::chrono_literals;
  * @note This is the new function introduced in this example
  */
 void scan_uuids(pn532::controller &pn532) {
-    if (auto res = pn532.initiator_list_passive_kbps106_typea(); res) {
-        for (pn532::target_kbps106_typea const &target : *res) {
-            ESP_LOGI(TAG, "Logical index %u; NFC ID:", target.logical_index);
-            ESP_LOG_BUFFER_HEX_LEVEL(TAG, target.info.nfcid.data(), target.info.nfcid.size(), ESP_LOG_INFO);
+    if (const auto res = pn532.initiator_list_passive_kbps106_typea(); res) {
+        if (res->empty()) {
+            ESP_LOGW(TAG, "No target found.");
+        } else {
+            for (pn532::target_kbps106_typea const &target : *res) {
+                ESP_LOGI(TAG, "Logical index %u; NFC ID:", target.logical_index);
+                ESP_LOG_BUFFER_HEX_LEVEL(TAG, target.info.nfcid.data(), target.info.nfcid.size(), ESP_LOG_INFO);
+            }
         }
     } else {
         ESP_LOGE(TAG, "Failed to scan for passive targets at 106kbps (type A), error: %s", pn532::to_string(res.error()));
@@ -48,5 +53,11 @@ extern "C" void app_main() {
         ESP_LOGE(TAG, "Failed to switch RF field on");
         return;
     }
-    scan_uuids(pn532);
+    ESP_LOGI(TAG, "PN532 initialization successful.");
+    static constexpr auto retry_time = 3s;
+    while (true) {
+        scan_uuids(pn532);
+        ESP_LOGI(TAG, "Retrying in %lld seconds.", retry_time.count());
+        std::this_thread::sleep_for(retry_time);
+    }
 }

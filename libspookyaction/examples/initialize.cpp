@@ -41,5 +41,8 @@ extern "C" void app_main() {
     // Now switch RF on, disable automatic field detection (used in target mode).
     if (not pn532.rf_configuration_field(false, true)) {
         ESP_LOGE(TAG, "Failed to switch RF field on");
+        return;
     }
+
+    ESP_LOGI(TAG, "PN532 initialization successful.");
 }

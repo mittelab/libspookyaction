@@ -5,12 +5,11 @@
 
 using namespace std::chrono_literals;
 
-const char *bool_to_ok_fail(bool result) {
-    return result ? "OK" : "FAIL";
-}
-
-const char *bool_to_yes_no(bool result) {
-    return result ? "YES" : "NO";
+const char *bool_result_to_str(pn532::controller::result<bool> result, const char *success = "OK", const char *failure = "FAIL") {
+    if (not result) {
+        return pn532::to_string(result.error());
+    }
+    return *result ? success : failure;
 }
 
 /**
@@ -18,28 +17,28 @@ const char *bool_to_yes_no(bool result) {
  */
 void self_test(pn532::controller &pn532) {
     // Autotest PN532 ROM firmware
-    ESP_LOGI(TAG, "ROM: %s", bool_to_ok_fail(bool(pn532.diagnose_rom())));
+    ESP_LOGI(TAG, "ROM: %s", bool_result_to_str(pn532.diagnose_rom()));
 
     // Autotest PN532 RAM
-    ESP_LOGI(TAG, "RAM: %s", bool_to_ok_fail(bool(pn532.diagnose_ram())));
+    ESP_LOGI(TAG, "RAM: %s", bool_result_to_str(pn532.diagnose_ram()));
 
     // Check card presence via ART or ISO/IEC14443-4 card presence detection
-    ESP_LOGI(TAG, "Card present: %s", bool_to_yes_no(bool(pn532.diagnose_attention_req_or_card_presence())));
+    ESP_LOGI(TAG, "Card present: %s", bool_result_to_str(pn532.diagnose_attention_req_or_card_presence(), "YES", "NO"));
 
     // Test comunication line
-    ESP_LOGI(TAG, "Channel: %s", bool_to_ok_fail(bool(pn532.diagnose_comm_line())));
+    ESP_LOGI(TAG, "Channel: %s", bool_result_to_str(pn532.diagnose_comm_line()));
 
     // Test target polling, this will search for FeliCa card with 212kbps or 424kbps baudrate, return number of failed attempt
     ESP_LOGI(TAG, "Polling tag failures: ");
     if (const auto poll_result = pn532.diagnose_poll_target(true, true); poll_result) {
         ESP_LOGI(TAG, "   %d@212kbps %d@424kbps", poll_result->first, poll_result->second);
     } else {
-        ESP_LOGI(TAG, "   Error: %s", pn532::to_string(poll_result.error()));
+        ESP_LOGW(TAG, "   Error: %s", pn532::to_string(poll_result.error()));
     }
 
     // Check antenna for open circuit, or short circuit
-    const auto antenna_test_result = pn532.diagnose_self_antenna(pn532::bits::low_current_thr::mA_25, pn532::bits::high_current_thr::mA_150);
-    ESP_LOGI(TAG, "Antenna: %s", bool_to_ok_fail(bool(antenna_test_result)));
+    const auto antenna_test_result = pn532.diagnose_self_antenna(pn532::low_current_thr::mA_25, pn532::high_current_thr::mA_150);
+    ESP_LOGI(TAG, "Antenna: %s", bool_result_to_str(antenna_test_result));
 
     // Get firmware version of the tag
     ESP_LOGI(TAG, "PN532 info: ");
@@ -48,7 +47,7 @@ void self_test(pn532::controller &pn532) {
         ESP_LOGI(TAG, "   Version: %#02x", fw_version_result->version);
         ESP_LOGI(TAG, "   Revision: %#02x", fw_version_result->revision);
     } else {
-        ESP_LOGI(TAG, "   Error: %s", pn532::to_string(fw_version_result.error()));
+        ESP_LOGW(TAG, "   Error: %s", pn532::to_string(fw_version_result.error()));
     }
 }
 
@@ -80,5 +79,7 @@ extern "C" void app_main() {
         ESP_LOGE(TAG, "Failed to switch RF field on");
         return;
     }
+    ESP_LOGI(TAG, "PN532 initialization successful.");
     self_test(pn532);
+    ESP_LOGI(TAG, "Self test complete.");
 }

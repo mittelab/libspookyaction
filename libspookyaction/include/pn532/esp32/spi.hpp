@@ -105,7 +105,7 @@ namespace pn532::esp32 {
          * @note In case of invalid host, device or bus configuration, an error message is printed, but the class is correctly constructed. It will
          *  simply always fail to send and receive anything (and may clog your output with error messages).
          */
-        spi_channel(spi_host_device_t host, spi_bus_config_t const &bus_config, spi_device_interface_config_t device_cfg, int dma_chan);
+        spi_channel(spi_host_device_t host, spi_bus_config_t const &bus_config, spi_device_interface_config_t device_cfg, spi_dma_chan_t dma_chan);
 
         /**
          * @brief Construct an SPI channel for a PN532 with the given settings, using GPIO pin to signal when the answer is ready.

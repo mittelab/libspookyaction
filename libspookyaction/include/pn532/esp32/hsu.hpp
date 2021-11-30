@@ -5,6 +5,7 @@
 #ifndef PN532_ESP32_HSU_HPP
 #define PN532_ESP32_HSU_HPP
 
+#include <driver/gpio.h>
 #include <mbcontroller.h>
 #include <pn532/channel.hpp>
 
@@ -36,7 +37,7 @@ namespace pn532::esp32 {
          * @note In case of invalid port or configuration, an error message is printed, but the class is correctly constructed. It will simply
          *  always fail to send and receive anything (and may clog your output with error messages).
          */
-        hsu_channel(uart_port_t port, uart_config_t config, int to_device_tx, int to_device_rx);
+        hsu_channel(uart_port_t port, uart_config_t config, gpio_num_t to_device_tx, gpio_num_t to_device_rx);
 
         ~hsu_channel() override;
     };

@@ -21,7 +21,7 @@ namespace pn532::esp32 {
     }// namespace
 
 
-    hsu_channel::hsu_channel(uart_port_t port, uart_config_t config, int to_device_tx, int to_device_rx) : _port{port} {
+    hsu_channel::hsu_channel(uart_port_t port, uart_config_t config, gpio_num_t to_device_tx, gpio_num_t to_device_rx) : _port{port} {
         if (const auto res = uart_param_config(port, &config); res != ESP_OK) {
             ESP_LOGE(PN532_HSU_TAG, "uart_param_config failed, return code %d (%s).", res, esp_err_to_name(res));
             _port = UART_NUM_MAX;
@@ -70,18 +70,18 @@ namespace pn532::esp32 {
         ESP_LOG_BUFFER_HEX_LEVEL(PN532_HSU_TAG " >>", buffer.data(), buffer.size(), ESP_LOG_VERBOSE);
         // Send and block until transmission is finished (or timeout time expired)
         if (uart_write_bytes(_port, reinterpret_cast<const char *>(buffer.data()), buffer.size()) != buffer.size()) {
-            ESP_LOGE(PN532_HSU_TAG, "Failure to send data via HSU, parameter error at at uart_write_bytes (port = %d).", static_cast<int>(_port));
+            ESP_LOGE(PN532_HSU_TAG, "Failure to send data via HSU, parameter error at at uart_write_bytes (port = %d).", _port);
             return error::comm_error;
         }
         const auto result = uart_wait_tx_done(_port, duration_cast(rt.remaining()));
         if (result == ESP_OK) {
             return mlab::result_success;
         } else if (result == ESP_ERR_TIMEOUT) {
-            ESP_LOGE(PN532_HSU_TAG, "Failure to send data via HSU, timeout at uart_wait_tx_done (port = %d).", static_cast<int>(_port));
+            ESP_LOGE(PN532_HSU_TAG, "Failure to send data via HSU, timeout at uart_wait_tx_done (port = %d).", _port);
             return error::comm_timeout;
         }
         if (result == ESP_FAIL) {
-            ESP_LOGE(PN532_HSU_TAG, "Failure to send data via HSU, parameter error (port = %d).", static_cast<int>(_port));
+            ESP_LOGE(PN532_HSU_TAG, "Failure to send data via HSU, parameter error (port = %d).", _port);
         } else {
             ESP_LOGE(PN532_HSU_TAG, "Unexpected result from uart_wait_tx_done: %d.", static_cast<int>(result));
         }
@@ -106,12 +106,12 @@ namespace pn532::esp32 {
                                                      buffer.data() + read_length,
                                                      buffer_length, duration_cast(rt.remaining()));
                 if (n_bytes < 0) {
-                    ESP_LOGE(PN532_HSU_TAG, "Failed to read %u bytes from uart %d.", buffer_length, static_cast<int>(_port));
+                    ESP_LOGE(PN532_HSU_TAG, "Failed to read %u bytes from uart %d.", buffer_length, _port);
                 } else {
                     read_length += n_bytes;
-                    if (n_bytes != buffer_length) {
+                    if (std::size_t(n_bytes) != buffer_length) {
                         ESP_LOGW(PN532_HSU_TAG, "Read only %u bytes out of %u in uart %d.", n_bytes, buffer_length,
-                                 static_cast<int>(_port));
+                                 _port);
                     }
                 }
             }

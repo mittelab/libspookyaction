@@ -20,6 +20,13 @@
 #include <mbedtls/aes.h>
 #include <mbedtls/des.h>
 
+/**
+ * Guard against missing the definition of CONFIG_MBEDTLS_DES_C.
+ */
+#ifndef MBEDTLS_DES_C
+#error "libSpookyAction: config macro CONFIG_MBEDTLS_DES_C not found; make sure you have CONFIG_MBEDTLS_DES_C=y in your sdkconfig!"
+#endif
+
 namespace desfire::esp32 {
 
     class crypto_des final : public crypto_des_base {

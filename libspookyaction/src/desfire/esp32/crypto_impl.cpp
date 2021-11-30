@@ -4,6 +4,7 @@
 
 #include <desfire/esp32/crypto_impl.hpp>
 #include <desfire/msg.hpp>
+#include <sdkconfig.h>
 
 /**
  * Guard against missing the definition of CONFIG_MBEDTLS_DES_C.

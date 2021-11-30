@@ -96,7 +96,7 @@ build examples:
         BUILD_FOLDER="$(mktemp -d)"
         cp libspookyaction/examples/sdkconfig.defaults "${BUILD_FOLDER}"
         pio ci \
-          --build-dir="${BUILD_FOLDER}"
+          --build-dir="${BUILD_FOLDER}" \
           --project-conf=cicd/platformio.ini \
           --lib=libspookyaction \
           $file

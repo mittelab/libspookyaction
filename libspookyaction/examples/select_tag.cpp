@@ -3,8 +3,15 @@
 #include <pn532/controller.hpp>
 #include <pn532/esp32/hsu.hpp>
 
+// PN532_SERIAL_TX: the GPIO pin number connected to the TX line on the PN532
+#ifndef PN532_SERIAL_TX
 #define PN532_SERIAL_TX (GPIO_NUM_17)
+#endif
+
+// PN532_SERIAL_RX: the GPIO pin number connected to the RX line on the PN532
+#ifndef PN532_SERIAL_RX
 #define PN532_SERIAL_RX (GPIO_NUM_16)
+#endif
 
 using namespace std::chrono_literals;
 

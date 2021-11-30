@@ -24,27 +24,30 @@
   },
   "examples": [
     {
-      "name": "Initialize pn532",
+      "name": "Initialize PN532",
       "base": "examples",
       "files": [
         "initialize.cpp",
-        "sdkconfig.defaults"
+        "sdkconfig.defaults",
+        "platformio.ini"
       ]
     },
     {
-      "name": "read tag UUID",
+      "name": "Read tag UUID",
       "base": "examples",
       "files": [
         "select_tag.cpp",
-        "sdkconfig.defaults"
+        "sdkconfig.defaults",
+        "platformio.ini"
       ]
     },
     {
-      "name": "reader selftest",
+      "name": "PN532 Self test",
       "base": "examples",
       "files": [
-        "selftest.cpp",
-        "sdkconfig.defaults"
+        "self_test.cpp",
+        "sdkconfig.defaults",
+        "platformio.ini"
       ]
     }
   ],

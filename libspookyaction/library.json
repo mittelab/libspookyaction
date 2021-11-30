@@ -58,6 +58,15 @@
         "sdkconfig.defaults",
         "platformio.ini"
       ]
+    },
+    {
+      "name": "Complete Desfire example: authenticate, create/delete apps, read/write files",
+      "base": "examples",
+      "files": [
+        "desfire_demo.cpp",
+        "sdkconfig.defaults",
+        "platformio.ini"
+      ]
     }
   ],
   "authors": [

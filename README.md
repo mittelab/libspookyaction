@@ -47,7 +47,7 @@
 Important folders:
 * `libspookyaction/`  
   Library source code, divided in headers, source code, examples.
-    * `libspookyaction/{include, src, examples}/mlab/`  
+    * `libspookyaction/{include, src, examples}/{pn532, desfire}/`  
       All sources are placed in the subfolders *pn532* and *desfire*. This reflects the namespace in which
       all the objects are located, and keeps the includes clean.
     * `libspookyaction/examples/sdkconfig.defaults`  
@@ -86,7 +86,7 @@ Secondary folders:
    for example).
 4. Use the provided `.clang-format` file to format the source, e.g. by
    ```shell
-   $> clang-format --style file -i libspookyaction/src/mlab/my_file.cpp
+   $> clang-format --style file -i libspookyaction/src/pn532/my_file.cpp
    ```
 
 ### Running the tests

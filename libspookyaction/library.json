@@ -33,19 +33,28 @@
       ]
     },
     {
-      "name": "Read tag UUID",
+      "name": "PN532 Self test",
       "base": "examples",
       "files": [
-        "select_tag.cpp",
+        "self_test.cpp",
         "sdkconfig.defaults",
         "platformio.ini"
       ]
     },
     {
-      "name": "PN532 Self test",
+      "name": "Scans any tag and prints type",
       "base": "examples",
       "files": [
-        "self_test.cpp",
+        "scan_any_target.cpp",
+        "sdkconfig.defaults",
+        "platformio.ini"
+      ]
+    },
+    {
+      "name": "Scans specific tags and prints UUID",
+      "base": "examples",
+      "files": [
+        "scan_desfire.cpp",
         "sdkconfig.defaults",
         "platformio.ini"
       ]

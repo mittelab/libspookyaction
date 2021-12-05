@@ -96,6 +96,6 @@
     "-std=c++17"
   ],
   "dependencies": {
-    "mitteLib": "https://git.mittelab.org/proj/mittelib.git"
+    "mitteLib": "^1.0.2"
   }
 }

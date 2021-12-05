@@ -9,6 +9,11 @@ stages:
   - deploy
 
 
+variables:
+  PIO_LIB_FOLDER: libspookyaction
+  PIO_PROJ_FOLDER: tests
+
+
 .pio-cache: &pio-cache
   cache:
     key: ${CI_COMMIT_REF_SLUG}
@@ -17,12 +22,12 @@ stages:
 
 .rules-changes-sources: &rules-changes-sources
   changes:
-    - libspookyaction/src/**/*
-    - libspookyaction/include/**/*
-    - libspookyaction/examples/**/*
-    - tests/src/**/*
-    - tests/include/**/*
-    - tests/lib/**/*
+    - ${PIO_LIB_FOLDER}/src/**/*
+    - ${PIO_LIB_FOLDER}/include/**/*
+    - ${PIO_LIB_FOLDER}/examples/**/*
+    - ${PIO_PROJ_FOLDER}/src/**/*
+    - ${PIO_PROJ_FOLDER}/include/**/*
+    - ${PIO_PROJ_FOLDER}/lib/**/*
     - cicd/platformio.ini
 
 .rules-changes-cicd: &rules-changes-cicd
@@ -82,8 +87,6 @@ build test firmware:
       - "${PIO_PROJ_FOLDER}/.pio/**/firmware.elf"
   rules:
     - when: always
-  variables:
-    PIO_PROJ_FOLDER: tests
 
 
 build examples:
@@ -92,13 +95,13 @@ build examples:
   <<: *pio-cache
   script:  # Note that we need to setup sdkconfig.defaults before, so we make our own folder and we manage it ourselves
     - >
-      for file in libspookyaction/examples/*.cpp; do
+      for file in ${PIO_LIB_FOLDER}/examples/*.cpp; do
         BUILD_DIR="$(mktemp -d)"
-        cp libspookyaction/examples/sdkconfig.defaults "${BUILD_DIR}"
+        cp ${PIO_LIB_FOLDER}/examples/sdkconfig.defaults "${BUILD_DIR}"
         pio ci \
           --build-dir="${BUILD_DIR}" \
           --project-conf=cicd/platformio.ini \
-          --lib=libspookyaction \
+          --lib=${PIO_LIB_FOLDER} \
           --keep-build-dir \
           $file
         rm -rf "${BUILD_DIR}"
@@ -134,8 +137,6 @@ test hardware:
     # But skip by default if the sources did not change
     - <<: *rules-changes-sources
     - <<: *rules-changes-cicd
-  variables:
-    PIO_PROJ_FOLDER: tests
 
 
 publish library:
@@ -151,8 +152,6 @@ publish library:
     - tags
   except:
     - branches
-  variables:
-    PIO_LIB_FOLDER: libspookyaction
 
 
 pages:

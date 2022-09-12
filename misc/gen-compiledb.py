@@ -7,7 +7,7 @@ import glob
 import re
 
 
-_RGX_CDB = re.compile(r'Building compilation database (?P<path>.+?/compile_commands.json)')
+_RGX_CDB = re.compile(r'Building compilation database (?P<path>.*?\bcompile_commands\.json)')
 
 
 def main(args):

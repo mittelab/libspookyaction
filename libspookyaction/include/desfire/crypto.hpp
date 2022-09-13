@@ -108,7 +108,8 @@ namespace desfire {
      * would throw the IV out of sync. Therefore, CMAC-enabled cryptographic implementation are supposed to be used as
      * such and not through the lower abstraction layer.
      * @see crypto
-     * @see cmac_provider
+    * @see cmac_provider
+    * @see cmac_provider_base
      * @see cipher_default
      */
     class crypto_with_cmac : public crypto {
@@ -117,11 +118,12 @@ namespace desfire {
     protected:
         /**
          * @brief Initializes the CMAC-enabled class.
-         * @param block_size Size of the cipher block. This is passed directly to @ref cmac_provider::cmac_provider.
+         * @param block_size Size of the cipher block. This is passed directly to @ref cmac_provider_base::cmac_provider_base.
          * @param last_byte_xor When deriving the key, if the MSB is 1, the last byte is XOR-ed with this value. I have
          *  no clue about why we have to do this, maybe some nice key pre-conditioning to resist certain attacks? I do
          *  not know, but it is a constant specific to the cipher used. This is passed directly to
-         *  @ref cmac_provider::cmac_provider.
+         *  @ref cmac_provider_base::cmac_provider_base.
+         * @see cmac_provider_base::cmac_provider_base
          * @see cmac_provider::cmac_provider
          */
         crypto_with_cmac(std::uint8_t block_size, std::uint8_t last_byte_xor);

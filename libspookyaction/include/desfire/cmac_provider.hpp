@@ -25,14 +25,14 @@ namespace desfire {
      * @see crypto_aes_base
      * @see crypto_3k3des_base
      */
-    class cmac_provider {
+    class cmac_provider_base {
         crypto *_crypto;
         std::size_t _block_size;
         std::uint8_t _last_byte_xor;
         std::unique_ptr<std::uint8_t[]> _subkey_pad;
         std::unique_ptr<std::uint8_t[]> _subkey_nopad;
-        bin_data _cmac_buffer;
 
+    protected:
         /**
          * @brief Key to use for messages that need padding.
          */
@@ -48,18 +48,36 @@ namespace desfire {
          */
         [[nodiscard]] inline crypto &crypto_implementation() const;
 
-    public:
         /**
-         * @brief All CMAC codes are 8 bytes long.
+         * @brief Perform CMAC cryptography on the given data and IV.
+         *
+         * Data and IV have to be postprocessed to extract the actual CMAC code, see for example @ref cmac_provider::compute_cmac.
+         * Make sure that the subkeys are initialized with @ref initialize_subkeys before calling.
+         * This method performs the following operations:
+         * -# Copies @p data onto @p buffer.
+         * -# Pads @p buffer with `80 00 .. 00`.
+         * -# XORs the last block with the appropriate key, depending on whether it was padded or not.
+         * -# Calls @ref crypto::do_crypto with @ref crypto_operation::mac on the resulting data together with @p iv.
+         * -# Returns the buffer and iv as they are left by the cryptographic operation
+         *
+         * @param buffer Buffer to use to pad data, perform XOR operations and so on. This will be cleared and resized
+         *  to accommodate @p data.
+         * @param iv Initialization vector to use. This method passes the initialization vector to the
+         *  method @ref crypto::do_crypto, therefore upon exit it is modified accordingly (and should contain the
+         *  resulting initialization vector state after the cryptographic operation).
+         * @param data Data to compute the CMAC on.
+         *
+         * @return A 8-byte message authentication code.
          */
-        using mac_t = std::array<std::uint8_t, 8>;
+        void do_cmac_crypto(bin_data &buffer, range<std::uint8_t *> iv, range<std::uint8_t const *> data);
 
+    public:
         /**
          * @brief Initialize a new CMAC provider.
          *
          * You must call @ref initialize_subkeys before @ref compute_cmac can be used.
          *
-         * @param crypto Must stay alive as long as @ref cmac_provider. This @ref crypto implementation might be not
+         * @param crypto Must stay alive as long as @ref cmac_provider_base. This @ref crypto implementation might be not
          *  completely initialized, and that is ok. No method of @ref crypto is called in the constructor. However, the
          *  initialization of the CMAC provider must be completed by calling @ref initialize_subkeys.
          * @param block_size Size of the block used in the @ref crypto object (8 bytes for 3K3DES, 16 for AES128).
@@ -71,17 +89,17 @@ namespace desfire {
          * @see desfire::bits::crypto_cmac_xor_byte_3k3des
          * @see desfire::bits::crypto_cmac_xor_byte_aes
          */
-        inline cmac_provider(crypto &crypto, std::size_t block_size, std::uint8_t last_byte_xor);
+        inline cmac_provider_base(crypto &crypto, std::size_t block_size, std::uint8_t last_byte_xor);
 
         /**
          * @brief Block size of the underlying @ref crypto implementation.
-         * @return The block size in bytes specified in @ref cmac_provider::cmac_provider.
+         * @return The block size in bytes specified in @ref cmac_provider_base::cmac_provider_base.
          */
         [[nodiscard]] inline std::size_t block_size() const;
 
         /**
          * @brief The value used in subkey generation for the underlying @ref crypto implementation.
-         * @return The value specified in @ref cmac_provider::cmac_provider.
+         * @return The value specified in @ref cmac_provider_base::cmac_provider_base.
          *
          * @see prepare_subkey
          * @see desfire::bits::crypto_cmac_xor_byte_3k3des
@@ -114,6 +132,31 @@ namespace desfire {
         void initialize_subkeys();
 
         /**
+         * @brief Transform a cryptogram into a subkey to use for CMACing.
+         *
+         * This seems to be something specific to Desfire. First some cryptographic operation is performed, then the
+         * result is shifted and if the MSB is 1, the last byte is XORed with @p last_byte_xor. Maybe it is done to
+         * precondition the algorithm to be more resistant?
+         *
+         * @param subkey Cryptogram resulting from running a regular @ref crypto_operation::mac on the appropriate IV.
+         *  Upon exit, this contains the result (the shift and XOR operations are performed in-place on this range).
+         * @param last_byte_xor Value that is XORed with the last byte if the MSB of the shifted @p subkey is 1.
+         */
+        static void prepare_subkey(range<std::uint8_t *> subkey, std::uint8_t last_byte_xor);
+    };
+
+    class cmac_provider : public cmac_provider_base {
+        bin_data _cmac_buffer;
+
+    public:
+        /**
+         * @brief All CMAC codes are 8 bytes long.
+         */
+        using mac_t = std::array<std::uint8_t, 8>;
+
+        using cmac_provider_base::cmac_provider_base;
+
+        /**
          * @brief Compute a CMAC on the given range of data.
          *
          * Make sure that the subkeys are initialized with @ref initialize_subkeys before calling.
@@ -131,47 +174,35 @@ namespace desfire {
          * @return A 8-byte message authentication code.
          */
         mac_t compute_cmac(range<std::uint8_t *> iv, range<std::uint8_t const *> data);
-
-        /**
-         * @brief Transform a cryptogram into a subkey to use for CMACing.
-         *
-         * This seems to be something specific to Desfire. First some cryptographic operation is performed, then the
-         * result is shifted and if the MSB is 1, the last byte is XORed with @p last_byte_xor. Maybe it is done to
-         * precondition the algorithm to be more resistant?
-         *
-         * @param subkey Cryptogram resulting from running a regular @ref crypto_operation::mac on the appropriate IV.
-         *  Upon exit, this contains the result (the shift and XOR operations are performed in-place on this range).
-         * @param last_byte_xor Value that is XORed with the last byte if the MSB of the shifted @p subkey is 1.
-         */
-        static void prepare_subkey(range<std::uint8_t *> subkey, std::uint8_t last_byte_xor);
     };
 }// namespace desfire
 
 namespace desfire {
-    cmac_provider::cmac_provider(crypto &crypto, std::size_t block_size, std::uint8_t last_byte_xor)
+
+    cmac_provider_base::cmac_provider_base(crypto &crypto, std::size_t block_size, std::uint8_t last_byte_xor)
         : _crypto{&crypto},
           _block_size{block_size},
           _last_byte_xor{last_byte_xor},
           _subkey_pad{std::make_unique<std::uint8_t[]>(static_cast<std::size_t>(block_size))},
           _subkey_nopad{std::make_unique<std::uint8_t[]>(static_cast<std::size_t>(block_size))} {}
 
-    std::size_t cmac_provider::block_size() const {
+    std::size_t cmac_provider_base::block_size() const {
         return _block_size;
     }
 
-    std::uint8_t cmac_provider::last_byte_xor() const {
+    std::uint8_t cmac_provider_base::last_byte_xor() const {
         return _last_byte_xor;
     }
 
-    range<std::uint8_t *> cmac_provider::key_pad() const {
+    range<std::uint8_t *> cmac_provider_base::key_pad() const {
         return {_subkey_pad.get(), _subkey_pad.get() + block_size()};
     }
 
-    range<std::uint8_t *> cmac_provider::key_nopad() const {
+    range<std::uint8_t *> cmac_provider_base::key_nopad() const {
         return {_subkey_nopad.get(), _subkey_nopad.get() + block_size()};
     }
 
-    crypto &cmac_provider::crypto_implementation() const {
+    crypto &cmac_provider_base::crypto_implementation() const {
         return *_crypto;
     }
 }// namespace desfire

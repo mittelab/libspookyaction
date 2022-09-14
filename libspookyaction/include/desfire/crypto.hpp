@@ -136,6 +136,19 @@ namespace desfire {
          */
         virtual void setup_primitives_with_key(range<std::uint8_t const *> key) = 0;
 
+        /**
+         * @addtogroup PrepareCMACData
+         * @{
+         * @brief Identical to @ref cmac_provider::prepare_cmac_data.
+         *
+         * @see cmac_provider::prepare_cmac_data
+         */
+        void prepare_cmac_data(bin_data &data) const;
+        void prepare_cmac_data(bin_data &data, std::size_t desired_padded_length) const;
+        /**
+         * @}
+         */
+
     public:
         /**
          * @brief The type of the CMAC MAC code, which is a fixed 8 bytes sequence.
@@ -260,6 +273,18 @@ namespace desfire {
         crypto_aes_base();
         [[nodiscard]] inline desfire::cipher_type cipher_type() const final;
         void init_session(range<std::uint8_t const *> random_data) final;
+
+        /**
+         * @brief Performs key diversification as in specified in AN10922.
+         *
+         * Derives a new secure key from the current key in use in @ref crypto_aes_base and @p diversification_input.
+         * Does not alter the logical state of @ref crypto_aes_base, meaning it does not disrupt a working session and can
+         * be called at any time.
+         *
+         * @param diversification_input Diversification data. Will be modified by cryptographic operations.
+         * @return A new key derived from the given data.
+         */
+        std::array<std::uint8_t, 16> diversify_key_an10922(bin_data &diversification_input);
     };
 
 }// namespace desfire

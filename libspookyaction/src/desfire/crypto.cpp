@@ -103,6 +103,27 @@ namespace desfire {
         setup_with_key(make_range(new_key));
     }
 
+    std::array<std::uint8_t, 16> crypto_aes_base::diversify_key_an10922(mlab::bin_data &diversification_input) {
+        // We use at most 31 bits of the diversification data
+        if (diversification_input.size() > 31) {
+            ESP_LOGW(DESFIRE_TAG, "Too long diversification input for AES128, %d > 31 bytes.", diversification_input.size());
+            diversification_input.resize(31);
+        }
+        // Will eventually use 32 bytes
+        diversification_input.reserve(32);
+        // We need to insert in front of it the constant 0x01
+        diversification_input.insert(std::begin(diversification_input), std::uint8_t(0x01));
+        // Now we pad to 32 bytes and xor with the appropriate key
+        prepare_cmac_data(diversification_input, 32);
+        assert(diversification_input.size() == 32);
+        // Perform crypto in CMAC mode with a zero block
+        std::array<std::uint8_t, 16> block{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+        do_crypto(diversification_input.data_view(), make_range(block), crypto_operation::mac);
+        // Use the block to return the last 16 bytes of the resulted encrypted data as differentiation input
+        std::copy(std::begin(diversification_input) + 16, std::end(diversification_input), std::begin(block));
+        return block;
+    }
+
     void crypto_aes_base::init_session(range<const std::uint8_t *> random_data) {
         if (random_data.size() != 32) {
             DESFIRE_LOGE("Incorrect session data length %u != 32. Are you attempt to authenticate with the wrong key type?", random_data.size());
@@ -143,6 +164,14 @@ namespace desfire {
 
     crypto_with_cmac::mac_t crypto_with_cmac::do_cmac(range<std::uint8_t const *> data, range<std::uint8_t *> iv) {
         return _cmac.compute_cmac(iv, data);
+    }
+
+    void crypto_with_cmac::prepare_cmac_data(mlab::bin_data &data) const {
+        _cmac.prepare_cmac_data(data);
+    }
+
+    void crypto_with_cmac::prepare_cmac_data(mlab::bin_data &data, std::size_t desired_padded_length) const {
+        _cmac.prepare_cmac_data(data, desired_padded_length);
     }
 
 }// namespace desfire

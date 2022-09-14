@@ -25,6 +25,7 @@ variables:
     - ${PIO_LIB_FOLDER}/src/**/*
     - ${PIO_LIB_FOLDER}/include/**/*
     - ${PIO_LIB_FOLDER}/examples/**/*
+    - ${PIO_PROJ_FOLDER}/src/**/*
     - ${PIO_PROJ_FOLDER}/test/**/*
     - ${PIO_PROJ_FOLDER}/include/**/*
     - ${PIO_PROJ_FOLDER}/lib/**/*
@@ -127,7 +128,7 @@ test hardware:
     - cp cicd/platformio.ini "${PIO_PROJ_FOLDER}/platformio.ini"
     - cd "${PIO_PROJ_FOLDER}"
   script:
-    # Make two attempts at uploading. Do not use pio test beause it always returns 0
+    # Make two attempts at uploading.
     - pio test --without-building --without-testing -vv || pio test --without-building --without-testing -vv
     - pio test --without-building --without-uploading -vv
   rules:

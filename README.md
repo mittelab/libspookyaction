@@ -60,10 +60,10 @@ Important folders:
   Subfolder containing the unit test project.
     * `tests/lib/libspookyaction/`  
       Symlink to `libspookyaction/`, to allow the unit tests to pick up the local library folder
-    * `tests/{include, src}/ut`  
+    * `tests/src/ut`  
       The UT suite suggested by ESP-IDF, Unity, is somehow limited for extensive C++ testing, so everything reusable,
       and anything that is not a direct test invocation, is implemented here in a separate `::ut` namespace. 
-    * `tests/test/.keep`  
+    * `tests/test`  
       We need to keep this folder for PlatformIO to believe we are providing unit test in our own
       custom entry point.
 
@@ -101,8 +101,7 @@ together.
 1. Change directory and use either `pio test` or `pio run`, as follows:
    ```shell
    $> cd tests/
-   $> pio run -t upload -t monitor  # or
-   $> pio test
+   $> pio test -vv
    ```
 
 ### Building the documentation

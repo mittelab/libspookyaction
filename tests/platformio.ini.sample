@@ -71,7 +71,5 @@ build_flags =
 ;   -D LOG_LOCAL_LEVEL=ESP_LOG_DEBUG
 ;   -D CORE_DEBUG_LEVEL=5
 
-; These settings allow to compile the tests with `pio run` as well as `pio test`
-test_transport = custom
-monitor_flags = --raw
-test_build_project_src = yes
+; These settings allow to use the helper classes in UT
+test_build_src = yes

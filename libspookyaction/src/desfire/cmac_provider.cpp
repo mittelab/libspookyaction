@@ -9,7 +9,7 @@
 
 namespace desfire {
 
-    void cmac_provider::prepare_subkey(range<std::uint8_t *> subkey, std::uint8_t last_byte_xor) {
+    void cmac_keychain::prepare_subkey(range<std::uint8_t *> subkey, std::uint8_t last_byte_xor) {
         const bool do_xor = (*std::begin(subkey) & 0x80) != 0;
         // Some app-specific magic: lshift by one
         lshift_sequence(std::begin(subkey), std::end(subkey), 1);
@@ -19,7 +19,11 @@ namespace desfire {
         }
     }
 
-    void cmac_provider::initialize_subkeys() {
+    void cmac_provider::initialize_subkeys(crypto &crypto) {
+        _keychain.initialize_subkeys(crypto);
+    }
+
+    void cmac_keychain::initialize_subkeys(crypto &crypto) {
         auto rg_key_nopad = key_nopad();
         auto rg_key_pad = key_pad();
 
@@ -30,7 +34,7 @@ namespace desfire {
         std::fill(std::begin(rg_key_nopad), std::end(rg_key_nopad), 0);
 
         // Do the initial crypto_implementation. Should use a 0-filled IV. We use the padded key which we just reset.
-        crypto_implementation().do_crypto(rg_key_pad, rg_key_nopad, crypto_operation::mac);
+        crypto.do_crypto(rg_key_pad, rg_key_nopad, crypto_operation::mac);
 
         // rg_key_nopad contains garbage now, process the nopad key first
         prepare_subkey(rg_key_pad, last_byte_xor());
@@ -46,12 +50,11 @@ namespace desfire {
     }
 
 
-    void cmac_provider::prepare_cmac_data(bin_data &data) const {
+    void cmac_keychain::prepare_cmac_data(bin_data &data) const {
         prepare_cmac_data(data, data.size());
     }
 
-    void cmac_provider::prepare_cmac_data(bin_data &data, std::size_t desired_padded_length) const
-    {
+    void cmac_keychain::prepare_cmac_data(bin_data &data, std::size_t desired_padded_length) const {
         // Ensure the padded length is a multiple of the block size
         desired_padded_length = padded_length(desired_padded_length, block_size());
         const auto old_size = data.size();
@@ -72,24 +75,24 @@ namespace desfire {
     }
 
 
-    cmac_provider::mac_t cmac_provider::compute_cmac(range<std::uint8_t *> iv, range<std::uint8_t const *> data) {
+    cmac_provider::mac_t cmac_provider::compute_cmac(crypto &crypto, range<std::uint8_t *> iv, range<std::uint8_t const *> data) {
         mac_t retval{0, 0, 0, 0, 0, 0, 0, 0};
 
-        if (iv.size() < block_size()) {
-            DESFIRE_LOGE("CMAC: got %d bytes for IV, need at least %d for CMAC.", iv.size(), block_size());
+        if (iv.size() < keychain().block_size()) {
+            DESFIRE_LOGE("CMAC: got %d bytes for IV, need at least %d for CMAC.", iv.size(), keychain().block_size());
             return retval;
         }
 
         // Resize the buffer and copy data
         _cmac_buffer.clear();
-        _cmac_buffer.reserve(padded_length(data.size(), block_size()));
+        _cmac_buffer.reserve(padded_length(data.size(), keychain().block_size()));
         _cmac_buffer.resize(data.size());
 
         std::copy(std::begin(data), std::end(data), std::begin(_cmac_buffer));
-        prepare_cmac_data(_cmac_buffer);
+        keychain().prepare_cmac_data(_cmac_buffer);
 
         // Return the first 8 bytes of the last block
-        crypto_implementation().do_crypto(_cmac_buffer.data_view(), iv, crypto_operation::mac);
+        crypto.do_crypto(_cmac_buffer.data_view(), iv, crypto_operation::mac);
         std::copy(std::begin(iv), std::begin(iv) + retval.size(), std::begin(retval));
         return retval;
     }

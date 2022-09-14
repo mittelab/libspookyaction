@@ -139,9 +139,9 @@ namespace desfire {
         /**
          * @addtogroup PrepareCMACData
          * @{
-         * @brief Identical to @ref cmac_provider::prepare_cmac_data.
+         * @brief Identical to @ref cmac_keychain::prepare_cmac_data.
          *
-         * @see cmac_provider::prepare_cmac_data
+         * @see cmac_keychain::prepare_cmac_data
          */
         void prepare_cmac_data(bin_data &data) const;
         void prepare_cmac_data(bin_data &data, std::size_t desired_padded_length) const;

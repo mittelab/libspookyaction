@@ -54,6 +54,7 @@ namespace ut {
         void test_2k3des();
         void test_3k3des();
         void test_aes();
+        void test_aes_kdf();
         void test_crc32();
         void test_crc16();
     }// namespace desfire_ciphers

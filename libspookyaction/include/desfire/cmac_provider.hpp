@@ -133,6 +133,33 @@ namespace desfire {
         mac_t compute_cmac(range<std::uint8_t *> iv, range<std::uint8_t const *> data);
 
         /**
+         * @brief Prepares data for CMAC operation by padding it and XORing with the appropriate key.
+         *
+         * This performs a subset of the operations of @ref compute_cmac, namely:
+         * -# Pads @p data with `80 00 .. 00`.
+         * -# XORs the last block with the appropriate key, depending on whether it was padded or not.
+         *
+         * @param data Data to pad and XOR, modified in-place. Will be resized to a multiple of @ref block_size.
+         *
+         * @see compute_cmac
+         */
+        void prepare_cmac_data(bin_data &data) const;
+
+        /**
+         * @brief Prepares data for CMAC operation by padding it and XORing with the appropriate key.
+         *
+         * This performs a subset of the operations of @ref compute_cmac, namely:
+         * -# Pads @p data with `80 00 .. 00` up to @p desired_padded_length.
+         * -# XORs the last block with the appropriate key, depending on whether it was padded or not.
+         *
+         * @param data Data to pad and XOR, modified in-place. Will be resized to a multiple of the block size.
+         * @param desired_padded_length Minimum length for the padded message. Will be rounded to the next multiple of @ref block_size.
+         *
+         * @see compute_cmac
+         */
+        void prepare_cmac_data(bin_data &data, std::size_t desired_padded_length) const;
+
+        /**
          * @brief Transform a cryptogram into a subkey to use for CMACing.
          *
          * This seems to be something specific to Desfire. First some cryptographic operation is performed, then the

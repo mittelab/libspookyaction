@@ -46,6 +46,32 @@ namespace desfire {
     }
 
 
+    void cmac_provider::prepare_cmac_data(bin_data &data) const {
+        prepare_cmac_data(data, data.size());
+    }
+
+    void cmac_provider::prepare_cmac_data(bin_data &data, std::size_t desired_padded_length) const
+    {
+        // Ensure the padded length is a multiple of the block size
+        desired_padded_length = padded_length(desired_padded_length, block_size());
+        const auto old_size = data.size();
+        data.resize(desired_padded_length);
+
+        const auto last_block = data.view(data.size() - block_size());
+        const auto xor_op = [](std::uint8_t l, std::uint8_t r) -> std::uint8_t { return l ^ r; };
+        if (old_size == data.size()) {
+            // Was not padded
+            std::transform(std::begin(last_block), std::end(last_block), _subkey_nopad.get(),
+                           std::begin(last_block), xor_op);
+        } else {
+            // Padding needs to begin with 0x80
+            data[old_size] = 0x80;
+            std::transform(std::begin(last_block), std::end(last_block), _subkey_pad.get(),
+                           std::begin(last_block), xor_op);
+        }
+    }
+
+
     cmac_provider::mac_t cmac_provider::compute_cmac(range<std::uint8_t *> iv, range<std::uint8_t const *> data) {
         mac_t retval{0, 0, 0, 0, 0, 0, 0, 0};
 
@@ -54,26 +80,13 @@ namespace desfire {
             return retval;
         }
 
-        static const auto xor_op = [](std::uint8_t l, std::uint8_t r) -> std::uint8_t { return l ^ r; };
-
         // Resize the buffer and copy data
         _cmac_buffer.clear();
-        _cmac_buffer.resize(padded_length(data.size(), block_size()));
+        _cmac_buffer.reserve(padded_length(data.size(), block_size()));
+        _cmac_buffer.resize(data.size());
 
         std::copy(std::begin(data), std::end(data), std::begin(_cmac_buffer));
-
-        // Spec requires XOR-ing the last block with the appropriate key.
-        const auto last_block = _cmac_buffer.view(_cmac_buffer.size() - block_size());
-        if (_cmac_buffer.size() == data.size()) {
-            // Was not padded
-            std::transform(std::begin(last_block), std::end(last_block), _subkey_nopad.get(),
-                           std::begin(last_block), xor_op);
-        } else {
-            // Was padded, but spec wants to pad with 80 00 .. 00, so change one byte
-            _cmac_buffer[data.size()] = 0x80;
-            std::transform(std::begin(last_block), std::end(last_block), _subkey_pad.get(),
-                           std::begin(last_block), xor_op);
-        }
+        prepare_cmac_data(_cmac_buffer);
 
         // Return the first 8 bytes of the last block
         crypto_implementation().do_crypto(_cmac_buffer.data_view(), iv, crypto_operation::mac);

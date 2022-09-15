@@ -23,7 +23,7 @@ namespace ut {
      * subkey derivation, so that is disabled and broken, but other than that, it allows us to replay the examples
      * retrieved from the web.
      */
-    template <class CryptoImpl, std::size_t BlockSize = 8>
+    template <class CryptoImpl, std::size_t BlockSize, std::size_t KeySize>
     class fake_cmac_crypto final : public desfire::crypto_with_cmac {
         static_assert(std::is_base_of_v<desfire::crypto, CryptoImpl>);
         CryptoImpl _impl;
@@ -39,11 +39,14 @@ namespace ut {
         void do_crypto(range<std::uint8_t *> data, range<std::uint8_t *> iv, desfire::crypto_operation op) override;
         void setup_with_key(range<std::uint8_t const *> key) override;
         mac_t do_cmac(range<std::uint8_t const *> data, range<std::uint8_t *> iv) override;
+
+        /// @brief Informal protocol
+        [[nodiscard]] std::array<std::uint8_t, KeySize> diversify_key_an10922(mlab::bin_data &diversify_input);
     };
 
     using always_default_cipher_provider = desfire::typed_cipher_provider<
-            fake_cmac_crypto<desfire::esp32::crypto_des>,
-            fake_cmac_crypto<desfire::esp32::crypto_2k3des>,
+            fake_cmac_crypto<desfire::esp32::crypto_des, 8, 8>,
+            fake_cmac_crypto<desfire::esp32::crypto_2k3des, 8, 16>,
             desfire::esp32::crypto_3k3des,
             desfire::esp32::crypto_aes,
             desfire::cipher_default, desfire::cipher_default,
@@ -65,38 +68,43 @@ namespace ut {
 
 namespace ut {
 
-    template <class CryptoImpl, std::size_t BlockSize>
-    fake_cmac_crypto<CryptoImpl, BlockSize>::fake_cmac_crypto() : crypto_with_cmac{BlockSize, 0x00}, _impl{} {}
+    template <class CryptoImpl, std::size_t BlockSize, std::size_t KeySize>
+    fake_cmac_crypto<CryptoImpl, BlockSize, KeySize>::fake_cmac_crypto() : crypto_with_cmac{BlockSize, 0x00}, _impl{} {}
 
-    template <class CryptoImpl, std::size_t BlockSize>
-    desfire::crypto_with_cmac::mac_t fake_cmac_crypto<CryptoImpl, BlockSize>::do_cmac(range<std::uint8_t const *> data, range<std::uint8_t *> iv) {
+    template <class CryptoImpl, std::size_t BlockSize, std::size_t KeySize>
+    desfire::crypto_with_cmac::mac_t fake_cmac_crypto<CryptoImpl, BlockSize, KeySize>::do_cmac(range<std::uint8_t const *> data, range<std::uint8_t *> iv) {
         TEST_FAIL_MESSAGE("Attempt to compute a CMAC with a fake CMAC crypto. This is not supported.");
         return {};
     }
 
-    template <class CryptoImpl, std::size_t BlockSize>
-    desfire::cipher_type fake_cmac_crypto<CryptoImpl, BlockSize>::cipher_type() const {
+    template <class CryptoImpl, std::size_t BlockSize, std::size_t KeySize>
+    desfire::cipher_type fake_cmac_crypto<CryptoImpl, BlockSize, KeySize>::cipher_type() const {
         return _impl.cipher_type();
     }
 
-    template <class CryptoImpl, std::size_t BlockSize>
-    void fake_cmac_crypto<CryptoImpl, BlockSize>::init_session(range<std::uint8_t const *> random_data) {
+    template <class CryptoImpl, std::size_t BlockSize, std::size_t KeySize>
+    void fake_cmac_crypto<CryptoImpl, BlockSize, KeySize>::init_session(range<std::uint8_t const *> random_data) {
         _impl.init_session(random_data);
     }
 
-    template <class CryptoImpl, std::size_t BlockSize>
-    void fake_cmac_crypto<CryptoImpl, BlockSize>::setup_with_key(range<std::uint8_t const *> key) {
+    template <class CryptoImpl, std::size_t BlockSize, std::size_t KeySize>
+    void fake_cmac_crypto<CryptoImpl, BlockSize, KeySize>::setup_with_key(range<std::uint8_t const *> key) {
         _impl.setup_with_key(key);
     }
 
-    template <class CryptoImpl, std::size_t BlockSize>
-    void fake_cmac_crypto<CryptoImpl, BlockSize>::setup_primitives_with_key(range<std::uint8_t const *> key) {
+    template <class CryptoImpl, std::size_t BlockSize, std::size_t KeySize>
+    void fake_cmac_crypto<CryptoImpl, BlockSize, KeySize>::setup_primitives_with_key(range<std::uint8_t const *> key) {
         TEST_FAIL_MESSAGE("Attempt to setup a CMAC with a fake CMAC crypto. This is not supported.");
     }
 
-    template <class CryptoImpl, std::size_t BlockSize>
-    void fake_cmac_crypto<CryptoImpl, BlockSize>::do_crypto(range<std::uint8_t *> data, range<std::uint8_t *> iv, desfire::crypto_operation op) {
+    template <class CryptoImpl, std::size_t BlockSize, std::size_t KeySize>
+    void fake_cmac_crypto<CryptoImpl, BlockSize, KeySize>::do_crypto(range<std::uint8_t *> data, range<std::uint8_t *> iv, desfire::crypto_operation op) {
         _impl.do_crypto(data, iv, op);
+    }
+
+    template <class CryptoImpl, std::size_t BlockSize, std::size_t KeySize>
+    std::array<std::uint8_t, KeySize> fake_cmac_crypto<CryptoImpl, BlockSize, KeySize>::diversify_key_an10922(mlab::bin_data &diversify_input) {
+        return _impl.diversify_key_an10922(diversify_input);
     }
 }// namespace ut
 

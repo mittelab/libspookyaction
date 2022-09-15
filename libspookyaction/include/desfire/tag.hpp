@@ -1216,7 +1216,7 @@ namespace desfire {
 
     template <cipher_type Cipher>
     void tag::ut_init_session(desfire::key<Cipher> const &session_key, desfire::app_id app, std::uint8_t key_no) {
-        _active_cipher = _provider->setup_from_key(session_key);
+        _active_cipher = _provider->cipher_from_key(session_key);
         _active_app = app;
         _active_key_type = Cipher;
         _active_key_number = key_no;

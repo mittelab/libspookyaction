@@ -272,7 +272,7 @@ namespace desfire {
         }
 
         /// Initialize a new cipher of the appropriate type for the key exchange protocol and the relative comm modes
-        auto pcipher = _provider->setup_from_key(k);
+        auto pcipher = _provider->cipher_from_key(k);
 
         /// Send the right authentication command for the key type and the key number, get RndB
         DESFIRE_LOGD("Authentication with key %u (%s): sending auth command.", k.key_number(), to_string(k.type()));

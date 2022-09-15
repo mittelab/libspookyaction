@@ -207,7 +207,9 @@ namespace desfire {
      * @ref do_crypto.
      */
     class crypto_2k3des_base : public crypto {
-        bool _degenerate = false;
+        bool _degenerate;
+        std::uint8_t _key_version;
+        cmac_keychain _diversification_keychain;
 
     protected:
         /**
@@ -221,6 +223,8 @@ namespace desfire {
         virtual void setup_primitives_with_key(range<std::uint8_t const *> key) = 0;
 
     public:
+        crypto_2k3des_base();
+
         /**
          * @brief True if a 2K3DES key with identical halves (up to parity bits) was used in @ref setup_with_key.
          *
@@ -245,6 +249,8 @@ namespace desfire {
          * @brief Implementation of 2K3DES session key derivation; will internally call @ref setup_primitives_with_key.
          */
         void init_session(range<std::uint8_t const *> random_data) final;
+
+        std::array<std::uint8_t, 16> diversify_key_an10922(bin_data &diversification_input);
     };
 
     /**

@@ -48,8 +48,10 @@ namespace desfire {
         };
         const auto it_begin_2nd_half = std::begin(key) + 8;
         _degenerate = std::equal(std::begin(key), it_begin_2nd_half, it_begin_2nd_half, eq_except_parity);
+        _key_version = get_key_version(key);
 
         setup_primitives_with_key(key);
+        _diversification_keychain.initialize_subkeys(*this);
     }
 
     void crypto_2k3des_base::init_session(range<const std::uint8_t *> random_data) {
@@ -73,12 +75,51 @@ namespace desfire {
             std::copy_n(bsrc + 4, 4, btrg + 8);
             std::copy_n(bsrc + 12, 4, btrg + 12);
         }
-        set_key_version(new_key, 0x00);
+        set_key_version(new_key, _key_version);
 
         ESP_LOGD(DESFIRE_TAG " KEY", "Session key %s:", to_string(cipher_type::des3_2k));
         ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " KEY", new_key.data(), new_key.size(), ESP_LOG_DEBUG);
 
         setup_with_key(make_range(new_key));
+    }
+
+    crypto_2k3des_base::crypto_2k3des_base() : _degenerate{false}, _key_version{0x0},
+                                               _diversification_keychain{8, bits::crypto_cmac_xor_byte_2k3des} {}
+
+    std::array<std::uint8_t, 16> crypto_2k3des_base::diversify_key_an10922(mlab::bin_data &diversification_input) {
+        // We use at most 15 bits of the diversification data
+        if (diversification_input.size() > 15) {
+            ESP_LOGW(DESFIRE_TAG, "Too long diversification input for 3K3DES, %d > 15 bytes.", diversification_input.size());
+            diversification_input.resize(15);
+        }
+        // This will be the final key returned.
+        std::array<std::uint8_t, 16> retval{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+        // Will eventually use 16 bytes
+        diversification_input.reserve(16);
+        // We need to insert a different constant in front of the diversification data. For now, only zero
+        diversification_input.insert(std::begin(diversification_input), 0);
+        // This is the starting point for each piece of the final key. We need to save it and restore it
+        const bin_data orig_div_input = diversification_input;
+        for (std::size_t i = 0; i < 2; ++i) {
+            if (i > 0) {
+                // Restore the original input. Copy manually so that we do not cause reallocations
+                diversification_input.resize(orig_div_input.size());
+                std::copy(std::begin(orig_div_input), std::end(orig_div_input), std::begin(diversification_input));
+            }
+            // Set now the correct constant, pad and XOR
+            diversification_input[0] = bits::kdf_2k3des_const[i];
+            _diversification_keychain.prepare_cmac_data(diversification_input, 16);
+            assert(diversification_input.size() == 16);
+            // The new piece of the final key is now at zero, so we can use it as an IV and then copy over it
+            const range<std::uint8_t *> iv{std::begin(retval) + i * 8, std::begin(retval) + i * 8 + 8};
+            // Perform crypto in CMAC mode with a zero block IV.
+            do_crypto(diversification_input.data_view(), iv, crypto_operation::mac);
+            // Copy the piece of key back
+            std::copy(std::begin(diversification_input) + 8, std::end(diversification_input), std::begin(retval) + i * 8);
+        }
+        // At this point, we need to restore the version bits
+        set_key_version(retval, _key_version);
+        return retval;
     }
 
     void crypto_3k3des_base::init_session(range<const std::uint8_t *> random_data) {

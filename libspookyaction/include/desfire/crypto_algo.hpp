@@ -27,11 +27,11 @@ namespace desfire {
 
     inline std::size_t padded_length(std::size_t size, std::size_t block_size);
 
-    template <std::size_t Length>
-    void set_key_version(std::array<std::uint8_t, Length> &k, std::uint8_t v);
+    template <class Container>
+    void set_key_version(Container &c, std::uint8_t v);
 
-    template <std::size_t Length>
-    [[nodiscard]] std::uint8_t get_key_version(std::array<std::uint8_t, Length> const &k);
+    template <class Container>
+    [[nodiscard]] std::uint8_t get_key_version(Container const &c);
 
     /**
      *
@@ -168,19 +168,27 @@ namespace desfire {
     }
 
 
-    template <std::size_t Length>
-    void set_key_version(std::array<std::uint8_t, Length> &k, std::uint8_t v) {
-        for (auto &b : k) {
+    template <class Container>
+    void set_key_version(Container &c, std::uint8_t v) {
+        std::uint_fast8_t i = 0;
+        for (std::uint8_t &b : c) {
+            if (++i > 8) {
+                break;
+            }
             b = (b & 0b11111110) | (v >> 7);
             v <<= 1;
         }
     }
 
-    template <std::size_t Length>
-    std::uint8_t get_key_version(std::array<std::uint8_t, Length> const &k) {
+    template <class Container>
+    std::uint8_t get_key_version(Container const &c) {
         std::uint8_t v = 0x0;
-        for (std::size_t i = 0; i < std::min(Length, 8u); ++i) {
-            v = (v << 1) | (k[i] & 0b00000001);
+        std::uint_fast8_t i = 0;
+        for (std::uint8_t b : c) {
+            if (++i > 8) {
+                break;
+            }
+            v = (v << 1) | (b & 0b00000001);
         }
         return v;
     }

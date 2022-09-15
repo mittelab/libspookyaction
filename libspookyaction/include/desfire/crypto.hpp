@@ -255,10 +255,14 @@ namespace desfire {
      * should then implement only @ref setup_primitives_with_key and @ref do_crypto.
      */
     class crypto_3k3des_base : public crypto_with_cmac {
+        std::uint8_t _key_version;
     public:
         crypto_3k3des_base();
         [[nodiscard]] inline desfire::cipher_type cipher_type() const final;
         void init_session(range<std::uint8_t const *> random_data) final;
+        void setup_with_key(range<std::uint8_t const *> key) override;
+
+        std::array<std::uint8_t, 24> diversify_key_an10922(bin_data &diversification_input);
     };
 
     /**

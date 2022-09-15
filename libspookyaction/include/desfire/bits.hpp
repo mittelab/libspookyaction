@@ -153,6 +153,9 @@ namespace desfire::bits {
 
     static constexpr std::uint8_t crypto_cmac_xor_byte_3k3des = 0x1b;
     static constexpr std::uint8_t crypto_cmac_xor_byte_aes = 0x87;
+
+    static constexpr std::uint8_t kdf_aes_const = 0x01;
+    static constexpr std::array<std::uint8_t, 3> kdf_3k3des_const = {0x31, 0x32, 0x33};
 }// namespace desfire::bits
 
 #endif//DESFIRE_BITS_HPP

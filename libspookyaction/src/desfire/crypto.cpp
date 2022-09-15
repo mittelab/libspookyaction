@@ -95,12 +95,57 @@ namespace desfire {
         std::copy_n(bsrc + 22, 4, btrg + 12);
         std::copy_n(bsrc + 12, 4, btrg + 16);
         std::copy_n(bsrc + 28, 4, btrg + 20);
-        set_key_version(new_key, 0x00);
+        set_key_version(new_key, _key_version);
 
         ESP_LOGD(DESFIRE_TAG " KEY", "Session key %s:", to_string(cipher_type::des3_3k));
         ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " KEY", new_key.data(), new_key.size(), ESP_LOG_DEBUG);
 
         setup_with_key(make_range(new_key));
+    }
+
+    void crypto_3k3des_base::setup_with_key(range<const std::uint8_t *> key) {
+        crypto_with_cmac::setup_with_key(key);
+        if (key.size() != 24) {
+            DESFIRE_LOGE("Incorrect key size for 3K3DES: %u != 24", key.size());
+        } else {
+            _key_version = get_key_version(key);
+        }
+    }
+
+    std::array<std::uint8_t, 24> crypto_3k3des_base::diversify_key_an10922(mlab::bin_data &diversification_input) {
+        // We use at most 15 bits of the diversification data
+        if (diversification_input.size() > 15) {
+            ESP_LOGW(DESFIRE_TAG, "Too long diversification input for 3K3DES, %d > 15 bytes.", diversification_input.size());
+            diversification_input.resize(15);
+        }
+        // This will be the final key returned.
+        std::array<std::uint8_t, 24> retval{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+        // Will eventually use 16 bytes
+        diversification_input.reserve(16);
+        // We need to insert a different constant in front of the diversification data. For now, only zero
+        diversification_input.insert(std::begin(diversification_input), 0);
+        // This is the starting point for each piece of the final key. We need to save it and restore it
+        const bin_data orig_div_input = diversification_input;
+        for (std::size_t i = 0; i < 3; ++i) {
+            if (i > 0) {
+                // Restore the original input. Copy manually so that we do not cause reallocations
+                diversification_input.resize(orig_div_input.size());
+                std::copy(std::begin(orig_div_input), std::end(orig_div_input), std::begin(diversification_input));
+            }
+            // Set now the correct constant, pad and XOR
+            diversification_input[0] = bits::kdf_3k3des_const[i];
+            prepare_cmac_data(diversification_input, 16);
+            assert(diversification_input.size() == 16);
+            // The new piece of the final key is now at zero, so we can use it as an IV and then copy over it
+            const range<std::uint8_t *> iv{std::begin(retval) + i * 8, std::begin(retval) + i * 8 + 8};
+            // Perform crypto in CMAC mode with a zero block IV.
+            do_crypto(diversification_input.data_view(), iv, crypto_operation::mac);
+            // Copy the piece of key back
+            std::copy(std::begin(diversification_input) + 8, std::end(diversification_input), std::begin(retval) + i * 8);
+        }
+        // At this point, we need to restore the version bits
+        set_key_version(retval, _key_version);
+        return retval;
     }
 
     std::array<std::uint8_t, 16> crypto_aes_base::diversify_key_an10922(mlab::bin_data &diversification_input) {
@@ -112,7 +157,7 @@ namespace desfire {
         // Will eventually use 32 bytes
         diversification_input.reserve(32);
         // We need to insert in front of it the constant 0x01
-        diversification_input.insert(std::begin(diversification_input), std::uint8_t(0x01));
+        diversification_input.insert(std::begin(diversification_input), bits::kdf_aes_const);
         // Now we pad to 32 bytes and xor with the appropriate key
         prepare_cmac_data(diversification_input, 32);
         assert(diversification_input.size() == 32);
@@ -143,7 +188,7 @@ namespace desfire {
         setup_with_key(make_range(new_key));
     }
 
-    crypto_3k3des_base::crypto_3k3des_base() : crypto_with_cmac{8, bits::crypto_cmac_xor_byte_3k3des} {
+    crypto_3k3des_base::crypto_3k3des_base() : crypto_with_cmac{8, bits::crypto_cmac_xor_byte_3k3des}, _key_version{0} {
     }
 
     crypto_aes_base::crypto_aes_base() : crypto_with_cmac{16, bits::crypto_cmac_xor_byte_aes} {

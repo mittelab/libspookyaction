@@ -34,8 +34,10 @@ namespace desfire::esp32 {
         mbedtls_des_context _dec_context;
         mbedtls_des_context _mac_enc_context;
 
+    protected:
+        void setup_primitives_with_key(range<std::uint8_t const *> key) override;
+
     public:
-        void setup_with_key(range<std::uint8_t const *> key) override;
         void do_crypto(range<std::uint8_t *> data, range<std::uint8_t *> iv, crypto_operation op) override;
         crypto_des();
         ~crypto_des() override;

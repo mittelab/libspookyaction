@@ -13,33 +13,6 @@ namespace desfire {
         using mlab::make_range;
     }
 
-
-    crypto_des_base::crypto_des_base() : _key_version{0x0},
-                                         _diversification_keychain{8, bits::crypto_cmac_xor_byte_des} {}
-
-    std::array<std::uint8_t, 8> crypto_des_base::diversify_key_an10922(mlab::bin_data &diversify_input) {
-        DESFIRE_LOGE("Using KDF on old DES: this is not part of AN10922 and definitely not secure.");
-        auto div_key = kdf_an10922<8, 1>(
-                _diversification_keychain,
-                *this,
-                diversify_input,
-                bits::kdf_des_const);
-        // Don't forget version
-        set_key_version(div_key, _key_version);
-        return div_key;
-    }
-
-    void crypto_des_base::setup_with_key(range<const std::uint8_t *> key) {
-        if (key.size() != 8) {
-            DESFIRE_LOGE("DES key size error: expected 8 bytes, got %d.", key.size());
-            return;
-        }
-        _key_version = get_key_version(key);
-
-        setup_primitives_with_key(key);
-        _diversification_keychain.initialize_subkeys(*this);
-    }
-
     void crypto_des_base::init_session(range<const std::uint8_t *> random_data) {
         if (random_data.size() != 16) {
             DESFIRE_LOGE("Incorrect session data length %u != 16. Are you attempt to authenticate with the wrong key type?", random_data.size());
@@ -75,10 +48,8 @@ namespace desfire {
         };
         const auto it_begin_2nd_half = std::begin(key) + 8;
         _degenerate = std::equal(std::begin(key), it_begin_2nd_half, it_begin_2nd_half, eq_except_parity);
-        _key_version = get_key_version(key);
 
         setup_primitives_with_key(key);
-        _diversification_keychain.initialize_subkeys(*this);
     }
 
     void crypto_2k3des_base::init_session(range<const std::uint8_t *> random_data) {
@@ -102,7 +73,7 @@ namespace desfire {
             std::copy_n(bsrc + 4, 4, btrg + 8);
             std::copy_n(bsrc + 12, 4, btrg + 12);
         }
-        set_key_version(new_key, _key_version);
+        set_key_version(new_key, 0);
 
         ESP_LOGD(DESFIRE_TAG " KEY", "Session key %s:", to_string(cipher_type::des3_2k));
         ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " KEY", new_key.data(), new_key.size(), ESP_LOG_DEBUG);
@@ -110,19 +81,7 @@ namespace desfire {
         setup_with_key(make_range(new_key));
     }
 
-    crypto_2k3des_base::crypto_2k3des_base() : _degenerate{false}, _key_version{0x0},
-                                               _diversification_keychain{8, bits::crypto_cmac_xor_byte_2k3des} {}
-
-    std::array<std::uint8_t, 16> crypto_2k3des_base::diversify_key_an10922(mlab::bin_data &diversify_input) {
-        auto div_key = kdf_an10922<8, 2>(
-                _diversification_keychain,
-                *this,
-                diversify_input,
-                bits::kdf_2k3des_const);
-        // Don't forget version
-        set_key_version(div_key, _key_version);
-        return div_key;
-    }
+    crypto_2k3des_base::crypto_2k3des_base() : _degenerate{false} {}
 
     void crypto_3k3des_base::init_session(range<const std::uint8_t *> random_data) {
         if (random_data.size() != 32) {
@@ -138,7 +97,7 @@ namespace desfire {
         std::copy_n(bsrc + 22, 4, btrg + 12);
         std::copy_n(bsrc + 12, 4, btrg + 16);
         std::copy_n(bsrc + 28, 4, btrg + 20);
-        set_key_version(new_key, _key_version);
+        set_key_version(new_key, 0);
 
         ESP_LOGD(DESFIRE_TAG " KEY", "Session key %s:", to_string(cipher_type::des3_3k));
         ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " KEY", new_key.data(), new_key.size(), ESP_LOG_DEBUG);
@@ -150,28 +109,7 @@ namespace desfire {
         crypto_with_cmac::setup_with_key(key);
         if (key.size() != 24) {
             DESFIRE_LOGE("Incorrect key size for 3K3DES: %u != 24", key.size());
-        } else {
-            _key_version = get_key_version(key);
         }
-    }
-
-    std::array<std::uint8_t, 24> crypto_3k3des_base::diversify_key_an10922(mlab::bin_data &diversify_input) {
-        auto div_key = kdf_an10922<8, 3>(
-                provider().keychain(),
-                *this,
-                diversify_input,
-                bits::kdf_3k3des_const);
-        // Don't forget version
-        set_key_version(div_key, _key_version);
-        return div_key;
-    }
-
-    std::array<std::uint8_t, 16> crypto_aes_base::diversify_key_an10922(mlab::bin_data &diversify_input) {
-        return kdf_an10922<16, 1>(
-                provider().keychain(),
-                *this,
-                diversify_input,
-                bits::kdf_aes_const);
     }
 
     void crypto_aes_base::init_session(range<const std::uint8_t *> random_data) {
@@ -193,7 +131,7 @@ namespace desfire {
         setup_with_key(make_range(new_key));
     }
 
-    crypto_3k3des_base::crypto_3k3des_base() : crypto_with_cmac{8, bits::crypto_cmac_xor_byte_3k3des}, _key_version{0} {
+    crypto_3k3des_base::crypto_3k3des_base() : crypto_with_cmac{8, bits::crypto_cmac_xor_byte_3k3des} {
     }
 
     crypto_aes_base::crypto_aes_base() : crypto_with_cmac{16, bits::crypto_cmac_xor_byte_aes} {

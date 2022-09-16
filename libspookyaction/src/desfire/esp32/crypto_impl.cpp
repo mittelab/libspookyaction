@@ -26,7 +26,7 @@ namespace desfire::esp32 {
     }// namespace
 
 
-    void crypto_des::setup_primitives_with_key(range<std::uint8_t const *> key) {
+    void crypto_des::setup_with_key(range<std::uint8_t const *> key) {
         if (key.size() != 8) {
             DESFIRE_LOGE("DES: invalid key size %d, expected 8 bytes.", key.size());
             return;

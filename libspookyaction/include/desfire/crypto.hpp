@@ -136,11 +136,6 @@ namespace desfire {
          */
         virtual void setup_primitives_with_key(range<std::uint8_t const *> key) = 0;
 
-        /**
-         * @brief Access the internal CMAC provider.
-         */
-        [[nodiscard]] inline cmac_provider const &provider() const;
-
     public:
         /**
          * @brief The type of the CMAC MAC code, which is a fixed 8 bytes sequence.
@@ -165,6 +160,11 @@ namespace desfire {
          *  range on raw bytes for convenience, as the underlying cryptographic functions are likely low level.
          */
         void setup_with_key(range<std::uint8_t const *> key) override;
+
+        /**
+         * @brief Access the internal CMAC provider.
+         */
+        [[nodiscard]] inline cmac_provider const &provider() const;
     };
 
     /**
@@ -175,46 +175,13 @@ namespace desfire {
      * implement only @ref setup_with_key and @ref do_crypto.
      */
     class crypto_des_base : public crypto {
-        std::uint8_t _key_version;
-        cmac_keychain _diversification_keychain;
-
-    protected:
-        /**
-         * @brief Subclasses should implement this instead of @ref setup_with_key, to the same effect.
-         *
-         * This method is called by the custom implementation of @ref setup_with_key provided in this class, with the
-         * same parameters, right after detecting the key version.
-         * @param key Range of bytes containing the key to use for the following operations. This is specified as a
-         *  range on raw bytes for convenience, as the underlying cryptographic functions are likely low level.
-         */
-        virtual void setup_primitives_with_key(range<std::uint8_t const *> key) = 0;
-
     public:
         [[nodiscard]] inline desfire::cipher_type cipher_type() const final;
-
-        crypto_des_base();
 
         /**
          * @brief Implementation of DES session key derivation; will internally call @ref setup_with_key.
          */
         void init_session(range<std::uint8_t const *> random_data) final;
-
-        void setup_with_key(range<std::uint8_t const *> key) final;
-
-        /**
-         * @brief Diversifies the current key using the KDF algorithm from AN10922.
-         *
-         * This uses @ref kdf_an10922 to diversify the key. Does not alter the logical state of the object,
-         * meaning it does not disrupt a working session and can be called at any time.
-         *
-         * @see kdf_an10922
-         *
-         * @param diversify_input Data used for diversifying the key. Max 15 bytes, longer data will be truncated.
-         *  This parameter is used as buffer and thus it is modified by the call.
-         *
-         * @return A new key for this crypto.
-         */
-        [[nodiscard]] std::array<std::uint8_t, 8> diversify_key_an10922(bin_data &diversify_input);
     };
 
     /**
@@ -233,8 +200,6 @@ namespace desfire {
      */
     class crypto_2k3des_base : public crypto {
         bool _degenerate;
-        std::uint8_t _key_version;
-        cmac_keychain _diversification_keychain;
 
     protected:
         /**
@@ -275,21 +240,6 @@ namespace desfire {
          * @brief Implementation of 2K3DES session key derivation; will internally call @ref setup_primitives_with_key.
          */
         void init_session(range<std::uint8_t const *> random_data) final;
-
-        /**
-         * @brief Diversifies the current key using the KDF algorithm from AN10922.
-         *
-         * This uses @ref kdf_an10922 to diversify the key. Does not alter the logical state of the object,
-         * meaning it does not disrupt a working session and can be called at any time.
-         *
-         * @see kdf_an10922
-         *
-         * @param diversify_input Data used for diversifying the key. Max 15 bytes, longer data will be truncated.
-         *  This parameter is used as buffer and thus it is modified by the call.
-         *
-         * @return A new key for this crypto.
-         */
-        [[nodiscard]] std::array<std::uint8_t, 16> diversify_key_an10922(bin_data &diversify_input);
     };
 
     /**
@@ -300,28 +250,11 @@ namespace desfire {
      * should then implement only @ref setup_primitives_with_key and @ref do_crypto.
      */
     class crypto_3k3des_base : public crypto_with_cmac {
-        std::uint8_t _key_version;
-
     public:
         crypto_3k3des_base();
         [[nodiscard]] inline desfire::cipher_type cipher_type() const final;
         void init_session(range<std::uint8_t const *> random_data) final;
         void setup_with_key(range<std::uint8_t const *> key) override;
-
-        /**
-         * @brief Diversifies the current key using the KDF algorithm from AN10922.
-         *
-         * This uses @ref kdf_an10922 to diversify the key. Does not alter the logical state of the object,
-         * meaning it does not disrupt a working session and can be called at any time.
-         *
-         * @see kdf_an10922
-         *
-         * @param diversify_input Data used for diversifying the key. Max 15 bytes, longer data will be truncated.
-         *  This parameter is used as buffer and thus it is modified by the call.
-         *
-         * @return A new key for this crypto.
-         */
-        [[nodiscard]] std::array<std::uint8_t, 24> diversify_key_an10922(bin_data &diversify_input);
     };
 
     /**
@@ -336,21 +269,6 @@ namespace desfire {
         crypto_aes_base();
         [[nodiscard]] inline desfire::cipher_type cipher_type() const final;
         void init_session(range<std::uint8_t const *> random_data) final;
-
-        /**
-         * @brief Diversifies the current key using the KDF algorithm from AN10922.
-         *
-         * This uses @ref kdf_an10922 to diversify the key. Does not alter the logical state of the object,
-         * meaning it does not disrupt a working session and can be called at any time.
-         *
-         * @see kdf_an10922
-         *
-         * @param diversify_input Data used for diversifying the key. Max 31 bytes, longer data will be truncated.
-         *  This parameter is used as buffer and thus it is modified by the call.
-         *
-         * @return A new key for this crypto.
-         */
-        [[nodiscard]] std::array<std::uint8_t, 16> diversify_key_an10922(bin_data &diversify_input);
     };
 
 }// namespace desfire

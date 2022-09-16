@@ -16,7 +16,6 @@ namespace desfire {
     struct cipher_provider {
         [[nodiscard]] virtual std::unique_ptr<cipher> cipher_from_key(any_key const &key) = 0;
         [[nodiscard]] virtual std::unique_ptr<crypto> crypto_from_key(any_key const &key) = 0;
-        [[nodiscard]] virtual any_key diversify_key_an10922(any_key const &key, mlab::bin_data &diversify_input) = 0;
 
         virtual ~cipher_provider() = default;
     };
@@ -36,7 +35,6 @@ namespace desfire {
 
         [[nodiscard]] std::unique_ptr<cipher> cipher_from_key(any_key const &key) override;
         [[nodiscard]] std::unique_ptr<crypto> crypto_from_key(any_key const &key) override;
-        [[nodiscard]] any_key diversify_key_an10922(any_key const &key, mlab::bin_data &diversify_input) override;
     };
 }// namespace desfire
 
@@ -102,37 +100,6 @@ namespace desfire {
                 [[fallthrough]];
             default:
                 return nullptr;
-        }
-    }
-    template <class CryptoDES, class Crypto2K3DES, class Crypto3K3DES, class CryptoAES,
-              class CipherDES, class Cipher2K3DES, class Cipher3K3DES, class CipherAES>
-    any_key typed_cipher_provider<CryptoDES, Crypto2K3DES, Crypto3K3DES, CryptoAES,
-                                  CipherDES, Cipher2K3DES, Cipher3K3DES, CipherAES>::diversify_key_an10922(any_key const &key, mlab::bin_data &diversify_input) {
-        switch (key.type()) {
-            case cipher_type::des: {
-                auto crypto = std::make_unique<CryptoDES>();
-                crypto->setup_with_key(make_range(key.template get<cipher_type::des>().k));
-                return desfire::key<cipher_type::des>{0, crypto->diversify_key_an10922(diversify_input)};
-            }
-            case cipher_type::des3_2k: {
-                auto crypto = std::make_unique<Crypto2K3DES>();
-                crypto->setup_with_key(make_range(key.template get<cipher_type::des3_2k>().k));
-                return desfire::key<cipher_type::des3_2k>{0, crypto->diversify_key_an10922(diversify_input)};
-            }
-            case cipher_type::des3_3k: {
-                auto crypto = std::make_unique<Crypto3K3DES>();
-                crypto->setup_with_key(make_range(key.template get<cipher_type::des3_3k>().k));
-                return desfire::key<cipher_type::des3_3k>{0, crypto->diversify_key_an10922(diversify_input)};
-            }
-            case cipher_type::aes128: {
-                auto crypto = std::make_unique<CryptoAES>();
-                crypto->setup_with_key(make_range(key.template get<cipher_type::aes128>().k));
-                return desfire::key<cipher_type::aes128>{0, crypto->diversify_key_an10922(diversify_input)};
-            }
-            case cipher_type::none:
-                [[fallthrough]];
-            default:
-                return key;
         }
     }
 }// namespace desfire

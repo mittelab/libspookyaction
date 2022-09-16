@@ -8,9 +8,15 @@
 #include <cstdint>
 #include <desfire/cmac_provider.hpp>
 #include <desfire/crypto.hpp>
+#include <desfire/log.h>
 #include <mlab/bin_data.hpp>
 
 namespace desfire {
+
+    class any_key;
+    struct cipher_provider;
+    template <cipher_type>
+    struct key;
 
     /**
      * @brief Generalized version of AN10922 key diversification protocol.
@@ -34,7 +40,7 @@ namespace desfire {
      * @param keychain Keychain object holding the subkeys for CMAC operations. Its @ref cmac_keychain::block_size must
      *  match the template parameter `BlockSize`.
      * @param crypto Cryptographic object on which the CMAC operation will be run.
-     * @param diversify_input Diversification input. At most `2 * BlockSize - 1` bytes wil be used.
+     * @param diversify_input Diversification input. At most `2 * BlockSize - 1` bytes wil be used. It will be modified by the operation.
      * @param data_prepend_const Constants to prepend to each block process. These are specific to AN10922.
      *
      * @return A diversified key of length `BlockSize * NBlocks`.
@@ -45,6 +51,66 @@ namespace desfire {
             crypto &crypto,
             mlab::bin_data &diversify_input,
             std::array<std::uint8_t, NBlocks> data_prepend_const);
+
+    /**
+     * @brief Specialization of the AN10922 KDF function which returns a packages @ref any_key object.
+     *
+     * This overload can operate on any @ref crypto subclass, even those that do not derive from @ref crypto_des_base,
+     * @ref crypto_2k3des_base, @ref crypto_3k3des_base, @ref crypto_aes_base. The cipher is obtained from @ref crypto::cipher_type.
+     * New CMAC keys are always derived when running this overload.
+     *
+     * @param crypto Cryptographic object on which the CMAC operation will be run.
+     * @param diversify_input Diversification input. At most `2 * BlockSize - 1` bytes wil be used. It will be modified by the operation.
+     * @param key_version Key version to set in the returned object.
+     * @return
+     */
+    [[nodiscard]] any_key kdf_an10922(crypto &crypto, mlab::bin_data &diversify_input, std::uint8_t key_version);
+
+    /**
+     * @addtogroup KDFTemplateSpecialization
+     * @brief Specialization of the AN10922 KDF function for specific key types.
+     *
+     * These overloads can derive a new key from a given @ref key object, by creating the appropriate cipher.
+     *
+     * @param key Key to diversify.
+     * @param provider Cipher provider for building the correct crypto implementation.
+     * @param diversify_input Diversification input. At most `2 * BlockSize - 1` bytes wil be used. It will be modified by the operation.
+     *
+     * @return A diversified key of the same type, with the same version.
+     * @{
+     */
+    [[nodiscard]] key<cipher_type::des> kdf_an10922(key<cipher_type::des> const &key, cipher_provider &provider, mlab::bin_data &diversify_input);
+    [[nodiscard]] key<cipher_type::des3_2k> kdf_an10922(key<cipher_type::des3_2k> const &key, cipher_provider &provider, mlab::bin_data &diversify_input);
+    [[nodiscard]] key<cipher_type::des3_3k> kdf_an10922(key<cipher_type::des3_3k> const &key, cipher_provider &provider, mlab::bin_data &diversify_input);
+    [[nodiscard]] key<cipher_type::aes128> kdf_an10922(key<cipher_type::aes128> const &key, cipher_provider &provider, mlab::bin_data &diversify_input);
+    [[nodiscard]] any_key kdf_an10922(any_key const &key, cipher_provider &provider, mlab::bin_data &diversify_input);
+    /**
+     * @}
+     */
+
+    /**
+     * @addtogroup KDFVirtualSpecialization
+     * @brief Specialization of AN10922 KDF functions for a given cryptographic implementation.
+     *
+     * These operate on a known subclass of @ref crypto. For AES and 3K3DES, this saves the cost of deriving CMAC subkeys.
+     * For DES-derived ciphers, it is also possible to set the version of the key directly into the returned binary blob.
+     *
+     * @param crypto Cryptographic object on which the CMAC operation will be run.
+     * @param diversify_input Diversification input. At most `2 * BlockSize - 1` bytes wil be used. It will be modified by the operation.
+     * @param key_version Key version to set in the returned object.
+     * @see kdf_an10922
+     * @{
+     */
+    std::array<std::uint8_t, 8> kdf_an10922(crypto_des_base &crypto, mlab::bin_data &diversify_input);
+    std::array<std::uint8_t, 16> kdf_an10922(crypto_2k3des_base &crypto, mlab::bin_data &diversify_input);
+    std::array<std::uint8_t, 24> kdf_an10922(crypto_3k3des_base &crypto, mlab::bin_data &diversify_input);
+    std::array<std::uint8_t, 16> kdf_an10922(crypto_aes_base &crypto, mlab::bin_data &diversify_input);
+    std::array<std::uint8_t, 8> kdf_an10922(crypto_des_base &crypto, mlab::bin_data &diversify_input, std::uint8_t key_version);
+    std::array<std::uint8_t, 16> kdf_an10922(crypto_2k3des_base &crypto, mlab::bin_data &diversify_input, std::uint8_t key_version);
+    std::array<std::uint8_t, 24> kdf_an10922(crypto_3k3des_base &crypto, mlab::bin_data &diversify_input, std::uint8_t key_version);
+    /**
+     * @}
+     */
 
 }// namespace desfire
 
@@ -64,13 +130,13 @@ namespace desfire {
         std::fill_n(std::begin(diversified_key), KeyLength, 0);
 
         if (keychain.block_size() != BlockSize) {
-            ESP_LOGE(DESFIRE_TAG, "The keychain block size differs to the block size required by the ciphers: %u != %u.", keychain.block_size(), BlockSize);
+            DESFIRE_LOGE("The keychain block size differs to the block size required by the ciphers: %u != %u.", keychain.block_size(), BlockSize);
             return diversified_key;
         }
 
         // We use at most 15 bits of the diversification data
         if (diversify_input.size() > MaxDiversifyLength) {
-            ESP_LOGW(DESFIRE_TAG, "Too long diversification input, %d > %u bytes. Will truncate.", diversify_input.size(), MaxDiversifyLength);
+            DESFIRE_LOGW("Too long diversification input, %d > %u bytes. Will truncate.", diversify_input.size(), MaxDiversifyLength);
             diversify_input.resize(MaxDiversifyLength);
         }
 

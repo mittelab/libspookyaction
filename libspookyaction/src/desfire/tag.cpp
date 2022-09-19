@@ -363,12 +363,9 @@ namespace desfire {
 
     tag::result<> tag::create_application(app_id const &new_app_id, app_settings settings) {
         if (settings.max_num_keys == 0 or settings.max_num_keys > bits::max_keys_per_app) {
-            DESFIRE_LOGW("%s: attempt to create an app with a maximum number of keys of %u, will be clamped in the "
-                         "range 1..%u.",
+            DESFIRE_LOGW("%s: attempt to create an app with a maximum number of keys of %u > %u.",
                          to_string(command_code::create_application), settings.max_num_keys,
                          bits::max_keys_per_app);
-            /// @todo Warning but allow to go on
-            settings.max_num_keys = std::clamp(settings.max_num_keys, std::uint8_t(1), bits::max_keys_per_app);
         }
         if (settings.rights.allowed_to_change_keys == no_key and not settings.rights.config_changeable) {
             DESFIRE_LOGW("%s: attempt to create an app where keys and settings cannot be changed; this is probably a "
@@ -541,7 +538,7 @@ namespace desfire {
         }
     }
 
-    tag::result<> tag::change_file_settings(file_id fid, generic_file_settings const &settings) {
+    tag::result<> tag::change_file_settings(file_id fid, generic_file_settings const &settings, trust_card_t) {
         if (const auto res_sec = determine_file_security(fid, file_access::change); res_sec) {
             return change_file_settings(fid, settings, *res_sec);
         } else {
@@ -562,7 +559,7 @@ namespace desfire {
                                          cfg));
     }
 
-    tag::result<bin_data> tag::read_data(file_id fid, std::uint32_t offset, std::uint32_t length) {
+    tag::result<bin_data> tag::read_data(file_id fid, std::uint32_t offset, std::uint32_t length, trust_card_t) {
         if (const auto res_sec = determine_file_security(fid, file_access::read); res_sec) {
             return read_data(fid, offset, length, *res_sec);
         } else {
@@ -592,7 +589,7 @@ namespace desfire {
         return command_response(command_code::read_data, payload, comm_cfg{default_comm_cfg().tx, rx_cipher_mode});
     }
 
-    tag::result<> tag::write_data(file_id fid, std::uint32_t offset, bin_data const &data) {
+    tag::result<> tag::write_data(file_id fid, std::uint32_t offset, bin_data const &data, trust_card_t) {
         if (const auto res_sec = determine_file_security(fid, file_access::write); res_sec) {
             return write_data(fid, offset, data, *res_sec);
         } else {
@@ -625,7 +622,7 @@ namespace desfire {
     }
 
 
-    tag::result<std::int32_t> tag::get_value(file_id fid) {
+    tag::result<std::int32_t> tag::get_value(file_id fid, trust_card_t) {
         if (const auto res_sec = determine_file_security(fid, file_access::read); res_sec) {
             return get_value(fid, *res_sec);
         } else {
@@ -664,7 +661,7 @@ namespace desfire {
         return safe_drop_payload(cmd, command_response(cmd, payload, cfg));
     }
 
-    tag::result<> tag::credit(file_id fid, std::int32_t amount) {
+    tag::result<> tag::credit(file_id fid, std::int32_t amount, trust_card_t) {
         if (const auto res_sec = determine_file_security(fid, file_access::write); res_sec) {
             return write_value(command_code::credit, fid, amount, *res_sec);
         } else {
@@ -672,7 +669,7 @@ namespace desfire {
         }
     }
 
-    tag::result<> tag::limited_credit(file_id fid, std::int32_t amount) {
+    tag::result<> tag::limited_credit(file_id fid, std::int32_t amount, trust_card_t) {
         if (const auto res_sec = determine_file_security(fid, file_access::write); res_sec) {
             return write_value(command_code::limited_credit, fid, amount, *res_sec);
         } else {
@@ -680,7 +677,7 @@ namespace desfire {
         }
     }
 
-    tag::result<> tag::debit(file_id fid, std::int32_t amount) {
+    tag::result<> tag::debit(file_id fid, std::int32_t amount, trust_card_t) {
         if (const auto res_sec = determine_file_security(fid, file_access::write); res_sec) {
             return write_value(command_code::debit, fid, amount, *res_sec);
         } else {
@@ -700,7 +697,7 @@ namespace desfire {
         return write_value(command_code::debit, fid, amount, security);
     }
 
-    tag::result<> tag::write_record(file_id fid, std::uint32_t offset, bin_data const &data) {
+    tag::result<> tag::write_record(file_id fid, std::uint32_t offset, bin_data const &data, trust_card_t) {
         if (const auto res_sec = determine_file_security(fid, file_access::write); res_sec) {
             return write_record(fid, offset, data, *res_sec);
         } else {
@@ -733,7 +730,7 @@ namespace desfire {
                                  command_response(command_code::write_record, payload, cfg));
     }
 
-    tag::result<bin_data> tag::read_records(file_id fid, std::uint32_t record_index, std::uint32_t record_count) {
+    tag::result<bin_data> tag::read_records(file_id fid, trust_card_t, std::uint32_t record_index, std::uint32_t record_count) {
         if (const auto res_sec = determine_file_security(fid, file_access::write); res_sec) {
             return read_records(fid, record_index, record_count, *res_sec);
         } else {

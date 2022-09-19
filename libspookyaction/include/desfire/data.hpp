@@ -75,14 +75,8 @@ namespace desfire {
     struct same_key_t {};
     static constexpr same_key_t same_key{};
 
-    struct change_key_actor : public key_actor_base<std::uint8_t, bits::app_change_keys_right_shift, same_key_t, change_key_actor> {
-        using base = key_actor_base<std::uint8_t, bits::app_change_keys_right_shift, same_key_t, change_key_actor>;
-        using base::base;
-        using base::get;
-    };
-
     struct key_rights {
-        change_key_actor allowed_to_change_keys;
+        key_actor<same_key_t> allowed_to_change_keys;
 
         /**
          * Settings this to false freezes the master key.
@@ -117,38 +111,27 @@ namespace desfire {
         write
     };
 
-    /**
-     * @todo Do not use a union
-     */
-    union access_rights {
-        using change_actor = key_actor_mask<std::uint16_t, bits::file_access_rights_change_shift, all_keys_t>;
-        using rw_actor = key_actor_mask<std::uint16_t, bits::file_access_rights_read_write_shift, all_keys_t>;
-        using w_actor = key_actor_mask<std::uint16_t, bits::file_access_rights_write_shift, all_keys_t>;
-        using r_actor = key_actor_mask<std::uint16_t, bits::file_access_rights_read_shift, all_keys_t>;
+    struct access_rights {
+        key_actor<all_keys_t> change;
+        key_actor<all_keys_t> read_write;
+        key_actor<all_keys_t> write;
+        key_actor<all_keys_t> read;
 
-        /**
-         * @todo use std::array<std::uint8_t, 2>
-         */
-        std::uint16_t value;
+        constexpr access_rights() = default;
+        constexpr access_rights(no_key_t);
+        constexpr access_rights(all_keys_t);
 
-        change_actor change;
-        rw_actor read_write;
-        w_actor write;
-        r_actor read;
-
-        inline constexpr access_rights();
-        inline constexpr access_rights(no_key_t);
-        inline constexpr access_rights(all_keys_t);
         inline explicit access_rights(std::uint8_t single_key);
-        inline access_rights(rw_actor rw, change_actor chg);
-        inline access_rights(rw_actor rw, change_actor chg, r_actor r, w_actor w);
+        inline access_rights(key_actor<all_keys_t> rw, key_actor<all_keys_t> chg);
+        inline access_rights(key_actor<all_keys_t> rw, key_actor<all_keys_t> chg, key_actor<all_keys_t> r, key_actor<all_keys_t> w);
 
-        [[nodiscard]] inline static access_rights from_mask(std::uint16_t mask);
+        inline void set_word(std::uint16_t v);
+        [[nodiscard]] inline std::uint16_t get_word() const;
+
+        [[nodiscard]] inline static access_rights from_word(std::uint16_t word);
 
         [[nodiscard]] bool is_free(file_access access, std::uint8_t active_key_num) const;
     };
-
-    static_assert(sizeof(access_rights) == sizeof(std::uint16_t), "Must be able to pack 2 bytes structures.");
 
     struct generic_file_settings {
         file_security security = file_security::none;
@@ -482,34 +465,45 @@ namespace desfire {
         }
     }
 
-    constexpr access_rights::access_rights() : value{0} {}
-
-    access_rights::access_rights(std::uint8_t single_key) : access_rights{} {
+    access_rights::access_rights(std::uint8_t single_key) : change{single_key}, read_write{single_key}, write{single_key}, read{single_key} {
         if (single_key > bits::max_keys_per_app) {
             DESFIRE_LOGE("Invalid key number (%d) for access rights, should be <= %d.", single_key, bits::max_keys_per_app);
-        } else {
-            read = single_key;
-            write = single_key;
-            read_write = single_key;
-            change = single_key;
         }
     }
-    constexpr access_rights::access_rights(no_key_t) : value{0xffff} {}
-    constexpr access_rights::access_rights(all_keys_t) : value{0xeeee} {}
-    access_rights::access_rights(rw_actor rw, change_actor chg) : access_rights{no_key} {
+    constexpr access_rights::access_rights(no_key_t) : change{no_key}, read_write{no_key}, write{no_key}, read{no_key} {}
+
+    constexpr access_rights::access_rights(all_keys_t) : change{all_keys}, read_write{all_keys}, write{all_keys}, read{all_keys} {}
+
+    access_rights::access_rights(key_actor<all_keys_t> rw, key_actor<all_keys_t> chg) : access_rights{no_key} {
         read_write = rw;
         change = chg;
     }
-    access_rights::access_rights(rw_actor rw, change_actor chg, r_actor r, w_actor w) : access_rights{no_key} {
+
+    access_rights::access_rights(key_actor<all_keys_t> rw, key_actor<all_keys_t> chg, key_actor<all_keys_t> r, key_actor<all_keys_t> w)
+        : access_rights{no_key} {
         read_write = rw;
         change = chg;
         read = r;
         write = w;
     }
 
-    access_rights access_rights::from_mask(std::uint16_t mask) {
+    std::uint16_t access_rights::get_word() const {
+        return (std::uint16_t(read_write.get_nibble()) << bits::file_access_rights_read_write_shift) |
+               (std::uint16_t(change.get_nibble()) << bits::file_access_rights_change_shift) |
+               (std::uint16_t(read.get_nibble()) << bits::file_access_rights_read_shift) |
+               (std::uint16_t(write.get_nibble()) << bits::file_access_rights_write_shift);
+    }
+
+    void access_rights::set_word(std::uint16_t v) {
+        read_write.set_nibble(std::uint8_t((v >> bits::file_access_rights_read_write_shift) & 0b1111));
+        change.set_nibble(std::uint8_t((v >> bits::file_access_rights_change_shift) & 0b1111));
+        read.set_nibble(std::uint8_t((v >> bits::file_access_rights_read_shift) & 0b1111));
+        write.set_nibble(std::uint8_t((v >> bits::file_access_rights_write_shift) & 0b1111));
+    }
+
+    access_rights access_rights::from_word(std::uint16_t word) {
         access_rights retval;
-        retval.value = mask;
+        retval.set_word(word);
         return retval;
     }
 

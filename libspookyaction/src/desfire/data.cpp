@@ -321,7 +321,7 @@ namespace mlab {
     }
 
     bin_data &operator<<(bin_data &bd, desfire::key_rights const &kr) {
-        const std::uint8_t flag = kr.allowed_to_change_keys.get() |
+        const std::uint8_t flag = (kr.allowed_to_change_keys.get_nibble() << bits::app_change_keys_right_shift) |
                                   (kr.config_changeable ? bits::app_change_config_allowed_flag : 0x0) |
                                   (kr.master_key_changeable ? bits::app_changeable_master_key_flag : 0x0) |
                                   (kr.create_delete_without_auth ? bits::app_create_delete_without_master_key_flag : 0x0) |
@@ -433,11 +433,14 @@ namespace mlab {
             s.set_bad();
             return s;
         }
-        return s >> lsb16 >> ar.value;
+        std::uint16_t word{0};
+        s >> lsb16 >> word;
+        ar.set_word(word);
+        return s;
     }
 
     bin_data &operator<<(bin_data &bd, desfire::access_rights const &ar) {
-        return bd << lsb16 << ar.value;
+        return bd << lsb16 << ar.get_word();
     }
 
     bin_stream &operator>>(bin_stream &s, desfire::generic_file_settings &fs) {

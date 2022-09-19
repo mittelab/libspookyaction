@@ -545,7 +545,7 @@ namespace pn532 {
         /**
          * @brief list all Felica tags in range (at 212kbps baudrate) (UM0701-02 §7.3.5)
          * @ingroup Initiator
-         * @param payload the payload to send to the tags (structure defined in §11.2.2.5 of @todo find doc)
+         * @param payload the payload to send to the tags (structure defined in ISO/IEC 18092 §11.2.2.5)
          * @param max_targets max number of target to list and initialize
          * @param timeout maximum time for getting a response
          * @return a list of targets @ref target_kbps212_felica, or one of the following errors:
@@ -560,7 +560,7 @@ namespace pn532 {
         /**
          * @brief list all Felica tags in range (at 424kbps baudrate) (UM0701-02 §7.3.5)
          * @ingroup Initiator
-         * @param payload the payload to send to the tags (structure defined in §11.2.2.5 of @todo find doc)
+         * @param payload the payload to send to the tags (structure defined in ISO/IEC 18092 §11.2.2.5)
          * @param max_targets max number of target to list and initialize
          * @param timeout maximum time for getting a response
          * @return a list of targets @ref target_kbps424_felica, or one of the following errors:

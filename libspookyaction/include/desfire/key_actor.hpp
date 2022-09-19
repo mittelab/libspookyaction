@@ -12,107 +12,91 @@ namespace desfire {
     struct no_key_t {};
     static constexpr no_key_t no_key{};
 
-    template <class UIntT, unsigned LShift, class SpecialT, class Subclass>
-    class key_actor_base {
+    template <class SpecialT>
+    class key_actor {
         static constexpr std::uint8_t max_key_index = 0xd;
         static constexpr std::uint8_t special_value = 0xe;
         static constexpr std::uint8_t no_key_value = 0xf;
-        static constexpr UIntT mask = UIntT{0b1111} << LShift;
 
         static_assert(bits::max_keys_per_app == max_key_index + 1, "Implementation uses 0xE and 0xF for special purposes.");
-        static_assert(LShift <= (sizeof(UIntT) * 8 - 4) and std::is_unsigned_v<UIntT>, "Too large LShift or not unsigned");
 
-        UIntT _repr;
-
-    protected:
-        inline void set(std::uint8_t v);
-        [[nodiscard]] inline std::uint8_t get() const;
+        unsigned _repr : 4;
 
     public:
-        inline key_actor_base(std::uint8_t key_index = 0);
-        inline key_actor_base(SpecialT);
-        inline key_actor_base(no_key_t);
+        inline void set_nibble(std::uint8_t v);
+        [[nodiscard]] inline std::uint8_t get_nibble() const;
 
-        inline Subclass &operator=(std::uint8_t key_index);
-        inline Subclass &operator=(SpecialT);
-        inline Subclass &operator=(no_key_t);
+        constexpr key_actor();
+        inline key_actor(std::uint8_t key_index);
+        constexpr key_actor(SpecialT);
+        constexpr key_actor(no_key_t);
 
-        inline bool operator==(Subclass const &other) const;
-        inline bool operator!=(Subclass const &other) const;
+        inline key_actor &operator=(std::uint8_t key_index);
+        constexpr key_actor &operator=(SpecialT);
+        constexpr key_actor &operator=(no_key_t);
+
+        inline bool operator==(key_actor const &other) const;
+        inline bool operator!=(key_actor const &other) const;
     };
-
-    template <class UIntT, unsigned LShift, class SpecialT>
-    struct key_actor_mask : public key_actor_base<UIntT, LShift, SpecialT, key_actor_mask<UIntT, LShift, SpecialT>> {
-        using base = key_actor_base<UIntT, LShift, SpecialT, key_actor_mask<UIntT, LShift, SpecialT>>;
-        using base::base;
-        using base::operator=;
-        using base::operator==;
-        using base::operator!=;
-    };
-
 
 }// namespace desfire
 
 namespace desfire {
 
-    template <class UIntT, unsigned LShift, class SpecialT, class Subclass>
-    key_actor_base<UIntT, LShift, SpecialT, Subclass>::key_actor_base(std::uint8_t key_index) : _repr{} {
+    template <class SpecialT>
+    key_actor<SpecialT>::key_actor(std::uint8_t key_index) : _repr{} {
         *this = key_index;
     }
 
-    template <class UIntT, unsigned LShift, class SpecialT, class Subclass>
-    key_actor_base<UIntT, LShift, SpecialT, Subclass>::key_actor_base(SpecialT special) : _repr{} {
-        *this = special;
+    template <class SpecialT>
+    constexpr key_actor<SpecialT>::key_actor() : _repr{0} {}
+
+    template <class SpecialT>
+    constexpr key_actor<SpecialT>::key_actor(SpecialT) : _repr{special_value} {}
+
+    template <class SpecialT>
+    constexpr key_actor<SpecialT>::key_actor(no_key_t) : _repr{no_key_value} {}
+
+    template <class SpecialT>
+    void key_actor<SpecialT>::set_nibble(std::uint8_t v) {
+        _repr = v & 0b1111;
     }
 
-    template <class UIntT, unsigned LShift, class SpecialT, class Subclass>
-    key_actor_base<UIntT, LShift, SpecialT, Subclass>::key_actor_base(no_key_t) : _repr{} {
-        *this = no_key;
+    template <class SpecialT>
+    std::uint8_t key_actor<SpecialT>::get_nibble() const {
+        return _repr;
     }
 
-    template <class UIntT, unsigned LShift, class SpecialT, class Subclass>
-    void key_actor_base<UIntT, LShift, SpecialT, Subclass>::set(std::uint8_t v) {
-        _repr = (_repr & ~mask) | ((UIntT(v) << LShift) & mask);
-    }
-
-    template <class UIntT, unsigned LShift, class SpecialT, class Subclass>
-    std::uint8_t key_actor_base<UIntT, LShift, SpecialT, Subclass>::get() const {
-        return std::uint8_t((_repr & mask) >> LShift);
-    }
-
-    template <class UIntT, unsigned LShift, class SpecialT, class Subclass>
-    Subclass &key_actor_base<UIntT, LShift, SpecialT, Subclass>::operator=(std::uint8_t key_index) {
-        static_assert(std::is_base_of_v<key_actor_base, Subclass>);
+    template <class SpecialT>
+    key_actor<SpecialT> &key_actor<SpecialT>::operator=(std::uint8_t key_index) {
         if (key_index > max_key_index) {
             DESFIRE_LOGE("Specified key index %u is not valid, master key (0) assumed.", key_index);
             key_index = 0;
         }
-        set(key_index);
-        return reinterpret_cast<Subclass &>(*this);
+        set_nibble(key_index);
+        return *this;
     }
 
-    template <class UIntT, unsigned LShift, class SpecialT, class Subclass>
-    Subclass &key_actor_base<UIntT, LShift, SpecialT, Subclass>::operator=(SpecialT) {
-        static_assert(std::is_base_of_v<key_actor_base, Subclass>);
-        set(special_value);
-        return reinterpret_cast<Subclass &>(*this);
+    template <class SpecialT>
+    constexpr key_actor<SpecialT> &key_actor<SpecialT>::operator=(SpecialT) {
+        _repr = no_key_value;
+        return *this;
     }
 
-    template <class UIntT, unsigned LShift, class SpecialT, class Subclass>
-    Subclass &key_actor_base<UIntT, LShift, SpecialT, Subclass>::operator=(no_key_t) {
-        static_assert(std::is_base_of_v<key_actor_base, Subclass>);
-        set(no_key_value);
-        return reinterpret_cast<Subclass &>(*this);
+    template <class SpecialT>
+    constexpr key_actor<SpecialT> &key_actor<SpecialT>::operator=(no_key_t) {
+        _repr = no_key_value;
+        return *this;
     }
 
-    template <class UIntT, unsigned LShift, class SpecialT, class Subclass>
-    bool key_actor_base<UIntT, LShift, SpecialT, Subclass>::operator==(Subclass const &other) const {
-        return get() == other.get();
+    template <class SpecialT>
+    bool key_actor<SpecialT>::operator==(key_actor const &other) const {
+        return get_nibble() == other.get_nibble();
     }
 
-    template <class UIntT, unsigned LShift, class SpecialT, class Subclass>
-    bool key_actor_base<UIntT, LShift, SpecialT, Subclass>::operator!=(Subclass const &other) const {
-        return get() != other.get();
+    template <class SpecialT>
+    bool key_actor<SpecialT>::operator!=(key_actor const &other) const {
+        return get_nibble() != other.get_nibble();
     }
 }// namespace desfire
 

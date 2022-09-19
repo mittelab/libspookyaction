@@ -62,6 +62,17 @@ namespace desfire {
         using lsb_t = mlab::lsb_t<N>;
     }
 
+    struct trust_card_t {};
+    /**
+     * @brief Flag marking the card as trusted, which enables accepting the @ref file_security mode set in the card.
+     *
+     * When using this instead of an explicitly @ref file_security (in the methods of @ref tag that allow to do so),
+     * @ref tag will be instructed to query and accept whatever security mode the file is written in. This might impact
+     * security because a cloned card with different file security modes could prompt for a different communication mode
+     * than the one intended. Therefore, they have to be called explictly with `trust_card`.
+     */
+    static constexpr trust_card_t trust_card{};
+
     class tag {
     public:
         struct comm_cfg;
@@ -493,8 +504,12 @@ namespace desfire {
          * - @ref error::malformed
          * - @ref error::crypto_error
          * - @ref error::controller_error
+         *
+         * @warning Consider using the overload of this method which requires explicitly a @ref file_security parameter.
+         *  This method will auto-detect the security settings used: if a card is cloned and a file is created with the same id
+         *  but different security, this method will accept the different security transmission mode. It may thus leak data.
          */
-        result<> change_file_settings(file_id fid, generic_file_settings const &settings);
+        result<> change_file_settings(file_id fid, generic_file_settings const &settings, trust_card_t);
 
         /**
          * ~~~~
@@ -785,8 +800,12 @@ namespace desfire {
          * - @ref error::malformed
          * - @ref error::crypto_error
          * - @ref error::controller_error
+         *
+         * @warning Consider using the overload of this method which requires explicitly a @ref file_security parameter.
+         *  This method will auto-detect the security settings used: if a card is cloned and a file is created with the same id
+         *  but different security, this method will accept the different security transmission mode. It may thus leak data.
          */
-        result<bin_data> read_data(file_id fid, std::uint32_t offset, std::uint32_t length);
+        result<bin_data> read_data(file_id fid, std::uint32_t offset, std::uint32_t length, trust_card_t);
 
         /**
          * @brief read data from file
@@ -807,15 +826,18 @@ namespace desfire {
          * @param fid Max @ref bits::max_standard_data_file_id or @ref bits::max_backup_data_file_id
          * @param offset Limited to 24 bits, i.e. must be below 0xFFFFFF.
          * @param data Limited to 24 bits, i.e. must be below 0xFFFFFF.
+         *
          * @return None, or the following errors:
          * - @ref error::malformed
          * - @ref error::crypto_error
          * - @ref error::parameter_error
          * - @ref error::controller_error
          *
-         * @todo Add warning marking the fact that using these overloads without file_security it could leak data on cloned cards with different security
+         * @warning Consider using the overload of this method which requires explicitly a @ref file_security parameter.
+         *  This method will auto-detect the security settings used: if a card is cloned and a file is created with the same id
+         *  but different security, this method will accept the different security transmission mode. It may thus leak data.
          */
-        result<> write_data(file_id fid, std::uint32_t offset, bin_data const &data);
+        result<> write_data(file_id fid, std::uint32_t offset, bin_data const &data, trust_card_t);
 
         /**
          * @brief write data to file
@@ -833,6 +855,22 @@ namespace desfire {
 
         /**
          *
+         *
+         * @brief read value of a credit/debit file
+         * @ingroup valueFile
+         * @param fid Max @ref bits::max_value_file_id.
+         * @return the value in the file, or the following errors:
+         * - @ref error::malformed
+         * - @ref error::crypto_error
+         * - @ref error::controller_error
+         *
+         * @warning Consider using the overload of this method which requires explicitly a @ref file_security parameter.
+         *  This method will auto-detect the security settings used: if a card is cloned and a file is created with the same id
+         *  but different security, this method will accept the different security transmission mode. It may thus leak data.
+         */
+        result<std::int32_t> get_value(file_id fid, trust_card_t);
+
+        /**
          * @dot
          * digraph AlignmentMap {
          *  node [shape=record fontname="sans-serif"];
@@ -847,17 +885,6 @@ namespace desfire {
          * @brief read value of a credit/debit file
          * @ingroup valueFile
          * @param fid Max @ref bits::max_value_file_id.
-         * @return the value in the file, or the following errors:
-         * - @ref error::malformed
-         * - @ref error::crypto_error
-         * - @ref error::controller_error
-         */
-        result<std::int32_t> get_value(file_id fid);
-
-        /**
-         * @brief read value of a credit/debit file
-         * @ingroup valueFile
-         * @param fid Max @ref bits::max_value_file_id.
          * @param security Force the communication mode, and do not auto-detect
          * @return the value in the file, or the following errors:
          * - @ref error::malformed
@@ -868,6 +895,23 @@ namespace desfire {
 
         /**
          *
+         *
+         * @brief Increment a value file
+         * @ingroup valueFile
+         * @param fid Max @ref bits::max_value_file_id.
+         * @param amount Must be nonnegative.
+         * @return None, or the following errors:
+         * - @ref error::malformed
+         * - @ref error::crypto_error
+         * - @ref error::controller_error
+         *
+         * @warning Consider using the overload of this method which requires explicitly a @ref file_security parameter.
+         *  This method will auto-detect the security settings used: if a card is cloned and a file is created with the same id
+         *  but different security, this method will accept the different security transmission mode. It may thus leak data.
+         */
+        result<> credit(file_id fid, std::int32_t amount, trust_card_t);
+
+        /**
          * @dot
          * digraph AlignmentMap {
          *  node [shape=record fontname="sans-serif"];
@@ -883,18 +927,6 @@ namespace desfire {
          * @ingroup valueFile
          * @param fid Max @ref bits::max_value_file_id.
          * @param amount Must be nonnegative.
-         * @return None, or the following errors:
-         * - @ref error::malformed
-         * - @ref error::crypto_error
-         * - @ref error::controller_error
-         */
-        result<> credit(file_id fid, std::int32_t amount);
-
-        /**
-         * @brief Increment a value file
-         * @ingroup valueFile
-         * @param fid Max @ref bits::max_value_file_id.
-         * @param amount Must be nonnegative.
          * @param security Force the communication mode, and do not auto-detect
          * @return None, or the following errors:
          * - @ref error::malformed
@@ -905,6 +937,23 @@ namespace desfire {
 
         /**
          *
+         * @brief Increment, limited by past debits transaction, the value file
+         * @ingroup valueFile
+         * @param fid Max @ref bits::max_value_file_id.
+         * @param amount Must be nonnegative.
+         * @note This can be used without full write/read permission. It can be use to refound a transaction in a safe way.
+         * @return None, or the following errors:
+         * - @ref error::malformed
+         * - @ref error::crypto_error
+         * - @ref error::controller_error
+         *
+         * @warning Consider using the overload of this method which requires explicitly a @ref file_security parameter.
+         *  This method will auto-detect the security settings used: if a card is cloned and a file is created with the same id
+         *  but different security, this method will accept the different security transmission mode. It may thus leak data.
+         */
+        result<> limited_credit(file_id fid, std::int32_t amount, trust_card_t);
+
+        /**
          * @dot
          * digraph AlignmentMap {
          *  node [shape=record fontname="sans-serif"];
@@ -920,19 +969,6 @@ namespace desfire {
          * @ingroup valueFile
          * @param fid Max @ref bits::max_value_file_id.
          * @param amount Must be nonnegative.
-         * @note This can be used without full write/read permission. It can be use to refound a transaction in a safe way.
-         * @return None, or the following errors:
-         * - @ref error::malformed
-         * - @ref error::crypto_error
-         * - @ref error::controller_error
-         */
-        result<> limited_credit(file_id fid, std::int32_t amount);
-
-        /**
-         * @brief Increment, limited by past debits transaction, the value file
-         * @ingroup valueFile
-         * @param fid Max @ref bits::max_value_file_id.
-         * @param amount Must be nonnegative.
          * @param security Force the communication mode, and do not auto-detect
          * @note This can be used without full write/read permission. It can be use to refound a transaction in a safe way.
          * @return None, or the following errors:
@@ -944,6 +980,22 @@ namespace desfire {
 
         /**
          *
+         * @brief Decrement a value file
+         * @ingroup valueFile
+         * @param fid Max @ref bits::max_value_file_id.
+         * @param amount Must be nonnegative.
+         * @return None, or the following errors:
+         * - @ref error::malformed
+         * - @ref error::crypto_error
+         * - @ref error::controller_error
+         *
+         * @warning Consider using the overload of this method which requires explicitly a @ref file_security parameter.
+         *  This method will auto-detect the security settings used: if a card is cloned and a file is created with the same id
+         *  but different security, this method will accept the different security transmission mode. It may thus leak data.
+         */
+        result<> debit(file_id fid, std::int32_t amount, trust_card_t);
+
+        /**
          * @dot
          * digraph AlignmentMap {
          *  node [shape=record fontname="sans-serif"];
@@ -955,19 +1007,7 @@ namespace desfire {
          * }
          * @enddot
          *
-         * @brief Drecement a value file
-         * @ingroup valueFile
-         * @param fid Max @ref bits::max_value_file_id.
-         * @param amount Must be nonnegative.
-         * @return None, or the following errors:
-         * - @ref error::malformed
-         * - @ref error::crypto_error
-         * - @ref error::controller_error
-         */
-        result<> debit(file_id fid, std::int32_t amount);
-
-        /**
-         * @brief Drecement a value file
+         * @brief Decrement a value file
          * @ingroup valueFile
          * @param fid Max @ref bits::max_value_file_id.
          * @param amount Must be nonnegative.
@@ -990,8 +1030,12 @@ namespace desfire {
          * - @ref error::crypto_error
          * - @ref error::parameter_error
          * - @ref error::controller_error
+         *
+         * @warning Consider using the overload of this method which requires explicitly a @ref file_security parameter.
+         *  This method will auto-detect the security settings used: if a card is cloned and a file is created with the same id
+         *  but different security, this method will accept the different security transmission mode. It may thus leak data.
          */
-        result<> write_record(file_id fid, std::uint32_t offset, bin_data const &data);
+        result<> write_record(file_id fid, std::uint32_t offset, bin_data const &data, trust_card_t);
 
         /**
          * @brief Write to a linear or cyclic file
@@ -1009,12 +1053,12 @@ namespace desfire {
         result<> write_record(file_id fid, std::uint32_t offset, bin_data const &data, file_security security);
 
         template <class T>
-        result<> write_record(file_id fid, T &&record);
+        result<> write_record(file_id fid, T &&record, trust_card_t);
         template <class T>
         result<> write_record(file_id fid, T &&record, file_security security);
 
         template <class T>
-        result<std::vector<T>> read_parse_records(file_id fid, std::uint32_t index = 0, std::uint32_t count = all_records);
+        result<std::vector<T>> read_parse_records(file_id fid, trust_card_t, std::uint32_t index = 0, std::uint32_t count = all_records);
 
         template <class T>
         result<std::vector<T>> read_parse_records(file_id fid, std::uint32_t index, std::uint32_t count, file_security security);
@@ -1029,8 +1073,12 @@ namespace desfire {
          * - @ref error::crypto_error
          * - @ref error::parameter_error
          * - @ref error::controller_error
+         *
+         * @warning Consider using the overload of this method which requires explicitly a @ref file_security parameter.
+         *  This method will auto-detect the security settings used: if a card is cloned and a file is created with the same id
+         *  but different security, this method will accept the different security transmission mode. It may thus leak data.
          */
-        result<bin_data> read_records(file_id fid, std::uint32_t record_index = 0, std::uint32_t record_count = all_records);
+        result<bin_data> read_records(file_id fid, trust_card_t, std::uint32_t record_index = 0, std::uint32_t record_count = all_records);
 
         /**
          * @brief Read records from a linear or cyclic file
@@ -1245,11 +1293,11 @@ namespace desfire {
     }
 
     template <class T>
-    tag::result<> tag::write_record(file_id fid, T &&record) {
+    tag::result<> tag::write_record(file_id fid, T &&record, trust_card_t) {
         static bin_data buffer{};
         buffer.clear();
         buffer << std::forward<T>(record);
-        return write_record(fid, 0, buffer);
+        return write_record(fid, 0, buffer, trust_card);
     }
 
     template <class T>
@@ -1282,8 +1330,8 @@ namespace desfire {
     }
 
     template <class T>
-    tag::result<std::vector<T>> tag::read_parse_records(file_id fid, std::uint32_t index, std::uint32_t count) {
-        const auto res_read_records = read_records(fid, index, count);
+    tag::result<std::vector<T>> tag::read_parse_records(file_id fid, trust_card_t, std::uint32_t index, std::uint32_t count) {
+        const auto res_read_records = read_records(fid, trust_card, index, count);
         if (not res_read_records) {
             return res_read_records.error();
         }

@@ -192,10 +192,13 @@ namespace pn532::esp32 {
          * @param port Communication port for the I2C channel. This is passed as-is to the I2C driver.
          * @param config Configuration for the I2C channel. This is passed as-is to the I2C driver.
          * @param slave_address Override for the slave address, defaults to @ref default_slave_address.
+         * @param buffer_pool Buffer pool to use for MAC. If `nullptr`, it uses @ref default_buffer_pool. This class
+         *  retains a pointer to the buffer pool, so it cannot be changed after construction.
          * @note In case of invalid port or configuration, an error message is printed, but the class is correctly constructed. It will simply
          *  always fail to send and receive anything (and may clog your output with error messages).
          */
-        i2c_channel(i2c_port_t port, i2c_config_t config, std::uint8_t slave_address = default_slave_address);
+        i2c_channel(i2c_port_t port, i2c_config_t config,
+                    std::uint8_t slave_address = default_slave_address, mlab::shared_buffer_pool buffer_pool = nullptr);
 
         /**
          * @brief Construct an I2C channel for a PN532 with the given settings, using GPIO pin to signal when the answer is ready.
@@ -208,11 +211,14 @@ namespace pn532::esp32 {
          * @param manage_isr_service If set to true, the class will call @ref gpio_install_isr_service and the corresponding uninstall command
          *  at destruction. Unless the caller manages the ISR service by themselves, this parm should be set to true.
          * @param slave_address Override for the slave address, defaults to @ref default_slave_address.
+         * @param buffer_pool Buffer pool to use for MAC. If `nullptr`, it uses @ref default_buffer_pool. This class
+         *  retains a pointer to the buffer pool, so it cannot be changed after construction.
          * @note In case of invalid port or configuration, an error message is printed, but the class is correctly constructed. It will simply
          *  always fail to send and receive anything (and may clog your output with error messages).
          * @see mlab::irq_assert
          */
-        i2c_channel(i2c_port_t port, i2c_config_t config, gpio_num_t response_irq_line, bool manage_isr_service, std::uint8_t slave_address = default_slave_address);
+        i2c_channel(i2c_port_t port, i2c_config_t config, gpio_num_t response_irq_line, bool manage_isr_service,
+                    std::uint8_t slave_address = default_slave_address, mlab::shared_buffer_pool buffer_pool = nullptr);
 
         ~i2c_channel() override;
 

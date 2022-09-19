@@ -15,12 +15,6 @@ namespace pn532 {
 
     namespace {
 
-        [[nodiscard]] bin_data &get_clean_buffer() {
-            static bin_data _buffer{prealloc(384)};  // TODO Borrow buffer
-            _buffer.clear();
-            return _buffer;
-        }
-
         std::size_t advance_past_start_of_packet_code(bin_stream &s) {
             auto const data = s.peek();
             auto it = std::search(std::begin(data), std::end(data),
@@ -274,13 +268,16 @@ namespace pn532 {
         return error::comm_error;
     }
 
+    channel::channel(mlab::shared_buffer_pool buffer_pool)
+        : _buffer_pool{buffer_pool ? std::move(buffer_pool) : mlab::default_buffer_pool()},
+          _has_operation{false} {}
 
     channel::result<> channel::send(any_frame const &frame, ms timeout) {
         reduce_timeout rt{timeout};
-        bin_data &buffer = get_clean_buffer();
+        auto buffer = _buffer_pool->take();
         buffer << frame;
         if (comm_operation op{*this, comm_mode::send, rt.remaining()}; op.ok()) {
-            return op.update(raw_send(buffer.view(), rt.remaining()));
+            return op.update(raw_send(buffer->view(), rt.remaining()));
         } else {
             return op.error();
         }
@@ -309,21 +306,21 @@ namespace pn532 {
 
     channel::result<any_frame> channel::receive_restart(ms timeout) {
         reduce_timeout rt{timeout};
-        bin_data &buffer = get_clean_buffer();
-        bin_stream s{buffer};
+        auto buffer = _buffer_pool->take();
+        bin_stream s{*buffer};
         // Repeatedly fetch the data until you have determined the frame length
         frame_id id{};
 
-        while (buffer.size() < id.frame_total_length) {
+        while (buffer->size() < id.frame_total_length) {
             // Prepare the buffer and receive the whole frame
-            if (buffer.empty()) {
+            if (buffer->empty()) {
                 // Read more than the minimum frame length, we will exploit this to reuce the number of nacks
-                buffer.resize(frame_id::max_min_info_frame_header_length);
+                buffer->resize(frame_id::max_min_info_frame_header_length);
             } else {
-                buffer.resize(id.frame_total_length);
+                buffer->resize(id.frame_total_length);
             }
             if (comm_operation op{*this, comm_mode::receive, rt.remaining()}; op.ok()) {
-                if (auto const res_recv = raw_receive(buffer.view(), rt.remaining()); res_recv) {
+                if (auto const res_recv = raw_receive(buffer->view(), rt.remaining()); res_recv) {
                     // Attempt to reparse the frame
                     s.seek(0);
                     s >> id;
@@ -332,15 +329,15 @@ namespace pn532 {
                         return op.update(error::comm_malformed);
                     }
                     // Do we finally have enough?
-                    if (buffer.size() >= id.frame_total_length) {
+                    if (buffer->size() >= id.frame_total_length) {
                         // Truncate any leftover data we may have read extra
-                        buffer.resize(id.frame_total_length);
+                        buffer->resize(id.frame_total_length);
                         // Now we have enough data to read the command entirely.
                         any_frame f{};
                         std::tie(s, id) >> f;
                         if (s.bad()) {
                             PN532_LOGE("Could not parse frame from data.");
-                            ESP_LOG_BUFFER_HEX_LEVEL(PN532_TAG, buffer.data(), buffer.size(), ESP_LOG_DEBUG);
+                            ESP_LOG_BUFFER_HEX_LEVEL(PN532_TAG, buffer->data(), buffer->size(), ESP_LOG_DEBUG);
                             return op.update(error::comm_malformed);
                         } else if (not s.eof()) {
                             PN532_LOGW("Stray data in frame (%d bytes)", s.remaining());
@@ -367,15 +364,15 @@ namespace pn532 {
     channel::result<any_frame> channel::receive_stream(ms timeout) {
         reduce_timeout rt{timeout};
         if (comm_operation op{*this, comm_mode::receive, rt.remaining()}; op.ok()) {
-            bin_data &buffer = get_clean_buffer();
-            bin_stream s{buffer};
+            auto buffer = _buffer_pool->take();
+            bin_stream s{*buffer};
             // Repeatedly fetch the data until you have determined the frame length
             frame_id id{};
-            while (rt and buffer.size() < id.frame_total_length) {
+            while (rt and buffer->size() < id.frame_total_length) {
                 // Repeatedly request more bytes
-                const std::size_t old_size = buffer.size();
-                buffer.resize(id.frame_total_length);
-                if (auto res_recv = raw_receive(buffer.view(old_size), rt.remaining()); not res_recv) {
+                const std::size_t old_size = buffer->size();
+                buffer->resize(id.frame_total_length);
+                if (auto res_recv = raw_receive(buffer->view(old_size), rt.remaining()); not res_recv) {
                     return op.update(res_recv.error());
                 }
                 // Attempt to reparse the frame
@@ -391,7 +388,7 @@ namespace pn532 {
             std::tie(s, id) >> f;
             if (s.bad()) {
                 PN532_LOGE("Could not parse frame from data.");
-                ESP_LOG_BUFFER_HEX_LEVEL(PN532_TAG, buffer.data(), buffer.size(), ESP_LOG_DEBUG);
+                ESP_LOG_BUFFER_HEX_LEVEL(PN532_TAG, buffer->data(), buffer->size(), ESP_LOG_DEBUG);
                 return op.update(error::comm_malformed);
             } else if (not s.eof()) {
                 PN532_LOGW("Stray data in frame (%d bytes)", s.remaining());

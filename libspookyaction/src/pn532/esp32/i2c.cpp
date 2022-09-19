@@ -159,7 +159,8 @@ namespace pn532::esp32 {
     }
 
 
-    i2c_channel::i2c_channel(i2c_port_t port, i2c_config_t config, std::uint8_t slave_address) : _port{port}, _slave_addr{slave_address}, _irq_assert{} {
+    i2c_channel::i2c_channel(i2c_port_t port, i2c_config_t config, std::uint8_t slave_address, mlab::shared_buffer_pool buffer_pool)
+        : channel{std::move(buffer_pool)}, _port{port}, _slave_addr{slave_address}, _irq_assert{} {
         if (const auto res = i2c_param_config(port, &config); res != ESP_OK) {
             ESP_LOGE(PN532_I2C_TAG, "i2c_param_config failed, return code %d (%s).", res, esp_err_to_name(res));
             _port = I2C_NUM_MAX;
@@ -172,7 +173,10 @@ namespace pn532::esp32 {
         }
         ESP_ERROR_CHECK_WITHOUT_ABORT(i2c_set_timeout(port, i2c_driver_timeout));
     }
-    i2c_channel::i2c_channel(i2c_port_t port, i2c_config_t config, gpio_num_t response_irq_line, bool manage_isr_service, std::uint8_t slave_address) : i2c_channel{port, config, slave_address} {
+
+    i2c_channel::i2c_channel(i2c_port_t port, i2c_config_t config, gpio_num_t response_irq_line, bool manage_isr_service,
+                             std::uint8_t slave_address, mlab::shared_buffer_pool buffer_pool)
+        : i2c_channel{port, config, slave_address, std::move(buffer_pool)} {
         // Prepare the IRQ assertion too
         _irq_assert = irq_assert{manage_isr_service, response_irq_line, GPIO_INTR_NEGEDGE};
     }

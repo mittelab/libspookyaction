@@ -21,7 +21,8 @@ namespace pn532::esp32 {
     }// namespace
 
 
-    hsu_channel::hsu_channel(uart_port_t port, uart_config_t config, gpio_num_t to_device_tx, gpio_num_t to_device_rx) : _port{port} {
+    hsu_channel::hsu_channel(uart_port_t port, uart_config_t config, gpio_num_t to_device_tx, gpio_num_t to_device_rx, mlab::shared_buffer_pool buffer_pool)
+        : channel{std::move(buffer_pool)}, _port{port} {
         if (const auto res = uart_param_config(port, &config); res != ESP_OK) {
             ESP_LOGE(PN532_HSU_TAG, "uart_param_config failed, return code %d (%s).", res, esp_err_to_name(res));
             _port = UART_NUM_MAX;

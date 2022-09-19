@@ -136,8 +136,10 @@ namespace pn532::esp32 {
         return true;
     }
 
-    spi_channel::spi_channel(spi_host_device_t host, spi_bus_config_t const &bus_config, spi_device_interface_config_t device_cfg, spi_dma_chan_t dma_chan)
-        : _dma_buffer{capable_allocator<std::uint8_t>{MALLOC_CAP_DMA}},
+    spi_channel::spi_channel(spi_host_device_t host, spi_bus_config_t const &bus_config, spi_device_interface_config_t device_cfg,
+                             spi_dma_chan_t dma_chan, mlab::shared_buffer_pool buffer_pool)
+        : channel{std::move(buffer_pool)},
+          _dma_buffer{capable_allocator<std::uint8_t>{MALLOC_CAP_DMA}},
           _host{std::nullopt},
           _device{nullptr},
           _irq_assert{},
@@ -170,8 +172,8 @@ namespace pn532::esp32 {
     }
 
     spi_channel::spi_channel(spi_host_device_t host, spi_bus_config_t const &bus_config, spi_device_interface_config_t device_cfg, int dma_chan,
-                             gpio_num_t response_irq_line, bool manage_isr_service)
-        : spi_channel{host, bus_config, device_cfg, dma_chan} {
+                             gpio_num_t response_irq_line, bool manage_isr_service, mlab::shared_buffer_pool buffer_pool)
+        : spi_channel{host, bus_config, device_cfg, dma_chan, std::move(buffer_pool)} {
         _irq_assert = irq_assert{manage_isr_service, response_irq_line};
     }
 

@@ -9,6 +9,7 @@
 #include <mlab/bin_data.hpp>
 #include <mlab/result.hpp>
 #include <mlab/time.hpp>
+#include <mlab/pool.hpp>
 #include <pn532/bits.hpp>
 #include <pn532/log.h>
 #include <pn532/msg.hpp>
@@ -177,6 +178,14 @@ namespace pn532 {
      */
     class channel {
     public:
+        /**
+         * @brief Constructs a new base channel.
+         *
+         * @param buffer_pool Buffer pool to use for MAC. If `nullptr`, it uses @ref default_buffer_pool. This class
+         *  retains a pointer to the buffer pool, so it cannot be changed after construction.
+         */
+        explicit channel(mlab::shared_buffer_pool buffer_pool = nullptr);
+
         virtual ~channel() = default;
 
         /**
@@ -346,7 +355,8 @@ namespace pn532 {
          */
         result<any_frame> receive_restart(ms timeout);
 
-        bool _has_operation = false;
+        mlab::shared_buffer_pool _buffer_pool;
+        bool _has_operation;
     };
 
     [[nodiscard]] const char *to_string(frame_type type);

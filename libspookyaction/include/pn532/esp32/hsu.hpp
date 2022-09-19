@@ -34,10 +34,12 @@ namespace pn532::esp32 {
          * @param config Configuration for the HSU channel. This is passed as-is to the UART driver.
          * @param to_device_tx The pin connected to the TX line on the PN532
          * @param to_device_rx The pin connected to the RX line on the PN532
+         * @param buffer_pool Buffer pool to use for MAC. If `nullptr`, it uses @ref default_buffer_pool. This class
+         *  retains a pointer to the buffer pool, so it cannot be changed after construction.
          * @note In case of invalid port or configuration, an error message is printed, but the class is correctly constructed. It will simply
          *  always fail to send and receive anything (and may clog your output with error messages).
          */
-        hsu_channel(uart_port_t port, uart_config_t config, gpio_num_t to_device_tx, gpio_num_t to_device_rx);
+        hsu_channel(uart_port_t port, uart_config_t config, gpio_num_t to_device_tx, gpio_num_t to_device_rx, mlab::shared_buffer_pool buffer_pool = nullptr);
 
         ~hsu_channel() override;
     };

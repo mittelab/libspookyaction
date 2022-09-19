@@ -80,6 +80,8 @@ namespace mlab {
         [[nodiscard]] inline bool empty() const;
     };
 
+    using shared_buffer_pool = std::shared_ptr<pool<bin_data>>;
+
     template <class T, class Policy = default_borrow_policy<T>>
     class borrowed {
         std::weak_ptr<pool<T, Policy>> _owner{};

@@ -6,6 +6,7 @@
 #define MITTELIB_POOL_HPP
 
 #include <memory>
+#include <vector>
 #include <mlab/bin_data.hpp>
 
 namespace mlab {
@@ -111,21 +112,21 @@ namespace mlab {
     };
 
     template <class Policy, class U>
-    decltype(auto) operator<<(borrowed<bin_data, Policy> &borrowed_obj, U &&rhs) {
+    decltype(auto) operator<<(borrowed<mlab::bin_data, Policy> &borrowed_obj, U &&rhs) {
         return *borrowed_obj << rhs;
     }
 
     template <class Policy, class U>
-    decltype(auto) operator<<(borrowed<bin_data, Policy> const &borrowed_obj, U &&rhs) {
+    decltype(auto) operator<<(borrowed<mlab::bin_data, Policy> const &borrowed_obj, U &&rhs) {
         return *borrowed_obj << rhs;
     }
     template <class Policy, class U>
-    decltype(auto) operator>>(borrowed<bin_data, Policy> &borrowed_obj, U &&rhs) {
+    decltype(auto) operator>>(borrowed<mlab::bin_data, Policy> &borrowed_obj, U &&rhs) {
         return *borrowed_obj << rhs;
     }
 
     template <class Policy, class U>
-    decltype(auto) operator>>(borrowed<bin_data, Policy> const &borrowed_obj, U &&rhs) {
+    decltype(auto) operator>>(borrowed<mlab::bin_data, Policy> const &borrowed_obj, U &&rhs) {
         return *borrowed_obj << rhs;
     }
 

@@ -151,7 +151,7 @@ namespace desfire {
          *  retains a pointer to the buffer pool, so it cannot be changed after construction.
          * @see cmac_provider::cmac_provider
          */
-        crypto_with_cmac(std::uint8_t block_size, std::uint8_t last_byte_xor, mlab::shared_buffer_pool buffer_pool);
+        crypto_with_cmac(std::uint8_t block_size, std::uint8_t last_byte_xor, mlab::shared_buffer_pool buffer_pool = nullptr);
 
         /**
          * @brief Subclasses should implement this instead of @ref setup_with_key, to the same effect.
@@ -304,7 +304,6 @@ namespace desfire {
      */
     class crypto_aes_base : public crypto_with_cmac {
     public:
-
         /**
          * @brief Initializes a new crypto object with a default buffer pool.
          * @note This overload uses @ref default_buffer_pool as a buffer pool for @ref cmac_provider.

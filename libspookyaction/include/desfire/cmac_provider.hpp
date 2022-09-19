@@ -170,7 +170,7 @@ namespace desfire {
          * @see desfire::bits::crypto_cmac_xor_byte_3k3des
          * @see desfire::bits::crypto_cmac_xor_byte_aes
          */
-        cmac_provider(std::size_t block_size, std::uint8_t last_byte_xor, mlab::shared_buffer_pool buffer_pool);
+        cmac_provider(std::size_t block_size, std::uint8_t last_byte_xor, mlab::shared_buffer_pool buffer_pool = nullptr);
 
         /**
          * @brief Returns the keychain that holds the keys used for computing a CMAC.

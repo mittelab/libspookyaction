@@ -16,7 +16,7 @@ namespace desfire {
             static mlab::shared_buffer_pool _pool{std::make_shared<mlab::pool<bin_data>>()};
             return _pool;
         }
-    }
+    }// namespace
 
     mlab::shared_buffer_pool default_buffer_pool() {
         // Use atomic variants for updating shared_ptr. In C++20, just replace with std::atomic<mlab::shared_buffer_pool>

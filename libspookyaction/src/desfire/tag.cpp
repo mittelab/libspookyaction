@@ -71,6 +71,21 @@ namespace desfire {
         }
     }// namespace
 
+
+    tag::tag(desfire::pcd &pcd, std::unique_ptr<cipher_provider> provider, mlab::shared_buffer_pool buffer_pool)
+        : _pcd{&pcd},
+          _provider{std::move(provider)},
+          _active_cipher{std::make_unique<cipher_dummy>()},
+          _active_key_type{cipher_type::none},
+          _active_key_number{std::numeric_limits<std::uint8_t>::max()},
+          _active_app{root_app},
+          _buffer_pool{buffer_pool ? std::move(buffer_pool) : default_buffer_pool()}
+    {
+        if (_provider == nullptr) {
+            DESFIRE_LOGE("You built a desfire::tag with a nullptr cipher_provider. SIGSEGV incoming...");
+        }
+    }
+
     tag::result<> tag::safe_drop_payload(command_code cmd, tag::result<bin_data> const &result) {
         if (result) {
             if (not result->empty()) {
@@ -123,15 +138,15 @@ namespace desfire {
 
     tag::result<bin_data> tag::raw_command_response(bin_stream &tx_data, bool rx_fetch_additional_frames) {
         static constexpr auto chunk_size = bits::max_packet_length;
-        static bin_data tx_chunk{prealloc(chunk_size)};   // TODO Borrow buffer
+        auto tx_chunk = _buffer_pool->take();
+        tx_chunk << prealloc(chunk_size);
         const auto num_tx_chunks = 1 + div_round_up(saturate_sub(tx_data.remaining(), chunk_size), chunk_size - 1);
 
-        tx_chunk.clear();
         status last_status = status::additional_frame;
         bin_data rx_data;  // TODO Investigate whether this can become a borrowed buffer
 
-        for (std::size_t chunk_idx = 0; last_status == status::additional_frame; ++chunk_idx, tx_chunk.clear()) {
-            assert(tx_chunk.empty());
+        for (std::size_t chunk_idx = 0; last_status == status::additional_frame; ++chunk_idx, tx_chunk->clear()) {
+            assert(tx_chunk->empty());
             // Prepare packet to send: DATA for the first, AF + DATA afterwards.
             if (chunk_idx == 0) {
                 tx_chunk << tx_data.read(std::min(tx_data.remaining(), chunk_size));
@@ -146,8 +161,8 @@ namespace desfire {
             }
 
             // Actual transmission
-            ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " RAW >>", tx_chunk.data(), tx_chunk.size(), ESP_LOG_DEBUG);
-            if (const auto &[rx_chunk, success] = pcd().communicate(tx_chunk); success) {
+            ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " RAW >>", tx_chunk->data(), tx_chunk->size(), ESP_LOG_DEBUG);
+            if (const auto &[rx_chunk, success] = pcd().communicate(*tx_chunk); success) {
                 ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " RAW <<", rx_chunk.data(), rx_chunk.size(), ESP_LOG_DEBUG);
 
                 // Make sure there was an actual response
@@ -198,15 +213,14 @@ namespace desfire {
         cipher &c = override_cipher == nullptr ? *_active_cipher : *override_cipher;
 
         // Assemble data to transmit and preprocess
-        static bin_data tx_data;   // TODO Borrow buffer
-        tx_data.clear();
+        auto tx_data = _buffer_pool->take();
         tx_data << prealloc(data.size() + 1) << cmd << data;
 
-        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " >>", tx_data.data(), tx_data.size(), ESP_LOG_DEBUG);
+        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " >>", tx_data->data(), tx_data->size(), ESP_LOG_DEBUG);
 
-        c.prepare_tx(tx_data, cfg.tx_secure_data_offset, cfg.tx);
+        c.prepare_tx(*tx_data, cfg.tx_secure_data_offset, cfg.tx);
 
-        bin_stream tx_stream{tx_data};
+        bin_stream tx_stream{*tx_data};
         auto res_cmd = raw_command_response(tx_stream, rx_fetch_additional_frames);
         if (not res_cmd) {
             DESFIRE_LOGE("%s: failed, %s", to_string(cmd), to_string(res_cmd.error()));
@@ -463,8 +477,8 @@ namespace desfire {
         const std::uint8_t key_no_flag = (active_app() == root_app
                                                   ? key_no_to_change | static_cast<std::uint8_t>(app_crypto_from_cipher(new_key.type()))
                                                   : key_no_to_change);
-        bin_data payload{prealloc(33)};   // TODO Borrow buffer
-        payload << key_no_flag;
+        auto payload = _buffer_pool->take();
+        payload << prealloc(33) << key_no_flag;
         // Changing from a different key requires to xor it with that other key
         if (current_key != nullptr) {
             ESP_LOGD(DESFIRE_TAG " KEY", "Current key %d: %s", current_key->key_number(), to_string(current_key->type()));
@@ -481,7 +495,7 @@ namespace desfire {
         // There is no way to fit this business into the cipher model.
         if (active_cipher_is_legacy()) {
             // CRC on (maybe xored data). However, skip the key number
-            payload << lsb16 << compute_crc16(payload.data_view(1));
+            payload << lsb16 << compute_crc16(payload->data_view(1));
             if (current_key != nullptr) {
                 // Extra CRC on new key
                 payload << lsb16 << compute_crc16(new_key.get_packed_key_body());
@@ -493,7 +507,7 @@ namespace desfire {
                           "If these conditions are not respected, the precomputed value above is wrong.");
             // CRC on command code, key number, (maybe xored data). Note that the command code is added by the
             // command_response method, so we precomputed a different init value that accounts for it.
-            payload << lsb32 << compute_crc32(payload, crc32_init_with_chgkey);
+            payload << lsb32 << compute_crc32(*payload, crc32_init_with_chgkey);
             if (current_key != nullptr) {
                 // Extra CRC on new key
                 payload << lsb32 << compute_crc32(new_key.get_packed_key_body());
@@ -502,7 +516,7 @@ namespace desfire {
 
         const auto res_cmd = command_response(
                 command_code::change_key,
-                payload,// command code and key number are not encrypted -vv
+                *payload,// command code and key number are not encrypted -vv
                 comm_cfg{cipher_mode::ciphered_no_crc, cipher_mode::plain, 2});
         if (res_cmd) {
             DESFIRE_LOGD("Key %d (%s) was changed.", new_key.key_number(), to_string(new_key.type()));
@@ -587,9 +601,9 @@ namespace desfire {
         }
         // RX happens with the chosen file protection, except on nonlegacy ciphers where plain becomes maced
         const auto rx_cipher_mode = cipher_mode_most_secure(cipher_mode_from_security(security), default_comm_cfg().rx);
-        bin_data payload{prealloc(7)};  // TODO Borrow buffer
-        payload << fid << lsb24 << offset << lsb24 << length;
-        return command_response(command_code::read_data, payload, comm_cfg{default_comm_cfg().tx, rx_cipher_mode});
+        auto payload = _buffer_pool->take();
+        payload << prealloc(7) << fid << lsb24 << offset << lsb24 << length;
+        return command_response(command_code::read_data, *payload, comm_cfg{default_comm_cfg().tx, rx_cipher_mode});
     }
 
     tag::result<> tag::write_data(file_id fid, std::uint32_t offset, bin_data const &data) {
@@ -618,10 +632,10 @@ namespace desfire {
         const comm_cfg cfg{cipher_mode_from_security(security), default_comm_cfg().rx,
                            8 /* secure with legacy MAC only data */};
 
-        bin_data payload{prealloc(data.size() + 7)};  // TODO Borrow buffer
-        payload << fid << lsb24 << offset << lsb24 << data.size() << data;
+        auto payload = _buffer_pool->take();
+        payload << prealloc(data.size() + 7) << fid << lsb24 << offset << lsb24 << data.size() << data;
 
-        return safe_drop_payload(command_code::write_data, command_response(command_code::write_data, payload, cfg));
+        return safe_drop_payload(command_code::write_data, command_response(command_code::write_data, *payload, cfg));
     }
 
 
@@ -659,9 +673,9 @@ namespace desfire {
             return error::parameter_error;
         }
         const comm_cfg cfg{cipher_mode_from_security(security), default_comm_cfg().rx, 2 /* after FID */};
-        bin_data payload{prealloc(5)};  // TODO Borrow buffer
-        payload << fid << lsb32 << amount;
-        return safe_drop_payload(cmd, command_response(cmd, payload, cfg));
+        auto payload = _buffer_pool->take();
+        payload << prealloc(5) << fid << lsb32 << amount;
+        return safe_drop_payload(cmd, command_response(cmd, *payload, cfg));
     }
 
     tag::result<> tag::credit(file_id fid, std::int32_t amount) {
@@ -726,11 +740,11 @@ namespace desfire {
         const comm_cfg cfg{cipher_mode_from_security(security), default_comm_cfg().rx,
                            8 /* secure with legacy MAC only data */};
 
-        bin_data payload{prealloc(data.size() + 7)};  // TODO Borrow buffer
-        payload << fid << lsb24 << offset << lsb24 << data.size() << data;
+        auto payload = _buffer_pool->take();
+        payload << prealloc(data.size() + 7) << fid << lsb24 << offset << lsb24 << data.size() << data;
 
         return safe_drop_payload(command_code::write_record,
-                                 command_response(command_code::write_record, payload, cfg));
+                                 command_response(command_code::write_record, *payload, cfg));
     }
 
     tag::result<bin_data> tag::read_records(file_id fid, std::uint32_t record_index, std::uint32_t record_count) {
@@ -758,10 +772,10 @@ namespace desfire {
         }
         // RX happens with the chosen file protection, except on nonlegacy ciphers where plain becomes maced
         const auto rx_cipher_mode = cipher_mode_most_secure(cipher_mode_from_security(security), default_comm_cfg().rx);
-        bin_data payload{prealloc(record_count + 7)};  // TODO Borrow buffer
-        payload << fid << lsb24 << record_index << lsb24 << record_count;
+        auto payload = _buffer_pool->take();
+        payload << prealloc(record_count + 7) << fid << lsb24 << record_index << lsb24 << record_count;
 
-        return command_response(command_code::read_records, payload, comm_cfg{default_comm_cfg().tx, rx_cipher_mode});
+        return command_response(command_code::read_records, *payload, comm_cfg{default_comm_cfg().tx, rx_cipher_mode});
     }
 
 

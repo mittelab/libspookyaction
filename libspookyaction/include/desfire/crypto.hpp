@@ -20,7 +20,7 @@ namespace desfire {
     /**
      * @brief Default shared buffer pool that is used in @ref cmac_provider if none is explicitly passed.
      *
-     * This function is thread-safe.
+     * This function is thread-safe; however, a buffer pool is **not**.
      *
      * Passing a buffer pool across all virtual instances can be annoying.
      *
@@ -32,7 +32,7 @@ namespace desfire {
     /**
      * @brief Change the default buffer pool used by @ref cmac_provider if none is explicitly passed.
      *
-     * This function is thread-safe.
+     * This function is thread-safe; however, a buffer pool is **not**.
      *
      * @note Changing the default buffer pool must be done **before** the creation of any instance.
      *  Each @ref crypto_with_cmac instance will hold such a `shared_ptr`.

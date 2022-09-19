@@ -74,9 +74,11 @@ namespace desfire {
          * @note if you want to create a custom pcd, you should extend  @ref desfire::pcd and implement @ref desfire::pcd::communicate
          *
          * @param pcd_ a @ref desfire::pcd class that handles the tag communication. This must be alive at least as long as the @ref tag object.
-         * @param provider Any @ref cipher_provider implementation to convert keys into the respective cipher.
+         * @param provider Any @ref cipher_provider implementation to convert keys into the respective cipher. Must not be `nullptr`.
+         * @param buffer_pool Buffer pool to use for messaging. If `nullptr`, it uses @ref default_buffer_pool. This class
+         *  retains a pointer to the buffer pool, so it cannot be changed after construction.
          */
-        inline tag(desfire::pcd &pcd, std::unique_ptr<cipher_provider> provider);
+        tag(desfire::pcd &pcd, std::unique_ptr<cipher_provider> provider, mlab::shared_buffer_pool buffer_pool = nullptr);
 
         tag(tag const &) = delete;
 
@@ -1131,6 +1133,7 @@ namespace desfire {
         cipher_type _active_key_type;
         std::uint8_t _active_key_number;
         app_id _active_app;
+        mlab::shared_buffer_pool _buffer_pool;
     };
 
 
@@ -1149,13 +1152,6 @@ namespace desfire {
     desfire::pcd &tag::pcd() {
         return *_pcd;
     }
-
-    tag::tag(desfire::pcd &pcd, std::unique_ptr<cipher_provider> provider) : _pcd{&pcd},
-                                                                             _provider{std::move(provider)},
-                                                                             _active_cipher{std::make_unique<cipher_dummy>()},
-                                                                             _active_key_type{cipher_type::none},
-                                                                             _active_key_number{std::numeric_limits<std::uint8_t>::max()},
-                                                                             _active_app{root_app} {}
 
     template <cipher_type Type>
     tag::result<> tag::authenticate(key<Type> const &k) {
@@ -1238,18 +1234,16 @@ namespace desfire {
 
     template <class T>
     tag::result<> tag::write_record(file_id fid, T &&record, file_security security) {
-        static bin_data buffer{};  // TODO Borrow buffer
-        buffer.clear();
+        auto buffer = _buffer_pool->template take();
         buffer << std::forward<T>(record);
-        return write_record(fid, 0, buffer, security);
+        return write_record(fid, 0, *buffer, security);
     }
 
     template <class T>
     tag::result<> tag::write_record(file_id fid, T &&record) {
-        static bin_data buffer{};  // TODO Borrow buffer
-        buffer.clear();
+        auto buffer = _buffer_pool->template take();
         buffer << std::forward<T>(record);
-        return write_record(fid, 0, buffer);
+        return write_record(fid, 0, *buffer);
     }
 
     template <class T>

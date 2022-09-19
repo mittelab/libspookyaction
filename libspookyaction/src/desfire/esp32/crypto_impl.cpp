@@ -127,7 +127,10 @@ namespace desfire::esp32 {
         mbedtls_des3_set3key_dec(&_dec_context, std::begin(key));
     }
 
-    crypto_3k3des::crypto_3k3des() : _enc_context{}, _dec_context{} {
+    crypto_3k3des::crypto_3k3des() : crypto_3k3des{nullptr} {}
+
+    crypto_3k3des::crypto_3k3des(mlab::shared_buffer_pool buffer_pool)
+        : crypto_3k3des_base(std::move(buffer_pool)), _enc_context{}, _dec_context{} {
         mbedtls_des3_init(&_enc_context);
         mbedtls_des3_init(&_dec_context);
     }
@@ -164,7 +167,10 @@ namespace desfire::esp32 {
         mbedtls_aes_setkey_dec(&_dec_context, std::begin(key), 8 * key.size());
     }
 
-    crypto_aes::crypto_aes() : _enc_context{}, _dec_context{} {
+    crypto_aes::crypto_aes() : crypto_aes{nullptr} {}
+
+    crypto_aes::crypto_aes(mlab::shared_buffer_pool buffer_pool)
+        : crypto_aes_base{std::move(buffer_pool)}, _enc_context{}, _dec_context{} {
         mbedtls_aes_init(&_enc_context);
         mbedtls_aes_init(&_dec_context);
     }

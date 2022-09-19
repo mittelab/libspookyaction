@@ -62,6 +62,7 @@ namespace desfire::esp32 {
     public:
         void do_crypto(range<std::uint8_t *> data, range<std::uint8_t *> iv, crypto_operation op) override;
         crypto_3k3des();
+        explicit crypto_3k3des(mlab::shared_buffer_pool buffer_pool);
         ~crypto_3k3des() override;
 
     protected:
@@ -75,6 +76,7 @@ namespace desfire::esp32 {
     public:
         void do_crypto(range<std::uint8_t *> data, range<std::uint8_t *> iv, crypto_operation op) override;
         crypto_aes();
+        explicit crypto_aes(mlab::shared_buffer_pool buffer_pool);
         ~crypto_aes() override;
 
     protected:

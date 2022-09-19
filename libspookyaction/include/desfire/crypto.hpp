@@ -147,9 +147,11 @@ namespace desfire {
          *  no clue about why we have to do this, maybe some nice key pre-conditioning to resist certain attacks? I do
          *  not know, but it is a constant specific to the cipher used. This is passed directly to
          *  @ref cmac_provider::cmac_provider.
+         * @param buffer_pool Buffer pool to use for CMAC. If `nullptr`, it uses @ref default_buffer_pool. This class
+         *  retains a pointer to the buffer pool, so it cannot be changed after construction.
          * @see cmac_provider::cmac_provider
          */
-        crypto_with_cmac(std::uint8_t block_size, std::uint8_t last_byte_xor);
+        crypto_with_cmac(std::uint8_t block_size, std::uint8_t last_byte_xor, mlab::shared_buffer_pool buffer_pool);
 
         /**
          * @brief Subclasses should implement this instead of @ref setup_with_key, to the same effect.
@@ -276,7 +278,18 @@ namespace desfire {
      */
     class crypto_3k3des_base : public crypto_with_cmac {
     public:
+        /**
+         * @brief Initializes a new crypto object with a default buffer pool.
+         * @note This overload uses @ref default_buffer_pool as a buffer pool for @ref cmac_provider.
+         */
         crypto_3k3des_base();
+
+        /**
+         * @brief Initializes a new crypto object with a custom buffer pool.
+         * @param buffer_pool Buffer pool to use for CMAC. If `nullptr`, it uses @ref default_buffer_pool. This class
+         *  retains a pointer to the buffer pool, so it cannot be changed after construction.
+         */
+        explicit crypto_3k3des_base(mlab::shared_buffer_pool buffer_pool);
         [[nodiscard]] inline desfire::cipher_type cipher_type() const final;
         void init_session(range<std::uint8_t const *> random_data) final;
         void setup_with_key(range<std::uint8_t const *> key) override;
@@ -291,7 +304,19 @@ namespace desfire {
      */
     class crypto_aes_base : public crypto_with_cmac {
     public:
+
+        /**
+         * @brief Initializes a new crypto object with a default buffer pool.
+         * @note This overload uses @ref default_buffer_pool as a buffer pool for @ref cmac_provider.
+         */
         crypto_aes_base();
+
+        /**
+         * @brief Initializes a new crypto object with a custom buffer pool.
+         * @param buffer_pool Buffer pool to use for CMAC. If `nullptr`, it uses @ref default_buffer_pool. This class
+         *  retains a pointer to the buffer pool, so it cannot be changed after construction.
+         */
+        explicit crypto_aes_base(mlab::shared_buffer_pool buffer_pool);
         [[nodiscard]] inline desfire::cipher_type cipher_type() const final;
         void init_session(range<std::uint8_t const *> random_data) final;
     };

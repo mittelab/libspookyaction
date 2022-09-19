@@ -149,11 +149,17 @@ namespace desfire {
         setup_with_key(make_range(new_key));
     }
 
-    crypto_3k3des_base::crypto_3k3des_base() : crypto_with_cmac{8, bits::crypto_cmac_xor_byte_3k3des} {
+    crypto_3k3des_base::crypto_3k3des_base(mlab::shared_buffer_pool buffer_pool)
+        : crypto_with_cmac{8, bits::crypto_cmac_xor_byte_3k3des, std::move(buffer_pool)} {
     }
 
-    crypto_aes_base::crypto_aes_base() : crypto_with_cmac{16, bits::crypto_cmac_xor_byte_aes} {
+    crypto_3k3des_base::crypto_3k3des_base() : crypto_3k3des_base{nullptr} {}
+
+    crypto_aes_base::crypto_aes_base(mlab::shared_buffer_pool buffer_pool)
+        : crypto_with_cmac{16, bits::crypto_cmac_xor_byte_aes, std::move(buffer_pool)} {
     }
+
+    crypto_aes_base::crypto_aes_base() : crypto_aes_base{nullptr} {}
 
 
     void crypto_with_cmac::setup_with_key(range<const std::uint8_t *> key) {
@@ -165,8 +171,8 @@ namespace desfire {
         return _cmac.keychain().block_size();
     }
 
-    crypto_with_cmac::crypto_with_cmac(std::uint8_t block_size, std::uint8_t last_byte_xor)
-        : _cmac{block_size, last_byte_xor, nullptr} {}
+    crypto_with_cmac::crypto_with_cmac(std::uint8_t block_size, std::uint8_t last_byte_xor, mlab::shared_buffer_pool buffer_pool)
+        : _cmac{block_size, last_byte_xor, std::move(buffer_pool)} {}
 
     crypto_with_cmac::mac_t crypto_with_cmac::do_cmac(range<std::uint8_t const *> data, range<std::uint8_t *> iv) {
         return _cmac.compute_cmac(*this, iv, data);

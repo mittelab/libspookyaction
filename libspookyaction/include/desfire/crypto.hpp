@@ -18,6 +18,31 @@ namespace desfire {
     using bits::cipher_type;
 
     /**
+     * @brief Default shared buffer pool that is used in @ref cmac_provider if none is explicitly passed.
+     *
+     * This function is thread-safe.
+     *
+     * Passing a buffer pool across all virtual instances can be annoying.
+     *
+     * @see change_default_buffer_pool
+     * @return A shared pointer to a buffer pool.
+     */
+    [[nodiscard]] mlab::shared_buffer_pool default_buffer_pool();
+
+    /**
+     * @brief Change the default buffer pool used by @ref cmac_provider if none is explicitly passed.
+     *
+     * This function is thread-safe.
+     *
+     * @note Changing the default buffer pool must be done **before** the creation of any instance.
+     *  Each @ref crypto_with_cmac instance will hold such a `shared_ptr`.
+     *
+     * @param new_pool New pool to set. Passing `nullptr` has no effect.
+     */
+    void change_default_buffer_pool(mlab::shared_buffer_pool new_pool);
+
+
+    /**
      * @brief Cryptographic operations that have to be implemented by @ref crypto.
      */
     enum struct crypto_operation {

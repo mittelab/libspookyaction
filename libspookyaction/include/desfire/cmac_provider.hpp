@@ -162,13 +162,15 @@ namespace desfire {
          * @param last_byte_xor Used in subkey generation, this is specific to the Desfire implementation. Refer to
          *  @ref prepare_subkey for more details; the values used are @ref desfire::bits::crypto_cmac_xor_byte_3k3des
          *  for 3K3DES, and @ref desfire::bits::crypto_cmac_xor_byte_aes for AES128.
+         * @param buffer_pool Buffer pool to use for CMAC. If `nullptr`, it uses @ref default_buffer_pool. This class
+         *  retains a pointer to the buffer pool, so it cannot be changed after construction.
          *
          * @see cmac_keychain::cmac_keychain
          * @see cmac_keychain::prepare_subkey
          * @see desfire::bits::crypto_cmac_xor_byte_3k3des
          * @see desfire::bits::crypto_cmac_xor_byte_aes
          */
-        inline cmac_provider(std::size_t block_size, std::uint8_t last_byte_xor, mlab::shared_buffer_pool buffer_pool);
+        cmac_provider(std::size_t block_size, std::uint8_t last_byte_xor, mlab::shared_buffer_pool buffer_pool);
 
         /**
          * @brief Returns the keychain that holds the keys used for computing a CMAC.
@@ -214,13 +216,6 @@ namespace desfire {
 }// namespace desfire
 
 namespace desfire {
-    cmac_provider::cmac_provider(std::size_t block_size, std::uint8_t last_byte_xor, mlab::shared_buffer_pool buffer_pool)
-        : _keychain{block_size, last_byte_xor} {
-        if (buffer_pool == nullptr) {
-            buffer_pool = std::make_shared<mlab::pool<bin_data>>();
-        }
-        _buffer_pool = std::move(buffer_pool);
-    }
 
     cmac_keychain::cmac_keychain(std::size_t block_size, std::uint8_t last_byte_xor)
         : _block_size{block_size},

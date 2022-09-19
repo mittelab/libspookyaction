@@ -11,7 +11,25 @@ namespace desfire {
 
     namespace {
         using mlab::make_range;
+
+        [[nodiscard]] mlab::shared_buffer_pool &default_buffer_pool_internal() {
+            static mlab::shared_buffer_pool _pool{std::make_shared<mlab::pool<bin_data>>()};
+            return _pool;
+        }
     }
+
+    mlab::shared_buffer_pool default_buffer_pool() {
+        // Use atomic variants for updating shared_ptr. In C++20, just replace with std::atomic<mlab::shared_buffer_pool>
+        return std::atomic_load(&default_buffer_pool_internal());
+    }
+
+    void change_default_buffer_pool(mlab::shared_buffer_pool new_pool) {
+        if (new_pool != nullptr) {
+            // Use atomic variants for updating shared_ptr. In C++20, just replace with std::atomic<mlab::shared_buffer_pool>
+            std::atomic_store(&default_buffer_pool_internal(), std::move(new_pool));
+        }
+    }
+
 
     void crypto_des_base::init_session(range<const std::uint8_t *> random_data) {
         if (random_data.size() != 16) {

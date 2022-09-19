@@ -74,6 +74,9 @@ namespace desfire {
         }
     }
 
+    cmac_provider::cmac_provider(std::size_t block_size, std::uint8_t last_byte_xor, mlab::shared_buffer_pool buffer_pool)
+        : _keychain{block_size, last_byte_xor}, _buffer_pool{buffer_pool ? std::move(buffer_pool) : default_buffer_pool()} {
+    }
 
     cmac_provider::mac_t cmac_provider::compute_cmac(crypto &crypto, range<std::uint8_t *> iv, range<std::uint8_t const *> data) {
         mac_t retval{0, 0, 0, 0, 0, 0, 0, 0};

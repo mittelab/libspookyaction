@@ -145,7 +145,7 @@ namespace desfire {
      */
     class cmac_provider {
         cmac_keychain _keychain;
-        std::shared_ptr<mlab::pool<bin_data>> _buffer_pool;
+        mlab::shared_buffer_pool _buffer_pool;
 
     public:
         /**
@@ -168,7 +168,7 @@ namespace desfire {
          * @see desfire::bits::crypto_cmac_xor_byte_3k3des
          * @see desfire::bits::crypto_cmac_xor_byte_aes
          */
-        inline cmac_provider(std::size_t block_size, std::uint8_t last_byte_xor);
+        inline cmac_provider(std::size_t block_size, std::uint8_t last_byte_xor, mlab::shared_buffer_pool buffer_pool);
 
         /**
          * @brief Returns the keychain that holds the keys used for computing a CMAC.
@@ -214,8 +214,13 @@ namespace desfire {
 }// namespace desfire
 
 namespace desfire {
-    cmac_provider::cmac_provider(std::size_t block_size, std::uint8_t last_byte_xor)
-        : _keychain{block_size, last_byte_xor} {}
+    cmac_provider::cmac_provider(std::size_t block_size, std::uint8_t last_byte_xor, mlab::shared_buffer_pool buffer_pool)
+        : _keychain{block_size, last_byte_xor} {
+        if (buffer_pool == nullptr) {
+            buffer_pool = std::make_shared<mlab::pool<bin_data>>();
+        }
+        _buffer_pool = std::move(buffer_pool);
+    }
 
     cmac_keychain::cmac_keychain(std::size_t block_size, std::uint8_t last_byte_xor)
         : _block_size{block_size},

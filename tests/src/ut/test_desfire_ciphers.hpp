@@ -69,7 +69,7 @@ namespace ut {
 namespace ut {
 
     template <class CryptoImpl, std::size_t BlockSize, std::size_t KeySize>
-    fake_cmac_crypto<CryptoImpl, BlockSize, KeySize>::fake_cmac_crypto() : crypto_with_cmac{BlockSize, 0x00}, _impl{} {}
+    fake_cmac_crypto<CryptoImpl, BlockSize, KeySize>::fake_cmac_crypto() : crypto_with_cmac{BlockSize, 0x00, nullptr}, _impl{} {}
 
     template <class CryptoImpl, std::size_t BlockSize, std::size_t KeySize>
     desfire::crypto_with_cmac::mac_t fake_cmac_crypto<CryptoImpl, BlockSize, KeySize>::do_cmac(range<std::uint8_t const *> data, range<std::uint8_t *> iv) {

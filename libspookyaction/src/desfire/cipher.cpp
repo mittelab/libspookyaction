@@ -28,9 +28,11 @@ namespace desfire {
         return true;
     }
 
-    cipher_legacy::cipher_legacy(std::unique_ptr<desfire::crypto> crypto)
+    cipher_legacy::cipher_legacy(std::unique_ptr<desfire::crypto> crypto, mlab::shared_buffer_pool buffer_pool)
         : _iv{0, 0, 0, 0, 0, 0, 0, 0},
-          _crypto{std::move(crypto)} {}
+          _crypto{std::move(crypto)},
+          _buffer_pool{buffer_pool ? std::move(buffer_pool) : default_buffer_pool()}
+    {}
 
     desfire::crypto &cipher_legacy::crypto_provider() {
         return *_crypto;
@@ -44,16 +46,15 @@ namespace desfire {
 
 
     cipher_legacy::mac_t cipher_legacy::compute_mac(range<bin_data::const_iterator> data) {
-        static bin_data buffer{};   // TODO Borrow buffer
+        auto buffer = _buffer_pool->take();
 
         // Resize the buffer and copy data
-        buffer.clear();
-        buffer.resize(padded_length<block_size>(data.size()), 0x00);
-        std::copy(std::begin(data), std::end(data), std::begin(buffer));
+        buffer->resize(padded_length<block_size>(data.size()), 0x00);
+        std::copy(std::begin(data), std::end(data), std::begin(*buffer));
 
         // Return the first 4 bytes of the last block
         block_t &iv = get_zeroed_iv();
-        crypto_provider().do_crypto(buffer.data_view(), make_range(iv), crypto_operation::mac);
+        crypto_provider().do_crypto(buffer->data_view(), make_range(iv), crypto_operation::mac);
         return {iv[0], iv[1], iv[2], iv[3]};
     }
 

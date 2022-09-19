@@ -55,7 +55,14 @@ namespace desfire {
         using block_t = std::array<std::uint8_t, block_size>;
         using mac_t = std::array<std::uint8_t, mac_size>;
 
-        explicit cipher_legacy(std::unique_ptr<crypto> crypto);
+        /**
+         * @brief Initializess a new legacy cipher.
+         *
+         * @param crypto Crypto object underlying the cipher.
+         * @param buffer_pool Buffer pool to use for MAC. If `nullptr`, it uses @ref default_buffer_pool. This class
+         *  retains a pointer to the buffer pool, so it cannot be changed after construction.
+         */
+        explicit cipher_legacy(std::unique_ptr<crypto> crypto, mlab::shared_buffer_pool buffer_pool = nullptr);
 
         void prepare_tx(bin_data &data, std::size_t offset, cipher_mode mode) override;
         bool confirm_rx(bin_data &data, cipher_mode mode) override;
@@ -75,6 +82,7 @@ namespace desfire {
 
         block_t _iv;
         std::unique_ptr<crypto> _crypto;
+        mlab::shared_buffer_pool _buffer_pool;
     };
 
 

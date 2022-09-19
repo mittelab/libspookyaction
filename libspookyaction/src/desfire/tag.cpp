@@ -86,10 +86,10 @@ namespace desfire {
         }
     }
 
-    tag::result<> tag::safe_drop_payload(command_code cmd, tag::result<bin_data> const &result) {
+    tag::result<> tag::safe_drop_payload(command_code cmd, tag::result<mlab::borrowed<bin_data>> const &result) {
         if (result) {
-            if (not result->empty()) {
-                tag::log_not_empty(cmd, result->view());
+            if (not (*result)->empty()) {
+                tag::log_not_empty(cmd, (*result)->view());
             }
             return result_success;
         }
@@ -136,14 +136,14 @@ namespace desfire {
         _active_key_number = std::numeric_limits<std::uint8_t>::max();
     }
 
-    tag::result<bin_data> tag::raw_command_response(bin_stream &tx_data, bool rx_fetch_additional_frames) {
+    tag::result<mlab::borrowed<bin_data>> tag::raw_command_response(bin_stream &tx_data, bool rx_fetch_additional_frames) {
         static constexpr auto chunk_size = bits::max_packet_length;
         auto tx_chunk = _buffer_pool->take();
         tx_chunk << prealloc(chunk_size);
         const auto num_tx_chunks = 1 + div_round_up(saturate_sub(tx_data.remaining(), chunk_size), chunk_size - 1);
 
         status last_status = status::additional_frame;
-        bin_data rx_data;  // TODO Investigate whether this can become a borrowed buffer
+        auto rx_data = _buffer_pool->take();
 
         for (std::size_t chunk_idx = 0; last_status == status::additional_frame; ++chunk_idx, tx_chunk->clear()) {
             assert(tx_chunk->empty());
@@ -196,7 +196,7 @@ namespace desfire {
         return std::move(rx_data);
     }
 
-    tag::result<status, bin_data> tag::command_status_response(command_code cmd, bin_data const &data, comm_cfg const &cfg, bool rx_fetch_additional_frames, cipher *override_cipher) {
+    tag::result<status, mlab::borrowed<bin_data>> tag::command_status_response(command_code cmd, bin_data const &data, comm_cfg const &cfg, bool rx_fetch_additional_frames, cipher *override_cipher) {
         if (_active_cipher == nullptr and override_cipher == nullptr) {
             DESFIRE_LOGE("No active cipher and no override cipher: 'tag' is in an invalid state (coding mistake).");
             return error::crypto_error;
@@ -227,20 +227,21 @@ namespace desfire {
             return res_cmd.error();
         }
 
-        bin_data &rx_data = *res_cmd;
+        // Alias
+        auto rx_data = std::move(*res_cmd);
 
         // Postprocessing requires to know the status byte
-        if (not c.confirm_rx(rx_data, cfg.rx)) {
+        if (not c.confirm_rx(*rx_data, cfg.rx)) {
             DESFIRE_LOGE("%s: failed, received data did not pass validation.", to_string(cmd));
             return error::crypto_error;
         }
-        assert(not rx_data.empty());
+        assert(not rx_data->empty());
 
-        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " <<", rx_data.data(), rx_data.size(), ESP_LOG_DEBUG);
+        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " <<", rx_data->data(), rx_data->size(), ESP_LOG_DEBUG);
 
         // Extract status byte
-        const auto cmd_status = static_cast<status>(rx_data.back());
-        rx_data.pop_back();
+        const auto cmd_status = static_cast<status>(rx_data->back());
+        rx_data->pop_back();
 
         DESFIRE_LOGD("%s: completed with status %s", to_string(cmd), to_string(cmd_status));
 
@@ -249,11 +250,12 @@ namespace desfire {
         return {cmd_status, std::move(rx_data)};
     }
 
-    tag::result<bin_data> tag::command_response(command_code cmd, const bin_data &payload, const tag::comm_cfg &cfg, bool rx_fetch_additional_frames, cipher *override_cipher) {
+    tag::result<mlab::borrowed<bin_data>> tag::command_response(command_code cmd, const bin_data &payload, const tag::comm_cfg &cfg, bool rx_fetch_additional_frames, cipher *override_cipher) {
         auto_logout logout_on_error{*this, override_cipher != nullptr};
 
         if (auto res_status_cmd = command_status_response(cmd, payload, cfg, rx_fetch_additional_frames, override_cipher); res_status_cmd) {
-            auto &[cmd_status, data] = *res_status_cmd;
+            const auto cmd_status = res_status_cmd->first;
+            auto data = std::move(res_status_cmd->second);
 
             // Check the returned status. This is the only error condition handled by this method
             if (cmd_status != status::ok and cmd_status != status::no_changes) {
@@ -296,7 +298,7 @@ namespace desfire {
         // returned status is not "additional frame".
         // Also, we do not want to pass the initial command through CMAC even in modern ciphers, so we set secure data
         // offset to >= 2 (length of the payload) and mode to ciphered_no_crc
-        const auto res_rndb = command_status_response(
+        auto res_rndb = command_status_response(
                 auth_command(k.type()),
                 bin_data::chain(k.key_number()),
                 comm_cfg{cipher_mode::ciphered_no_crc, 2},
@@ -312,22 +314,23 @@ namespace desfire {
             DESFIRE_LOGW("Authentication with key %u (%s): failed, %s.", k.key_number(), to_string(k.type()), to_string(res_rndb->first));
             return error_from_status(res_rndb->first);
         }
-        bin_data const &rndb = res_rndb->second;
-        DESFIRE_LOGD("Authentication: received RndB (%u bytes).", rndb.size());
+        auto rndb = std::move(res_rndb->second);
+        DESFIRE_LOGD("Authentication: received RndB (%u bytes).", rndb->size());
         ESP_LOGD(DESFIRE_TAG " KEY", "RndB:");
-        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " KEY", rndb.data(), rndb.size(), ESP_LOG_DEBUG);
+        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " KEY", rndb->data(), rndb->size(), ESP_LOG_DEBUG);
 
         /// Prepare and send a response: AdditionalFrames || Crypt(RndA || RndB'), RndB' = RndB << 8, obtain RndA >> 8
-        const bin_data rnda = bin_data::chain(randbytes(rndb.size()));
+        auto rnda = _buffer_pool->take();
+        rnda << randbytes(rndb->size());
 
         DESFIRE_LOGD("Authentication: sending RndA || (RndB << 8).");
         ESP_LOGD(DESFIRE_TAG " KEY", "RndA:");
-        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " KEY", rnda.data(), rnda.size(), ESP_LOG_DEBUG);
+        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " KEY", rnda->data(), rnda->size(), ESP_LOG_DEBUG);
 
         // Send and received encrypted; this time parse the status byte because we regularly expect a status::ok.
         const auto res_rndap = command_response(
                 command_code::additional_frame,
-                bin_data::chain(prealloc(rnda.size() * 2), rnda, rndb.view(1), rndb.front()),
+                bin_data::chain(prealloc(rnda->size() * 2), *rnda, rndb->view(1), rndb->front()),
                 cipher_mode::ciphered_no_crc,
                 false,
                 pcipher.get());
@@ -336,23 +339,23 @@ namespace desfire {
             DESFIRE_LOGW("Authentication with key %u (%s): failed (%s).", k.key_number(), to_string(k.type()), to_string(res_rndap.error()));
             return res_rndap.error();
         }
-        DESFIRE_LOGD("Authentication: received RndA >> 8 (%u bytes).", res_rndap->size());
+        DESFIRE_LOGD("Authentication: received RndA >> 8 (%u bytes).", (*res_rndap)->size());
 
         /// Verify that the received RndA is correct.
-        if (rnda.size() != res_rndap->size()) {
+        if (rnda->size() != (*res_rndap)->size()) {
             DESFIRE_LOGW("Authentication with key %u (%s): RndA mismatch size.", k.key_number(), to_string(k.type()));
             return error::crypto_error;
         }
         // This is just a test for equality when shifted
-        if (not std::equal(std::begin(rnda) + 1, std::end(rnda), std::begin(*res_rndap)) or rnda.front() != res_rndap->back()) {
+        if (not std::equal(std::begin(*rnda) + 1, std::end(*rnda), std::begin(**res_rndap)) or rnda->front() != (*res_rndap)->back()) {
             DESFIRE_LOGW("Authentication with key %u (%s): RndA mismatch.", k.key_number(), to_string(k.type()));
-            ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " RndA orig", rnda.data(), rnda.size(), ESP_LOG_WARN);
-            ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " RndA >> 8", res_rndap->data(), res_rndap->size(), ESP_LOG_WARN);
+            ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " RndA orig", rnda->data(), rnda->size(), ESP_LOG_WARN);
+            ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " RndA >> 8", (*res_rndap)->data(), (*res_rndap)->size(), ESP_LOG_WARN);
             return error::crypto_error;
         }
 
         DESFIRE_LOGD("Authentication: deriving session key...");
-        pcipher->init_session(bin_data::chain(prealloc(2 * rndb.size()), rnda, rndb));
+        pcipher->init_session(bin_data::chain(prealloc(2 * rndb->size()), *rnda, *rndb));
         DESFIRE_LOGD("Authenticated with key %u (%s).", k.key_number(), to_string(k.type()));
 
         _active_cipher = std::move(pcipher);
@@ -527,9 +530,10 @@ namespace desfire {
     }
 
     tag::result<std::vector<file_id>> tag::get_file_ids() {
-        auto res_cmd = command_response(command_code::get_file_ids, {}, default_comm_cfg());
+        const auto res_cmd = command_response(command_code::get_file_ids, {}, default_comm_cfg());
         if (res_cmd) {
-            return std::move(*res_cmd);
+            // Explicitly copy
+            return std::vector<file_id>{**res_cmd};
         }
         return res_cmd.error();
     }
@@ -576,7 +580,7 @@ namespace desfire {
                                          cfg));
     }
 
-    tag::result<bin_data> tag::read_data(file_id fid, std::uint32_t offset, std::uint32_t length) {
+    tag::result<mlab::borrowed<bin_data>> tag::read_data(file_id fid, std::uint32_t offset, std::uint32_t length) {
         if (const auto res_sec = determine_file_security(fid, file_access::read); res_sec) {
             return read_data(fid, offset, length, *res_sec);
         } else {
@@ -584,7 +588,7 @@ namespace desfire {
         }
     }
 
-    tag::result<bin_data> tag::read_data(file_id fid, std::uint32_t offset, std::uint32_t length, file_security security) {
+    tag::result<mlab::borrowed<bin_data>> tag::read_data(file_id fid, std::uint32_t offset, std::uint32_t length, file_security security) {
         if (fid > bits::max_backup_data_file_id or fid > bits::max_standard_data_file_id) {
             DESFIRE_LOGW("%s: invalid file id %d for data or backup file.", to_string(command_code::read_data), fid);
             return error::parameter_error;
@@ -747,7 +751,7 @@ namespace desfire {
                                  command_response(command_code::write_record, *payload, cfg));
     }
 
-    tag::result<bin_data> tag::read_records(file_id fid, std::uint32_t record_index, std::uint32_t record_count) {
+    tag::result<mlab::borrowed<bin_data>> tag::read_records(file_id fid, std::uint32_t record_index, std::uint32_t record_count) {
         if (const auto res_sec = determine_file_security(fid, file_access::write); res_sec) {
             return read_records(fid, record_index, record_count, *res_sec);
         } else {
@@ -755,7 +759,7 @@ namespace desfire {
         }
     }
 
-    tag::result<bin_data> tag::read_records(file_id fid, std::uint32_t record_index, std::uint32_t record_count, file_security security) {
+    tag::result<mlab::borrowed<bin_data>> tag::read_records(file_id fid, std::uint32_t record_index, std::uint32_t record_count, file_security security) {
         if (fid > bits::max_record_file_id) {
             DESFIRE_LOGW("%s: invalid file id %d for a record file.", to_string(command_code::write_record), fid);
             return error::parameter_error;

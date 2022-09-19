@@ -96,7 +96,7 @@ namespace desfire {
          *  guarantee that the list of commands implemented here is at all complete. Users who have access to the manual may therefore
          *  directly send packets encoding further commands without having to explicitly extend or modify this class.
          */
-        result<bin_data> raw_command_response(bin_stream &tx_data, bool rx_fetch_additional_frames);
+        result<mlab::borrowed<bin_data>> raw_command_response(bin_stream &tx_data, bool rx_fetch_additional_frames);
 
         /**
          * This method automatically divides @p data into appropriate chunks and sends them to the PICC, pre-processing
@@ -118,7 +118,7 @@ namespace desfire {
          * - @ref error::crypto_error
          * - @ref error::controller_error
          */
-        result<status, bin_data> command_status_response(command_code cmd, bin_data const &data, comm_cfg const &cfg, bool rx_fetch_additional_frames = true, cipher *override_cipher = nullptr);
+        result<status, mlab::borrowed<bin_data>> command_status_response(command_code cmd, bin_data const &data, comm_cfg const &cfg, bool rx_fetch_additional_frames = true, cipher *override_cipher = nullptr);
 
         /**
          * Will automatically fetch all additional frames if requested to do so by @p cfg, and at the end will parse the
@@ -129,7 +129,7 @@ namespace desfire {
          * - @ref error::crypto_error
          * - @ref error::controller_error
          */
-        result<bin_data> command_response(command_code cmd, bin_data const &payload, comm_cfg const &cfg, bool rx_fetch_additional_frames = true, cipher *override_cipher = nullptr);
+        result<mlab::borrowed<bin_data>> command_response(command_code cmd, bin_data const &payload, comm_cfg const &cfg, bool rx_fetch_additional_frames = true, cipher *override_cipher = nullptr);
 
         /**
          * @ingroup data
@@ -788,7 +788,7 @@ namespace desfire {
          * - @ref error::crypto_error
          * - @ref error::controller_error
          */
-        result<bin_data> read_data(file_id fid, std::uint32_t offset, std::uint32_t length);
+        result<mlab::borrowed<bin_data>> read_data(file_id fid, std::uint32_t offset, std::uint32_t length);
 
         /**
          * @brief read data from file
@@ -802,7 +802,7 @@ namespace desfire {
          * - @ref error::crypto_error
          * - @ref error::controller_error
          */
-        result<bin_data> read_data(file_id fid, std::uint32_t offset, std::uint32_t length, file_security security);
+        result<mlab::borrowed<bin_data>> read_data(file_id fid, std::uint32_t offset, std::uint32_t length, file_security security);
 
         /**
          * @brief write data to file
@@ -1032,7 +1032,7 @@ namespace desfire {
          * - @ref error::parameter_error
          * - @ref error::controller_error
          */
-        result<bin_data> read_records(file_id fid, std::uint32_t record_index = 0, std::uint32_t record_count = all_records);
+        result<mlab::borrowed<bin_data>> read_records(file_id fid, std::uint32_t record_index = 0, std::uint32_t record_count = all_records);
 
         /**
          * @brief Read records from a linear or cyclic file
@@ -1046,7 +1046,7 @@ namespace desfire {
          * - @ref error::parameter_error
          * - @ref error::controller_error
          */
-        result<bin_data> read_records(file_id fid, std::uint32_t record_index, std::uint32_t record_count, file_security security);
+        result<mlab::borrowed<bin_data>> read_records(file_id fid, std::uint32_t record_index, std::uint32_t record_count, file_security security);
 
         /**
          * @brief Get the card UID
@@ -1101,7 +1101,7 @@ namespace desfire {
         [[nodiscard]] result<file_security> determine_file_security(file_id fid, file_access access);
         [[nodiscard]] file_security determine_file_security(file_access access, any_file_settings const &settings) const;
 
-        [[nodiscard]] static result<> safe_drop_payload(command_code cmd, tag::result<bin_data> const &result);
+        [[nodiscard]] static result<> safe_drop_payload(command_code cmd, tag::result<mlab::borrowed<bin_data>> const &result);
         static void log_not_empty(command_code cmd, range<bin_data::const_iterator> data);
 
         [[nodiscard]] inline desfire::pcd &pcd();
@@ -1192,7 +1192,7 @@ namespace desfire {
         if (not res_cmd) {
             return res_cmd.error();
         }
-        bin_stream s{*res_cmd};
+        bin_stream s{**res_cmd};
         auto data = Data();
         // Automatically add the ability to parse integral types with at least 16 bits as LSB.
         if constexpr (std::is_integral_v<Data> and sizeof(Data) > 1) {
@@ -1272,7 +1272,7 @@ namespace desfire {
         if (not res_read_records) {
             return res_read_records.error();
         }
-        return parse_records<T>(*res_read_records, count);
+        return parse_records<T>(**res_read_records, count);
     }
 
     template <class T>
@@ -1281,7 +1281,7 @@ namespace desfire {
         if (not res_read_records) {
             return res_read_records.error();
         }
-        return parse_records<T>(*res_read_records, count);
+        return parse_records<T>(**res_read_records, count);
     }
 
 

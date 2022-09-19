@@ -167,20 +167,20 @@ namespace ut::desfire_files {
         TEST_ASSERT(mifare.write_data(fid(), 0, load))
         const auto r_read = mifare.read_data(fid(), 0, load.size());
         TEST_ASSERT(r_read)
-        TEST_ASSERT_EQUAL(load.size(), r_read->size());
-        TEST_ASSERT_EQUAL_HEX8_ARRAY(load.data(), r_read->data(), load.size());
+        TEST_ASSERT_EQUAL(load.size(), (*r_read)->size());
+        TEST_ASSERT_EQUAL_HEX8_ARRAY(load.data(), (*r_read)->data(), load.size());
     }
 
     void demo_file::test_backup_data_file(tag &mifare, bin_data const &load) const {
         TEST_ASSERT(mifare.write_data(fid(), 0, load))
         const auto r_read_before_commit = mifare.read_data(fid(), 0, load.size());
         TEST_ASSERT(r_read_before_commit)
-        TEST_ASSERT_EACH_EQUAL_HEX8(0x00, r_read_before_commit->data(), r_read_before_commit->size());
+        TEST_ASSERT_EACH_EQUAL_HEX8(0x00, (*r_read_before_commit)->data(), (*r_read_before_commit)->size());
         TEST_ASSERT(mifare.commit_transaction())
         const auto r_read = mifare.read_data(fid(), 0, load.size());
         TEST_ASSERT(r_read)
-        TEST_ASSERT_EQUAL(load.size(), r_read->size());
-        TEST_ASSERT_EQUAL_HEX8_ARRAY(load.data(), r_read->data(), load.size());
+        TEST_ASSERT_EQUAL(load.size(), (*r_read)->size());
+        TEST_ASSERT_EQUAL_HEX8_ARRAY(load.data(), (*r_read)->data(), load.size());
     }
 
     void demo_file::test_value_file(tag &mifare) const {

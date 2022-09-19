@@ -7,6 +7,7 @@
 
 #include <memory>
 #include <mlab/bin_data.hpp>
+#include <mlab/pool.hpp>
 
 namespace desfire {
 
@@ -144,7 +145,7 @@ namespace desfire {
      */
     class cmac_provider {
         cmac_keychain _keychain;
-        bin_data _cmac_buffer; // TODO Investigate whether this can become a borrowed buffer
+        std::shared_ptr<mlab::pool<bin_data>> _buffer_pool;
 
     public:
         /**

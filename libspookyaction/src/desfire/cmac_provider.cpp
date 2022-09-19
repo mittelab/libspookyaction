@@ -83,16 +83,17 @@ namespace desfire {
             return retval;
         }
 
-        // Resize the buffer and copy data
-        _cmac_buffer.clear();
-        _cmac_buffer.reserve(padded_length(data.size(), keychain().block_size()));
-        _cmac_buffer.resize(data.size());
+        auto buffer = _buffer_pool->take();
 
-        std::copy(std::begin(data), std::end(data), std::begin(_cmac_buffer));
-        keychain().prepare_cmac_data(_cmac_buffer);
+        // Resize the buffer and copy data
+        buffer->reserve(padded_length(data.size(), keychain().block_size()));
+        buffer->resize(data.size());
+
+        std::copy(std::begin(data), std::end(data), std::begin(*buffer));
+        keychain().prepare_cmac_data(*buffer);
 
         // Return the first 8 bytes of the last block
-        crypto.do_crypto(_cmac_buffer.data_view(), iv, crypto_operation::mac);
+        crypto.do_crypto(buffer->data_view(), iv, crypto_operation::mac);
         std::copy(std::begin(iv), std::begin(iv) + retval.size(), std::begin(retval));
         return retval;
     }

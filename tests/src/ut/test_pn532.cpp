@@ -40,6 +40,10 @@ namespace ut::pn532 {
                 .sclk_io_num = pinout::pn532_spi_sck,
                 .quadwp_io_num = GPIO_NUM_NC,
                 .quadhd_io_num = GPIO_NUM_NC,
+                .data4_io_num = -1,
+                .data5_io_num = -1,
+                .data6_io_num = -1,
+                .data7_io_num = -1,
                 .max_transfer_sz = 0,
                 .flags = SPICOMMON_BUSFLAG_MASTER,
                 .intr_flags = 0};

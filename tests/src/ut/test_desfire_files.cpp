@@ -164,20 +164,20 @@ namespace ut::desfire_files {
     }
 
     void demo_file::test_standard_data_file(tag &mifare, bin_data const &load) const {
-        TEST_ASSERT(mifare.write_data(fid(), 0, load))
-        const auto r_read = mifare.read_data(fid(), 0, load.size());
+        TEST_ASSERT(mifare.write_data(fid(), 0, load, security))
+        const auto r_read = mifare.read_data(fid(), 0, load.size(), security);
         TEST_ASSERT(r_read)
         TEST_ASSERT_EQUAL(load.size(), r_read->size());
         TEST_ASSERT_EQUAL_HEX8_ARRAY(load.data(), r_read->data(), load.size());
     }
 
     void demo_file::test_backup_data_file(tag &mifare, bin_data const &load) const {
-        TEST_ASSERT(mifare.write_data(fid(), 0, load))
-        const auto r_read_before_commit = mifare.read_data(fid(), 0, load.size());
+        TEST_ASSERT(mifare.write_data(fid(), 0, load, security))
+        const auto r_read_before_commit = mifare.read_data(fid(), 0, load.size(), security);
         TEST_ASSERT(r_read_before_commit)
         TEST_ASSERT_EACH_EQUAL_HEX8(0x00, r_read_before_commit->data(), r_read_before_commit->size());
         TEST_ASSERT(mifare.commit_transaction())
-        const auto r_read = mifare.read_data(fid(), 0, load.size());
+        const auto r_read = mifare.read_data(fid(), 0, load.size(), security);
         TEST_ASSERT(r_read)
         TEST_ASSERT_EQUAL(load.size(), r_read->size());
         TEST_ASSERT_EQUAL_HEX8_ARRAY(load.data(), r_read->data(), load.size());
@@ -185,17 +185,17 @@ namespace ut::desfire_files {
 
     void demo_file::test_value_file(tag &mifare) const {
         const auto test_get_value = [&](std::int32_t expected) {
-            const auto res_read = mifare.get_value(fid());
+            const auto res_read = mifare.get_value(fid(), security);
             TEST_ASSERT(res_read)
             TEST_ASSERT_EQUAL(expected, *res_read);
         };
 
         test_get_value(0);
-        TEST_ASSERT(mifare.credit(fid(), 2))
+        TEST_ASSERT(mifare.credit(fid(), 2, security))
         test_get_value(0);// Did not commit yet
         TEST_ASSERT(mifare.commit_transaction())
         test_get_value(2);
-        TEST_ASSERT(mifare.debit(fid(), 5))
+        TEST_ASSERT(mifare.debit(fid(), 5, security))
         TEST_ASSERT(mifare.commit_transaction())
         test_get_value(-3);
     }
@@ -212,10 +212,10 @@ namespace ut::desfire_files {
         };
 
         test_get_record_count(0);
-        TEST_ASSERT(mifare.write_record(fid(), 4, nibble))
+        TEST_ASSERT(mifare.write_record(fid(), 4, nibble, security))
         TEST_ASSERT(mifare.commit_transaction())
         test_get_record_count(1);
-        const auto res_records = mifare.read_parse_records<record_t>(fid(), 0);
+        const auto res_records = mifare.read_parse_records<record_t>(fid(), 0, bits::all_records, security);
         TEST_ASSERT(res_records)
         TEST_ASSERT_EQUAL(res_records->size(), 1);
         const record_t expected = {0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x02, 0x03};

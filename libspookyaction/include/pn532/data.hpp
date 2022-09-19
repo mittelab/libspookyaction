@@ -250,10 +250,10 @@ namespace pn532 {
      * @brief Data returned after "TgInitAsTarget"  (UM0701-02 §7.3.14)
      */
     struct mode_as_target {
-        baudrate speed;             //!< Trasmission baud rate.
-        bool iso_iec_14443_4_picc;  //!< Whether it's a ISO/IEC 1443-4 PICC
-        bool dep;                   //!< Whether uses DEP
-        framing framing_type;       //!< Type of framing
+        baudrate speed;           //!< Trasmission baud rate.
+        bool iso_iec_14443_4_picc;//!< Whether it's a ISO/IEC 1443-4 PICC
+        bool dep;                 //!< Whether uses DEP
+        framing framing_type;     //!< Type of framing
     };
 
     /**

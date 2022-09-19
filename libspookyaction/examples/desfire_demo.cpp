@@ -153,13 +153,13 @@ void demo_app_and_file(desfire::tag &tag) {
     }
 
     ESP_LOGI(TAG, "File created, writing some data on it.");
-    if (const auto res = tag.write_data(demo_file_id, 0, demo_file_data); not res) {
+    if (const auto res = tag.write_data(demo_file_id, 0, demo_file_data, desfire::file_security::encrypted); not res) {
         ESP_LOGE(TAG, "Failed to write to file, error: %s.", desfire::to_string(res.error()));
         return;
     }
 
     ESP_LOGI(TAG, "Data written. Reading back.");
-    if (const auto res = tag.read_data(demo_file_id, 0, demo_file_size); not res) {
+    if (const auto res = tag.read_data(demo_file_id, 0, demo_file_size, desfire::file_security::encrypted); not res) {
         ESP_LOGE(TAG, "Failed to read from file, error: %s.", desfire::to_string(res.error()));
         return;
     } else {

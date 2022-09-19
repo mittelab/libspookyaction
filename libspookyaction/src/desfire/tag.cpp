@@ -79,7 +79,7 @@ namespace desfire {
           _active_key_type{cipher_type::none},
           _active_key_number{std::numeric_limits<std::uint8_t>::max()},
           _active_app{root_app},
-          _buffer_pool{buffer_pool ? std::move(buffer_pool) : default_buffer_pool()}
+          _buffer_pool{buffer_pool ? std::move(buffer_pool) : mlab::default_buffer_pool()}
     {
         if (_provider == nullptr) {
             DESFIRE_LOGE("You built a desfire::tag with a nullptr cipher_provider. SIGSEGV incoming...");

@@ -31,7 +31,7 @@ namespace desfire {
     cipher_legacy::cipher_legacy(std::unique_ptr<desfire::crypto> crypto, mlab::shared_buffer_pool buffer_pool)
         : _iv{0, 0, 0, 0, 0, 0, 0, 0},
           _crypto{std::move(crypto)},
-          _buffer_pool{buffer_pool ? std::move(buffer_pool) : default_buffer_pool()}
+          _buffer_pool{buffer_pool ? std::move(buffer_pool) : mlab::default_buffer_pool()}
     {}
 
     desfire::crypto &cipher_legacy::crypto_provider() {

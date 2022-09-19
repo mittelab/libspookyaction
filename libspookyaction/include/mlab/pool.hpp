@@ -82,6 +82,31 @@ namespace mlab {
 
     using shared_buffer_pool = std::shared_ptr<pool<bin_data>>;
 
+    /**
+     * @brief Default shared buffer pool that is used in @ref cmac_provider if none is explicitly passed.
+     *
+     * This function is thread-safe; however, a buffer pool is **not**.
+     *
+     * Passing a buffer pool across all virtual instances can be annoying.
+     *
+     * @see change_default_buffer_pool
+     * @return A shared pointer to a buffer pool which is never `nullptr`.
+     */
+    [[nodiscard]] shared_buffer_pool default_buffer_pool();
+
+    /**
+     * @brief Change the default buffer pool used by @ref cmac_provider if none is explicitly passed.
+     *
+     * This function is thread-safe; however, a buffer pool is **not**.
+     *
+     * @note Changing the default buffer pool must be done **before** the creation of any instance.
+     *  Each @ref crypto_with_cmac instance will hold such a `shared_ptr`.
+     *
+     * @param new_pool New pool to set. Passing `nullptr` has no effect.
+     */
+    void change_default_buffer_pool(shared_buffer_pool new_pool);
+
+
     template <class T, class Policy = default_borrow_policy<T>>
     class borrowed {
         std::weak_ptr<pool<T, Policy>> _owner{};

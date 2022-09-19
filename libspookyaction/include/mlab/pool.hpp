@@ -2,9 +2,10 @@
 // Created by spak on 5/25/21.
 //
 
-#ifndef MLAB_POOL_HPP
-#define MLAB_POOL_HPP
+#ifndef MITTELIB_POOL_HPP
+#define MITTELIB_POOL_HPP
 
+#include <memory>
 #include <mlab/bin_data.hpp>
 
 namespace mlab {
@@ -238,4 +239,4 @@ namespace mlab {
     }
 }// namespace mlab
 
-#endif//MLAB_POOL_HPP
+#endif//MITTELIB_POOL_HPP

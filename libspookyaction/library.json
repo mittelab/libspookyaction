@@ -60,7 +60,7 @@
       ]
     },
     {
-      "name": "Complete Desfire example: authenticate, create/delete apps, read/write files",
+      "name": "Complete Desfire example",
       "base": "examples",
       "files": [
         "desfire_demo.cpp",

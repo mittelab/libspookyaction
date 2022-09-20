@@ -168,7 +168,7 @@ namespace pn532 {
                 PN532_LOGE("%s: requested %u registers, got %u instead.", to_string(command_code::read_register),
                            addresses.size(), res_cmd->size());
             }
-            return std::move(*res_cmd);
+            return std::vector<uint8_t>{std::move(*res_cmd)};
         } else {
             return res_cmd.error();
         }

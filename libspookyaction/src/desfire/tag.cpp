@@ -512,7 +512,7 @@ namespace desfire {
     tag::result<std::vector<file_id>> tag::get_file_ids() {
         auto res_cmd = command_response(command_code::get_file_ids, {}, default_comm_cfg());
         if (res_cmd) {
-            return std::move(*res_cmd);
+            return std::vector<file_id>{std::move(*res_cmd)};
         }
         return res_cmd.error();
     }

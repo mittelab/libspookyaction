@@ -138,6 +138,11 @@ void unity_perform_all_tests() {
             }
         }
     }
+
+    if constexpr (mlab::track_bin_data_mem) {
+        mlab::mem_stats::instance().print_stats();
+    }
+
     UNITY_END();
 }
 

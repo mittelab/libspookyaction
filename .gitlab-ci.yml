@@ -145,6 +145,7 @@ publish library:
   before_script:
     - python3 -m pip install --user gitpython
   script:
+    - git config --global --add safe.directory $(pwd)
     - |
       python3 cicd/check_version.py ${PIO_LIB_FOLDER}/library.json && \
       pio package publish --owner ${PLATFORMIO_ORG} --non-interactive ${PIO_LIB_FOLDER}

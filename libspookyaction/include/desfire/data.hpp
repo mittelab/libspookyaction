@@ -295,6 +295,9 @@ namespace desfire {
 
         any_key(any_key const &other);
         any_key &operator=(any_key const &other);
+        any_key(any_key &&other) noexcept;
+        any_key &operator=(any_key &&other) noexcept;
+
 
         [[nodiscard]] std::uint8_t key_number() const;
         [[nodiscard]] std::uint8_t version() const;

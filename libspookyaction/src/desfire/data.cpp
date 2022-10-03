@@ -10,6 +10,12 @@ namespace desfire {
     namespace {
         using mlab::prealloc;
     }
+    any_key::any_key(any_key &&other) noexcept : mlab::any_of<cipher_type, key, cipher_type::none>{std::move(other)} {}
+
+    any_key &any_key::operator=(any_key &&other) noexcept {
+        mlab::any_of<cipher_type, key, cipher_type::none>::operator=(std::move(other));
+        return *this;
+    }
 
     any_key::any_key(const any_key &other) : any_key{other.type()} {
         *this = other;

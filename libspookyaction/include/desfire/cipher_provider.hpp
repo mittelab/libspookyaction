@@ -85,7 +85,6 @@ namespace desfire {
         [[nodiscard]] cipher_aes typed_cipher_from_key(key<cipher_type::aes128> const &key) const {
             return cipher_aes{typed_crypto_from_key(key)};
         }
-
     };
 }// namespace desfire
 

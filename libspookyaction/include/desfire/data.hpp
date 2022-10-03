@@ -332,6 +332,8 @@ namespace desfire {
         key_t k;
         std::uint8_t v;
 
+        [[nodiscard]] inline mlab::range<std::uint8_t const *> as_range() const { return mlab::make_range(k); }
+
         key_storage() : k{}, v{0} {
             std::fill_n(std::begin(k), key_length, 0);
         }
@@ -346,6 +348,8 @@ namespace desfire {
         static constexpr std::size_t key_length = KeyLength;
         using key_t = std::array<std::uint8_t, key_length>;
         key_t k;
+
+        [[nodiscard]] inline mlab::range<std::uint8_t const *> as_range() const { return mlab::make_range(k); }
 
         key_storage() : k{} {
             std::fill_n(std::begin(k), key_length, 0);

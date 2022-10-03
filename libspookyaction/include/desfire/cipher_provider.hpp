@@ -47,22 +47,22 @@ namespace desfire {
         switch (key.type()) {
             case cipher_type::des: {
                 auto crypto = std::make_unique<CryptoDES>();
-                crypto->setup_with_key(make_range(key.template get<cipher_type::des>().k));
+                crypto->setup_with_key(key.template get<cipher_type::des>().as_range());
                 return std::make_unique<CipherDES>(std::move(crypto));
             }
             case cipher_type::des3_2k: {
                 auto crypto = std::make_unique<Crypto2K3DES>();
-                crypto->setup_with_key(make_range(key.template get<cipher_type::des3_2k>().k));
+                crypto->setup_with_key(key.template get<cipher_type::des3_2k>().as_range());
                 return std::make_unique<Cipher2K3DES>(std::move(crypto));
             }
             case cipher_type::des3_3k: {
                 auto crypto = std::make_unique<Crypto3K3DES>();
-                crypto->setup_with_key(make_range(key.template get<cipher_type::des3_3k>().k));
+                crypto->setup_with_key(key.template get<cipher_type::des3_3k>().as_range());
                 return std::make_unique<Cipher3K3DES>(std::move(crypto));
             }
             case cipher_type::aes128: {
                 auto crypto = std::make_unique<CryptoAES>();
-                crypto->setup_with_key(make_range(key.template get<cipher_type::aes128>().k));
+                crypto->setup_with_key(key.template get<cipher_type::aes128>().as_range());
                 return std::make_unique<CipherAES>(std::move(crypto));
             }
             case cipher_type::none:
@@ -78,22 +78,22 @@ namespace desfire {
         switch (key.type()) {
             case cipher_type::des: {
                 auto crypto = std::make_unique<CryptoDES>();
-                crypto->setup_with_key(make_range(key.template get<cipher_type::des>().k));
+                crypto->setup_with_key(key.template get<cipher_type::des>().as_range());
                 return std::move(crypto);
             }
             case cipher_type::des3_2k: {
                 auto crypto = std::make_unique<Crypto2K3DES>();
-                crypto->setup_with_key(make_range(key.template get<cipher_type::des3_2k>().k));
+                crypto->setup_with_key(key.template get<cipher_type::des3_2k>().as_range());
                 return std::move(crypto);
             }
             case cipher_type::des3_3k: {
                 auto crypto = std::make_unique<Crypto3K3DES>();
-                crypto->setup_with_key(make_range(key.template get<cipher_type::des3_3k>().k));
+                crypto->setup_with_key(key.template get<cipher_type::des3_3k>().as_range());
                 return std::move(crypto);
             }
             case cipher_type::aes128: {
                 auto crypto = std::make_unique<CryptoAES>();
-                crypto->setup_with_key(make_range(key.template get<cipher_type::aes128>().k));
+                crypto->setup_with_key(key.template get<cipher_type::aes128>().as_range());
                 return std::move(crypto);
             }
             case cipher_type::none:

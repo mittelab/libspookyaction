@@ -33,8 +33,59 @@ namespace desfire {
         static_assert(std::is_base_of_v<cipher, Cipher3K3DES>);
         static_assert(std::is_base_of_v<cipher, CipherAES>);
 
+        using crypto_des = CryptoDES;
+        using crypto_2k3des = Crypto2K3DES;
+        using crypto_3k3des = Crypto3K3DES;
+        using crypto_aes = CryptoAES;
+
+        using cipher_des = CipherDES;
+        using cipher_2k3des = Cipher2K3DES;
+        using cipher_3k3des = Cipher3K3DES;
+        using cipher_aes = CipherAES;
+
         [[nodiscard]] std::unique_ptr<cipher> cipher_from_key(any_key const &key) override;
         [[nodiscard]] std::unique_ptr<crypto> crypto_from_key(any_key const &key) override;
+
+        [[nodiscard]] crypto_des typed_crypto_from_key(key<cipher_type::des> const &key) const {
+            crypto_des retval{};
+            retval.setup_with_key(key.as_range());
+            return retval;
+        }
+
+        [[nodiscard]] cipher_des typed_cipher_from_key(key<cipher_type::des> const &key) const {
+            return cipher_des{typed_crypto_from_key(key)};
+        }
+
+        [[nodiscard]] crypto_2k3des typed_crypto_from_key(key<cipher_type::des3_2k> const &key) const {
+            crypto_2k3des retval{};
+            retval.setup_with_key(key.as_range());
+            return retval;
+        }
+
+        [[nodiscard]] cipher_2k3des typed_cipher_from_key(key<cipher_type::des3_2k> const &key) const {
+            return cipher_2k3des{typed_crypto_from_key(key)};
+        }
+
+        [[nodiscard]] crypto_3k3des typed_crypto_from_key(key<cipher_type::des3_3k> const &key) const {
+            crypto_3k3des retval{};
+            retval.setup_with_key(key.as_range());
+            return retval;
+        }
+
+        [[nodiscard]] cipher_3k3des typed_cipher_from_key(key<cipher_type::des3_3k> const &key) const {
+            return cipher_3k3des{typed_crypto_from_key(key)};
+        }
+
+        [[nodiscard]] crypto_aes typed_crypto_from_key(key<cipher_type::aes128> const &key) const {
+            crypto_aes retval{};
+            retval.setup_with_key(key.as_range());
+            return retval;
+        }
+
+        [[nodiscard]] cipher_aes typed_cipher_from_key(key<cipher_type::aes128> const &key) const {
+            return cipher_aes{typed_crypto_from_key(key)};
+        }
+
     };
 }// namespace desfire
 

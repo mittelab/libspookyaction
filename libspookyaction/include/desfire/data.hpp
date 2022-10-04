@@ -137,8 +137,8 @@ namespace desfire {
         file_security security = file_security::none;
         access_rights rights;
 
-        generic_file_settings() = default;
-        inline generic_file_settings(file_security security_, access_rights rights_);
+        constexpr generic_file_settings() = default;
+        constexpr generic_file_settings(file_security security_, access_rights rights_);
     };
 
     struct data_file_settings {
@@ -182,42 +182,42 @@ namespace desfire {
     template <>
     struct file_settings<file_type::standard> : public generic_file_settings, public data_file_settings {
         using specific_file_settings = data_file_settings;
-        inline file_settings() : generic_file_settings{}, data_file_settings{.size = 0} {}
-        file_settings(generic_file_settings generic, data_file_settings specific) : generic_file_settings{generic}, data_file_settings{specific} {}
+        constexpr file_settings() : generic_file_settings{}, data_file_settings{.size = 0} {}
+        constexpr file_settings(generic_file_settings generic, data_file_settings specific) : generic_file_settings{generic}, data_file_settings{specific} {}
     };
 
     template <>
     struct file_settings<file_type::backup> : public generic_file_settings, public data_file_settings {
         using specific_file_settings = data_file_settings;
-        inline file_settings() : generic_file_settings{}, data_file_settings{.size = 0} {}
-        file_settings(generic_file_settings generic, data_file_settings specific) : generic_file_settings{generic}, data_file_settings{specific} {}
+        constexpr file_settings() : generic_file_settings{}, data_file_settings{.size = 0} {}
+        constexpr file_settings(generic_file_settings generic, data_file_settings specific) : generic_file_settings{generic}, data_file_settings{specific} {}
     };
 
     template <>
     struct file_settings<file_type::value> : public generic_file_settings, public value_file_settings {
         using specific_file_settings = value_file_settings;
-        inline file_settings() : generic_file_settings{},
-                                 value_file_settings{.lower_limit = 0, .upper_limit = 0, .value = 0, .limited_credit_enabled = false} {}
+        constexpr file_settings() : generic_file_settings{},
+                                    value_file_settings{.lower_limit = 0, .upper_limit = 0, .value = 0, .limited_credit_enabled = false} {}
 
-        file_settings(generic_file_settings generic, value_file_settings specific) : generic_file_settings{generic}, value_file_settings{specific} {}
+        constexpr file_settings(generic_file_settings generic, value_file_settings specific) : generic_file_settings{generic}, value_file_settings{specific} {}
     };
 
     template <>
     struct file_settings<file_type::linear_record> : public generic_file_settings, public record_file_settings {
         using specific_file_settings = record_file_settings;
-        inline file_settings() : generic_file_settings{},
-                                 record_file_settings{.record_size = 0, .max_record_count = 0, .record_count = 0} {}
+        constexpr file_settings() : generic_file_settings{},
+                                    record_file_settings{.record_size = 0, .max_record_count = 0, .record_count = 0} {}
 
-        file_settings(generic_file_settings generic, record_file_settings specific) : generic_file_settings{generic}, record_file_settings{specific} {}
+        constexpr file_settings(generic_file_settings generic, record_file_settings specific) : generic_file_settings{generic}, record_file_settings{specific} {}
     };
 
     template <>
     struct file_settings<file_type::cyclic_record> : public generic_file_settings, public record_file_settings {
         using specific_file_settings = record_file_settings;
-        inline file_settings() : generic_file_settings{},
-                                 record_file_settings{.record_size = 0, .max_record_count = 0, .record_count = 0} {}
+        constexpr file_settings() : generic_file_settings{},
+                                    record_file_settings{.record_size = 0, .max_record_count = 0, .record_count = 0} {}
 
-        file_settings(generic_file_settings generic, record_file_settings specific) : generic_file_settings{generic}, record_file_settings{specific} {}
+        constexpr file_settings(generic_file_settings generic, record_file_settings specific) : generic_file_settings{generic}, record_file_settings{specific} {}
     };
 
 
@@ -514,7 +514,7 @@ namespace desfire {
         return retval;
     }
 
-    generic_file_settings::generic_file_settings(file_security security_, access_rights rights_) : security{security_}, rights{rights_} {}
+    constexpr generic_file_settings::generic_file_settings(file_security security_, access_rights rights_) : security{security_}, rights{rights_} {}
 
     constexpr app_crypto app_crypto_from_cipher(cipher_type c) {
         switch (c) {

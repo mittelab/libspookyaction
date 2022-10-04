@@ -11,6 +11,7 @@
 #include <memory>
 #include <mlab/any_of.hpp>
 #include <mlab/bin_data.hpp>
+#include <type_traits>
 
 namespace desfire {
     namespace {
@@ -121,9 +122,9 @@ namespace desfire {
         constexpr access_rights(no_key_t);
         constexpr access_rights(all_keys_t);
 
-        inline explicit access_rights(std::uint8_t single_key);
-        inline access_rights(key_actor<all_keys_t> rw, key_actor<all_keys_t> chg);
-        inline access_rights(key_actor<all_keys_t> rw, key_actor<all_keys_t> chg, key_actor<all_keys_t> r, key_actor<all_keys_t> w);
+        constexpr explicit access_rights(std::uint8_t single_key);
+        constexpr access_rights(key_actor<all_keys_t> rw, key_actor<all_keys_t> chg);
+        constexpr access_rights(key_actor<all_keys_t> rw, key_actor<all_keys_t> chg, key_actor<all_keys_t> r, key_actor<all_keys_t> w);
 
         inline void set_word(std::uint16_t v);
         [[nodiscard]] inline std::uint16_t get_word() const;
@@ -472,21 +473,20 @@ namespace desfire {
         }
     }
 
-    access_rights::access_rights(std::uint8_t single_key) : change{single_key}, read_write{single_key}, write{single_key}, read{single_key} {
-        if (single_key > bits::max_keys_per_app) {
-            DESFIRE_LOGE("Invalid key number (%d) for access rights, should be <= %d.", single_key, bits::max_keys_per_app);
-        }
+    constexpr access_rights::access_rights(std::uint8_t single_key) : change{single_key}, read_write{single_key}, write{single_key}, read{single_key} {
+        // TODO: when C++20 is enabled, used is_constant_evaluated to issue a warning if single_key is out of range
     }
+
     constexpr access_rights::access_rights(no_key_t) : change{no_key}, read_write{no_key}, write{no_key}, read{no_key} {}
 
     constexpr access_rights::access_rights(all_keys_t) : change{all_keys}, read_write{all_keys}, write{all_keys}, read{all_keys} {}
 
-    access_rights::access_rights(key_actor<all_keys_t> rw, key_actor<all_keys_t> chg) : access_rights{no_key} {
+    constexpr access_rights::access_rights(key_actor<all_keys_t> rw, key_actor<all_keys_t> chg) : access_rights{no_key} {
         read_write = rw;
         change = chg;
     }
 
-    access_rights::access_rights(key_actor<all_keys_t> rw, key_actor<all_keys_t> chg, key_actor<all_keys_t> r, key_actor<all_keys_t> w)
+    constexpr access_rights::access_rights(key_actor<all_keys_t> rw, key_actor<all_keys_t> chg, key_actor<all_keys_t> r, key_actor<all_keys_t> w)
         : access_rights{no_key} {
         read_write = rw;
         change = chg;

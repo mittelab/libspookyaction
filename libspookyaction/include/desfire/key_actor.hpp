@@ -31,9 +31,9 @@ namespace desfire {
         constexpr key_actor(SpecialT);
         constexpr key_actor(no_key_t);
 
-        constexpr key_actor &operator=(std::uint8_t key_index);
-        constexpr key_actor &operator=(SpecialT);
-        constexpr key_actor &operator=(no_key_t);
+        inline key_actor &operator=(std::uint8_t key_index);
+        inline key_actor &operator=(SpecialT);
+        inline key_actor &operator=(no_key_t);
 
         inline bool operator==(key_actor const &other) const;
         inline bool operator!=(key_actor const &other) const;
@@ -44,8 +44,8 @@ namespace desfire {
 namespace desfire {
 
     template <class SpecialT>
-    constexpr key_actor<SpecialT>::key_actor(std::uint8_t key_index) : _repr{} {
-        *this = key_index;
+    constexpr key_actor<SpecialT>::key_actor(std::uint8_t key_index) : _repr{unsigned(key_index & 0b1111)} {
+        // TODO: when C++20 is enabled, used is_constant_evaluated to issue a warning if key_index is out of range
     }
 
     template <class SpecialT>
@@ -68,7 +68,7 @@ namespace desfire {
     }
 
     template <class SpecialT>
-    constexpr key_actor<SpecialT> &key_actor<SpecialT>::operator=(std::uint8_t key_index) {
+    key_actor<SpecialT> &key_actor<SpecialT>::operator=(std::uint8_t key_index) {
         if (key_index > max_key_index) {
             DESFIRE_LOGE("Specified key index %u is not valid, master key (0) assumed.", key_index);
             key_index = 0;
@@ -78,13 +78,13 @@ namespace desfire {
     }
 
     template <class SpecialT>
-    constexpr key_actor<SpecialT> &key_actor<SpecialT>::operator=(SpecialT) {
+    key_actor<SpecialT> &key_actor<SpecialT>::operator=(SpecialT) {
         _repr = no_key_value;
         return *this;
     }
 
     template <class SpecialT>
-    constexpr key_actor<SpecialT> &key_actor<SpecialT>::operator=(no_key_t) {
+    key_actor<SpecialT> &key_actor<SpecialT>::operator=(no_key_t) {
         _repr = no_key_value;
         return *this;
     }

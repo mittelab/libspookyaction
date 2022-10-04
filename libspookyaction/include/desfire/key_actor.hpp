@@ -27,11 +27,11 @@ namespace desfire {
         [[nodiscard]] inline std::uint8_t get_nibble() const;
 
         constexpr key_actor();
-        inline key_actor(std::uint8_t key_index);
+        constexpr key_actor(std::uint8_t key_index);
         constexpr key_actor(SpecialT);
         constexpr key_actor(no_key_t);
 
-        inline key_actor &operator=(std::uint8_t key_index);
+        constexpr key_actor &operator=(std::uint8_t key_index);
         constexpr key_actor &operator=(SpecialT);
         constexpr key_actor &operator=(no_key_t);
 
@@ -44,7 +44,7 @@ namespace desfire {
 namespace desfire {
 
     template <class SpecialT>
-    key_actor<SpecialT>::key_actor(std::uint8_t key_index) : _repr{} {
+    constexpr key_actor<SpecialT>::key_actor(std::uint8_t key_index) : _repr{} {
         *this = key_index;
     }
 
@@ -68,7 +68,7 @@ namespace desfire {
     }
 
     template <class SpecialT>
-    key_actor<SpecialT> &key_actor<SpecialT>::operator=(std::uint8_t key_index) {
+    constexpr key_actor<SpecialT> &key_actor<SpecialT>::operator=(std::uint8_t key_index) {
         if (key_index > max_key_index) {
             DESFIRE_LOGE("Specified key index %u is not valid, master key (0) assumed.", key_index);
             key_index = 0;

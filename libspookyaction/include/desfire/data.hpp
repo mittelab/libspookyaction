@@ -34,7 +34,7 @@ namespace desfire {
 
     static constexpr app_id root_app{0x0, 0x0, 0x0};
 
-    [[nodiscard]] app_crypto app_crypto_from_cipher(cipher_type c);
+    [[nodiscard]] constexpr app_crypto app_crypto_from_cipher(cipher_type c);
 
     /**
      * @note Misses @ref status::ok, @ref status::no_changes, @ref status::additional_frame. The first two represent
@@ -240,13 +240,13 @@ namespace desfire {
         std::uint8_t max_num_keys;
         app_crypto crypto;
 
-        inline explicit app_settings(app_crypto crypto_ = app_crypto::legacy_des_2k3des,
-                                     key_rights rights_ = key_rights{},
-                                     std::uint8_t max_num_keys_ = bits::max_keys_per_app);
+        constexpr explicit app_settings(app_crypto crypto_ = app_crypto::legacy_des_2k3des,
+                                        key_rights rights_ = key_rights{},
+                                        std::uint8_t max_num_keys_ = bits::max_keys_per_app);
 
-        inline explicit app_settings(cipher_type cipher,
-                                     key_rights rights_ = key_rights{},
-                                     std::uint8_t max_num_keys_ = bits::max_keys_per_app);
+        constexpr explicit app_settings(cipher_type cipher,
+                                        key_rights rights_ = key_rights{},
+                                        std::uint8_t max_num_keys_ = bits::max_keys_per_app);
     };
 
     class storage_size {
@@ -443,9 +443,9 @@ namespace desfire {
     template <std::size_t KeyLength, bool ParityBitsAreVersion>
     key_base<KeyLength, ParityBitsAreVersion>::key_base(std::uint8_t key_no, key_t k_, std::uint8_t v_) : storage{k_, v_}, key_number{key_no} {}
 
-    app_settings::app_settings(app_crypto crypto_, key_rights rights_, std::uint8_t max_num_keys_) : rights{rights_}, max_num_keys{max_num_keys_}, crypto{crypto_} {}
+    constexpr app_settings::app_settings(app_crypto crypto_, key_rights rights_, std::uint8_t max_num_keys_) : rights{rights_}, max_num_keys{max_num_keys_}, crypto{crypto_} {}
 
-    app_settings::app_settings(cipher_type cipher, key_rights rights_, std::uint8_t max_num_keys_) : rights{rights_}, max_num_keys{max_num_keys_}, crypto{app_crypto_from_cipher(cipher)} {}
+    constexpr app_settings::app_settings(cipher_type cipher, key_rights rights_, std::uint8_t max_num_keys_) : rights{rights_}, max_num_keys{max_num_keys_}, crypto{app_crypto_from_cipher(cipher)} {}
 
     unsigned storage_size::exponent() const {
         return _flag >> bits::storage_size_exponent_shift;
@@ -515,6 +515,23 @@ namespace desfire {
     }
 
     generic_file_settings::generic_file_settings(file_security security_, access_rights rights_) : security{security_}, rights{rights_} {}
+
+    constexpr app_crypto app_crypto_from_cipher(cipher_type c) {
+        switch (c) {
+            case cipher_type::none:
+                DESFIRE_LOGE("cipher_type::none cannot be converted to app_crypto!.");
+                return app_crypto::legacy_des_2k3des;
+            case cipher_type::des:
+                [[fallthrough]];
+            case cipher_type::des3_2k:
+                return app_crypto::legacy_des_2k3des;
+            case cipher_type::des3_3k:
+                return app_crypto::iso_3k3des;
+            case cipher_type::aes128:
+                return app_crypto::aes_128;
+        }
+        return app_crypto::legacy_des_2k3des;
+    }
 }// namespace desfire
 
 namespace mlab {

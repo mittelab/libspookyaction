@@ -113,23 +113,6 @@ namespace desfire {
         return static_cast<error>(s);
     }
 
-    app_crypto app_crypto_from_cipher(cipher_type c) {
-        switch (c) {
-            case cipher_type::none:
-                DESFIRE_LOGE("cipher_type::none cannot be converted to app_crypto!.");
-                return app_crypto::legacy_des_2k3des;
-            case cipher_type::des:
-                [[fallthrough]];
-            case cipher_type::des3_2k:
-                return app_crypto::legacy_des_2k3des;
-            case cipher_type::des3_3k:
-                return app_crypto::iso_3k3des;
-            case cipher_type::aes128:
-                return app_crypto::aes_128;
-        }
-        return app_crypto::legacy_des_2k3des;
-    }
-
     storage_size::storage_size(std::size_t nbytes) : _flag{0} {
         if (nbytes > 0) {
             const auto [log, remainder] = log2_remainder(nbytes);

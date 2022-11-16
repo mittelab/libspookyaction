@@ -18,6 +18,8 @@ namespace ut {
 
     [[maybe_unused]] static constexpr log_options log_everything{true, true, true, true, true, true};
     [[maybe_unused]] static constexpr log_options log_debug{true, true, true, true, false, false};
+    [[maybe_unused]] static constexpr log_options log_crypto{false, false, false, false, true, false};
+    [[maybe_unused]] static constexpr log_options log_nothing{false, false, false, false, false, false};
 
     [[maybe_unused]] void enable_debug_log(log_options options);
 

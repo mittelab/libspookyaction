@@ -12,11 +12,10 @@ stages:
 variables:
   PIO_LIB_FOLDER: libspookyaction
   PIO_PROJ_FOLDER: tests
-
+  GIT_SUBMODULE_STRATEGY: recursive
 
 .pio-cache: &pio-cache
   cache:
-    key: ${CI_COMMIT_REF_SLUG}
     paths:
       - "${PIO_PROJ_FOLDER}/.pio"
 
@@ -27,6 +26,7 @@ variables:
     - ${PIO_LIB_FOLDER}/examples/**/*
     - ${PIO_PROJ_FOLDER}/src/**/*
     - ${PIO_PROJ_FOLDER}/test/**/*
+    - ${PIO_PROJ_FOLDER}/sdkconfig*
     - ${PIO_PROJ_FOLDER}/include/**/*
     - ${PIO_PROJ_FOLDER}/lib/**/*
     - cicd/platformio.ini
@@ -53,7 +53,7 @@ check format:
     - apk add --update --no-cache git clang clang-extra-tools
   script:
     - >
-      find . -not -path '*/\.*' -and \( -name '*.[hc]' -or -name '*.[hc]pp' \) | while read -r FILE; do
+      find . -not -path '*/\.*' -and -not -path './tests/components/*' -and \( -name '*.[hc]' -or -name '*.[hc]pp' \) | while read -r FILE; do
           echo "Formatting $FILE"
           clang-format --style file -i "$FILE"
       done
@@ -69,7 +69,7 @@ check format:
     - when: always
 
 
-build test firmware:
+.build-test-firmare-template: &build-test-firmware-template
   stage: build
   image: ${CI_REGISTRY}/proj/testinator/esp32:latest
   <<: *pio-cache
@@ -87,12 +87,29 @@ build test firmware:
       - "${PIO_PROJ_FOLDER}/.pio/**/firmware.elf"
   rules:
     - when: always
+  needs: []
 
+build test firmware mbedtls:
+  <<: *build-test-firmware-template
+  cache:
+    key: ${CI_COMMIT_REF_SLUG}-mbedtls
+
+build test firmware wolfssl:
+  <<: *build-test-firmware-template
+  cache:
+    key: ${CI_COMMIT_REF_SLUG}-wolfssl
+  # Customize the before script so that it uses the correct defaults
+  before_script:
+    - cp cicd/platformio.ini "${PIO_PROJ_FOLDER}/platformio.ini"
+    - cd "${PIO_PROJ_FOLDER}"
+    - cp sdkconfig-wolfssl.defaults sdkconfig.defaults
 
 build examples:
   image: ${CI_REGISTRY}/proj/testinator/esp32:latest
   stage: build
   <<: *pio-cache
+  cache:
+    key: ${CI_COMMIT_REF_SLUG}-examples
   script:  # Note that we need to setup sdkconfig.defaults before, so we make our own folder and we manage it ourselves
     - >
       for file in ${PIO_LIB_FOLDER}/examples/*.cpp; do
@@ -115,15 +132,14 @@ build examples:
     # But skip by default if the sources did not change
     - <<: *rules-changes-sources
     - <<: *rules-changes-cicd
+  needs: []
 
 
-test hardware:
+.test-hardware-template: &test-hardware-template
   stage: test
   image: ${CI_REGISTRY}/proj/testinator/esp32:latest
   tags:
     - pn532
-  dependencies:
-    - build test firmware
   before_script:
     - cp cicd/platformio.ini "${PIO_PROJ_FOLDER}/platformio.ini"
     - cd "${PIO_PROJ_FOLDER}"
@@ -138,6 +154,16 @@ test hardware:
     - <<: *rules-changes-sources
     - <<: *rules-changes-cicd
 
+
+test hardware mbedtls:
+  <<: *test-hardware-template
+  needs:
+    - build test firmware mbedtls
+
+test hardware wolfssl:
+  <<: *test-hardware-template
+  needs:
+    - build test firmware wolfssl
 
 publish library:
   image: ${CI_REGISTRY}/proj/testinator/esp32:latest

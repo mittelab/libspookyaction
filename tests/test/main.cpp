@@ -4,6 +4,7 @@
 #include "ut/test_desfire_files.hpp"
 #include "ut/test_desfire_main.hpp"
 #include "ut/test_pn532.hpp"
+#include "ut/utils.hpp"
 #include <mbcontroller.h>
 #include <unity.h>
 
@@ -126,6 +127,7 @@ void unity_perform_all_tests() {
 
     UNITY_BEGIN();
     esp_log_level_set("*", ESP_LOG_INFO);
+    ut::enable_debug_log(ut::log_nothing);
 
     // No hardware required for these
     unity_perform_cipher_tests();
@@ -151,6 +153,14 @@ extern "C" {
 #endif
 
 void app_main() {
+
+#ifdef SPOOKY_USE_WOLFSSL
+    ESP_LOGI("SPOOKY", "WolfSSL is used as a cryptographic backend.");
+#endif//SPOOKY_USE_WOLFSSL
+#ifdef SPOOKY_USE_MBEDTLS
+    ESP_LOGI("SPOOKY", "MbedTLS is used as a cryptographic backend.");
+#endif//SPOOKY_USE_MBEDTLS
+
     unity_perform_all_tests();
 }
 

@@ -2,5 +2,7 @@
 <project version="4">
   <component name="VcsDirectoryMappings">
     <mapping directory="$PROJECT_DIR$" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/tests/components/esp-wolfssl" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/tests/components/esp-wolfssl/wolfssl" vcs="Git" />
   </component>
 </project>

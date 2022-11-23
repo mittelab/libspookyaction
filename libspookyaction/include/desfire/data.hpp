@@ -101,6 +101,9 @@ namespace desfire {
          * authenticate with the appropriate master key.
          */
         bool config_changeable = true;
+
+        [[nodiscard]] inline bool operator==(desfire::key_rights const &other) const;
+        [[nodiscard]] inline bool operator!=(desfire::key_rights const &other) const;
     };
 
     struct all_keys_t {};
@@ -672,6 +675,18 @@ namespace desfire {
                 return app_crypto::aes_128;
         }
         return app_crypto::legacy_des_2k3des;
+    }
+
+    bool desfire::key_rights::operator==(desfire::key_rights const &other) const {
+        return other.allowed_to_change_keys == allowed_to_change_keys and
+               other.create_delete_without_auth == create_delete_without_auth and
+               other.dir_access_without_auth == dir_access_without_auth and
+               other.config_changeable == config_changeable and
+               other.master_key_changeable == master_key_changeable;
+    }
+
+    bool desfire::key_rights::operator!=(desfire::key_rights const &other) const {
+        return not operator==(other);
     }
 }// namespace desfire
 

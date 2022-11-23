@@ -299,9 +299,15 @@ namespace desfire {
         any_key(any_key &&other) noexcept;
         any_key &operator=(any_key &&other) noexcept;
 
-
         [[nodiscard]] std::uint8_t key_number() const;
         [[nodiscard]] std::uint8_t version() const;
+        [[nodiscard]] mlab::range<std::uint8_t const *> data() const;
+
+        void set_key_number(std::uint8_t v);
+        void set_version(std::uint8_t v);
+        void set_data(mlab::range<std::uint8_t const *> k);
+
+        [[nodiscard]] any_key with_key_number(std::uint8_t v);
 
         /**
          * Size in bytes of the key. Does not account for the fact that DES key in Desfire cards are stored as 16 bytes,
@@ -325,77 +331,138 @@ namespace desfire {
         bin_data &operator<<(bin_data &bd) const;
     };
 
+    template <std::size_t KeyLength, bool ParityBitsAreVersion>
+    class key_storage;
 
-    template <std::size_t KeyLength, bool /* ParityBitsAreVersion */>
-    struct key_storage {
-        static constexpr std::size_t key_length = KeyLength;
-        using key_data = std::array<std::uint8_t, key_length>;
-        key_data k;
-        std::uint8_t v;
+    template <std::size_t KeyLength>
+    class key_storage<KeyLength, true /* ParityBitsAreVersion */> {
+    public:
+        static constexpr std::size_t size = KeyLength;
+        using key_data = std::array<std::uint8_t, size>;
 
-        [[nodiscard]] inline mlab::range<std::uint8_t const *> as_range() const { return mlab::make_range(k); }
+        [[nodiscard]] inline mlab::range<std::uint8_t const *> as_range() const;
 
-        key_storage() : k{}, v{0} {
-            std::fill_n(std::begin(k), key_length, 0);
-        }
-        explicit key_storage(key_data k_) : k{k_}, v{0} {}
-        explicit key_storage(key_data k_, std::uint8_t v_) : k{k_}, v{v_} {}
-        [[nodiscard]] inline std::uint8_t version() const { return v; }
-        inline void set_version(std::uint8_t v_) { v = v_; }
+        key_storage() = default;
+        inline explicit key_storage(key_data k_);
+        inline key_storage(key_data k, std::uint8_t v);
+
+        [[nodiscard]] inline std::uint8_t version() const;
+        inline void set_version(std::uint8_t v);
+
+        [[nodiscard]] inline key_data const &data() const;
+        inline void set_data(key_data k);
+
+    private:
+        key_data _data{};
     };
 
     template <std::size_t KeyLength>
-    struct key_storage<KeyLength, true /* ParityBitsAreVersion */> {
-        static constexpr std::size_t key_length = KeyLength;
-        using key_data = std::array<std::uint8_t, key_length>;
-        key_data k;
+    class key_storage<KeyLength, false /* ParityBitsAreVersion */> : private key_storage<KeyLength, true> {
+    public:
+        using key_data = typename key_storage<KeyLength, true>::key_data;
 
-        [[nodiscard]] inline mlab::range<std::uint8_t const *> as_range() const { return mlab::make_range(k); }
+        using key_storage<KeyLength, true>::size;
+        using key_storage<KeyLength, true>::as_range;
 
-        key_storage() : k{} {
-            std::fill_n(std::begin(k), key_length, 0);
-        }
-        explicit key_storage(key_data k_) : k{k_} {}
-        explicit key_storage(key_data k_, std::uint8_t v_) : k{k_} {
-            set_version(v_);
-        }
+        key_storage() = default;
+        inline explicit key_storage(key_data k);
+        inline key_storage(key_data k, std::uint8_t v);
 
-        [[nodiscard]] inline std::uint8_t version() const { return get_key_version(k); }
+        // Deliberately shadowing the method.
+        [[nodiscard]] inline std::uint8_t version() const;
+        inline void set_version(std::uint8_t v);
 
-        inline void set_version(std::uint8_t v) { set_key_version(k, v); }
+        using key_storage<KeyLength, true>::data;
+        using key_storage<KeyLength, true>::set_data;
+
+    private:
+        std::uint8_t _version{};
     };
 
 
-    template <std::size_t KeyLength, bool ParityBitsAreVersion>
-    struct key_base : public key_storage<KeyLength, ParityBitsAreVersion> {
+    template <std::size_t KeyLength, bool ParityBitsAreVersion, class CRTPSubclass>
+    class key_base : public key_storage<KeyLength, ParityBitsAreVersion> {
+    public:
         using storage = key_storage<KeyLength, ParityBitsAreVersion>;
+
         static constexpr bool parity_bits_are_version = ParityBitsAreVersion;
-        std::uint8_t key_number = 0;
+
         using typename storage::key_data;
 
-        key_base();
-        key_base(std::uint8_t key_no, key_data k_);
-        key_base(std::uint8_t key_no, key_data k_, std::uint8_t v_);
+        using storage::as_range;
+        using storage::data;
+        using storage::set_data;
+        using storage::set_version;
+        using storage::size;
+        using storage::version;
+
+        key_base() = default;
+        key_base(std::uint8_t key_no, key_data k);
+        key_base(std::uint8_t key_no, key_data k, std::uint8_t v);
+
+        [[nodiscard]] inline CRTPSubclass with_key_number(std::uint8_t key_no) const;
+
+        [[nodiscard]] inline std::uint8_t key_number() const;
+        inline void set_key_number(std::uint8_t key_no);
+
+    private:
+        std::uint8_t _key_no{0};
     };
 
     template <>
-    struct key<cipher_type::des> : public key_base<8, true> {
-        using key_base<8, true>::key_base;
+    struct key<cipher_type::des> : public key_base<8, true, key<cipher_type::des>> {
+        using key_base = key_base<8, true, key<cipher_type::des>>;
+        using key_base::data;
+        using key_base::key_base;
+        using key_base::key_number;
+        using key_base::set_data;
+        using key_base::set_key_number;
+        using key_base::set_version;
+        using key_base::size;
+        using key_base::version;
+        using key_base::with_key_number;
     };
 
     template <>
-    struct key<cipher_type::des3_2k> : public key_base<16, true> {
-        using key_base<16, true>::key_base;
+    struct key<cipher_type::des3_2k> : public key_base<16, true, key<cipher_type::des3_2k>> {
+        using key_base = key_base<16, true, key<cipher_type::des3_2k>>;
+        using key_base::data;
+        using key_base::key_base;
+        using key_base::key_number;
+        using key_base::set_data;
+        using key_base::set_key_number;
+        using key_base::set_version;
+        using key_base::size;
+        using key_base::version;
+        using key_base::with_key_number;
     };
 
     template <>
-    struct key<cipher_type::des3_3k> : public key_base<24, true> {
-        using key_base<24, true>::key_base;
+    struct key<cipher_type::des3_3k> : public key_base<24, true, key<cipher_type::des3_3k>> {
+        using key_base = key_base<24, true, key<cipher_type::des3_3k>>;
+        using key_base::data;
+        using key_base::key_base;
+        using key_base::key_number;
+        using key_base::set_data;
+        using key_base::set_key_number;
+        using key_base::set_version;
+        using key_base::size;
+        using key_base::version;
+        using key_base::with_key_number;
     };
 
     template <>
-    struct key<cipher_type::aes128> : public key_base<16, false> {
-        using key_base<16, false>::key_base;
+    struct key<cipher_type::aes128> : public key_base<16, false, key<cipher_type::aes128>> {
+        using key_base = key_base<16, false, key<cipher_type::aes128>>;
+        using key_base::data;
+        using key_base::key_base;
+        using key_base::key_number;
+        using key_base::set_data;
+        using key_base::set_key_number;
+        using key_base::set_version;
+        using key_base::size;
+        using key_base::version;
+        using key_base::with_key_number;
     };
 
 }// namespace desfire
@@ -435,14 +502,76 @@ namespace mlab {
 
 namespace desfire {
 
-    template <std::size_t KeyLength, bool ParityBitsAreVersion>
-    key_base<KeyLength, ParityBitsAreVersion>::key_base() : storage{}, key_number{0} {}
 
-    template <std::size_t KeyLength, bool ParityBitsAreVersion>
-    key_base<KeyLength, ParityBitsAreVersion>::key_base(std::uint8_t key_no, key_data k_) : storage{k_}, key_number{key_no} {}
+    template <std::size_t KeyLength>
+    key_storage<KeyLength, false>::key_storage(key_data k) : key_storage<KeyLength, true>{k}, _version{0} {}
 
-    template <std::size_t KeyLength, bool ParityBitsAreVersion>
-    key_base<KeyLength, ParityBitsAreVersion>::key_base(std::uint8_t key_no, key_data k_, std::uint8_t v_) : storage{k_, v_}, key_number{key_no} {}
+    template <std::size_t KeyLength>
+    key_storage<KeyLength, false>::key_storage(key_data k, std::uint8_t v) : key_storage<KeyLength, true>{k}, _version{v} {}
+
+    template <std::size_t KeyLength>
+    std::uint8_t key_storage<KeyLength, false>::version() const {
+        return _version;
+    }
+
+    template <std::size_t KeyLength>
+    void key_storage<KeyLength, false>::set_version(std::uint8_t v) {
+        _version = v;
+    }
+
+    template <std::size_t KeyLength>
+    mlab::range<std::uint8_t const *> key_storage<KeyLength, true>::as_range() const {
+        return mlab::make_range(_data);
+    }
+
+    template <std::size_t KeyLength>
+    key_storage<KeyLength, true>::key_storage(key_data k) : _data{k} {}
+
+    template <std::size_t KeyLength>
+    key_storage<KeyLength, true>::key_storage(key_data k, std::uint8_t v) : _data{k} {
+        set_version(v);
+    }
+
+    template <std::size_t KeyLength>
+    std::uint8_t key_storage<KeyLength, true>::version() const {
+        return get_key_version(_data);
+    }
+
+    template <std::size_t KeyLength>
+    void key_storage<KeyLength, true>::set_version(std::uint8_t v) {
+        set_key_version(_data, v);
+    }
+
+    template <std::size_t KeyLength>
+    typename key_storage<KeyLength, true>::key_data const &key_storage<KeyLength, true>::data() const {
+        return _data;
+    }
+
+    template <std::size_t KeyLength>
+    void key_storage<KeyLength, true>::set_data(key_data k) {
+        _data = k;
+    }
+
+    template <std::size_t KeyLength, bool ParityBitsAreVersion, class CRTPSubclass>
+    key_base<KeyLength, ParityBitsAreVersion, CRTPSubclass>::key_base(std::uint8_t key_no, key_data k_) : storage{k_}, _key_no{key_no} {}
+
+    template <std::size_t KeyLength, bool ParityBitsAreVersion, class CRTPSubclass>
+    key_base<KeyLength, ParityBitsAreVersion, CRTPSubclass>::key_base(std::uint8_t key_no, key_data k_, std::uint8_t v_) : storage{k_, v_}, _key_no{key_no} {}
+
+    template <std::size_t KeyLength, bool ParityBitsAreVersion, class CRTPSubclass>
+    CRTPSubclass key_base<KeyLength, ParityBitsAreVersion, CRTPSubclass>::with_key_number(std::uint8_t key_no) const {
+        return CRTPSubclass{key_no, data(), version()};
+    }
+
+    template <std::size_t KeyLength, bool ParityBitsAreVersion, class CRTPSubclass>
+    std::uint8_t key_base<KeyLength, ParityBitsAreVersion, CRTPSubclass>::key_number() const {
+        return _key_no;
+    }
+
+    template <std::size_t KeyLength, bool ParityBitsAreVersion, class CRTPSubclass>
+    void key_base<KeyLength, ParityBitsAreVersion, CRTPSubclass>::set_key_number(std::uint8_t key_no) {
+        _key_no = key_no;
+    }
 
     constexpr app_settings::app_settings(app_crypto crypto_, key_rights rights_, std::uint8_t max_num_keys_) : rights{rights_}, max_num_keys{max_num_keys_}, crypto{crypto_} {}
 

@@ -87,7 +87,7 @@ namespace ut::desfire_ciphers {
             }
         }
         {
-            /// @note This key has a nonzero version (see k.k[3] & 0x1 != 0)
+            /// @note This key has a nonzero version (see k.data()[3] & 0x1 != 0)
             const auto k = key<cipher_type::des3_2k>{0, {0x00, 0x10, 0x20, 0x31, 0x40, 0x50, 0x60, 0x70, 0x80, 0x90, 0xA0, 0xB0, 0xB0, 0xA0, 0x90, 0x80}};
             auto c = always_default_cipher_provider{}.cipher_from_key(k);
             {
@@ -127,7 +127,7 @@ namespace ut::desfire_ciphers {
             }
         }
         {
-            /// @note This key has a nonzero version (see k.k[3] & 0x1 != 0)
+            /// @note This key has a nonzero version (see k.data()[3] & 0x1 != 0)
             const auto k = key<cipher_type::des3_3k>{0, {0x00, 0x10, 0x20, 0x31, 0x40, 0x50, 0x60, 0x70, 0x80, 0x90, 0xA0, 0xB0, 0xB0, 0xA0, 0x90, 0x80, 0x70, 0x60, 0x50, 0x40, 0x30, 0x20, 0x10, 0x00}};
             auto c = desfire::esp32::default_cipher_provider{}.cipher_from_key(k);
             {
@@ -176,7 +176,7 @@ namespace ut::desfire_ciphers {
 
         const auto div_key = kdf_an10922(key<cipher_type::aes128>{0, k}, cipher_provider, div_data);
 
-        TEST_ASSERT_EQUAL_HEX8_ARRAY(std::begin(div_key.k), std::begin(exp_div_key), 16);
+        TEST_ASSERT_EQUAL_HEX8_ARRAY(std::begin(div_key.data()), std::begin(exp_div_key), 16);
     }
 
     void test_3k3des_kdf() {
@@ -188,7 +188,7 @@ namespace ut::desfire_ciphers {
 
         const auto div_key = kdf_an10922(key<cipher_type::des3_3k>{0, k}, cipher_provider, div_data);
 
-        TEST_ASSERT_EQUAL_HEX8_ARRAY(std::begin(div_key.k), std::begin(exp_div_key), 24);
+        TEST_ASSERT_EQUAL_HEX8_ARRAY(std::begin(div_key.data()), std::begin(exp_div_key), 24);
     }
 
     void test_2k3des_kdf() {
@@ -200,7 +200,7 @@ namespace ut::desfire_ciphers {
 
         const auto div_key = kdf_an10922(key<cipher_type::des3_2k>{0, k}, cipher_provider, div_data);
 
-        TEST_ASSERT_EQUAL_HEX8_ARRAY(std::begin(div_key.k), std::begin(exp_div_key), 16);
+        TEST_ASSERT_EQUAL_HEX8_ARRAY(std::begin(div_key.data()), std::begin(exp_div_key), 16);
     }
 
     void test_crc32() {

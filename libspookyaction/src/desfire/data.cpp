@@ -10,15 +10,86 @@ namespace desfire {
     namespace {
         using mlab::prealloc;
     }
-    any_key::any_key(any_key &&other) noexcept : mlab::any_of<cipher_type, key, cipher_type::none>{std::move(other)} {}
-
-    any_key &any_key::operator=(any_key &&other) noexcept {
-        mlab::any_of<cipher_type, key, cipher_type::none>::operator=(std::move(other));
-        return *this;
-    }
-
     any_key::any_key(const any_key &other) : any_key{other.type()} {
         *this = other;
+    }
+
+    any_key::any_key(cipher_type cipher) : mlab::any_of<cipher_type, desfire::key, cipher_type::none>{cipher} {
+        switch (cipher) {
+            case cipher_type::none:
+                set<cipher_type::none>(key<cipher_type::none>{});
+                break;
+            case cipher_type::des:
+                set<cipher_type::des>(key<cipher_type::des>{});
+                break;
+            case cipher_type::des3_2k:
+                set<cipher_type::des3_2k>(key<cipher_type::des3_2k>{});
+                break;
+            case cipher_type::des3_3k:
+                set<cipher_type::des3_3k>(key<cipher_type::des3_3k>{});
+                break;
+            case cipher_type::aes128:
+                set<cipher_type::aes128>(key<cipher_type::aes128>{});
+                break;
+        }
+    }
+
+    any_key::any_key(cipher_type cipher, mlab::range<std::uint8_t const *> k, std::uint8_t key_no)
+        : mlab::any_of<cipher_type, key, cipher_type::none>{cipher} {
+        switch (cipher) {
+            case cipher_type::none:
+                set<cipher_type::none>(key<cipher_type::none>{});
+                break;
+            case cipher_type::des: {
+                key<cipher_type::des>::key_data kd{};
+                std::copy_n(std::begin(k), kd.size(), std::begin(kd));
+                set<cipher_type::des>(key<cipher_type::des>{key_no, kd});
+            } break;
+            case cipher_type::des3_2k: {
+                key<cipher_type::des3_2k>::key_data kd{};
+                std::copy_n(std::begin(k), kd.size(), std::begin(kd));
+                set<cipher_type::des3_2k>(key<cipher_type::des3_2k>{key_no, kd});
+            } break;
+            case cipher_type::des3_3k: {
+                key<cipher_type::des3_3k>::key_data kd{};
+                std::copy_n(std::begin(k), kd.size(), std::begin(kd));
+                set<cipher_type::des3_3k>(key<cipher_type::des3_3k>{key_no, kd});
+            } break;
+            case cipher_type::aes128: {
+                key<cipher_type::aes128>::key_data kd{};
+                std::copy_n(std::begin(k), kd.size(), std::begin(kd));
+                set<cipher_type::aes128>(key<cipher_type::aes128>{key_no, kd});
+            } break;
+        }
+    }
+
+    any_key::any_key(cipher_type cipher, mlab::range<std::uint8_t const *> k, std::uint8_t key_no, std::uint8_t v)
+        : mlab::any_of<cipher_type, key, cipher_type::none>{cipher} {
+        switch (cipher) {
+            case cipher_type::none:
+                set<cipher_type::none>(key<cipher_type::none>{});
+                break;
+            case cipher_type::des: {
+                key<cipher_type::des>::key_data kd{};
+                std::copy_n(std::begin(k), kd.size(), std::begin(kd));
+                set<cipher_type::des>(key<cipher_type::des>{key_no, kd, v});
+            } break;
+            case cipher_type::des3_2k: {
+                key<cipher_type::des3_2k>::key_data kd{};
+                std::copy_n(std::begin(k), kd.size(), std::begin(kd));
+                set<cipher_type::des3_2k>(key<cipher_type::des3_2k>{key_no, kd, v});
+            } break;
+            case cipher_type::des3_3k: {
+                key<cipher_type::des3_3k>::key_data kd{};
+                std::copy_n(std::begin(k), kd.size(), std::begin(kd));
+                set<cipher_type::des3_3k>(key<cipher_type::des3_3k>{key_no, kd, v});
+            } break;
+            case cipher_type::aes128: {
+                key<cipher_type::aes128>::key_data kd{};
+                std::copy_n(std::begin(k), kd.size(), std::begin(kd));
+                set<cipher_type::aes128>(key<cipher_type::aes128>{key_no, kd, v});
+            } break;
+        }
     }
 
     any_key &any_key::operator=(const any_key &other) {

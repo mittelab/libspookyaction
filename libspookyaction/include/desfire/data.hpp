@@ -294,10 +294,19 @@ namespace desfire {
     public:
         using mlab::any_of<cipher_type, key, cipher_type::none>::any_of;
 
+        any_key() = default;
+
+        template <cipher_type Cipher>
+        any_key(key<Cipher> obj);
+
         any_key(any_key const &other);
         any_key &operator=(any_key const &other);
-        any_key(any_key &&other) noexcept;
-        any_key &operator=(any_key &&other) noexcept;
+        any_key(any_key &&other) noexcept = default;
+        any_key &operator=(any_key &&other) noexcept = default;
+
+        explicit any_key(cipher_type cipher);
+        any_key(cipher_type cipher, mlab::range<std::uint8_t const *> k, std::uint8_t key_no = 0);
+        any_key(cipher_type cipher, mlab::range<std::uint8_t const *> k, std::uint8_t key_no, std::uint8_t v);
 
         [[nodiscard]] std::uint8_t key_number() const;
         [[nodiscard]] std::uint8_t version() const;
@@ -642,6 +651,9 @@ namespace desfire {
         retval.set_word(word);
         return retval;
     }
+
+    template <cipher_type Cipher>
+    any_key::any_key(key<Cipher> obj) : mlab::any_of<cipher_type, key, cipher_type::none>{std::move(obj)} {}
 
     constexpr generic_file_settings::generic_file_settings(file_security security_, access_rights rights_) : security{security_}, rights{rights_} {}
 

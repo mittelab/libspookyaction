@@ -92,6 +92,48 @@ namespace desfire {
         }
     }
 
+    any_key::any_key(cipher_type cipher, random_oracle rng, std::uint8_t key_no)
+        : mlab::any_of<cipher_type, key, cipher_type::none>{cipher} {
+        switch (cipher) {
+            case cipher_type::none:
+                set<cipher_type::none>(key<cipher_type::none>{});
+                break;
+            case cipher_type::des:
+                set<cipher_type::des>(key<cipher_type::des>{key_no, rng});
+                break;
+            case cipher_type::des3_2k:
+                set<cipher_type::des3_2k>(key<cipher_type::des3_2k>{key_no, rng});
+                break;
+            case cipher_type::des3_3k:
+                set<cipher_type::des3_3k>(key<cipher_type::des3_3k>{key_no, rng});
+                break;
+            case cipher_type::aes128:
+                set<cipher_type::aes128>(key<cipher_type::aes128>{key_no, rng});
+                break;
+        }
+    }
+
+    any_key::any_key(cipher_type cipher, random_oracle rng, std::uint8_t key_no, std::uint8_t v)
+        : mlab::any_of<cipher_type, key, cipher_type::none>{cipher} {
+        switch (cipher) {
+            case cipher_type::none:
+                set<cipher_type::none>(key<cipher_type::none>{});
+                break;
+            case cipher_type::des:
+                set<cipher_type::des>(key<cipher_type::des>{key_no, rng, v});
+                break;
+            case cipher_type::des3_2k:
+                set<cipher_type::des3_2k>(key<cipher_type::des3_2k>{key_no, rng, v});
+                break;
+            case cipher_type::des3_3k:
+                set<cipher_type::des3_3k>(key<cipher_type::des3_3k>{key_no, rng, v});
+                break;
+            case cipher_type::aes128:
+                set<cipher_type::aes128>(key<cipher_type::aes128>{key_no, rng, v});
+                break;
+        }
+    }
+
     any_key &any_key::operator=(const any_key &other) {
         switch (other.type()) {
             case cipher_type::none:
@@ -213,6 +255,25 @@ namespace desfire {
                 break;
             case cipher_type::aes128:
                 get<cipher_type::aes128>().set_version(v);
+                break;
+            case cipher_type::none:
+                break;
+        }
+    }
+
+    void any_key::randomize(random_oracle rng) {
+        switch (type()) {
+            case cipher_type::des:
+                get<cipher_type::des>().randomize(rng);
+                break;
+            case cipher_type::des3_2k:
+                get<cipher_type::des3_2k>().randomize(rng);
+                break;
+            case cipher_type::des3_3k:
+                get<cipher_type::des3_3k>().randomize(rng);
+                break;
+            case cipher_type::aes128:
+                get<cipher_type::aes128>().randomize(rng);
                 break;
             case cipher_type::none:
                 break;

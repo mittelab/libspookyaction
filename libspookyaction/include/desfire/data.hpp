@@ -329,8 +329,8 @@ namespace desfire {
     template <std::size_t KeyLength, bool /* ParityBitsAreVersion */>
     struct key_storage {
         static constexpr std::size_t key_length = KeyLength;
-        using key_t = std::array<std::uint8_t, key_length>;
-        key_t k;
+        using key_data = std::array<std::uint8_t, key_length>;
+        key_data k;
         std::uint8_t v;
 
         [[nodiscard]] inline mlab::range<std::uint8_t const *> as_range() const { return mlab::make_range(k); }
@@ -338,8 +338,8 @@ namespace desfire {
         key_storage() : k{}, v{0} {
             std::fill_n(std::begin(k), key_length, 0);
         }
-        explicit key_storage(key_t k_) : k{k_}, v{0} {}
-        explicit key_storage(key_t k_, std::uint8_t v_) : k{k_}, v{v_} {}
+        explicit key_storage(key_data k_) : k{k_}, v{0} {}
+        explicit key_storage(key_data k_, std::uint8_t v_) : k{k_}, v{v_} {}
         [[nodiscard]] inline std::uint8_t version() const { return v; }
         inline void set_version(std::uint8_t v_) { v = v_; }
     };
@@ -347,16 +347,16 @@ namespace desfire {
     template <std::size_t KeyLength>
     struct key_storage<KeyLength, true /* ParityBitsAreVersion */> {
         static constexpr std::size_t key_length = KeyLength;
-        using key_t = std::array<std::uint8_t, key_length>;
-        key_t k;
+        using key_data = std::array<std::uint8_t, key_length>;
+        key_data k;
 
         [[nodiscard]] inline mlab::range<std::uint8_t const *> as_range() const { return mlab::make_range(k); }
 
         key_storage() : k{} {
             std::fill_n(std::begin(k), key_length, 0);
         }
-        explicit key_storage(key_t k_) : k{k_} {}
-        explicit key_storage(key_t k_, std::uint8_t v_) : k{k_} {
+        explicit key_storage(key_data k_) : k{k_} {}
+        explicit key_storage(key_data k_, std::uint8_t v_) : k{k_} {
             set_version(v_);
         }
 
@@ -371,11 +371,11 @@ namespace desfire {
         using storage = key_storage<KeyLength, ParityBitsAreVersion>;
         static constexpr bool parity_bits_are_version = ParityBitsAreVersion;
         std::uint8_t key_number = 0;
-        using typename storage::key_t;
+        using typename storage::key_data;
 
         key_base();
-        key_base(std::uint8_t key_no, key_t k_);
-        key_base(std::uint8_t key_no, key_t k_, std::uint8_t v_);
+        key_base(std::uint8_t key_no, key_data k_);
+        key_base(std::uint8_t key_no, key_data k_, std::uint8_t v_);
     };
 
     template <>
@@ -439,10 +439,10 @@ namespace desfire {
     key_base<KeyLength, ParityBitsAreVersion>::key_base() : storage{}, key_number{0} {}
 
     template <std::size_t KeyLength, bool ParityBitsAreVersion>
-    key_base<KeyLength, ParityBitsAreVersion>::key_base(std::uint8_t key_no, key_t k_) : storage{k_}, key_number{key_no} {}
+    key_base<KeyLength, ParityBitsAreVersion>::key_base(std::uint8_t key_no, key_data k_) : storage{k_}, key_number{key_no} {}
 
     template <std::size_t KeyLength, bool ParityBitsAreVersion>
-    key_base<KeyLength, ParityBitsAreVersion>::key_base(std::uint8_t key_no, key_t k_, std::uint8_t v_) : storage{k_, v_}, key_number{key_no} {}
+    key_base<KeyLength, ParityBitsAreVersion>::key_base(std::uint8_t key_no, key_data k_, std::uint8_t v_) : storage{k_, v_}, key_number{key_no} {}
 
     constexpr app_settings::app_settings(app_crypto crypto_, key_rights rights_, std::uint8_t max_num_keys_) : rights{rights_}, max_num_keys{max_num_keys_}, crypto{crypto_} {}
 

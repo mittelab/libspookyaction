@@ -12,7 +12,6 @@ stages:
 variables:
   PIO_LIB_FOLDER: libspookyaction
   PIO_PROJ_FOLDER: tests
-  GIT_SUBMODULE_STRATEGY: recursive
 
 .pio-cache: &pio-cache
   cache:
@@ -103,6 +102,8 @@ build test firmware wolfssl:
     - cp cicd/platformio.ini "${PIO_PROJ_FOLDER}/platformio.ini"
     - cd "${PIO_PROJ_FOLDER}"
     - cp sdkconfig-wolfssl.defaults sdkconfig.defaults
+  variables:
+    GIT_SUBMODULE_STRATEGY: recursive
 
 build examples:
   image: ${CI_REGISTRY}/proj/testinator/esp32:latest

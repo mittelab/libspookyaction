@@ -64,10 +64,10 @@ namespace desfire {
         controller_error,///< Specific for PCD error
         malformed,       ///< No data or incorrect data received when some specific format was expected
         crypto_error     /**< @brief Something went wrong with crypto (@ref cipher_mode)
-                              *
-                              * This could mean invalid MAC, CMAC, or CRC, or data length is not a multiple of block
-                              * size when encrypted; this depends on the specified communication config.
-                              */
+                          *
+                          * This could mean invalid MAC, CMAC, or CRC, or data length is not a multiple of block
+                          * size when encrypted; this depends on the specified communication config.
+                          */
     };
 
     [[nodiscard]] error error_from_status(status s);

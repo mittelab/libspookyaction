@@ -4,8 +4,20 @@
 
 #include <desfire/esp32/mem_monitor.hpp>
 #include <esp_log.h>
+#include <sdkconfig.h>
+
+#if defined(CONFIG_HEAP_TRACING) or defined(HEAP_TRACE_SRCFILE)
+#include <esp_heap_trace.h>
 
 namespace desfire::esp32 {
+
+    namespace trace {
+        static constexpr std::size_t num_records = 100;
+        /**
+         * @note This buffer must be in internal RAM
+         */
+        static heap_trace_record_t records[num_records];
+    }// namespace trace
 
     mem_monitor::mem_monitor() {
         ESP_LOGI("MEM", "Begin heap monitoring");
@@ -34,3 +46,25 @@ namespace desfire::esp32 {
         return leaked;
     }
 }// namespace desfire::esp32
+
+#else
+
+namespace desfire::esp32 {
+
+    namespace {
+        void log_cannot_monitor_mem() {
+            ESP_LOGE("MEM", "To trace memory you must define CONFIG_HEAP_TRACING or HEAP_TRACE_SRCFILE.");
+        }
+    }// namespace
+
+    mem_monitor::mem_monitor() {
+        log_cannot_monitor_mem();
+    }
+
+    mem_monitor::~mem_monitor() = default;
+
+    std::size_t mem_monitor::count_leaked_memory() const {
+        return 0;
+    }
+}// namespace desfire::esp32
+#endif

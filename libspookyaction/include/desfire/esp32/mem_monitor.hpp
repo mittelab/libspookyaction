@@ -5,14 +5,9 @@
 #ifndef DESFIRE_ESP32_MEM_MONITOR_HPP
 #define DESFIRE_ESP32_MEM_MONITOR_HPP
 
-#include <esp_heap_trace.h>
+#include <cstdint>
 
 namespace desfire::esp32 {
-    namespace trace {
-        static constexpr std::size_t num_records = 100;
-        static heap_trace_record_t records[num_records];// This buffer must be in internal RAM
-    }                                                   // namespace trace
-
     struct mem_monitor {
         mem_monitor();
         ~mem_monitor();

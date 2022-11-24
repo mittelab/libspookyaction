@@ -5,9 +5,9 @@
 #ifndef DESFIRE_CIPHER_HPP
 #define DESFIRE_CIPHER_HPP
 
-#include "bits.hpp"
-#include "crypto.hpp"
-#include "log.h"
+#include <desfire/bits.hpp>
+#include <desfire/crypto.hpp>
+#include <desfire/log.h>
 #include <memory>
 #include <mlab/bin_data.hpp>
 

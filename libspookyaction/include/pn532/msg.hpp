@@ -5,7 +5,7 @@
 #ifndef PN532_MSG_HPP
 #define PN532_MSG_HPP
 
-#include "bits.hpp"
+#include <pn532/bits.hpp>
 #include <string>
 
 namespace pn532 {

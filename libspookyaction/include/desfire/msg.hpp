@@ -5,9 +5,9 @@
 #ifndef DESFIRE_MSG_HPP
 #define DESFIRE_MSG_HPP
 
-#include "bits.hpp"
-#include "crypto.hpp"
-#include "data.hpp"
+#include <desfire/bits.hpp>
+#include <desfire/crypto.hpp>
+#include <desfire/data.hpp>
 
 namespace desfire {
     [[nodiscard]] const char *to_string(bits::cipher_mode comm);

@@ -44,6 +44,7 @@
 #include "cipher.hpp"
 #include "cipher_provider.hpp"
 #include "data.hpp"
+#include "keys.hpp"
 #include "msg.hpp"
 #include "pcd.hpp"
 #include <list>

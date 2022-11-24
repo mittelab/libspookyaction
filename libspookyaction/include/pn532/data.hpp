@@ -5,12 +5,12 @@
 #ifndef PN532_DATA_HPP
 #define PN532_DATA_HPP
 
-#include "bits.hpp"
-#include "log.h"
-#include "msg.hpp"
 #include <limits>
 #include <mlab/bin_data.hpp>
 #include <mlab/result.hpp>
+#include <pn532/bits.hpp>
+#include <pn532/log.h>
+#include <pn532/msg.hpp>
 
 namespace pn532 {
     using controller_error = bits::error;

@@ -5,9 +5,9 @@
 #ifndef DESFIRE_DATA_HPP
 #define DESFIRE_DATA_HPP
 
-#include "bits.hpp"
-#include "key_actor.hpp"
-#include "log.h"
+#include <desfire/bits.hpp>
+#include <desfire/key_actor.hpp>
+#include <desfire/log.h>
 #include <memory>
 #include <mlab/any_of.hpp>
 #include <mlab/bin_data.hpp>

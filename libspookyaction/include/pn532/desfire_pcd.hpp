@@ -5,8 +5,8 @@
 #ifndef PN532_DESFIRE_PCD_HPP
 #define PN532_DESFIRE_PCD_HPP
 
-#include "controller.hpp"
-#include "desfire/pcd.hpp"
+#include <desfire/pcd.hpp>
+#include <pn532/controller.hpp>
 
 namespace pn532 {
     class desfire_pcd final : public desfire::pcd {

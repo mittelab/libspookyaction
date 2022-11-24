@@ -5,7 +5,7 @@
 #ifndef DESFIRE_KEY_ACTOR_HPP
 #define DESFIRE_KEY_ACTOR_HPP
 
-#include "bits.hpp"
+#include <desfire/bits.hpp>
 #include <desfire/log.h>
 
 namespace desfire {

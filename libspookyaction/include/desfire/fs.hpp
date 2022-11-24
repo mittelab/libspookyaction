@@ -5,7 +5,7 @@
 #ifndef DESFIRE_FS_HPP
 #define DESFIRE_FS_HPP
 
-#include "tag.hpp"
+#include <desfire/tag.hpp>
 
 #ifndef DESFIRE_NO_FS_MACROS
 

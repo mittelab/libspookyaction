@@ -5,9 +5,9 @@
 #ifndef DESFIRE_CRYPTO_ALGO_HPP
 #define DESFIRE_CRYPTO_ALGO_HPP
 
-#include "log.h"
 #include <algorithm>
 #include <cstdint>
+#include <desfire/log.h>
 #include <iterator>
 #include <mlab/bin_data.hpp>
 #include <utility>

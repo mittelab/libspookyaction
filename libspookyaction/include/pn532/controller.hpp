@@ -34,11 +34,11 @@
 #ifndef PN532_CONTROLLER_HPP
 #define PN532_CONTROLLER_HPP
 
-#include "bits.hpp"
-#include "channel.hpp"
-#include "data.hpp"
-#include "msg.hpp"
 #include <mlab/result.hpp>
+#include <pn532/bits.hpp>
+#include <pn532/channel.hpp>
+#include <pn532/data.hpp>
+#include <pn532/msg.hpp>
 
 namespace pn532 {
     namespace {

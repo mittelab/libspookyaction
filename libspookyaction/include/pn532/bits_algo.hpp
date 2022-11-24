@@ -5,10 +5,10 @@
 #ifndef PN532_BITS_ALGO_HPP
 #define PN532_BITS_ALGO_HPP
 
-#include "bits.hpp"
 #include <array>
 #include <cstdint>
 #include <numeric>
+#include <pn532/bits.hpp>
 
 namespace pn532::bits {
 

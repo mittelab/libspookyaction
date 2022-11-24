@@ -5,8 +5,8 @@
 #ifndef DESFIRE_KEYS_HPP
 #define DESFIRE_KEYS_HPP
 
-#include "bits.hpp"
-#include "crypto_algo.hpp"
+#include <desfire/bits.hpp>
+#include <desfire/crypto_algo.hpp>
 #include <mlab/any_of.hpp>
 #include <mlab/bin_data.hpp>
 

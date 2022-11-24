@@ -7,6 +7,7 @@
 
 #include <desfire/cipher.hpp>
 #include <desfire/data.hpp>
+#include <desfire/keys.hpp>
 
 namespace desfire {
     namespace {

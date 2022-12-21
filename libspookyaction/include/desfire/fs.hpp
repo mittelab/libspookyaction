@@ -14,7 +14,7 @@
 #endif
 
 #define DESFIRE_CMD_WITH_NAMED_RESULT(CMD, RESULT_NAME)                                                        \
-    if (const auto RESULT_NAME = (CMD); not RESULT_NAME) {                                                     \
+    if (auto RESULT_NAME = (CMD); not RESULT_NAME) {                                                     \
         ESP_LOGW(DESFIRE_FS_LOG_PREFIX, "Failed " #CMD " with %s", ::desfire::to_string(RESULT_NAME.error())); \
         return RESULT_NAME.error();                                                                            \
     }
@@ -101,6 +101,13 @@ namespace desfire::fs {
      * @return A boolean representing whether the file was found (or an error).
      */
     [[nodiscard]] r<bool> does_file_exist(tag &tag, file_id fid);
+
+    /**
+     * @brief List all the files in the current app, and returns those among @p fids that exist.
+     * @param fids Vector of file IDs to search for.
+     * @return A sorted list of items of @p fids that exist
+     */
+    [[nodiscard]] r<std::vector<file_id>> which_files_exist(tag &tag, std::vector<file_id> fids);
 
     /**
      * @brief Searches for an app @p aid in the list of applications.

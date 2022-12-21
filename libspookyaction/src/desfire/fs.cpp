@@ -3,6 +3,7 @@
 //
 
 #include <desfire/fs.hpp>
+#include <algorithm>
 
 namespace desfire::fs {
 
@@ -83,6 +84,16 @@ namespace desfire::fs {
     r<bool> does_file_exist(tag &tag, file_id fid) {
         TRY_RESULT(tag.get_file_ids()) {
             return std::find(std::begin(*r), std::end(*r), fid) != std::end(*r);
+        }
+    }
+
+    r<std::vector<file_id>> which_files_exist(tag &tag, std::vector<file_id> fids) {
+        TRY_RESULT(tag.get_file_ids()) {
+            std::sort(std::begin(*r), std::end(*r));
+            std::sort(std::begin(fids), std::end(fids));
+            std::vector<file_id> retval{};
+            std::set_intersection(std::begin(fids), std::end(fids), std::begin(*r), std::end(*r), std::back_inserter(retval));
+            return retval;
         }
     }
 

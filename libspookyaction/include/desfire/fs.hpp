@@ -14,7 +14,7 @@
 #endif
 
 #define DESFIRE_CMD_WITH_NAMED_RESULT(CMD, RESULT_NAME)                                                        \
-    if (auto RESULT_NAME = (CMD); not RESULT_NAME) {                                                     \
+    if (auto RESULT_NAME = (CMD); not RESULT_NAME) {                                                           \
         ESP_LOGW(DESFIRE_FS_LOG_PREFIX, "Failed " #CMD " with %s", ::desfire::to_string(RESULT_NAME.error())); \
         return RESULT_NAME.error();                                                                            \
     }
@@ -40,6 +40,7 @@ namespace desfire::fs {
      * The file can only be deleted afterwards, it is not possible to write on it, only read and it requires no authentication to read.
      * This assumes the app is already selected, the user is already authenticated, if the security settings require so,
      * and file @p fid does not exists.
+     * @note The caller is responsible for selecting the app and authenticating. No change in app and key is performed by this method.
      * @param fid Id of the file to create
      * @param value Value of the file
      * @return A result representing whether the operation was successful or not.
@@ -55,6 +56,7 @@ namespace desfire::fs {
      * @brief Makes the current app read only.
      * This is achieved by preventing any change in the master key and configuration, and allowing
      * no key to further change keys.
+     * @note The caller is responsible for selecting the app and authenticating. No change in app and key is performed by this method.
      * @note If any other key is set up, then those keys will still be able to modify the application. Make
      * sure the current key is the only allowed key in the app.
      * @param list_requires_auth True to require authentication with a key for listing files
@@ -64,6 +66,7 @@ namespace desfire::fs {
 
     /**
      * @brief Creates an app with a unique, randomized key, suitable for being turned into a read-only app later.
+     * @note The caller is responsible for selecting the root app and authenticating. No change in app and key is performed by this method.
      * @param tag
      * @param aid
      * @return
@@ -72,6 +75,8 @@ namespace desfire::fs {
 
     /**
      * Creates a new app with key zero set to @p master_key, allowing for @p extra_keys extra keys.
+     * @note The caller is responsible for selecting the root app and authenticating. On successful exit, the tag
+     * will have @p aid selected and @p master_key authenticated.
      * @param master_key The key number is ignored, the key is used as master key with key number zero.
      * @param rights These key rights will be applied to the app after the key has been changed.
      * @param extra_keys Number of extra keys to allow in the app. Note that if you forbid changing keys, you will never be able to change them.
@@ -80,7 +85,7 @@ namespace desfire::fs {
 
     /**
      * @brief Deletes a file in the current app if existing.
-     * This assumes the app is already selected and the user is already authenticated, if the security settings require so.
+     * @note The caller is responsible for selecting the app and authenticating. No change in app and key is performed by this method.
      * @param fid File to delete.
      * @return A result representing whether the operation was successful.
      */
@@ -88,7 +93,7 @@ namespace desfire::fs {
 
     /**
      * @brief Deletes app in if it exists.
-     * This assumes that the root app is unlocked, if the security settings require so.
+     * @note The caller is responsible for selecting the root app and authenticating. No change in app and key is performed by this method.
      * @param aid App to delete.
      * @return A result representing whether the operation was successful.
      */
@@ -96,7 +101,7 @@ namespace desfire::fs {
 
     /**
      * @brief Searches for a file id @p fid in the list of files of the current app.
-     * This assumes the app is already selected and the user is already authenticated, if the security settings require so.
+     * @note The caller is responsible for selecting the app and authenticating. No change in app and key is performed by this method.
      * @param fid File to search for.
      * @return A boolean representing whether the file was found (or an error).
      */
@@ -104,6 +109,7 @@ namespace desfire::fs {
 
     /**
      * @brief List all the files in the current app, and returns those among @p fids that exist.
+     * @note The caller is responsible for selecting the app and authenticating. No change in app and key is performed by this method.
      * @param fids Vector of file IDs to search for.
      * @return A sorted list of items of @p fids that exist
      */
@@ -111,7 +117,7 @@ namespace desfire::fs {
 
     /**
      * @brief Searches for an app @p aid in the list of applications.
-     * This assumes the user is already authenticated, if the security settings require so.
+     * @note The caller is responsible for selecting the root app and authenticating. No change in app and key is performed by this method.
      * @param aid App to search for.
      * @return A boolean representing whether the app was found (or an error).
      */

@@ -4,7 +4,7 @@
 
 #include "test_desfire_ciphers.hpp"
 #include <desfire/data.hpp>
-#include <desfire/esp32/crypto_impl.hpp>
+#include <desfire/esp32/cipher_provider.hpp>
 #include <desfire/kdf.hpp>
 #include <unity.h>
 

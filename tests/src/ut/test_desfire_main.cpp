@@ -4,7 +4,7 @@
 
 #include "test_desfire_main.hpp"
 #include "utils.hpp"
-#include <desfire/esp32/crypto_impl.hpp>
+#include <desfire/esp32/cipher_provider.hpp>
 #include <map>
 #include <mbcontroller.h>
 #include <pn532/msg.hpp>
@@ -115,18 +115,18 @@ namespace ut::desfire_main {
     }
 
     test_data::test_data(std::shared_ptr<ut::pn532::test_instance> pn532_test_instance, std::uint8_t card_logical_index)
-        : _pcd{std::make_unique<pn532::desfire_pcd>(pn532_test_instance->tag_reader(), card_logical_index)},
+        : _pcd{std::make_shared<pn532::desfire_pcd>(pn532_test_instance->tag_reader(), card_logical_index)},
           _hold_test_instance{std::move(pn532_test_instance)},
-          _tag{*_pcd, std::make_unique<esp32::default_cipher_provider>()} {
+          _tag{::desfire::tag::make<esp32::default_cipher_provider>(_pcd)} {
         if (_pcd == nullptr) {
             ESP_LOGE(TEST_TAG, "desfire::tag object was set up with an invalid pcd! If a SEGFAULT did not happen, it is about to.");
         }
     }
 
-    test_data::test_data(std::unique_ptr<pn532::desfire_pcd> controller)
+    test_data::test_data(std::shared_ptr<pn532::desfire_pcd> controller)
         : _pcd{std::move(controller)},
           _hold_test_instance{nullptr},
-          _tag{*_pcd, std::make_unique<esp32::default_cipher_provider>()} {
+          _tag{::desfire::tag::make<esp32::default_cipher_provider>(_pcd)} {
         if (_pcd == nullptr) {
             ESP_LOGE(TEST_TAG, "desfire::tag object was set up with an invalid pcd! If a SEGFAULT did not happen, it is about to.");
         }
@@ -404,7 +404,7 @@ namespace ut::desfire_main {
     }// namespace
     std::shared_ptr<test_instance> try_connect_card(pn532::controller &tag_reader) {
         if (const auto logical_idx = try_find_card(tag_reader); logical_idx != std::numeric_limits<std::uint8_t>::max()) {
-            return std::make_shared<test_instance>(std::make_unique<pn532::desfire_pcd>(tag_reader, logical_idx));
+            return std::make_shared<test_instance>(std::make_shared<pn532::desfire_pcd>(tag_reader, logical_idx));
         }
         return nullptr;
     }

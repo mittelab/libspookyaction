@@ -41,15 +41,16 @@
 #ifndef DESFIRE_TAG_HPP
 #define DESFIRE_TAG_HPP
 
-#include "cipher.hpp"
-#include "cipher_provider.hpp"
-#include "data.hpp"
-#include "keys.hpp"
-#include "msg.hpp"
-#include "pcd.hpp"
+#include <desfire/cipher.hpp>
+#include <desfire/cipher_provider.hpp>
+#include <desfire/data.hpp>
+#include <desfire/keys.hpp>
+#include <desfire/msg.hpp>
+#include <desfire/pcd.hpp>
 #include <list>
 #include <memory>
 #include <mlab/result.hpp>
+#include <type_traits>
 
 
 namespace ut::desfire_exchanges {
@@ -88,7 +89,17 @@ namespace desfire {
          * @param pcd_ a @ref desfire::pcd class that handles the tag communication. This must be alive at least as long as the @ref tag object.
          * @param provider Any @ref cipher_provider implementation to convert keys into the respective cipher.
          */
-        inline tag(desfire::pcd &pcd, std::unique_ptr<cipher_provider> provider);
+        inline tag(std::shared_ptr<desfire::pcd> pcd, std::unique_ptr<cipher_provider> provider);
+
+        /**
+         * @brief Constructs a new tag object instantiating the given cipher provider.
+         * @tparam CipherProvider A subclass of @ref desfire::cipher_provider, which must be default-constructible.
+         * @tparam PCD A subclass of @ref desfire::pcd or a @ref std::shared_ptr to such a subclass
+         * @param pcd A (shared pointer of) a subclass of @ref desfire::pcd used as pcd for the tag.
+         * @return An instance of @ref tag.
+         */
+        template <class CipherProvider, class PCD>
+        [[nodiscard]] static inline tag make(PCD &&pcd);
 
         tag(tag const &) = delete;
 
@@ -1173,7 +1184,7 @@ namespace desfire {
 
         struct auto_logout;
 
-        desfire::pcd *_pcd;
+        std::shared_ptr<desfire::pcd> _pcd;
 
         std::unique_ptr<cipher_provider> _provider;
         std::unique_ptr<cipher> _active_cipher;
@@ -1199,12 +1210,26 @@ namespace desfire {
         return *_pcd;
     }
 
-    tag::tag(desfire::pcd &pcd, std::unique_ptr<cipher_provider> provider) : _pcd{&pcd},
-                                                                             _provider{std::move(provider)},
-                                                                             _active_cipher{std::make_unique<cipher_dummy>()},
-                                                                             _active_key_type{cipher_type::none},
-                                                                             _active_key_number{std::numeric_limits<std::uint8_t>::max()},
-                                                                             _active_app{root_app} {}
+    tag::tag(std::shared_ptr<desfire::pcd> pcd, std::unique_ptr<cipher_provider> provider) : _pcd{std::move(pcd)},
+                                                                                             _provider{std::move(provider)},
+                                                                                             _active_cipher{std::make_unique<cipher_dummy>()},
+                                                                                             _active_key_type{cipher_type::none},
+                                                                                             _active_key_number{std::numeric_limits<std::uint8_t>::max()},
+                                                                                             _active_app{root_app} {}
+
+    template <class CipherProvider, class PCD>
+    tag tag::make(PCD &&pcd) {
+        static_assert(std::is_base_of_v<desfire::cipher_provider, CipherProvider>);
+        static_assert(std::is_default_constructible_v<CipherProvider>);
+
+        if constexpr (std::is_base_of_v<desfire::pcd, PCD>) {
+            static_assert(std::is_move_constructible_v<PCD>);
+            return tag{std::make_shared<PCD>(std::move(pcd)), std::make_unique<CipherProvider>()};
+        } else {
+            static_assert(std::is_convertible_v<PCD, std::shared_ptr<desfire::pcd>>);
+            return tag{std::move(pcd), std::make_unique<CipherProvider>()};
+        }
+    }
 
     template <cipher_type Type>
     tag::result<> tag::authenticate(key<Type> const &k) {

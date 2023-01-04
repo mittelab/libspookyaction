@@ -5,7 +5,6 @@
 #ifndef DESFIRE_ESP32_CRYPTO_IMPL_HPP
 #define DESFIRE_ESP32_CRYPTO_IMPL_HPP
 
-#include <desfire/cipher_provider.hpp>
 #include <desfire/crypto.hpp>
 
 #include <sdkconfig.h>
@@ -167,7 +166,6 @@ namespace desfire::esp32 {
         void setup_primitives_with_key(range<std::uint8_t const *> key) override;
     };
 
-    using default_cipher_provider = typed_cipher_provider<crypto_des, crypto_2k3des, crypto_3k3des, crypto_aes>;
 }// namespace desfire::esp32
 
 #endif//DESFIRE_ESP32_CRYPTO_IMPL_HPP

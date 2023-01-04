@@ -30,13 +30,13 @@ namespace ut {
         };
 
         class test_data {
-            std::unique_ptr<pn532::desfire_pcd> _pcd = nullptr;
+            std::shared_ptr<pn532::desfire_pcd> _pcd = nullptr;
             std::shared_ptr<ut::pn532::test_instance> _hold_test_instance;
             ::desfire::tag _tag;
 
         public:
             test_data(std::shared_ptr<ut::pn532::test_instance> pn532_test_instance, std::uint8_t card_logical_index);
-            explicit test_data(std::unique_ptr<pn532::desfire_pcd> controller);
+            explicit test_data(std::shared_ptr<pn532::desfire_pcd> controller);
 
             [[nodiscard]] pn532::desfire_pcd &controller();
             [[nodiscard]] ::desfire::tag &tag();

@@ -1,4 +1,4 @@
-#include <desfire/esp32/crypto_impl.hpp>
+#include <desfire/esp32/cipher_provider.hpp>
 #include <desfire/tag.hpp>
 #include <pn532/controller.hpp>
 #include <pn532/desfire_pcd.hpp>
@@ -202,10 +202,8 @@ extern "C" void app_main() {
      * @note The following code is specific to this example.
      */
 
-    // Find any compatible target
-    pn532::desfire_pcd pcd = find_desfire(pn532);
-    // Construct the default cipher provider for an ESP32 and initialize the tag.
-    desfire::tag tag{pcd, std::make_unique<desfire::esp32::default_cipher_provider>()};
+    // Find any compatible target and onstruct the default cipher provider for an ESP32 and initialize the tag.
+    auto tag = desfire::tag::make<desfire::esp32::default_cipher_provider>(find_desfire(pn532));
 
     if (authenticate_to_root_app(tag)) {
         print_card_info(tag);

@@ -99,7 +99,7 @@ void demo_app_and_file(desfire::tag &tag) {
                     // The file is stored encrypted
                     desfire::file_security::encrypted,
                     // The file is accessible only by the demo app key
-                    desfire::access_rights{demo_app_key.key_number}},
+                    desfire::access_rights{demo_app_key.key_number()}},
             desfire::data_file_settings{
                     // The file size is going to be 16 bytes
                     .size = demo_file_size}};

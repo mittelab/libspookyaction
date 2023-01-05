@@ -22,7 +22,7 @@ namespace desfire::fs {
         const file_settings<file_type::standard> init_settings{
                 generic_file_settings{
                         file_security::none,
-                        access_rights{no_key, no_key, all_keys, tag.active_key_no()}},
+                        access_rights{no_key, tag.active_key_no(), all_keys, tag.active_key_no()}},
                 data_file_settings{value.size()}};
         // Final access rights revoke the write access
         const generic_file_settings final_settings{

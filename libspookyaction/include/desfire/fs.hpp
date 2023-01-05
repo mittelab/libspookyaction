@@ -66,7 +66,8 @@ namespace desfire::fs {
 
     /**
      * @brief Creates an app with a unique, randomized key, suitable for being turned into a read-only app later.
-     * @note The caller is responsible for selecting the root app and authenticating. No change in app and key is performed by this method.
+     * @note The caller is responsible for selecting the root app and authenticating. On successful exit, the tag
+     * will have @p aid selected and be authenticated on the returned key.
      * @param tag
      * @param aid
      * @return

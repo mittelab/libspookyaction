@@ -169,6 +169,15 @@ namespace ut::desfire_files {
         TEST_ASSERT(r_read)
         TEST_ASSERT_EQUAL(load.size(), r_read->size());
         TEST_ASSERT_EQUAL_HEX8_ARRAY(load.data(), r_read->data(), load.size());
+        test_change_file_settings(mifare);
+    }
+
+    void demo_file::test_change_file_settings(tag &mifare) const {
+        const auto r_settings = mifare.get_file_settings(fid());
+        TEST_ASSERT(r_settings);
+        if (r_settings) {
+            TEST_ASSERT(mifare.change_file_settings(fid(), r_settings->generic_settings(), security));
+        }
     }
 
     void demo_file::test_backup_data_file(tag &mifare, bin_data const &load) const {
@@ -181,6 +190,7 @@ namespace ut::desfire_files {
         TEST_ASSERT(r_read)
         TEST_ASSERT_EQUAL(load.size(), r_read->size());
         TEST_ASSERT_EQUAL_HEX8_ARRAY(load.data(), r_read->data(), load.size());
+        test_change_file_settings(mifare);
     }
 
     void demo_file::test_value_file(tag &mifare) const {
@@ -198,6 +208,7 @@ namespace ut::desfire_files {
         TEST_ASSERT(mifare.debit(fid(), 5, security))
         TEST_ASSERT(mifare.commit_transaction())
         test_get_value(-3);
+        test_change_file_settings(mifare);
     }
 
     void demo_file::test_record_file(tag &mifare) const {
@@ -222,6 +233,7 @@ namespace ut::desfire_files {
         TEST_ASSERT_EQUAL_HEX8_ARRAY(expected.data(), res_records->front().data(), 8);
         TEST_ASSERT(mifare.clear_record_file(fid()))
         TEST_ASSERT(mifare.commit_transaction())
+        test_change_file_settings(mifare);
     }
 
     void test_file() {

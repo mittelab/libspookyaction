@@ -1224,10 +1224,10 @@ namespace desfire {
 
         if constexpr (std::is_base_of_v<desfire::pcd, PCD>) {
             static_assert(std::is_move_constructible_v<PCD>);
-            return tag{std::make_shared<PCD>(std::move(pcd)), std::make_unique<CipherProvider>()};
+            return tag{std::make_shared<PCD>(std::forward<PCD>(pcd)), std::make_unique<CipherProvider>()};
         } else {
             static_assert(std::is_convertible_v<PCD, std::shared_ptr<desfire::pcd>>);
-            return tag{std::move(pcd), std::make_unique<CipherProvider>()};
+            return tag{std::forward<PCD>(pcd), std::make_unique<CipherProvider>()};
         }
     }
 

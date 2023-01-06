@@ -104,11 +104,11 @@ namespace desfire {
 
     tag::comm_cfg const &tag::default_comm_cfg() const {
         if (active_cipher_is_legacy()) {
-            static const comm_cfg _legacy_plain{cipher_mode::plain};
-            return _legacy_plain;
+            static constexpr comm_cfg _default{cipher_mode::plain};
+            return _default;
         } else {
-            static const comm_cfg _plain_tx_mac_rx{cipher_mode::plain, cipher_mode::maced};
-            return _plain_tx_mac_rx;
+            static constexpr comm_cfg _default{cipher_mode::plain, cipher_mode::maced};
+            return _default;
         }
     }
 

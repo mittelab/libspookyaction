@@ -66,12 +66,12 @@ namespace desfire {
 
     struct trust_card_t {};
     /**
-     * @brief Flag marking the card as trusted, which enables accepting the @ref file_security mode set in the card.
+     * @brief Flag marking the card as trusted, which enables determining automatically the communication mode from file settings..
      *
-     * When using this instead of an explicitly @ref file_security (in the methods of @ref tag that allow to do so),
+     * When using this instead of an explicitly set @ref cipher_mode (in the methods of @ref tag that allow to do so),
      * @ref tag will be instructed to query and accept whatever security mode the file is written in. This might impact
      * security because a cloned card with different file security modes could prompt for a different communication mode
-     * than the one intended. Therefore, they have to be called explictly with `trust_card`.
+     * than the one intended. Therefore, they have to be called explicitly with `trust_card`.
      */
     static constexpr trust_card_t trust_card{};
 
@@ -459,7 +459,7 @@ namespace desfire {
          * @brief Read the file settings
          * @ingroup data
          * @param fid The file ID, Max @ref bits::max_standard_data_file_id.
-         * @return @ref any_file_settings containingthe file settings, or the following errors:
+         * @return @ref any_file_settings containing the file settings, or the following errors:
          * - @ref error::malformed
          * - @ref error::crypto_error
          * - @ref error::controller_error
@@ -511,13 +511,12 @@ namespace desfire {
          * @ingroup data
          * @param fid The file ID, Max @ref bits::max_standard_data_file_id.
          * @param settings The new file settings
-         * @note will read the file configuration to check witch communication mode (@ref file_security) should use
          * @return None, or the following errors:
          * - @ref error::malformed
          * - @ref error::crypto_error
          * - @ref error::controller_error
          *
-         * @warning Consider using the overload of this method which requires explicitly a @ref file_security parameter.
+         * @warning Consider using the overload of this method which requires explicitly a @ref cipher_mode operation mode parameter.
          *  This method will auto-detect the security settings used: if a card is cloned and a file is created with the same id
          *  but different security, this method will accept the different security transmission mode. It may thus leak data.
          */
@@ -560,13 +559,16 @@ namespace desfire {
          * @ingroup data
          * @param fid The file ID, Max @ref bits::max_standard_data_file_id.
          * @param settings The new file settings
-         * @param security The communication mode to use
+         * @param operation_mode The communication mode to use for this operation. This is derived from the base file security and
+         *  the value of @ref access_rights::change member: a free access implies no security is specified, otherwise it falls back
+         *  to the file's own security mode.
+         * @see determine_operation_mode
          * @return None, or the following errors:
          * - @ref error::malformed
          * - @ref error::crypto_error
          * - @ref error::controller_error
          */
-        result<> change_file_settings(file_id fid, generic_file_settings const &settings, file_security security);
+        result<> change_file_settings(file_id fid, generic_file_settings const &settings, cipher_mode operation_mode);
 
         /**
          * @dot
@@ -813,7 +815,7 @@ namespace desfire {
          * - @ref error::crypto_error
          * - @ref error::controller_error
          *
-         * @warning Consider using the overload of this method which requires explicitly a @ref file_security parameter.
+         * @warning Consider using the overload of this method which requires explicitly a @ref cipher_mode operation mode parameter.
          *  This method will auto-detect the security settings used: if a card is cloned and a file is created with the same id
          *  but different security, this method will accept the different security transmission mode. It may thus leak data.
          */
@@ -825,13 +827,16 @@ namespace desfire {
          * @param fid Max @ref bits::max_standard_data_file_id or @ref bits::max_backup_data_file_id
          * @param offset Limited to 24 bits, i.e. must be below 0xFFFFFF.
          * @param length Limited to 24 bits, i.e. must be below 0xFFFFFF.
-         * @param security Force the communication mode, and do not auto-detect
+         * @param operation_mode The communication mode to use for this operation. This is derived from the base file security and
+         *  the value of @ref access_rights::read and @ref access_rights::read_write members: a free access implies no security
+         *  is specified, otherwise it falls back to the file's own security mode.
+         * @see determine_operation_mode
          * @return @ref bin_data containing requested data, or the following errors:
          * - @ref error::malformed
          * - @ref error::crypto_error
          * - @ref error::controller_error
          */
-        result<bin_data> read_data(file_id fid, std::uint32_t offset, std::uint32_t length, file_security security);
+        result<bin_data> read_data(file_id fid, std::uint32_t offset, std::uint32_t length, cipher_mode operation_mode);
 
         /**
          * @brief write data to file
@@ -845,7 +850,7 @@ namespace desfire {
          * - @ref error::parameter_error
          * - @ref error::controller_error
          *
-         * @warning Consider using the overload of this method which requires explicitly a @ref file_security parameter.
+         * @warning Consider using the overload of this method which requires explicitly a @ref cipher_mode operation mode parameter.
          *  This method will auto-detect the security settings used: if a card is cloned and a file is created with the same id
          *  but different security, this method will accept the different security transmission mode. It may thus leak data.
          */
@@ -856,14 +861,17 @@ namespace desfire {
          * @param fid Max @ref bits::max_standard_data_file_id or @ref bits::max_backup_data_file_id
          * @param offset Limited to 24 bits, i.e. must be below 0xFFFFFF.
          * @param data Limited to 24 bits, i.e. must be below 0xFFFFFF.
-         * @param security Force the communication mode, and do not auto-detect
+         * @param operation_mode The communication mode to use for this operation. This is derived from the base file security and
+         *  the value of @ref access_rights::write and @ref access_rights::read_write members: a free access implies no security
+         *  is specified, otherwise it falls back to the file's own security mode.
+         * @see determine_operation_mode
          * @return None, or the following errors:
          * - @ref error::malformed
          * - @ref error::crypto_error
          * - @ref error::parameter_error
          * - @ref error::controller_error
          */
-        result<> write_data(file_id fid, std::uint32_t offset, bin_data const &data, file_security security);
+        result<> write_data(file_id fid, std::uint32_t offset, bin_data const &data, cipher_mode operation_mode);
 
         /**
          *
@@ -876,7 +884,7 @@ namespace desfire {
          * - @ref error::crypto_error
          * - @ref error::controller_error
          *
-         * @warning Consider using the overload of this method which requires explicitly a @ref file_security parameter.
+         * @warning Consider using the overload of this method which requires explicitly a @ref cipher_mode operation mode parameter.
          *  This method will auto-detect the security settings used: if a card is cloned and a file is created with the same id
          *  but different security, this method will accept the different security transmission mode. It may thus leak data.
          */
@@ -897,13 +905,16 @@ namespace desfire {
          * @brief read value of a credit/debit file
          * @ingroup valueFile
          * @param fid Max @ref bits::max_value_file_id.
-         * @param security Force the communication mode, and do not auto-detect
+         * @param operation_mode The communication mode to use for this operation. This is derived from the base file security and
+         *  the value of @ref access_rights::read and @ref access_rights::read_write members: a free access implies no security
+         *  is specified, otherwise it falls back to the file's own security mode.
+         * @see determine_operation_mode
          * @return the value in the file, or the following errors:
          * - @ref error::malformed
          * - @ref error::crypto_error
          * - @ref error::controller_error
          */
-        result<std::int32_t> get_value(file_id fid, file_security security);
+        result<std::int32_t> get_value(file_id fid, cipher_mode operation_mode);
 
         /**
          *
@@ -917,7 +928,7 @@ namespace desfire {
          * - @ref error::crypto_error
          * - @ref error::controller_error
          *
-         * @warning Consider using the overload of this method which requires explicitly a @ref file_security parameter.
+         * @warning Consider using the overload of this method which requires explicitly a @ref cipher_mode operation mode parameter.
          *  This method will auto-detect the security settings used: if a card is cloned and a file is created with the same id
          *  but different security, this method will accept the different security transmission mode. It may thus leak data.
          */
@@ -939,13 +950,16 @@ namespace desfire {
          * @ingroup valueFile
          * @param fid Max @ref bits::max_value_file_id.
          * @param amount Must be nonnegative.
-         * @param security Force the communication mode, and do not auto-detect
+         * @param security The communication mode to use for this operation. This is derived from the base file security and
+         *  the value of @ref access_rights::write and @ref access_rights::read_write members: a free access implies no security
+         *  is specified, otherwise it falls back to the file's own security mode.
+         * @see determine_operation_mode
          * @return None, or the following errors:
          * - @ref error::malformed
          * - @ref error::crypto_error
          * - @ref error::controller_error
          */
-        result<> credit(file_id fid, std::int32_t amount, file_security security);
+        result<> credit(file_id fid, std::int32_t amount, cipher_mode operation_mode);
 
         /**
          *
@@ -959,7 +973,7 @@ namespace desfire {
          * - @ref error::crypto_error
          * - @ref error::controller_error
          *
-         * @warning Consider using the overload of this method which requires explicitly a @ref file_security parameter.
+         * @warning Consider using the overload of this method which requires explicitly a @ref cipher_mode operation mode parameter.
          *  This method will auto-detect the security settings used: if a card is cloned and a file is created with the same id
          *  but different security, this method will accept the different security transmission mode. It may thus leak data.
          */
@@ -981,14 +995,17 @@ namespace desfire {
          * @ingroup valueFile
          * @param fid Max @ref bits::max_value_file_id.
          * @param amount Must be nonnegative.
-         * @param security Force the communication mode, and do not auto-detect
+         * @param security The communication mode to use for this operation. This is derived from the base file security and
+         *  the value of @ref access_rights::write and @ref access_rights::read_write members: a free access implies no security
+         *  is specified, otherwise it falls back to the file's own security mode.
+         * @see determine_operation_mode
          * @note This can be used without full write/read permission. It can be use to refound a transaction in a safe way.
          * @return None, or the following errors:
          * - @ref error::malformed
          * - @ref error::crypto_error
          * - @ref error::controller_error
          */
-        result<> limited_credit(file_id fid, std::int32_t amount, file_security security);
+        result<> limited_credit(file_id fid, std::int32_t amount, cipher_mode operation_mode);
 
         /**
          *
@@ -1001,7 +1018,7 @@ namespace desfire {
          * - @ref error::crypto_error
          * - @ref error::controller_error
          *
-         * @warning Consider using the overload of this method which requires explicitly a @ref file_security parameter.
+         * @warning Consider using the overload of this method which requires explicitly a @ref cipher_mode operation mode parameter.
          *  This method will auto-detect the security settings used: if a card is cloned and a file is created with the same id
          *  but different security, this method will accept the different security transmission mode. It may thus leak data.
          */
@@ -1023,13 +1040,16 @@ namespace desfire {
          * @ingroup valueFile
          * @param fid Max @ref bits::max_value_file_id.
          * @param amount Must be nonnegative.
-         * @param security Force the communication mode, and do not auto-detect
+         * @param security The communication mode to use for this operation. This is derived from the base file security and
+         *  the value of @ref access_rights::write and @ref access_rights::read_write members: a free access implies no security
+         *  is specified, otherwise it falls back to the file's own security mode.
+         * @see determine_operation_mode
          * @return None, or the following errors:
          * - @ref error::malformed
          * - @ref error::crypto_error
          * - @ref error::controller_error
          */
-        result<> debit(file_id fid, std::int32_t amount, file_security security);
+        result<> debit(file_id fid, std::int32_t amount, cipher_mode operation_mode);
 
         /**
          * @brief Write to a linear or cyclic file
@@ -1043,7 +1063,7 @@ namespace desfire {
          * - @ref error::parameter_error
          * - @ref error::controller_error
          *
-         * @warning Consider using the overload of this method which requires explicitly a @ref file_security parameter.
+         * @warning Consider using the overload of this method which requires explicitly a @ref cipher_mode operation mode parameter.
          *  This method will auto-detect the security settings used: if a card is cloned and a file is created with the same id
          *  but different security, this method will accept the different security transmission mode. It may thus leak data.
          */
@@ -1055,38 +1075,41 @@ namespace desfire {
          * @param fid Max @ref bits::max_record_file_id.
          * @param offset Limited to 24 bits, i.e. must be below 0xFFFFFF.
          * @param data Limited to 24 bits, i.e. must be below 0xFFFFFF.
-         * @param security Force the communication mode, and do not auto-detect
+         * @param operation_mode The communication mode to use for this operation. This is derived from the base file security and
+         *  the value of @ref access_rights::write and @ref access_rights::read_write members: a free access implies no security
+         *  is specified, otherwise it falls back to the file's own security mode.
+         * @see determine_operation_mode
          * @return None, or the following errors:
          * - @ref error::malformed
          * - @ref error::crypto_error
          * - @ref error::parameter_error
          * - @ref error::controller_error
          */
-        result<> write_record(file_id fid, std::uint32_t offset, bin_data const &data, file_security security);
+        result<> write_record(file_id fid, std::uint32_t offset, bin_data const &data, cipher_mode operation_mode);
 
         template <class T>
         result<> write_record(file_id fid, T &&record, trust_card_t);
         template <class T>
-        result<> write_record(file_id fid, T &&record, file_security security);
+        result<> write_record(file_id fid, T &&record, cipher_mode operation_mode);
 
         template <class T>
         result<std::vector<T>> read_parse_records(file_id fid, trust_card_t, std::uint32_t index = 0, std::uint32_t count = all_records);
 
         template <class T>
-        result<std::vector<T>> read_parse_records(file_id fid, std::uint32_t index, std::uint32_t count, file_security security);
+        result<std::vector<T>> read_parse_records(file_id fid, std::uint32_t index, std::uint32_t count, cipher_mode operation_mode);
 
         /**
          * @brief Read records from a linear or cyclic file
          * @param fid Max @ref bits::max_record_file_id.
          * @param record_index Limited to 24 bits, i.e. must be below 0xFFFFFF.
          * @param record_count Limited to 24 bits, i.e. must be below 0xFFFFFF.
-         * @return @ref bin_data containingthe record/s, or the following errors:
+         * @return @ref bin_data containing the record/s, or the following errors:
          * - @ref error::malformed
          * - @ref error::crypto_error
          * - @ref error::parameter_error
          * - @ref error::controller_error
          *
-         * @warning Consider using the overload of this method which requires explicitly a @ref file_security parameter.
+         * @warning Consider using the overload of this method which requires explicitly a @ref cipher_mode operation mode parameter.
          *  This method will auto-detect the security settings used: if a card is cloned and a file is created with the same id
          *  but different security, this method will accept the different security transmission mode. It may thus leak data.
          */
@@ -1097,20 +1120,23 @@ namespace desfire {
          * @param fid Max @ref bits::max_record_file_id.
          * @param record_index Limited to 24 bits, i.e. must be below 0xFFFFFF.
          * @param record_count Limited to 24 bits, i.e. must be below 0xFFFFFF.
-         * @param security Force the communication mode, and do not auto-detect
-         * @return @ref bin_data containingthe record/s, or the following errors:
+         * @param operation_mode The communication mode to use for this operation. This is derived from the base file security and
+         *  the value of @ref access_rights::read and @ref access_rights::read_write members: a free access implies no security
+         *  is specified, otherwise it falls back to the file's own security mode.
+         * @see determine_operation_mode
+         * @return @ref bin_data containing the record/s, or the following errors:
          * - @ref error::malformed
          * - @ref error::crypto_error
          * - @ref error::parameter_error
          * - @ref error::controller_error
          */
-        result<bin_data> read_records(file_id fid, std::uint32_t record_index, std::uint32_t record_count, file_security security);
+        result<bin_data> read_records(file_id fid, std::uint32_t record_index, std::uint32_t record_count, cipher_mode operation_mode);
 
         /**
          * @brief Get the card UID
          * @ingroup card
          * @note need to be authenticated, this will fetch the "real" uid in case "uid randomization" is enabled
-         * @return @ref bin_data containingthe record/s, or the following errors:
+         * @return @ref bin_data containing the record/s, or the following errors:
          * - @ref error::malformed
          * - @ref error::crypto_error
          * - @ref error::controller_error
@@ -1140,6 +1166,48 @@ namespace desfire {
          */
         result<> set_configuration(bool allow_format = true, bool enable_random_id = false);
 
+        /**
+         * @brief Determines which security level to apply for a certain file operation.
+         * This method will test @p file_rights and @p security against the specified @p requested_access.
+         * @param requested_access Type of access requested
+         * @param file_rights Access rights to the given file
+         * @param security Security with which the file was created
+         * @return The security mode to apply to an operation that requires the specified @p requested_access mode.
+         */
+        [[nodiscard]] static cipher_mode determine_operation_mode(file_access requested_access, access_rights const &file_rights, file_security security);
+
+        /**
+         * @brief Determines which security level to apply for a certain file operation.
+         * This method will test @ref generic_file_settings::rights and @ref generic_file_settings::security against the specified @p requested_access.
+         * @param requested_access Type of access requested
+         * @param settings File settings
+         * @return The security mode to apply to an operation that requires the specified @p requested_access mode.
+         */
+        [[nodiscard]] static cipher_mode determine_operation_mode(file_access requested_access, generic_file_settings const &settings);
+
+        /**
+         * @brief Determines which security level to apply for a certain file operation.
+         * This method will test @ref generic_file_settings::rights and @ref generic_file_settings::security against the specified @p requested_access
+         * from the @ref any_file_settings::generic_settings property.
+         * @param requested_access Type of access requested
+         * @param settings File settings
+         * @return The security mode to apply to an operation that requires the specified @p requested_access mode.
+         */
+        [[nodiscard]] static cipher_mode determine_operation_mode(file_access requested_access, any_file_settings const &settings);
+
+        /**
+         * @brief Determines which security level to apply for a certain file operation.
+         * This method will query the file settings via @ref get_file_settings and test @p file_rights and @p security
+         * against the specified @p requested_access.
+         * @param requested_access Type of access requested
+         * @param fid File ID
+         * @return The security mode to apply to an operation that requires the specified @p requested_access mode, or the following errors:
+         * - @ref error::malformed
+         * - @ref error::crypto_error
+         * - @ref error::controller_error
+         */
+        [[nodiscard]] result<cipher_mode> determine_operation_mode(file_access requested_access, file_id fid);
+
     private:
         /**
          * The power of friendship, cit. Wifasoi, 2020
@@ -1156,9 +1224,6 @@ namespace desfire {
         template <class T>
         [[nodiscard]] static std::vector<T> parse_records(bin_data const &data, std::uint32_t exp_count);
 
-        [[nodiscard]] result<file_security> determine_file_security(file_id fid, file_access access);
-        [[nodiscard]] file_security determine_file_security(file_access access, any_file_settings const &settings) const;
-
         [[nodiscard]] static result<> safe_drop_payload(command_code cmd, tag::result<bin_data> const &result);
         static void log_not_empty(command_code cmd, range<bin_data::const_iterator> data);
 
@@ -1171,7 +1236,7 @@ namespace desfire {
          * @param fid Max @ref bits::max_value_file_id.
          * @param amount Must be nonnegative.
          */
-        result<> write_value(command_code cmd, file_id fid, std::int32_t amount, file_security security);
+        result<> write_value(command_code cmd, file_id fid, std::int32_t amount, cipher_mode operation_mode);
 
 
         /**
@@ -1311,11 +1376,11 @@ namespace desfire {
 
 
     template <class T>
-    tag::result<> tag::write_record(file_id fid, T &&record, file_security security) {
+    tag::result<> tag::write_record(file_id fid, T &&record, cipher_mode operation_mode) {
         static bin_data buffer{};
         buffer.clear();
         buffer << std::forward<T>(record);
-        return write_record(fid, 0, buffer, security);
+        return write_record(fid, 0, buffer, operation_mode);
     }
 
     template <class T>
@@ -1347,8 +1412,8 @@ namespace desfire {
     }
 
     template <class T>
-    tag::result<std::vector<T>> tag::read_parse_records(file_id fid, std::uint32_t index, std::uint32_t count, file_security security) {
-        const auto res_read_records = read_records(fid, index, count, security);
+    tag::result<std::vector<T>> tag::read_parse_records(file_id fid, std::uint32_t index, std::uint32_t count, cipher_mode operation_mode) {
+        const auto res_read_records = read_records(fid, index, count, operation_mode);
         if (not res_read_records) {
             return res_read_records.error();
         }

@@ -134,7 +134,7 @@ namespace desfire {
 
         [[nodiscard]] inline static access_rights from_word(std::uint16_t word);
 
-        [[nodiscard]] bool is_free(file_access access, std::uint8_t active_key_num) const;
+        [[nodiscard]] bool is_free(file_access access) const;
     };
 
     struct generic_file_settings {

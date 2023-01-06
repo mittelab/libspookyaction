@@ -120,14 +120,12 @@ namespace desfire {
         return _dummy;
     }
 
-    bool access_rights::is_free(file_access access, std::uint8_t active_key_num) const {
+    bool access_rights::is_free(file_access access) const {
         switch (access) {
             case file_access::read:
-                return read != active_key_num and read_write != active_key_num and
-                       (read == all_keys or read_write == all_keys);
+                return read == all_keys or read_write == all_keys;
             case file_access::write:
-                return write != active_key_num and read_write != active_key_num and
-                       (write == all_keys or read_write == all_keys);
+                return write == all_keys or read_write == all_keys;
             case file_access::change:
                 return change == all_keys;
         }

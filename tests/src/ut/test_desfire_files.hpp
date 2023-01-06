@@ -41,7 +41,6 @@ namespace ut {
             void test_backup_data_file(tag &mifare, bin_data const &load) const;
             void test_value_file(tag &mifare) const;
             void test_record_file(tag &mifare) const;
-            void test_change_file_settings(tag &mifare) const;
         };
 
         class test_data {

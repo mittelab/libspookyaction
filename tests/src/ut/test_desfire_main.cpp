@@ -285,10 +285,12 @@ namespace ut::desfire_main {
         }
 
         const auto find_current_key = [&]() -> bool {
-            ESP_LOGI(TEST_TAG, "Attempt to recover the root key (warnings/errors here are normal).");
+            ESP_LOGI(TEST_TAG, "Attempt to recover the root key.");
             TEST_ASSERT(mifare.select_application(root_app))
             for (auto const &key : keys_to_test) {
+                auto suppress = suppress_log{DESFIRE_TAG};
                 if (mifare.authenticate(key)) {
+                    suppress.restore();
                     ESP_LOGI(TEST_TAG, "Found the right key, changing to default.");
                     TEST_ASSERT(mifare.change_key(default_k))
                     TEST_ASSERT(mifare.authenticate(default_k))

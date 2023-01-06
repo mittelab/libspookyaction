@@ -8,6 +8,23 @@
 
 namespace ut {
 
+
+    suppress_log::suppress_log(const char *tag_) : tag{tag_}, previous_log_level{esp_log_level_get(tag)} {
+        suppress();
+    }
+
+    void suppress_log::suppress() {
+        esp_log_level_set(tag, ESP_LOG_NONE);
+    }
+
+    void suppress_log::restore() {
+        esp_log_level_set(tag, previous_log_level);
+    }
+
+    suppress_log::~suppress_log() {
+        restore();
+    }
+
     [[maybe_unused]] void enable_debug_log(log_options options) {
         if (options.generic) {
             esp_log_level_set(DESFIRE_TAG, ESP_LOG_DEBUG);

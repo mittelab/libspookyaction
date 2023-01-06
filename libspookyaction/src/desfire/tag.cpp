@@ -539,16 +539,13 @@ namespace desfire {
     }
 
     cipher_mode tag::determine_operation_mode(file_access requested_access, access_rights const &file_rights, file_security security) {
-        if (requested_access == file_access::change) {
-            // Changing access rights behaves differently, we always encrypt unless we have free access, and then we mac.
-            if (file_rights.is_free(file_access::change)) {
-                return cipher_mode::maced;
-            }
-            return cipher_mode::ciphered;
-        }
-        // For rw, we use plain iff the access is free
+        // If the access is free, the mode is always plain
         if (file_rights.is_free(requested_access)) {
             return cipher_mode::plain;
+        }
+        // Exception: changing bumps maced security level to ciphered
+        if (requested_access == file_access::change) {
+            return cipher_mode::ciphered;
         }
         // Otherwise, fall back on the file's security
         return cipher_mode_from_security(security);

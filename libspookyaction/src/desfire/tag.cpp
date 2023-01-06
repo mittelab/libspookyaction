@@ -568,15 +568,15 @@ namespace desfire {
                                          cfg));
     }
 
-    tag::result<bin_data> tag::read_data(file_id fid, std::uint32_t offset, std::uint32_t length, trust_card_t) {
+    tag::result<bin_data> tag::read_data(file_id fid, trust_card_t, std::uint32_t offset, std::uint32_t length) {
         if (const auto res_mode = determine_operation_mode(file_access::read, fid); res_mode) {
-            return read_data(fid, offset, length, *res_mode);
+            return read_data(fid, *res_mode, offset, length);
         } else {
             return res_mode.error();
         }
     }
 
-    tag::result<bin_data> tag::read_data(file_id fid, std::uint32_t offset, std::uint32_t length, cipher_mode operation_mode) {
+    tag::result<bin_data> tag::read_data(file_id fid, cipher_mode operation_mode, std::uint32_t offset, std::uint32_t length) {
         if (fid > bits::max_backup_data_file_id or fid > bits::max_standard_data_file_id) {
             DESFIRE_LOGW("%s: invalid file id %d for data or backup file.", to_string(command_code::read_data), fid);
             return error::parameter_error;
@@ -598,15 +598,15 @@ namespace desfire {
         return command_response(command_code::read_data, payload, comm_cfg{default_comm_cfg().tx, rx_cipher_mode});
     }
 
-    tag::result<> tag::write_data(file_id fid, std::uint32_t offset, bin_data const &data, trust_card_t) {
+    tag::result<> tag::write_data(file_id fid, bin_data const &data, trust_card_t, std::uint32_t offset) {
         if (const auto res_mode = determine_operation_mode(file_access::write, fid); res_mode) {
-            return write_data(fid, offset, data, *res_mode);
+            return write_data(fid, data, *res_mode, offset);
         } else {
             return res_mode.error();
         }
     }
 
-    tag::result<> tag::write_data(file_id fid, std::uint32_t offset, bin_data const &data, cipher_mode operation_mode) {
+    tag::result<> tag::write_data(file_id fid, bin_data const &data, cipher_mode operation_mode, std::uint32_t offset) {
         if (fid > bits::max_backup_data_file_id or fid > bits::max_standard_data_file_id) {
             DESFIRE_LOGW("%s: invalid file id %d for data or backup file.", to_string(command_code::write_data), fid);
             return error::parameter_error;
@@ -706,15 +706,15 @@ namespace desfire {
         return write_value(command_code::debit, fid, amount, operation_mode);
     }
 
-    tag::result<> tag::write_record(file_id fid, std::uint32_t offset, bin_data const &data, trust_card_t) {
+    tag::result<> tag::write_record(file_id fid, bin_data const &data, trust_card_t, std::uint32_t offset) {
         if (const auto res_mode = determine_operation_mode(file_access::write, fid); res_mode) {
-            return write_record(fid, offset, data, *res_mode);
+            return write_record(fid, data, *res_mode, offset);
         } else {
             return res_mode.error();
         }
     }
 
-    tag::result<> tag::write_record(file_id fid, std::uint32_t offset, bin_data const &data, cipher_mode operation_mode) {
+    tag::result<> tag::write_record(file_id fid, bin_data const &data, cipher_mode operation_mode, std::uint32_t offset) {
         if (fid > bits::max_record_file_id) {
             DESFIRE_LOGW("%s: invalid file id %d for a record file.", to_string(command_code::write_record), fid);
             return error::parameter_error;

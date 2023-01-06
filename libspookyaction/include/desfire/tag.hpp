@@ -808,8 +808,8 @@ namespace desfire {
          * @brief read data from file
          * @ingroup data
          * @param fid Max @ref bits::max_standard_data_file_id or @ref bits::max_backup_data_file_id
-         * @param offset Limited to 24 bits, i.e. must be below 0xFFFFFF.
-         * @param length Limited to 24 bits, i.e. must be below 0xFFFFFF.
+         * @param offset Limited to 24 bits, i.e. must be below 0xFFFFFF. Must also be less than the file size.
+         * @param length Limited to 24 bits, i.e. must be below 0xFFFFFF. Specify zero to read until the end.
          * @return @ref bin_data containing requested data, or the following errors:
          * - @ref error::malformed
          * - @ref error::crypto_error
@@ -819,30 +819,30 @@ namespace desfire {
          *  This method will auto-detect the security settings used: if a card is cloned and a file is created with the same id
          *  but different security, this method will accept the different security transmission mode. It may thus leak data.
          */
-        result<bin_data> read_data(file_id fid, std::uint32_t offset, std::uint32_t length, trust_card_t);
+        result<bin_data> read_data(file_id fid, trust_card_t, std::uint32_t offset = 0, std::uint32_t length = all_data);
 
         /**
          * @brief read data from file
          * @ingroup data
          * @param fid Max @ref bits::max_standard_data_file_id or @ref bits::max_backup_data_file_id
-         * @param offset Limited to 24 bits, i.e. must be below 0xFFFFFF.
-         * @param length Limited to 24 bits, i.e. must be below 0xFFFFFF.
          * @param operation_mode The communication mode to use for this operation. This is derived from the base file security and
          *  the value of @ref access_rights::read and @ref access_rights::read_write members: a free access implies no security
          *  is specified, otherwise it falls back to the file's own security mode.
+         * @param offset Limited to 24 bits, i.e. must be below 0xFFFFFF. Must also be less than the file size.
+         * @param length Limited to 24 bits, i.e. must be below 0xFFFFFF. Specify zero to read until the end.
          * @see determine_operation_mode
          * @return @ref bin_data containing requested data, or the following errors:
          * - @ref error::malformed
          * - @ref error::crypto_error
          * - @ref error::controller_error
          */
-        result<bin_data> read_data(file_id fid, std::uint32_t offset, std::uint32_t length, cipher_mode operation_mode);
+        result<bin_data> read_data(file_id fid, cipher_mode operation_mode, std::uint32_t offset = 0, std::uint32_t length = all_data);
 
         /**
          * @brief write data to file
          * @param fid Max @ref bits::max_standard_data_file_id or @ref bits::max_backup_data_file_id
+         * @param data Limited to 24 bits, i.e. must be shorter than 0xFFFFFF.
          * @param offset Limited to 24 bits, i.e. must be below 0xFFFFFF.
-         * @param data Limited to 24 bits, i.e. must be below 0xFFFFFF.
          *
          * @return None, or the following errors:
          * - @ref error::malformed
@@ -854,16 +854,16 @@ namespace desfire {
          *  This method will auto-detect the security settings used: if a card is cloned and a file is created with the same id
          *  but different security, this method will accept the different security transmission mode. It may thus leak data.
          */
-        result<> write_data(file_id fid, std::uint32_t offset, bin_data const &data, trust_card_t);
+        result<> write_data(file_id fid, bin_data const &data, trust_card_t, std::uint32_t offset = 0);
 
         /**
          * @brief write data to file
          * @param fid Max @ref bits::max_standard_data_file_id or @ref bits::max_backup_data_file_id
-         * @param offset Limited to 24 bits, i.e. must be below 0xFFFFFF.
-         * @param data Limited to 24 bits, i.e. must be below 0xFFFFFF.
+         * @param data Limited to 24 bits, i.e. must be shorten than 0xFFFFFF.
          * @param operation_mode The communication mode to use for this operation. This is derived from the base file security and
          *  the value of @ref access_rights::write and @ref access_rights::read_write members: a free access implies no security
          *  is specified, otherwise it falls back to the file's own security mode.
+         * @param offset Limited to 24 bits, i.e. must be below 0xFFFFFF.
          * @see determine_operation_mode
          * @return None, or the following errors:
          * - @ref error::malformed
@@ -871,7 +871,7 @@ namespace desfire {
          * - @ref error::parameter_error
          * - @ref error::controller_error
          */
-        result<> write_data(file_id fid, std::uint32_t offset, bin_data const &data, cipher_mode operation_mode);
+        result<> write_data(file_id fid, bin_data const &data, cipher_mode operation_mode, std::uint32_t offset = 0);
 
         /**
          *
@@ -1055,8 +1055,8 @@ namespace desfire {
          * @brief Write to a linear or cyclic file
          * @ingroup recordFile
          * @param fid Max @ref bits::max_record_file_id.
-         * @param offset Limited to 24 bits, i.e. must be below 0xFFFFFF.
          * @param data Limited to 24 bits, i.e. must be below 0xFFFFFF.
+         * @param offset Limited to 24 bits, i.e. must be below 0xFFFFFF. Must also be less than the record size.
          * @return None, or the following errors:
          * - @ref error::malformed
          * - @ref error::crypto_error
@@ -1067,17 +1067,17 @@ namespace desfire {
          *  This method will auto-detect the security settings used: if a card is cloned and a file is created with the same id
          *  but different security, this method will accept the different security transmission mode. It may thus leak data.
          */
-        result<> write_record(file_id fid, std::uint32_t offset, bin_data const &data, trust_card_t);
+        result<> write_record(file_id fid, bin_data const &data, trust_card_t, std::uint32_t offset = 0);
 
         /**
          * @brief Write to a linear or cyclic file
          * @ingroup recordFile
          * @param fid Max @ref bits::max_record_file_id.
-         * @param offset Limited to 24 bits, i.e. must be below 0xFFFFFF.
          * @param data Limited to 24 bits, i.e. must be below 0xFFFFFF.
          * @param operation_mode The communication mode to use for this operation. This is derived from the base file security and
          *  the value of @ref access_rights::write and @ref access_rights::read_write members: a free access implies no security
          *  is specified, otherwise it falls back to the file's own security mode.
+         * @param offset Limited to 24 bits, i.e. must be below 0xFFFFFF. Must also be less than the record size.
          * @see determine_operation_mode
          * @return None, or the following errors:
          * - @ref error::malformed
@@ -1085,7 +1085,7 @@ namespace desfire {
          * - @ref error::parameter_error
          * - @ref error::controller_error
          */
-        result<> write_record(file_id fid, std::uint32_t offset, bin_data const &data, cipher_mode operation_mode);
+        result<> write_record(file_id fid, bin_data const &data, cipher_mode operation_mode, std::uint32_t offset = 0);
 
         template <class T>
         result<> write_record(file_id fid, T &&record, trust_card_t);
@@ -1096,13 +1096,14 @@ namespace desfire {
         result<std::vector<T>> read_parse_records(file_id fid, trust_card_t, std::uint32_t index = 0, std::uint32_t count = all_records);
 
         template <class T>
-        result<std::vector<T>> read_parse_records(file_id fid, std::uint32_t index, std::uint32_t count, cipher_mode operation_mode);
+        result<std::vector<T>> read_parse_records(file_id fid, cipher_mode operation_mode, std::uint32_t index = 0, std::uint32_t count = all_records);
 
         /**
-         * @brief Read records from a linear or cyclic file
+         * @brief Read records from a linear or cyclic file, oldest to most recent.
          * @param fid Max @ref bits::max_record_file_id.
-         * @param record_index Limited to 24 bits, i.e. must be below 0xFFFFFF.
-         * @param record_count Limited to 24 bits, i.e. must be below 0xFFFFFF.
+         * @param record_index Limited to 24 bits, i.e. must be below 0xFFFFFF. Must be less than the number of existing records.
+         * @param record_count Limited to 24 bits, i.e. must be below 0xFFFFFF. Must be less or equal than the number of existing
+         *  records. Specify zero to read all records.
          * @return @ref bin_data containing the record/s, or the following errors:
          * - @ref error::malformed
          * - @ref error::crypto_error
@@ -1118,8 +1119,9 @@ namespace desfire {
         /**
          * @brief Read records from a linear or cyclic file
          * @param fid Max @ref bits::max_record_file_id.
-         * @param record_index Limited to 24 bits, i.e. must be below 0xFFFFFF.
-         * @param record_count Limited to 24 bits, i.e. must be below 0xFFFFFF.
+         * @param record_index Limited to 24 bits, i.e. must be below 0xFFFFFF. Must be less than the number of existing records.
+         * @param record_count Limited to 24 bits, i.e. must be below 0xFFFFFF. Must be less or equal than the number of existing
+         *  records. Specify zero to read all records.
          * @param operation_mode The communication mode to use for this operation. This is derived from the base file security and
          *  the value of @ref access_rights::read and @ref access_rights::read_write members: a free access implies no security
          *  is specified, otherwise it falls back to the file's own security mode.
@@ -1380,7 +1382,7 @@ namespace desfire {
         static bin_data buffer{};
         buffer.clear();
         buffer << std::forward<T>(record);
-        return write_record(fid, 0, buffer, operation_mode);
+        return write_record(fid, buffer, operation_mode, 0);
     }
 
     template <class T>
@@ -1388,7 +1390,7 @@ namespace desfire {
         static bin_data buffer{};
         buffer.clear();
         buffer << std::forward<T>(record);
-        return write_record(fid, 0, buffer, trust_card);
+        return write_record(fid, buffer, trust_card, 0);
     }
 
     template <class T>
@@ -1412,7 +1414,7 @@ namespace desfire {
     }
 
     template <class T>
-    tag::result<std::vector<T>> tag::read_parse_records(file_id fid, std::uint32_t index, std::uint32_t count, cipher_mode operation_mode) {
+    tag::result<std::vector<T>> tag::read_parse_records(file_id fid, cipher_mode operation_mode, std::uint32_t index, std::uint32_t count) {
         const auto res_read_records = read_records(fid, index, count, operation_mode);
         if (not res_read_records) {
             return res_read_records.error();

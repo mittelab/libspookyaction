@@ -20,6 +20,7 @@ namespace desfire {
     }// namespace
 
     using bits::all_records;
+    using bits::all_data;
     using bits::app_crypto;
     using bits::cipher_mode;
     using bits::cipher_type;

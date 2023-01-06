@@ -29,7 +29,7 @@ namespace desfire::fs {
                 file_security::none,
                 access_rights{no_key, no_key, all_keys, no_key}};
         TRY(tag.create_file(fid, init_settings))
-        TRY(tag.write_data(fid, 0, value, tag::determine_operation_mode(file_access::write, init_settings)))
+        TRY(tag.write_data(fid, value, tag::determine_operation_mode(file_access::write, init_settings)))
         TRY(tag.change_file_settings(fid, final_settings, tag::determine_operation_mode(file_access::change, init_settings)))
         return mlab::result_success;
     }

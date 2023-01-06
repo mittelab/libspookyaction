@@ -153,13 +153,17 @@ void demo_app_and_file(desfire::tag &tag) {
     }
 
     ESP_LOGI(TAG, "File created, writing some data on it.");
-    if (const auto res = tag.write_data(demo_file_id, 0, demo_file_data, desfire::file_security::encrypted); not res) {
+    // If the file settings are known, they can be used, otherwise we could specify `desfire::trust_card`
+    const auto write_mode = desfire::tag::determine_operation_mode(desfire::file_access::write, demo_file_settings);
+    if (const auto res = tag.write_data(demo_file_id, 0, demo_file_data, write_mode); not res) {
         ESP_LOGE(TAG, "Failed to write to file, error: %s.", desfire::to_string(res.error()));
         return;
     }
 
     ESP_LOGI(TAG, "Data written. Reading back.");
-    if (const auto res = tag.read_data(demo_file_id, 0, demo_file_size, desfire::file_security::encrypted); not res) {
+    // If the file settings are known, they can be used, otherwise we could specify `desfire::trust_card`
+    const auto read_mode = desfire::tag::determine_operation_mode(desfire::file_access::read, demo_file_settings);
+    if (const auto res = tag.read_data(demo_file_id, 0, demo_file_size, read_mode); not res) {
         ESP_LOGE(TAG, "Failed to read from file, error: %s.", desfire::to_string(res.error()));
         return;
     } else {

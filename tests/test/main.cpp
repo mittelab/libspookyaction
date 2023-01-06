@@ -104,17 +104,20 @@ std::shared_ptr<ut::desfire_files::test_instance> unity_perform_desfire_files_te
      * @note Since Unity does not allow parms in RUN_TEST, let's store those into a structure and then use them to call
      * the actual test function. This will generate a separate test entry for each mode.
      */
-    for (file_security sec : {file_security::none, file_security::authenticated, file_security::encrypted}) {
-        for (cipher_type cipher : {cipher_type::des, cipher_type::des3_2k,
-                                   cipher_type::des3_3k, cipher_type::aes128}) {
-            for (file_type ftype : {file_type::standard, file_type::backup,
-                                    file_type::value, file_type::linear_record,
-                                    file_type::cyclic_record}) {
-                instance->file().security = sec;
-                instance->file().cipher = cipher;
-                instance->file().type = ftype;
-                const std::string desc = instance->file().get_description();
-                UnityDefaultTestRun(&ut::desfire_files::test_file, desc.c_str(), __LINE__);
+    for (cipher_type cipher : {cipher_type::des, cipher_type::des3_2k,
+                               cipher_type::des3_3k, cipher_type::aes128}) {
+        for (bool free : {false, true}) {
+            for (file_security sec : {file_security::none, file_security::authenticated, file_security::encrypted}) {
+                for (file_type ftype : {file_type::standard, file_type::backup,
+                                        file_type::value, file_type::linear_record,
+                                        file_type::cyclic_record}) {
+                    instance->file().security = sec;
+                    instance->file().cipher = cipher;
+                    instance->file().type = ftype;
+                    instance->file().free_access = free;
+                    const std::string desc = instance->file().get_description();
+                    UnityDefaultTestRun(&ut::desfire_files::test_file, desc.c_str(), __LINE__);
+                }
             }
         }
     }

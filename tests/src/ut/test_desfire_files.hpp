@@ -19,6 +19,7 @@ namespace ut {
             cipher_type cipher = cipher_type::des;
             file_type type = file_type::standard;
             file_security security = file_security::none;
+            bool free_access = false;
 
             [[nodiscard]] static file_id fid();
 

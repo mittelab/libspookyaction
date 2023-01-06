@@ -93,7 +93,7 @@ namespace ut::desfire_files {
         buffer.append(type_description());
         buffer.append(", .security=");
         buffer.append(security_description());
-        buffer.append("}");
+        buffer.append(free_access ? ", .free=true}" : ", .free=false}");
         return buffer;
     }
 
@@ -105,7 +105,8 @@ namespace ut::desfire_files {
         static constexpr data_file_settings dfs{.size = 0x100};
         static constexpr record_file_settings rfs{.record_size = 8, .max_record_count = 2, .record_count = 0};
         static constexpr value_file_settings vfs{.lower_limit = -10, .upper_limit = 10, .value = 0, .limited_credit_enabled = true};
-        const generic_file_settings gfs{security, access_rights{0}};
+        // Select either all keys, or one key (the one we are using
+        const generic_file_settings gfs{security, free_access ? access_rights{all_keys} : access_rights{0}};
 
         switch (type) {
             case file_type::standard:

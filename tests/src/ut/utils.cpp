@@ -9,16 +9,24 @@
 namespace ut {
 
 
-    suppress_log::suppress_log(const char *tag_) : tag{tag_}, previous_log_level{esp_log_level_get(tag)} {
+    suppress_log::suppress_log(std::initializer_list<const char *> tags) {
+        tag_log_lev.reserve(tags.size());
+        for (const char *tag : tags) {
+            tag_log_lev.emplace_back(tag, esp_log_level_get(tag));
+        }
         suppress();
     }
 
     void suppress_log::suppress() {
-        esp_log_level_set(tag, ESP_LOG_NONE);
+        for (auto const &tag_lev : tag_log_lev) {
+            esp_log_level_set(tag_lev.first, ESP_LOG_NONE);
+        }
     }
 
     void suppress_log::restore() {
-        esp_log_level_set(tag, previous_log_level);
+        for (auto const &[tag, lev] : tag_log_lev) {
+            esp_log_level_set(tag, lev);
+        }
     }
 
     suppress_log::~suppress_log() {

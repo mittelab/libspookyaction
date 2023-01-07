@@ -78,7 +78,7 @@ namespace desfire {
     static constexpr same_key_t same_key{};
 
     struct key_rights {
-        key_actor<same_key_t> allowed_to_change_keys;
+        key_actor<same_key_t> allowed_to_change_keys{same_key};
 
         /**
          * Settings this to false freezes the master key.
@@ -95,7 +95,7 @@ namespace desfire {
          * On an app level, this means files can be created or deleted without authentication.
          * On a PICC level, applications can be created without authentication and deleted with their own master keys.
          */
-        bool create_delete_without_auth = true;
+        bool create_delete_without_auth = false;
 
         /**
          * Setting this to false freezes the configuration of the PICC or the app. Changing still requires to

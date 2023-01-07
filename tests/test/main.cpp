@@ -2,6 +2,7 @@
 #include "ut/test_desfire_ciphers.hpp"
 #include "ut/test_desfire_exchanges.hpp"
 #include "ut/test_desfire_files.hpp"
+#include "ut/test_desfire_fs.hpp"
 #include "ut/test_desfire_main.hpp"
 #include "ut/test_pn532.hpp"
 #include "ut/utils.hpp"
@@ -124,6 +125,16 @@ std::shared_ptr<ut::desfire_files::test_instance> unity_perform_desfire_files_te
     return instance;
 }
 
+std::shared_ptr<ut::fs::test_instance> unity_perform_fs_test(std::shared_ptr<ut::desfire_main::test_instance> desfire_test) {
+    auto instance = std::make_shared<ut::fs::test_instance>(std::move(desfire_test));
+    ut::default_registrar().register_instance(instance);
+    issue_header("FS TEST (requires card)");
+
+    RUN_TEST(ut::fs::test_app);
+
+    return instance;
+}
+
 
 void unity_perform_all_tests() {
     using ut::pn532::channel_type;
@@ -139,6 +150,7 @@ void unity_perform_all_tests() {
     for (channel_type channel : {channel_type::hsu, channel_type::i2c, channel_type::i2c_irq, channel_type::spi, channel_type::spi_irq}) {
         if (auto pn532_instance = unity_perform_pn532_tests(channel); pn532_instance != nullptr) {
             if (auto mifare_instance = unity_perform_desfire_main_test(pn532_instance); mifare_instance) {
+                unity_perform_fs_test(mifare_instance);
                 unity_perform_desfire_files_test(mifare_instance);
             }
         }

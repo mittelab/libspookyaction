@@ -6,6 +6,9 @@
 #define SPOOKY_ACTION_UTILS_HPP
 
 #include <esp_log.h>
+#include <initializer_list>
+#include <utility>
+#include <vector>
 
 namespace ut {
 
@@ -27,10 +30,9 @@ namespace ut {
 
 
     struct suppress_log {
-        const char *const tag;
-        esp_log_level_t const previous_log_level;
+        std::vector<std::pair<const char *, esp_log_level_t>> tag_log_lev;
 
-        explicit suppress_log(const char *tag_);
+        explicit suppress_log(std::initializer_list<const char *> tags);
         void suppress();
         void restore();
         ~suppress_log();

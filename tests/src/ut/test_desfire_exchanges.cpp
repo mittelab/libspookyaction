@@ -54,6 +54,40 @@ namespace ut::desfire_exchanges {
         tag.logout(false);
     }
 
+    void test_key_actor() {
+        using actor = key_actor<same_key_t>;
+        constexpr std::array<actor, 0x10> all_actors = {
+            0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xa, 0xb, 0xc, 0xd, same_key, no_key
+        };
+        bin_data buffer{mlab::prealloc(1)};
+        auto cycle = [&](actor const &a) -> actor {
+            buffer.clear();
+            const key_rights kr_in{a, false, false, false, false};
+            buffer << kr_in;
+            bin_stream s{buffer};
+            key_rights kr_out{};
+            s >> kr_out;
+            return kr_out.allowed_to_change_keys;
+        };
+
+        TEST_ASSERT(all_actors[0x0] == cycle(all_actors[0x0]));
+        TEST_ASSERT(all_actors[0x1] == cycle(all_actors[0x1]));
+        TEST_ASSERT(all_actors[0x2] == cycle(all_actors[0x2]));
+        TEST_ASSERT(all_actors[0x3] == cycle(all_actors[0x3]));
+        TEST_ASSERT(all_actors[0x4] == cycle(all_actors[0x4]));
+        TEST_ASSERT(all_actors[0x5] == cycle(all_actors[0x5]));
+        TEST_ASSERT(all_actors[0x6] == cycle(all_actors[0x6]));
+        TEST_ASSERT(all_actors[0x7] == cycle(all_actors[0x7]));
+        TEST_ASSERT(all_actors[0x8] == cycle(all_actors[0x8]));
+        TEST_ASSERT(all_actors[0x9] == cycle(all_actors[0x9]));
+        TEST_ASSERT(all_actors[0xa] == cycle(all_actors[0xa]));
+        TEST_ASSERT(all_actors[0xb] == cycle(all_actors[0xb]));
+        TEST_ASSERT(all_actors[0xc] == cycle(all_actors[0xc]));
+        TEST_ASSERT(all_actors[0xd] == cycle(all_actors[0xd]));
+        TEST_ASSERT(all_actors[0xe] == cycle(all_actors[0xe]));
+        TEST_ASSERT(all_actors[0xf] == cycle(all_actors[0xf]));
+    }
+
     void test_change_key_aes() {
         UNITY_PATCH_TEST_FILE;
         auto pcd = std::make_shared<assert_comm_pcd>();

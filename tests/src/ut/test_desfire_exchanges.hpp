@@ -6,6 +6,7 @@
 #define SPOOKY_ACTION_TEST_DESFIRE_EXCHANGES_HPP
 
 namespace ut::desfire_exchanges {
+    void test_key_actor();
     void test_change_key_aes();
     void test_change_key_2k3des();
     void test_change_key_2k3des_regression();

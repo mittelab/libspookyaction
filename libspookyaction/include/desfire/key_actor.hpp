@@ -80,7 +80,7 @@ namespace desfire {
 
     template <class SpecialT>
     key_actor<SpecialT> &key_actor<SpecialT>::operator=(SpecialT) {
-        _repr = no_key_value;
+        _repr = special_value;
         return *this;
     }
 

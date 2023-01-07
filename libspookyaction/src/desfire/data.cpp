@@ -170,18 +170,19 @@ namespace mlab {
             s.set_bad();
             return s;
         }
-        const std::uint8_t flag = s.pop();
-        if (0 != (flag & bits::app_change_keys_right_freeze_flag)) {
-            kr.allowed_to_change_keys = desfire::no_key;
-        } else if (0 != (flag & bits::app_change_keys_right_same_flag)) {
-            kr.allowed_to_change_keys = desfire::same_key;
-        } else {
-            kr.allowed_to_change_keys = flag >> bits::app_change_keys_right_shift;
-        }
+        std::uint8_t flag = s.pop();
         kr.dir_access_without_auth = 0 != (flag & bits::app_list_without_master_key_flag);
         kr.create_delete_without_master_key = 0 != (flag & bits::app_create_delete_without_master_key_flag);
         kr.master_key_changeable = 0 != (flag & bits::app_changeable_master_key_flag);
         kr.config_changeable = 0 != (flag & bits::app_change_config_allowed_flag);
+        flag >>= bits::app_change_keys_right_shift;
+        if (flag == bits::app_change_keys_right_none) {
+            kr.allowed_to_change_keys = desfire::no_key;
+        } else if (flag == bits::app_change_keys_right_same) {
+            kr.allowed_to_change_keys = desfire::same_key;
+        } else {
+            kr.allowed_to_change_keys = flag;
+        }
         return s;
     }
 

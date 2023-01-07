@@ -30,6 +30,7 @@ void unity_perform_cipher_tests() {
     RUN_TEST(ut::desfire_ciphers::test_2k3des_kdf);
     RUN_TEST(ut::desfire_ciphers::test_3k3des_kdf);
     RUN_TEST(ut::desfire_ciphers::test_aes_kdf);
+    RUN_TEST(ut::desfire_exchanges::test_key_actor);
     RUN_TEST(ut::desfire_exchanges::test_change_key_aes);
     RUN_TEST(ut::desfire_exchanges::test_change_key_des);
     RUN_TEST(ut::desfire_exchanges::test_change_key_2k3des);

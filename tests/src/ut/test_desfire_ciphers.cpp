@@ -3,7 +3,7 @@
 //
 
 #include "test_desfire_ciphers.hpp"
-#include <desfire/data.hpp>
+#include "utils.hpp"
 #include <desfire/esp32/cipher_provider.hpp>
 #include <desfire/kdf.hpp>
 #include <unity.h>
@@ -13,6 +13,7 @@ namespace ut::desfire_ciphers {
         using namespace ::desfire;
     }
     void test_des() {
+        UNITY_PATCH_TEST_FILE;
         {
             // Test using examples from https://hack.cert.pl/files/desfire-9f122c71e0057d4f747d2ee295b0f5f6eef8ac32.html
             // The examples from the website use ISO auth also for legacy auth, which means we need to use global IV
@@ -58,6 +59,7 @@ namespace ut::desfire_ciphers {
     }
 
     void test_2k3des() {
+        UNITY_PATCH_TEST_FILE;
         // Test using examples from https://hack.cert.pl/files/desfire-9f122c71e0057d4f747d2ee295b0f5f6eef8ac32.html
         // The examples from the website use ISO auth also for legacy auth, which means we need to use global IV
         {
@@ -101,6 +103,7 @@ namespace ut::desfire_ciphers {
     }
 
     void test_3k3des() {
+        UNITY_PATCH_TEST_FILE;
         // Test using examples from https://hack.cert.pl/files/desfire-9f122c71e0057d4f747d2ee295b0f5f6eef8ac32.html
         {
             auto c = desfire::esp32::default_cipher_provider{}.cipher_from_key(key<cipher_type::des3_3k>{});
@@ -141,6 +144,7 @@ namespace ut::desfire_ciphers {
     }
 
     void test_aes() {
+        UNITY_PATCH_TEST_FILE;
         // Test using examples from https://hack.cert.pl/files/desfire-9f122c71e0057d4f747d2ee295b0f5f6eef8ac32.html
         auto c = desfire::esp32::default_cipher_provider{}.cipher_from_key(key<cipher_type::aes128>{});
         {
@@ -168,6 +172,7 @@ namespace ut::desfire_ciphers {
 
 
     void test_aes_kdf() {
+        UNITY_PATCH_TEST_FILE;
         desfire::esp32::default_cipher_provider cipher_provider{};
         bin_data div_data = {0x04, 0x78, 0x2E, 0x21, 0x80, 0x1D, 0x80, 0x30, 0x42, 0xF5, 0x4E, 0x58, 0x50, 0x20, 0x41, 0x62, 0x75};
 
@@ -180,6 +185,7 @@ namespace ut::desfire_ciphers {
     }
 
     void test_3k3des_kdf() {
+        UNITY_PATCH_TEST_FILE;
         desfire::esp32::default_cipher_provider cipher_provider{};
         bin_data div_data = {0x04, 0x78, 0x2E, 0x21, 0x80, 0x1D, 0x80, 0x30, 0x42, 0xF5, 0x4E, 0x58, 0x50};
 
@@ -192,6 +198,7 @@ namespace ut::desfire_ciphers {
     }
 
     void test_2k3des_kdf() {
+        UNITY_PATCH_TEST_FILE;
         desfire::esp32::default_cipher_provider cipher_provider{};
         bin_data div_data = {0x04, 0x78, 0x2E, 0x21, 0x80, 0x1D, 0x80, 0x30, 0x42, 0xF5, 0x4E, 0x58, 0x50, 0x20, 0x41};
 
@@ -204,6 +211,7 @@ namespace ut::desfire_ciphers {
     }
 
     void test_crc32() {
+        UNITY_PATCH_TEST_FILE;
         {
             const bin_data payload = {0xC4, 0x00, 0x00, 0x10, 0x20, 0x31, 0x40, 0x50, 0x60, 0x70, 0x80, 0x90, 0xA0, 0xB0, 0xB0, 0xA0, 0x90, 0x80};
             const std::uint32_t expected_crc = 0x5001ffc5;
@@ -219,6 +227,7 @@ namespace ut::desfire_ciphers {
     }
 
     void test_crc16() {
+        UNITY_PATCH_TEST_FILE;
         const bin_data payload = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77};
         const std::uint16_t expected_crc = 0x5530;
         const std::uint16_t computed_crc = compute_crc16(payload);

@@ -9,8 +9,17 @@
 #include <initializer_list>
 #include <utility>
 #include <vector>
+#include <unity.h>
+
+#define UNITY_PATCH_TEST_FILE auto _patch_test_file = unity_patch_test_file{__FILE__}
 
 namespace ut {
+
+    struct unity_patch_test_file {
+        const char *prev_test_file;
+        explicit unity_patch_test_file(const char *new_file);
+        ~unity_patch_test_file();
+    };
 
     struct log_options {
         bool generic;

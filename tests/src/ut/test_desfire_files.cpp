@@ -3,6 +3,7 @@
 //
 
 #include "test_desfire_files.hpp"
+#include "utils.hpp"
 #include <numeric>
 #include <unity.h>
 
@@ -227,6 +228,7 @@ namespace ut::desfire_files {
     }
 
     void test_file() {
+        UNITY_PATCH_TEST_FILE;
         auto instance = default_registrar().get<test_instance>();
         if (instance == nullptr) {
             TEST_FAIL_MESSAGE(missing_instance_msg);

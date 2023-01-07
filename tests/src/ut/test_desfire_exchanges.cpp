@@ -3,7 +3,7 @@
 //
 
 #include "test_desfire_exchanges.hpp"
-#include "test_desfire_ciphers.hpp"
+#include "utils.hpp"
 #include <desfire/esp32/cipher_provider.hpp>
 #include <desfire/tag.hpp>
 #include <list>
@@ -55,6 +55,7 @@ namespace ut::desfire_exchanges {
     }
 
     void test_change_key_aes() {
+        UNITY_PATCH_TEST_FILE;
         auto pcd = std::make_shared<assert_comm_pcd>();
         auto tag = ::desfire::tag::make<esp32::default_cipher_provider>(pcd);
 
@@ -68,6 +69,7 @@ namespace ut::desfire_exchanges {
 
 
     void test_change_key_2k3des() {
+        UNITY_PATCH_TEST_FILE;
         auto pcd = std::make_shared<assert_comm_pcd>();
         tag tag{pcd, std::make_unique<desfire::esp32::default_cipher_provider>()};
 
@@ -80,6 +82,7 @@ namespace ut::desfire_exchanges {
     }
 
     void test_change_key_2k3des_regression() {
+        UNITY_PATCH_TEST_FILE;
         auto pcd = std::make_shared<assert_comm_pcd>();
         tag tag{pcd, std::make_unique<desfire::esp32::default_cipher_provider>()};
 
@@ -92,6 +95,7 @@ namespace ut::desfire_exchanges {
     }
 
     void test_change_key_des() {
+        UNITY_PATCH_TEST_FILE;
         auto pcd = std::make_shared<assert_comm_pcd>();
         tag tag{pcd, std::make_unique<desfire::esp32::default_cipher_provider>()};
 
@@ -104,6 +108,7 @@ namespace ut::desfire_exchanges {
     }
 
     void test_create_write_file_rx_cmac() {
+        UNITY_PATCH_TEST_FILE;
         auto pcd = std::make_shared<assert_comm_pcd>();
         auto tag = ::desfire::tag::make<esp32::default_cipher_provider>(pcd);
 
@@ -124,6 +129,7 @@ namespace ut::desfire_exchanges {
     }
 
     void test_get_key_version_rx_cmac() {
+        UNITY_PATCH_TEST_FILE;
         auto pcd = std::make_shared<assert_comm_pcd>();
         auto tag = ::desfire::tag::make<esp32::default_cipher_provider>(pcd);
 
@@ -144,6 +150,7 @@ namespace ut::desfire_exchanges {
     }
 
     void test_write_data_cmac_des() {
+        UNITY_PATCH_TEST_FILE;
         auto pcd = std::make_shared<assert_comm_pcd>();
         auto tag = ::desfire::tag::make<esp32::default_cipher_provider>(pcd);
 

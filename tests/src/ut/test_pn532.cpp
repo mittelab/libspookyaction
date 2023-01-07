@@ -3,6 +3,7 @@
 //
 
 #include "test_pn532.hpp"
+#include "utils.hpp"
 #include <pn532/esp32/hsu.hpp>
 #include <pn532/esp32/i2c.hpp>
 #include <pn532/esp32/spi.hpp>
@@ -91,6 +92,7 @@ namespace ut::pn532 {
      * @{
      */
     void test_wake_channel() {
+        UNITY_PATCH_TEST_FILE;
         auto instance = default_registrar().get<test_instance>();
         if (instance == nullptr) {
             TEST_FAIL_MESSAGE(missing_instance_msg);
@@ -107,6 +109,7 @@ namespace ut::pn532 {
     }
 
     void test_get_fw() {
+        UNITY_PATCH_TEST_FILE;
         auto instance = default_registrar().get<test_instance>();
         if (instance == nullptr) {
             TEST_FAIL_MESSAGE(missing_instance_msg);
@@ -120,6 +123,7 @@ namespace ut::pn532 {
     }
 
     void test_diagnostics() {
+        UNITY_PATCH_TEST_FILE;
         auto instance = default_registrar().get<test_instance>();
         if (instance == nullptr) {
             TEST_FAIL_MESSAGE(missing_instance_msg);
@@ -135,6 +139,7 @@ namespace ut::pn532 {
     }
 
     void test_scan_mifare() {
+        UNITY_PATCH_TEST_FILE;
         auto instance = default_registrar().get<test_instance>();
         if (instance == nullptr) {
             TEST_FAIL_MESSAGE(missing_instance_msg);
@@ -155,6 +160,7 @@ namespace ut::pn532 {
     }
 
     void test_scan_all() {
+        UNITY_PATCH_TEST_FILE;
         auto instance = default_registrar().get<test_instance>();
         if (instance == nullptr) {
             TEST_FAIL_MESSAGE(missing_instance_msg);
@@ -176,6 +182,7 @@ namespace ut::pn532 {
     }
 
     void test_pn532_cycle_rf() {
+        UNITY_PATCH_TEST_FILE;
         auto instance = default_registrar().get<test_instance>();
         if (instance == nullptr) {
             TEST_FAIL_MESSAGE(missing_instance_msg);
@@ -192,6 +199,7 @@ namespace ut::pn532 {
     }
 
     void test_data_exchange() {
+        UNITY_PATCH_TEST_FILE;
         auto instance = default_registrar().get<test_instance>();
         if (instance == nullptr) {
             TEST_FAIL_MESSAGE(missing_instance_msg);

@@ -33,6 +33,14 @@ namespace ut {
         restore();
     }
 
+    unity_patch_test_file::unity_patch_test_file(const char *new_file) : prev_test_file{Unity.TestFile} {
+        Unity.TestFile = new_file;
+    }
+
+    unity_patch_test_file::~unity_patch_test_file() {
+        Unity.TestFile = prev_test_file;
+    }
+
     [[maybe_unused]] void enable_debug_log(log_options options) {
         if (options.generic) {
             esp_log_level_set(DESFIRE_TAG, ESP_LOG_DEBUG);

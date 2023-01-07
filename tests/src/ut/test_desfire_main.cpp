@@ -147,6 +147,7 @@ namespace ut::desfire_main {
      */
 
     void test_auth_attempt(tag::result<> const &result) {
+        UNITY_PATCH_TEST_FILE;
         auto instance = default_registrar().get<test_instance>();
         if (instance == nullptr) {
             TEST_FAIL_MESSAGE(missing_instance_msg);
@@ -167,6 +168,7 @@ namespace ut::desfire_main {
 
 
     void test_mifare_base() {
+        UNITY_PATCH_TEST_FILE;
         auto instance = default_registrar().get<test_instance>();
         if (instance == nullptr) {
             TEST_FAIL_MESSAGE(missing_instance_msg);
@@ -203,6 +205,7 @@ namespace ut::desfire_main {
     }
 
     void test_mifare_uid() {
+        UNITY_PATCH_TEST_FILE;
         auto instance = default_registrar().get<test_instance>();
         if (instance == nullptr) {
             TEST_FAIL_MESSAGE(missing_instance_msg);
@@ -223,6 +226,7 @@ namespace ut::desfire_main {
     }
 
     void test_mifare_create_apps() {
+        UNITY_PATCH_TEST_FILE;
         auto instance = default_registrar().get<test_instance>();
         if (instance == nullptr) {
             TEST_FAIL_MESSAGE(missing_instance_msg);
@@ -264,6 +268,7 @@ namespace ut::desfire_main {
     }
 
     void test_mifare_root_operations() {
+        UNITY_PATCH_TEST_FILE;
         auto instance = default_registrar().get<test_instance>();
         if (instance == nullptr) {
             TEST_FAIL_MESSAGE(missing_instance_msg);
@@ -348,6 +353,7 @@ namespace ut::desfire_main {
     }
 
     void test_mifare_change_app_key() {
+        UNITY_PATCH_TEST_FILE;
         auto instance = default_registrar().get<test_instance>();
         if (instance == nullptr) {
             TEST_FAIL_MESSAGE(missing_instance_msg);

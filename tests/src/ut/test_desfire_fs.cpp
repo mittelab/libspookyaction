@@ -30,6 +30,7 @@ namespace ut::fs {
     }
 
     void test_app() {
+        UNITY_PATCH_TEST_FILE;
         auto instance = default_registrar().get<test_instance>();
         if (instance == nullptr) {
             TEST_FAIL_MESSAGE(missing_instance_msg);

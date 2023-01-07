@@ -16,7 +16,20 @@ namespace desfire {
         using mlab::bin_data;
     }// namespace
 
-    using random_oracle = void (*)(void *, std::size_t);
+    /**
+     * @brief Super light wrapper around a function pointer that fills a buffer of random bytes.
+     * This is a wrapper and not directly a function pointer to that the construction of e.g. @ref key
+     * can be done without risk that `{}` will pass a `nullptr` to a random oracle, but it will instead
+     * select the default constructor of @ref key_data.
+     */
+    struct random_oracle {
+        using fn_t = void (*)(void *, std::size_t);
+        fn_t fn = nullptr;
+
+        explicit random_oracle(fn_t fn_) : fn{fn_} {}
+
+        void operator()(void *ptr, std::size_t len) const { fn(ptr, len); }
+    };
 
     template <cipher_type Cipher>
     struct key {

@@ -31,7 +31,7 @@ namespace ut::fs {
                 : tag{tag_},
                   root_key{std::move(root_key_)},
                   aid{aid_},
-                  master_key{any_key{cipher, esp_fill_random}}
+                  master_key{any_key{cipher, random_oracle{esp_fill_random}}}
             {
                 TEST_ASSERT(tag.select_application());
                 TEST_ASSERT(tag.authenticate(root_key));
@@ -68,7 +68,7 @@ namespace ut::fs {
 
         const auto aid = app_id{0x10, 0x20, 0x30};
 
-        const auto r_key = create_app_for_ro(tag, cipher_type::aes128, aid, esp_fill_random);
+        const auto r_key = create_app_for_ro(tag, cipher_type::aes128, aid, random_oracle{esp_fill_random});
         TEST_ASSERT(r_key);
         if (not r_key) {
             return;
@@ -141,7 +141,7 @@ namespace ut::fs {
         TEST_ASSERT(delete_app_if_exists(tag, aid));
 
         // Generate a random key
-        const auto master_key = key<cipher_type::aes128>{0, esp_fill_random};
+        const auto master_key = key<cipher_type::aes128>{0, random_oracle{esp_fill_random}};
 
         TEST_ASSERT(create_app(tag, aid, master_key, {}));
 

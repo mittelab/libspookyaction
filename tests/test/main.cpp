@@ -131,7 +131,10 @@ std::shared_ptr<ut::fs::test_instance> unity_perform_fs_test(std::shared_ptr<ut:
     issue_header("FS TEST (requires card)");
 
     RUN_TEST(ut::fs::test_app);
+    RUN_TEST(ut::fs::test_file);
     RUN_TEST(ut::fs::test_ro_app);
+    RUN_TEST(ut::fs::test_ro_data_file);
+    RUN_TEST(ut::fs::test_ro_value_file);
 
     return instance;
 }

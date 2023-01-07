@@ -34,6 +34,9 @@ namespace ut {
 
         void test_app();
         void test_ro_app();
+        void test_file();
+        void test_ro_data_file();
+        void test_ro_value_file();
     }// namespace desfire_files
 }// namespace ut::desfire_exchanges
 

@@ -92,10 +92,10 @@ namespace desfire {
         bool dir_access_without_auth = true;
 
         /**
-         * On an app level, this means files can be created or deleted without authentication.
+         * On an app level, this means files can be created or deleted without authenticating with the master key.
          * On a PICC level, applications can be created without authentication and deleted with their own master keys.
          */
-        bool create_delete_without_auth = false;
+        bool create_delete_without_master_key = false;
 
         /**
          * Setting this to false freezes the configuration of the PICC or the app. Changing still requires to
@@ -105,6 +105,19 @@ namespace desfire {
 
         [[nodiscard]] inline bool operator==(desfire::key_rights const &other) const;
         [[nodiscard]] inline bool operator!=(desfire::key_rights const &other) const;
+
+        constexpr key_rights() = default;
+
+        constexpr key_rights(key_actor<same_key_t> allowed_to_change_keys_,
+                             bool master_key_changeable_,
+                             bool dir_access_without_auth_,
+                             bool create_delete_without_master_key_,
+                             bool config_changeable_)
+            : allowed_to_change_keys{allowed_to_change_keys_},
+              master_key_changeable{master_key_changeable_},
+              dir_access_without_auth{dir_access_without_auth_},
+              create_delete_without_master_key{create_delete_without_master_key_},
+              config_changeable{config_changeable_} {}
     };
 
     struct all_keys_t {};
@@ -521,7 +534,7 @@ namespace desfire {
 
     bool desfire::key_rights::operator==(desfire::key_rights const &other) const {
         return other.allowed_to_change_keys == allowed_to_change_keys and
-               other.create_delete_without_auth == create_delete_without_auth and
+               other.create_delete_without_master_key == create_delete_without_master_key and
                other.dir_access_without_auth == dir_access_without_auth and
                other.config_changeable == config_changeable and
                other.master_key_changeable == master_key_changeable;

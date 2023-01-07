@@ -91,7 +91,7 @@ namespace ut::fs {
 
         // An app that must be turned into read only should check these all
         TEST_ASSERT(r_app_settings->rights.config_changeable);
-        TEST_ASSERT(not r_app_settings->rights.create_delete_without_auth);
+        TEST_ASSERT(not r_app_settings->rights.create_delete_without_master_key);
         TEST_ASSERT(r_app_settings->rights.dir_access_without_auth);
         TEST_ASSERT(r_app_settings->rights.master_key_changeable);
         TEST_ASSERT(r_app_settings->rights.allowed_to_change_keys == r_key->key_number());
@@ -108,7 +108,7 @@ namespace ut::fs {
         }
 
         TEST_ASSERT(not r_app_settings->rights.config_changeable);
-        TEST_ASSERT(not r_app_settings->rights.create_delete_without_auth);
+        TEST_ASSERT(not r_app_settings->rights.create_delete_without_master_key);
         TEST_ASSERT(r_app_settings->rights.dir_access_without_auth);
         TEST_ASSERT(not r_app_settings->rights.master_key_changeable);
         TEST_ASSERT(r_app_settings->rights.allowed_to_change_keys == no_key);

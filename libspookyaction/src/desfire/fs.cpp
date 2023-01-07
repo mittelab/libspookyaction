@@ -44,7 +44,7 @@ namespace desfire::fs {
                         ? rights.allowed_to_change_keys
                         : master_key.key_number();
         // Allow modifying config and keys initially
-        const key_rights inital_rights{change_key_actor, true, rights.dir_access_without_auth, rights.create_delete_without_auth, true};
+        const key_rights inital_rights{change_key_actor, true, rights.dir_access_without_auth, rights.create_delete_without_master_key, true};
         const app_settings initial_settings{
                 app_crypto_from_cipher(master_key.type()),
                 inital_rights,

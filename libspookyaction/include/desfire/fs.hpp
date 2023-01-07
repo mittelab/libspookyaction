@@ -13,10 +13,11 @@
 #define DESFIRE_FS_LOG_PREFIX "DESFIRE-FS"
 #endif
 
-#define DESFIRE_CMD_WITH_NAMED_RESULT(CMD, RESULT_NAME)                                                        \
-    if (auto RESULT_NAME = (CMD); not RESULT_NAME) {                                                           \
-        ESP_LOGW(DESFIRE_FS_LOG_PREFIX, "Failed " #CMD " with %s", ::desfire::to_string(RESULT_NAME.error())); \
-        return RESULT_NAME.error();                                                                            \
+#define DESFIRE_CMD_WITH_NAMED_RESULT(CMD, RESULT_NAME)                          \
+    if (auto RESULT_NAME = (CMD); not RESULT_NAME) {                             \
+        ESP_LOGW(DESFIRE_FS_LOG_PREFIX, "%s:%d failed " #CMD " with %s",         \
+                 __FILE__, __LINE__, ::desfire::to_string(RESULT_NAME.error())); \
+        return RESULT_NAME.error();                                              \
     }
 
 #define TRY(CMD) DESFIRE_CMD_WITH_NAMED_RESULT(CMD, _r)

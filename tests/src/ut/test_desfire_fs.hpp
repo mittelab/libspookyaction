@@ -33,6 +33,7 @@ namespace ut {
         using test_instance = test_instance<fs::test_tag>;
 
         void test_app();
+        void test_ro_app();
     }// namespace desfire_files
 }// namespace ut::desfire_exchanges
 

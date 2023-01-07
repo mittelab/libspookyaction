@@ -29,6 +29,69 @@ namespace ut::fs {
         return _hold_test_instance->tag();
     }
 
+    void test_ro_app() {
+        UNITY_PATCH_TEST_FILE;
+        auto instance = default_registrar().get<test_instance>();
+        if (instance == nullptr) {
+            TEST_FAIL_MESSAGE(missing_instance_msg);
+            return;
+        }
+        auto &tag = instance->tag();
+
+        TEST_ASSERT(tag.select_application());
+        TEST_ASSERT(tag.authenticate(key<cipher_type::des>{}));
+
+        const auto aid = app_id{0x10, 0x20, 0x30};
+
+        const auto r_key = create_app_for_ro(tag, cipher_type::aes128, aid, esp_fill_random);
+        TEST_ASSERT(r_key);
+        if (not r_key) {
+            return;
+        }
+
+        TEST_ASSERT(tag.active_app() == aid);
+        TEST_ASSERT(tag.active_key_type() == r_key->type());
+        TEST_ASSERT(tag.active_key_no() == r_key->key_number());
+
+        TEST_ASSERT(tag.create_file(0x00, file_settings<file_type::value>{file_security::none, access_rights{}, 0, 0, 0}));
+        TEST_ASSERT(tag.delete_file(0x00));
+
+        TEST_ASSERT(tag.authenticate(*r_key));
+        auto r_app_settings = tag.get_app_settings();
+
+        TEST_ASSERT(r_app_settings);
+        if (not r_app_settings) {
+            return;
+        }
+
+        // An app that must be turned into read only should check these all
+        TEST_ASSERT(r_app_settings->rights.config_changeable);
+        TEST_ASSERT(not r_app_settings->rights.create_delete_without_auth);
+        TEST_ASSERT(r_app_settings->rights.dir_access_without_auth);
+        TEST_ASSERT(r_app_settings->rights.master_key_changeable);
+        TEST_ASSERT(r_app_settings->rights.allowed_to_change_keys == r_key->key_number());
+
+        TEST_ASSERT(make_app_ro(tag, true));
+
+        TEST_ASSERT(tag.select_application(aid));
+        TEST_ASSERT(tag.get_file_ids());
+
+        r_app_settings = tag.get_app_settings();
+        TEST_ASSERT(r_app_settings);
+        if (not r_app_settings) {
+            return;
+        }
+
+        TEST_ASSERT(not r_app_settings->rights.config_changeable);
+        TEST_ASSERT(not r_app_settings->rights.create_delete_without_auth);
+        TEST_ASSERT(r_app_settings->rights.dir_access_without_auth);
+        TEST_ASSERT(not r_app_settings->rights.master_key_changeable);
+        TEST_ASSERT(r_app_settings->rights.allowed_to_change_keys == no_key);
+
+        // The key should still work, but once thrashed...
+        TEST_ASSERT(tag.authenticate(*r_key));
+    }
+
     void test_app() {
         UNITY_PATCH_TEST_FILE;
         auto instance = default_registrar().get<test_instance>();

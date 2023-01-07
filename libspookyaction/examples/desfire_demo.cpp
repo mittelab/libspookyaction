@@ -95,14 +95,12 @@ void demo_app_and_file(desfire::tag &tag) {
 
     static const auto demo_file_id = desfire::file_id{0x00};
     static const auto demo_file_settings = desfire::file_settings<desfire::file_type::standard>{
-            desfire::generic_file_settings{
-                    // The file is stored encrypted
-                    desfire::file_security::encrypted,
-                    // The file is accessible only by the demo app key
-                    desfire::access_rights{demo_app_key.key_number()}},
-            desfire::data_file_settings{
-                    // The file size is going to be 16 bytes
-                    .size = demo_file_size}};
+            // The file is stored encrypted
+            desfire::file_security::encrypted,
+            // The file is accessible only by the demo app key
+            desfire::access_rights{demo_app_key.key_number()},
+            // The file size is going to be 16 bytes
+            demo_file_size};
 
 
     static const auto demo_file_data = desfire::bin_data{{0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0x0a, 0x0b, 0x0c, 0xd, 0xe, 0xf}};

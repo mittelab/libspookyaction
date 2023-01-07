@@ -150,35 +150,57 @@ namespace desfire {
         /**
          * @note This is actually a 24bit value, so the maximum value is 0xffffff. It will be clamped upon trasmission.
          */
-        std::uint32_t size;
+        std::uint32_t size = 0;
+
+        constexpr data_file_settings() = default;
+        explicit constexpr data_file_settings(std::uint32_t size_) : size{size_} {}
     };
 
     struct value_file_settings {
-        std::int32_t lower_limit;
-        std::int32_t upper_limit;
+        std::int32_t lower_limit = 0;
+        std::int32_t upper_limit = 0;
         /**
          * @note For @ref tag::get_file_settings, this includes the limited credit, if enabled.
          * For the method @ref tag::create_value_file, this is the initial value.
          */
-        std::int32_t value;
-        bool limited_credit_enabled;
+        std::int32_t value = 0;
+        bool limited_credit_enabled = false;
+
+        constexpr value_file_settings() = default;
+
+        constexpr value_file_settings(std::int32_t lowlim, std::int32_t uplim, std::int32_t v, bool enable_lim_credit = false)
+            : lower_limit{lowlim},
+              upper_limit{uplim},
+              value{v},
+              limited_credit_enabled{enable_lim_credit}
+        {}
     };
 
     struct record_file_settings {
         /**
          * @note This is actually a 24bit value, so the maximum value is 0xffffff. It will be clamped upon trasmission.
          */
-        std::uint32_t record_size;
+        std::uint32_t record_size = 0;
 
         /**
          * @note This is actually a 24bit value, so the maximum value is 0xffffff. It will be clamped upon trasmission.
          */
-        std::uint32_t max_record_count;
+        std::uint32_t max_record_count = 0;
 
         /**
+         * @brief Contains the total number of records. Unused for file creation.
          * @note This is actually a 24bit value, so the maximum value is 0xffffff. It will be clamped upon trasmission.
          */
-        std::uint32_t record_count;
+        std::uint32_t record_count = 0;
+
+        constexpr record_file_settings() = default;
+
+        constexpr record_file_settings(std::uint32_t rec_size, std::uint32_t max_rec_count, std::uint32_t rec_count = 0)
+            : record_size{rec_size},
+              max_record_count{max_rec_count},
+              record_count{rec_count}
+        {}
+
     };
 
     template <file_type Type>
@@ -187,42 +209,125 @@ namespace desfire {
     template <>
     struct file_settings<file_type::standard> : public generic_file_settings, public data_file_settings {
         using specific_file_settings = data_file_settings;
-        constexpr file_settings() : generic_file_settings{}, data_file_settings{.size = 0} {}
-        constexpr file_settings(generic_file_settings generic, data_file_settings specific) : generic_file_settings{generic}, data_file_settings{specific} {}
+
+        constexpr file_settings() : generic_file_settings{}, data_file_settings{} {}
+
+        constexpr file_settings(generic_file_settings generic, data_file_settings specific)
+            : generic_file_settings{generic}, data_file_settings{specific} {}
+
+        constexpr file_settings(file_security security, access_rights rights, std::uint32_t size)
+            : generic_file_settings{security, rights}, data_file_settings{size} {}
+
+        constexpr file_settings(generic_file_settings generic, std::uint32_t size)
+            : generic_file_settings{generic}, data_file_settings{size} {}
+
+        constexpr file_settings(file_security security, access_rights rights, data_file_settings specific)
+            : generic_file_settings{security, rights}, data_file_settings{specific} {}
     };
 
     template <>
     struct file_settings<file_type::backup> : public generic_file_settings, public data_file_settings {
         using specific_file_settings = data_file_settings;
-        constexpr file_settings() : generic_file_settings{}, data_file_settings{.size = 0} {}
-        constexpr file_settings(generic_file_settings generic, data_file_settings specific) : generic_file_settings{generic}, data_file_settings{specific} {}
+
+        constexpr file_settings() : generic_file_settings{}, data_file_settings{} {}
+
+        constexpr file_settings(generic_file_settings generic, data_file_settings specific)
+            : generic_file_settings{generic}, data_file_settings{specific} {}
+
+        constexpr file_settings(file_security security, access_rights rights, std::uint32_t size)
+            : generic_file_settings{security, rights}, data_file_settings{size} {}
+
+        constexpr file_settings(generic_file_settings generic, std::uint32_t size)
+            : generic_file_settings{generic}, data_file_settings{size} {}
+
+        constexpr file_settings(file_security security, access_rights rights, data_file_settings specific)
+            : generic_file_settings{security, rights}, data_file_settings{specific} {}
     };
 
     template <>
     struct file_settings<file_type::value> : public generic_file_settings, public value_file_settings {
         using specific_file_settings = value_file_settings;
-        constexpr file_settings() : generic_file_settings{},
-                                    value_file_settings{.lower_limit = 0, .upper_limit = 0, .value = 0, .limited_credit_enabled = false} {}
+        constexpr file_settings()
+            : generic_file_settings{},
+              value_file_settings{0, 0, 0, false} {}
 
-        constexpr file_settings(generic_file_settings generic, value_file_settings specific) : generic_file_settings{generic}, value_file_settings{specific} {}
+        constexpr file_settings(generic_file_settings generic, value_file_settings specific)
+            : generic_file_settings{generic}, value_file_settings{specific} {}
+
+        constexpr file_settings(file_security security, access_rights rights,
+                                std::int32_t lowlim, std::int32_t uplim, std::int32_t v, bool enable_lim_credit = false)
+            : generic_file_settings{security, rights},
+              value_file_settings{lowlim, uplim, v, enable_lim_credit}
+        {}
+
+        constexpr file_settings(generic_file_settings generic,
+                                std::int32_t lowlim, std::int32_t uplim, std::int32_t v, bool enable_lim_credit = false)
+            : generic_file_settings{generic},
+              value_file_settings{lowlim, uplim, v, enable_lim_credit}
+        {}
+
+        constexpr file_settings(file_security security, access_rights rights,
+                                value_file_settings specific)
+            : generic_file_settings{security, rights},
+              value_file_settings{specific}
+        {}
+
     };
 
     template <>
     struct file_settings<file_type::linear_record> : public generic_file_settings, public record_file_settings {
         using specific_file_settings = record_file_settings;
-        constexpr file_settings() : generic_file_settings{},
-                                    record_file_settings{.record_size = 0, .max_record_count = 0, .record_count = 0} {}
 
-        constexpr file_settings(generic_file_settings generic, record_file_settings specific) : generic_file_settings{generic}, record_file_settings{specific} {}
+        constexpr file_settings()
+            : generic_file_settings{},
+              record_file_settings{0, 0, 0} {}
+
+        constexpr file_settings(generic_file_settings generic, record_file_settings specific)
+            : generic_file_settings{generic}, record_file_settings{specific} {}
+
+        constexpr file_settings(file_security security, access_rights rights,
+                                std::uint32_t rec_size, std::uint32_t max_rec_count, std::uint32_t rec_count = 0)
+            : generic_file_settings{security, rights},
+              record_file_settings{rec_size, max_rec_count, rec_count} {}
+
+
+        constexpr file_settings(generic_file_settings generic,
+                                std::uint32_t rec_size, std::uint32_t max_rec_count, std::uint32_t rec_count = 0)
+            : generic_file_settings{generic},
+              record_file_settings{rec_size, max_rec_count, rec_count} {}
+
+        constexpr file_settings(file_security security, access_rights rights,
+                                record_file_settings specific)
+            : generic_file_settings{security, rights},
+              record_file_settings{specific} {}
     };
 
     template <>
     struct file_settings<file_type::cyclic_record> : public generic_file_settings, public record_file_settings {
         using specific_file_settings = record_file_settings;
-        constexpr file_settings() : generic_file_settings{},
-                                    record_file_settings{.record_size = 0, .max_record_count = 0, .record_count = 0} {}
 
-        constexpr file_settings(generic_file_settings generic, record_file_settings specific) : generic_file_settings{generic}, record_file_settings{specific} {}
+        constexpr file_settings()
+            : generic_file_settings{},
+              record_file_settings{0, 0, 0} {}
+
+        constexpr file_settings(generic_file_settings generic, record_file_settings specific)
+            : generic_file_settings{generic}, record_file_settings{specific} {}
+
+        constexpr file_settings(file_security security, access_rights rights,
+                                std::uint32_t rec_size, std::uint32_t max_rec_count, std::uint32_t rec_count = 0)
+            : generic_file_settings{security, rights},
+              record_file_settings{rec_size, max_rec_count, rec_count} {}
+
+        constexpr file_settings(generic_file_settings generic,
+                                std::uint32_t rec_size, std::uint32_t max_rec_count, std::uint32_t rec_count = 0)
+            : generic_file_settings{generic},
+              record_file_settings{rec_size, max_rec_count, rec_count} {}
+
+
+        constexpr file_settings(file_security security, access_rights rights,
+                                record_file_settings specific)
+            : generic_file_settings{security, rights},
+              record_file_settings{specific} {}
     };
 
 

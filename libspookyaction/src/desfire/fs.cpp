@@ -10,20 +10,18 @@ namespace desfire::fs {
     r<> create_ro_free_plain_value_file(tag &tag, file_id fid, std::int32_t value) {
         // A value file can be directly created with no write access, because it takes an initial value
         const file_settings<file_type::value> ro_settings{
-                generic_file_settings{
-                        file_security::none,
-                        access_rights{no_key, no_key, all_keys, no_key}},
-                value_file_settings{value, value, value, false}};
+                file_security::none,
+                access_rights{no_key, no_key, all_keys, no_key},
+                value, value, value, false};
         return tag.create_file(fid, ro_settings);
     }
 
     r<> create_ro_free_plain_data_file(tag &tag, file_id fid, mlab::bin_data const &value) {
         // A data file must be created with write access, because we have to write on it before locking it.
         const file_settings<file_type::standard> init_settings{
-                generic_file_settings{
-                        file_security::none,
-                        access_rights{no_key, tag.active_key_no(), all_keys, tag.active_key_no()}},
-                data_file_settings{value.size()}};
+                file_security::none,
+                access_rights{no_key, tag.active_key_no(), all_keys, tag.active_key_no()},
+                value.size()};
         // Final access rights revoke the write access
         const generic_file_settings final_settings{
                 file_security::none,

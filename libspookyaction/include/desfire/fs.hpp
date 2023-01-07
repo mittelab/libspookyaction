@@ -54,6 +54,13 @@ namespace desfire::fs {
      */
 
     /**
+     * @brief Logs out the current key from @p tag, but maintains the current app selected.
+     * @param tag
+     * @return
+     */
+    r<> logout_app(tag &tag);
+
+    /**
      * @brief Makes the current app read only.
      * This is achieved by preventing any change in the master key and configuration, and allowing
      * no key to further change keys.

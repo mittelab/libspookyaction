@@ -7,6 +7,13 @@
 
 namespace desfire::fs {
 
+    r<> logout_app(tag &tag) {
+        const auto aid = tag.active_app();
+        TRY(tag.select_application())
+        TRY(tag.select_application(aid))
+        return mlab::result_success;
+    }
+
     r<> create_ro_free_plain_value_file(tag &tag, file_id fid, std::int32_t value) {
         // A value file can be directly created with no write access, because it takes an initial value
         const file_settings<file_type::value> ro_settings{

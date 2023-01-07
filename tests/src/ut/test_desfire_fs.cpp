@@ -244,8 +244,7 @@ namespace ut::fs {
         TEST_ASSERT(r_file_settings->generic_settings().rights.read_write == no_key);
         TEST_ASSERT(r_file_settings->generic_settings().rights.change == no_key);
 
-        TEST_ASSERT(tag.select_application());
-        TEST_ASSERT(tag.select_application(app.aid));
+        TEST_ASSERT(logout_app(tag));
 
         const auto r_data = tag.read_data(fid, cipher_mode::plain);
         TEST_ASSERT(r_data);
@@ -294,8 +293,7 @@ namespace ut::fs {
         TEST_ASSERT(r_file_settings->generic_settings().rights.read_write == no_key);
         TEST_ASSERT(r_file_settings->generic_settings().rights.change == no_key);
 
-        TEST_ASSERT(tag.select_application());
-        TEST_ASSERT(tag.select_application(app.aid));
+        TEST_ASSERT(logout_app(tag));
 
         const auto r_value = tag.get_value(fid, cipher_mode::plain);
         TEST_ASSERT(r_value);

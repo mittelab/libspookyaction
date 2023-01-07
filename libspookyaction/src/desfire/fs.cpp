@@ -14,6 +14,12 @@ namespace desfire::fs {
         return mlab::result_success;
     }
 
+    r<> login_app(tag &tag, app_id aid, any_key const &key) {
+        TRY(tag.select_application(aid))
+        TRY(tag.authenticate(key))
+        return mlab::result_success;
+    }
+
     r<> create_ro_free_plain_value_file(tag &tag, file_id fid, std::int32_t value) {
         // A value file can be directly created with no write access, because it takes an initial value
         const file_settings<file_type::value> ro_settings{
@@ -58,8 +64,7 @@ namespace desfire::fs {
                 std::uint8_t(std::min(unsigned(bits::max_keys_per_app), extra_keys + 1u))};
         TRY(tag.create_application(aid, initial_settings))
         // Enter the application with the default key
-        TRY(tag.select_application(aid))
-        TRY(tag.authenticate(any_key(master_key.type())))
+        TRY(login_app(tag, aid, any_key(master_key.type())))
         // Change the master key
         TRY(tag.change_key(master_key))
         // Authenticate and update the app key rights, if needed

@@ -33,15 +33,13 @@ namespace ut::fs {
                   aid{aid_},
                   master_key{any_key{cipher, random_oracle{esp_fill_random}}}
             {
-                TEST_ASSERT(tag.select_application());
-                TEST_ASSERT(tag.authenticate(root_key));
+                TEST_ASSERT(login_app(tag, root_app, root_key));
                 TEST_ASSERT(delete_app_if_exists(tag, aid));
                 TEST_ASSERT(create_app(tag, aid, master_key, key_rights{}, 0));
             }
 
             ~temp_app() {
-                TEST_ASSERT(tag.select_application());
-                TEST_ASSERT(tag.authenticate(root_key));
+                TEST_ASSERT(login_app(tag, root_app, root_key));
                 TEST_ASSERT(delete_app_if_exists(tag, aid));
             }
         };
@@ -63,9 +61,7 @@ namespace ut::fs {
         }
         auto &tag = instance->tag();
 
-        TEST_ASSERT(tag.select_application());
-        TEST_ASSERT(tag.authenticate(key<cipher_type::des>{}));
-
+        TEST_ASSERT(login_app(tag, root_app, key<cipher_type::des>{}));
         const auto aid = app_id{0x10, 0x20, 0x30};
 
         const auto r_key = create_app_for_ro(tag, cipher_type::aes128, aid, random_oracle{esp_fill_random});
@@ -116,8 +112,7 @@ namespace ut::fs {
         // The key should still work, but once thrashed...
         TEST_ASSERT(tag.authenticate(*r_key));
 
-        TEST_ASSERT(tag.select_application());
-        TEST_ASSERT(tag.authenticate(key<cipher_type::des>{}));
+        TEST_ASSERT(login_app(tag, root_app, key<cipher_type::des>{}));
         TEST_ASSERT(delete_app_if_exists(tag, aid));
     }
 
@@ -157,8 +152,7 @@ namespace ut::fs {
         TEST_ASSERT_FALSE(does_app_exist(tag, aid));
         suppress.restore();
 
-        TEST_ASSERT(tag.select_application());
-        TEST_ASSERT(tag.authenticate(key<cipher_type::des>{}));
+        TEST_ASSERT(login_app(tag, root_app, key<cipher_type::des>{}));
 
         TEST_ASSERT(ok_and<true>(does_app_exist(tag, aid)));
 

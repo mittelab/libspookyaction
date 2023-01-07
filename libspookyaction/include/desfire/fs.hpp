@@ -61,6 +61,15 @@ namespace desfire::fs {
     r<> logout_app(tag &tag);
 
     /**
+     * @brief Selects the app and authenticates to it with the given key.
+     * @param tag
+     * @param aid
+     * @param key
+     * @return
+     */
+    r<> login_app(tag &tag, app_id aid, any_key const &key);
+
+    /**
      * @brief Makes the current app read only.
      * This is achieved by preventing any change in the master key and configuration, and allowing
      * no key to further change keys.

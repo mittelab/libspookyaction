@@ -81,7 +81,7 @@ namespace desfire {
         }
         if (mode == cipher_mode::maced) {
             const auto mac = compute_mac(data.view(offset));
-            ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " TX MAC", mac.data(), mac.size(), ESP_LOG_DEBUG);
+            ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_LOG_PREFIX " TX MAC", mac.data(), mac.size(), ESP_LOG_DEBUG);
             data << mac;
         } else {
             if (mode == cipher_mode::ciphered) {
@@ -107,7 +107,7 @@ namespace desfire {
             const auto data_view = s.read(s.remaining() - mac_size - 1);
             // Compute mac on data
             const mac_t computed_mac = compute_mac(data_view);
-            ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " RX MAC", computed_mac.data(), computed_mac.size(), ESP_LOG_DEBUG);
+            ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_LOG_PREFIX " RX MAC", computed_mac.data(), computed_mac.size(), ESP_LOG_DEBUG);
             // Extract the transmitted mac
             mac_t rxd_mac{};
             s >> rxd_mac;
@@ -117,7 +117,7 @@ namespace desfire {
                 data.resize(data.size() - mac_size);
                 return true;
             }
-            ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " != MAC", rxd_mac.data(), rxd_mac.size(), ESP_LOG_DEBUG);
+            ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_LOG_PREFIX " != MAC", rxd_mac.data(), rxd_mac.size(), ESP_LOG_DEBUG);
             return false;
         } else {
             // Pop the status byte
@@ -127,7 +127,7 @@ namespace desfire {
             if (data.size() % block_size != 0) {
                 DESFIRE_LOGW("Received enciphered data of length %u, not a multiple of the block size %u.",
                              data.size(), block_size);
-                ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG, data.data(), data.size(), ESP_LOG_WARN);
+                ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_LOG_PREFIX, data.data(), data.size(), ESP_LOG_WARN);
                 return false;
             }
             crypto_provider().do_crypto(data.data_view(), make_range(get_zeroed_iv()), crypto_operation::decrypt);
@@ -192,7 +192,7 @@ namespace desfire {
             // Plain and MAC may still require to pass data through CMAC, unless specified otherwise
             // CMAC has to be computed on the whole data
             const auto cmac = crypto_provider().do_cmac(data.data_view(), iv());
-            ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " TX MAC", cmac.data(), cmac.size(), ESP_LOG_DEBUG);
+            ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_LOG_PREFIX " TX MAC", cmac.data(), cmac.size(), ESP_LOG_DEBUG);
             if (mode == cipher_mode::maced) {
                 // Only MAC comm mode will actually append
                 data << cmac;
@@ -222,13 +222,13 @@ namespace desfire {
             // Always pass data + status byte through CMAC
             // This will keep the IV in sync
             const auto cmac = crypto_provider().do_cmac(data.data_view(), iv());
-            ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " RX MAC", cmac.data(), cmac.size(), ESP_LOG_DEBUG);
+            ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_LOG_PREFIX " RX MAC", cmac.data(), cmac.size(), ESP_LOG_DEBUG);
         } else if (mode == cipher_mode::maced) {
             // [ data || maced || status ] -> [ data || status || maced ]; rotate mac_size + 1 bytes
             std::rotate(data.rbegin(), data.rbegin() + 1, data.rbegin() + mac_size + 1);
             // This will keep the IV in sync
             const auto computed_mac = crypto_provider().do_cmac(data.data_view(0, data.size() - mac_size), iv());
-            ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " RX MAC", computed_mac.data(), computed_mac.size(), ESP_LOG_DEBUG);
+            ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_LOG_PREFIX " RX MAC", computed_mac.data(), computed_mac.size(), ESP_LOG_DEBUG);
             // Extract the transmitted maced
             bin_stream s{data};
             s.seek(data.size() - mac_size);
@@ -239,7 +239,7 @@ namespace desfire {
                 data.resize(data.size() - mac_size);
                 return true;
             }
-            ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " != MAC", rxd_mac.data(), rxd_mac.size(), ESP_LOG_DEBUG);
+            ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_LOG_PREFIX " != MAC", rxd_mac.data(), rxd_mac.size(), ESP_LOG_DEBUG);
             return false;
         } else {
             // Pop the status byte
@@ -249,7 +249,7 @@ namespace desfire {
             if (data.size() % crypto_provider().block_size() != 0) {
                 DESFIRE_LOGW("Received enciphered data of length %u, not a multiple of the block size %u.",
                              data.size(), crypto_provider().block_size());
-                ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG, data.data(), data.size(), ESP_LOG_WARN);
+                ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_LOG_PREFIX, data.data(), data.size(), ESP_LOG_WARN);
                 return false;
             }
             crypto_provider().do_crypto(data.data_view(), iv(), crypto_operation::decrypt);

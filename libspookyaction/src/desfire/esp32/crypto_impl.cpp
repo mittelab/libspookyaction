@@ -11,16 +11,16 @@ namespace desfire::esp32 {
     namespace {
         [[nodiscard]] const char *input_tag(crypto_operation op) {
             if (op == crypto_operation::decrypt) {
-                return DESFIRE_TAG " BLOB";
+                return DESFIRE_LOG_PREFIX " BLOB";
             } else {
-                return DESFIRE_TAG " DATA";
+                return DESFIRE_LOG_PREFIX " DATA";
             }
         }
         [[nodiscard]] const char *output_tag(crypto_operation op) {
             if (op == crypto_operation::decrypt) {
-                return DESFIRE_TAG " DATA";
+                return DESFIRE_LOG_PREFIX " DATA";
             } else {
-                return DESFIRE_TAG " BLOB";
+                return DESFIRE_LOG_PREFIX " BLOB";
             }
         }
 
@@ -47,9 +47,9 @@ namespace desfire::esp32 {
     }
 
     void crypto_des::do_crypto(range<std::uint8_t *> data, range<std::uint8_t *> iv, crypto_operation op) {
-        ESP_LOGD(DESFIRE_TAG " CRYPTO", "DES: %s %u bytes.", desfire::to_string(op), std::distance(std::begin(data), std::end(data)));
+        ESP_LOGD(DESFIRE_LOG_PREFIX " CRYPTO", "DES: %s %u bytes.", desfire::to_string(op), std::distance(std::begin(data), std::end(data)));
         ESP_LOG_BUFFER_HEX_LEVEL(input_tag(op), data.data(), data.size(), ESP_LOG_DEBUG);
-        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG "IN IV", iv.data(), iv.size(), ESP_LOG_DEBUG);
+        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_LOG_PREFIX "IN IV", iv.data(), iv.size(), ESP_LOG_DEBUG);
         assert(data.size() % 8 == 0);
         /**
          * @note Using @ref _dec_context with encrypt operation is **deliberate**, see note on
@@ -86,7 +86,7 @@ namespace desfire::esp32 {
                 break;
         }
 #endif
-        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG "OUTIV", iv.data(), iv.size(), ESP_LOG_DEBUG);
+        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_LOG_PREFIX "OUTIV", iv.data(), iv.size(), ESP_LOG_DEBUG);
         ESP_LOG_BUFFER_HEX_LEVEL(output_tag(op), data.data(), data.size(), ESP_LOG_DEBUG);
     }
 
@@ -110,9 +110,9 @@ namespace desfire::esp32 {
     }
 
     void crypto_2k3des::do_crypto(range<std::uint8_t *> data, range<std::uint8_t *> iv, crypto_operation op) {
-        ESP_LOGD(DESFIRE_TAG " CRYPTO", "2K3DES: %s %u bytes.", to_string(op), std::distance(std::begin(data), std::end(data)));
+        ESP_LOGD(DESFIRE_LOG_PREFIX " CRYPTO", "2K3DES: %s %u bytes.", to_string(op), std::distance(std::begin(data), std::end(data)));
         ESP_LOG_BUFFER_HEX_LEVEL(input_tag(op), data.data(), data.size(), ESP_LOG_DEBUG);
-        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG "   IV", iv.data(), iv.size(), ESP_LOG_DEBUG);
+        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_LOG_PREFIX "   IV", iv.data(), iv.size(), ESP_LOG_DEBUG);
         assert(data.size() % 8 == 0);
         /**
          * @note Using @ref _dec_context with encrypt operation is **deliberate**, see note on
@@ -167,9 +167,9 @@ namespace desfire::esp32 {
     }
 
     void crypto_3k3des::do_crypto(range<std::uint8_t *> data, range<std::uint8_t *> iv, crypto_operation op) {
-        ESP_LOGD(DESFIRE_TAG " CRYPTO", "3K3DES: %s %u bytes.", to_string(op), std::distance(std::begin(data), std::end(data)));
+        ESP_LOGD(DESFIRE_LOG_PREFIX " CRYPTO", "3K3DES: %s %u bytes.", to_string(op), std::distance(std::begin(data), std::end(data)));
         ESP_LOG_BUFFER_HEX_LEVEL(input_tag(op), data.data(), data.size(), ESP_LOG_DEBUG);
-        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG "   IV", iv.data(), iv.size(), ESP_LOG_DEBUG);
+        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_LOG_PREFIX "   IV", iv.data(), iv.size(), ESP_LOG_DEBUG);
         assert(data.size() % 8 == 0);
 #if defined(SPOOKY_USE_MBEDTLS)
         switch (op) {
@@ -216,9 +216,9 @@ namespace desfire::esp32 {
     }
 
     void crypto_aes::do_crypto(range<std::uint8_t *> data, range<std::uint8_t *> iv, crypto_operation op) {
-        ESP_LOGD(DESFIRE_TAG " CRYPTO", "AES128: %s %u bytes.", to_string(op), std::distance(std::begin(data), std::end(data)));
+        ESP_LOGD(DESFIRE_LOG_PREFIX " CRYPTO", "AES128: %s %u bytes.", to_string(op), std::distance(std::begin(data), std::end(data)));
         ESP_LOG_BUFFER_HEX_LEVEL(input_tag(op), data.data(), data.size(), ESP_LOG_DEBUG);
-        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG "   IV", iv.data(), iv.size(), ESP_LOG_DEBUG);
+        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_LOG_PREFIX "   IV", iv.data(), iv.size(), ESP_LOG_DEBUG);
         assert(data.size() % 16 == 0);
 #if defined(SPOOKY_USE_MBEDTLS)
         switch (op) {

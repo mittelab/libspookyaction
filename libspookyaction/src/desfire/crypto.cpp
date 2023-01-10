@@ -25,8 +25,8 @@ namespace desfire {
         std::copy_n(bsrc + 8, 4, btrg + 4);
         set_key_version(new_key, 0x00);
 
-        ESP_LOGD(DESFIRE_TAG " KEY", "Session key %s:", to_string(cipher_type::des));
-        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " KEY", new_key.data(), new_key.size(), ESP_LOG_DEBUG);
+        ESP_LOGD(DESFIRE_LOG_PREFIX " KEY", "Session key %s:", to_string(cipher_type::des));
+        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_LOG_PREFIX " KEY", new_key.data(), new_key.size(), ESP_LOG_DEBUG);
 
         setup_with_key(make_range(new_key));
     }
@@ -75,8 +75,8 @@ namespace desfire {
         }
         set_key_version(new_key, 0);
 
-        ESP_LOGD(DESFIRE_TAG " KEY", "Session key %s:", to_string(cipher_type::des3_2k));
-        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " KEY", new_key.data(), new_key.size(), ESP_LOG_DEBUG);
+        ESP_LOGD(DESFIRE_LOG_PREFIX " KEY", "Session key %s:", to_string(cipher_type::des3_2k));
+        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_LOG_PREFIX " KEY", new_key.data(), new_key.size(), ESP_LOG_DEBUG);
 
         setup_with_key(make_range(new_key));
     }
@@ -99,8 +99,8 @@ namespace desfire {
         std::copy_n(bsrc + 28, 4, btrg + 20);
         set_key_version(new_key, 0);
 
-        ESP_LOGD(DESFIRE_TAG " KEY", "Session key %s:", to_string(cipher_type::des3_3k));
-        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " KEY", new_key.data(), new_key.size(), ESP_LOG_DEBUG);
+        ESP_LOGD(DESFIRE_LOG_PREFIX " KEY", "Session key %s:", to_string(cipher_type::des3_3k));
+        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_LOG_PREFIX " KEY", new_key.data(), new_key.size(), ESP_LOG_DEBUG);
 
         setup_with_key(make_range(new_key));
     }
@@ -125,8 +125,8 @@ namespace desfire {
         std::copy_n(bsrc + 12, 4, btrg + 8);
         std::copy_n(bsrc + 28, 4, btrg + 12);
 
-        ESP_LOGD(DESFIRE_TAG " KEY", "Session key %s:", to_string(cipher_type::aes128));
-        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " KEY", new_key.data(), new_key.size(), ESP_LOG_DEBUG);
+        ESP_LOGD(DESFIRE_LOG_PREFIX " KEY", "Session key %s:", to_string(cipher_type::aes128));
+        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_LOG_PREFIX " KEY", new_key.data(), new_key.size(), ESP_LOG_DEBUG);
 
         setup_with_key(make_range(new_key));
     }

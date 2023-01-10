@@ -83,7 +83,7 @@ namespace desfire {
 
     void tag::log_not_empty(command_code cmd, range<bin_data::const_iterator> data) {
         DESFIRE_LOGW("%s: stray data (%d bytes) in response.", to_string(cmd), data.size());
-        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG, data.data(), data.size(), ESP_LOG_DEBUG);
+        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_LOG_PREFIX, data.data(), data.size(), ESP_LOG_DEBUG);
     }
 
 
@@ -146,9 +146,9 @@ namespace desfire {
             }
 
             // Actual transmission
-            ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " RAW >>", tx_chunk.data(), tx_chunk.size(), ESP_LOG_DEBUG);
+            ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_LOG_PREFIX " RAW >>", tx_chunk.data(), tx_chunk.size(), ESP_LOG_DEBUG);
             if (const auto &[rx_chunk, success] = pcd().communicate(tx_chunk); success) {
-                ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " RAW <<", rx_chunk.data(), rx_chunk.size(), ESP_LOG_DEBUG);
+                ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_LOG_PREFIX " RAW <<", rx_chunk.data(), rx_chunk.size(), ESP_LOG_DEBUG);
 
                 // Make sure there was an actual response
                 if (rx_chunk.empty()) {
@@ -202,7 +202,7 @@ namespace desfire {
         tx_data.clear();
         tx_data << prealloc(data.size() + 1) << cmd << data;
 
-        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " >>", tx_data.data(), tx_data.size(), ESP_LOG_DEBUG);
+        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_LOG_PREFIX " >>", tx_data.data(), tx_data.size(), ESP_LOG_DEBUG);
 
         c.prepare_tx(tx_data, cfg.tx_secure_data_offset, cfg.tx);
 
@@ -222,7 +222,7 @@ namespace desfire {
         }
         assert(not rx_data.empty());
 
-        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " <<", rx_data.data(), rx_data.size(), ESP_LOG_DEBUG);
+        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_LOG_PREFIX " <<", rx_data.data(), rx_data.size(), ESP_LOG_DEBUG);
 
         // Extract status byte
         const auto cmd_status = static_cast<status>(rx_data.back());
@@ -300,15 +300,15 @@ namespace desfire {
         }
         bin_data const &rndb = res_rndb->second;
         DESFIRE_LOGD("Authentication: received RndB (%u bytes).", rndb.size());
-        ESP_LOGD(DESFIRE_TAG " KEY", "RndB:");
-        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " KEY", rndb.data(), rndb.size(), ESP_LOG_DEBUG);
+        ESP_LOGD(DESFIRE_LOG_PREFIX " KEY", "RndB:");
+        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_LOG_PREFIX " KEY", rndb.data(), rndb.size(), ESP_LOG_DEBUG);
 
         /// Prepare and send a response: AdditionalFrames || Crypt(RndA || RndB'), RndB' = RndB << 8, obtain RndA >> 8
         const bin_data rnda = bin_data::chain(randbytes(rndb.size()));
 
         DESFIRE_LOGD("Authentication: sending RndA || (RndB << 8).");
-        ESP_LOGD(DESFIRE_TAG " KEY", "RndA:");
-        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " KEY", rnda.data(), rnda.size(), ESP_LOG_DEBUG);
+        ESP_LOGD(DESFIRE_LOG_PREFIX " KEY", "RndA:");
+        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_LOG_PREFIX " KEY", rnda.data(), rnda.size(), ESP_LOG_DEBUG);
 
         // Send and received encrypted; this time parse the status byte because we regularly expect a status::ok.
         const auto res_rndap = command_response(
@@ -332,8 +332,8 @@ namespace desfire {
         // This is just a test for equality when shifted
         if (not std::equal(std::begin(rnda) + 1, std::end(rnda), std::begin(*res_rndap)) or rnda.front() != res_rndap->back()) {
             DESFIRE_LOGW("Authentication with key %u (%s): RndA mismatch.", k.key_number(), to_string(k.type()));
-            ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " RndA orig", rnda.data(), rnda.size(), ESP_LOG_WARN);
-            ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " RndA >> 8", res_rndap->data(), res_rndap->size(), ESP_LOG_WARN);
+            ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_LOG_PREFIX " RndA orig", rnda.data(), rnda.size(), ESP_LOG_WARN);
+            ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_LOG_PREFIX " RndA >> 8", res_rndap->data(), res_rndap->size(), ESP_LOG_WARN);
             return error::crypto_error;
         }
 
@@ -464,15 +464,15 @@ namespace desfire {
         payload << key_no_flag;
         // Changing from a different key requires to xor it with that other key
         if (current_key != nullptr) {
-            ESP_LOGD(DESFIRE_TAG " KEY", "Current key %d: %s", current_key->key_number(), to_string(current_key->type()));
-            ESP_LOG_BIN_DATA(DESFIRE_TAG " KEY", current_key->get_packed_key_body(), ESP_LOG_DEBUG);
+            ESP_LOGD(DESFIRE_LOG_PREFIX " KEY", "Current key %d: %s", current_key->key_number(), to_string(current_key->type()));
+            ESP_LOG_BIN_DATA(DESFIRE_LOG_PREFIX " KEY", current_key->get_packed_key_body(), ESP_LOG_DEBUG);
             payload << new_key.xored_with(*current_key);
         } else {
             payload << new_key;
         }
 
-        ESP_LOGD(DESFIRE_TAG " KEY", "New key %d: %s", new_key.key_number(), to_string(new_key.type()));
-        ESP_LOG_BIN_DATA(DESFIRE_TAG " KEY", new_key.get_packed_key_body(), ESP_LOG_DEBUG);
+        ESP_LOGD(DESFIRE_LOG_PREFIX " KEY", "New key %d: %s", new_key.key_number(), to_string(new_key.type()));
+        ESP_LOG_BIN_DATA(DESFIRE_LOG_PREFIX " KEY", new_key.get_packed_key_body(), ESP_LOG_DEBUG);
 
         // Now we need to compute CRCs, here we need to make distinction depending on legacy/non-legacy protocol.
         // There is no way to fit this business into the cipher model.

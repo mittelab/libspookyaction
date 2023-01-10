@@ -295,7 +295,7 @@ namespace ut::desfire_main {
             ESP_LOGI(TEST_TAG, "Attempt to recover the root key.");
             TEST_ASSERT(mifare.select_application(root_app))
             for (auto const &key : keys_to_test) {
-                auto suppress = suppress_log{DESFIRE_TAG};
+                auto suppress = suppress_log{DESFIRE_LOG_PREFIX};
                 if (mifare.authenticate(key)) {
                     suppress.restore();
                     ESP_LOGI(TEST_TAG, "Found the right key, changing to default.");

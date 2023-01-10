@@ -43,10 +43,10 @@ namespace desfire {
         std::copy(std::begin(rg_key_pad), std::end(rg_key_pad), std::begin(rg_key_nopad));
         prepare_subkey(rg_key_pad, last_byte_xor());
 
-        ESP_LOGD(DESFIRE_TAG " KEY", "CMAC key for unpadded data:");
-        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " KEY", _subkey_nopad.get(), block_size(), ESP_LOG_DEBUG);
-        ESP_LOGD(DESFIRE_TAG " KEY", "CMAC key for padded data:");
-        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_TAG " KEY", _subkey_pad.get(), block_size(), ESP_LOG_DEBUG);
+        ESP_LOGD(DESFIRE_LOG_PREFIX " KEY", "CMAC key for unpadded data:");
+        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_LOG_PREFIX " KEY", _subkey_nopad.get(), block_size(), ESP_LOG_DEBUG);
+        ESP_LOGD(DESFIRE_LOG_PREFIX " KEY", "CMAC key for padded data:");
+        ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_LOG_PREFIX " KEY", _subkey_pad.get(), block_size(), ESP_LOG_DEBUG);
     }
 
 

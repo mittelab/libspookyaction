@@ -11,8 +11,10 @@
 extern "C" {
 #endif
 
+#define DESFIRE_DEFAULT_LOG_PREFIX "DESFIRE"
+
 #ifndef DESFIRE_LOG_PREFIX
-#define DESFIRE_LOG_PREFIX "DESFIRE"
+#define DESFIRE_LOG_PREFIX DESFIRE_DEFAULT_LOG_PREFIX
 #endif
 #define DESFIRE_LOGE(format, ...) ESP_LOGE(DESFIRE_LOG_PREFIX, format, ##__VA_ARGS__)
 #define DESFIRE_LOGW(format, ...) ESP_LOGW(DESFIRE_LOG_PREFIX, format, ##__VA_ARGS__)

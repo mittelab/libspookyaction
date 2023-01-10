@@ -14,11 +14,14 @@
 #define DESFIRE_FS_LOG_PREFIX DESFIRE_FS_DEFAULT_LOG_PREFIX
 #endif
 
-#define DESFIRE_CMD_WITH_NAMED_RESULT(CMD, RESULT_NAME)                          \
-    if (auto RESULT_NAME = (CMD); not RESULT_NAME) {                             \
-        ESP_LOGW(DESFIRE_FS_LOG_PREFIX, "%s:%d failed " #CMD " with %s",         \
-                 __FILE__, __LINE__, ::desfire::to_string(RESULT_NAME.error())); \
-        return RESULT_NAME.error();                                              \
+#define DESFIRE_FAIL_CMD(CMD_STR, RESULT)                               \
+    ESP_LOGW(DESFIRE_FS_LOG_PREFIX, "%s:%d failed " CMD_STR " with %s", \
+             __FILE__, __LINE__, ::desfire::to_string(RESULT.error())); \
+    return RESULT.error();
+
+#define DESFIRE_CMD_WITH_NAMED_RESULT(CMD, RESULT_NAME) \
+    if (auto RESULT_NAME = (CMD); not RESULT_NAME) {    \
+        DESFIRE_FAIL_CMD(#CMD, RESULT_NAME)             \
     }
 
 #define TRY(CMD) DESFIRE_CMD_WITH_NAMED_RESULT(CMD, _r)

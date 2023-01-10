@@ -5,6 +5,7 @@
 #include "test_desfire_main.hpp"
 #include "utils.hpp"
 #include <desfire/esp32/cipher_provider.hpp>
+#include <desfire/esp32/utils.hpp>
 #include <map>
 #include <mbcontroller.h>
 #include <pn532/msg.hpp>
@@ -15,6 +16,7 @@
 namespace ut::desfire_main {
 
     namespace {
+        using namespace ::desfire::esp32;
         constexpr const char *missing_instance_msg = "Desfire test instance was not set up.";
 
         void issue_format_warning() {

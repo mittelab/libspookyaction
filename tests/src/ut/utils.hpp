@@ -38,16 +38,6 @@ namespace ut {
     [[maybe_unused]] void enable_debug_log(log_options options);
 
 
-    struct suppress_log {
-        std::vector<std::pair<const char *, esp_log_level_t>> tag_log_lev;
-
-        explicit suppress_log(std::initializer_list<const char *> tags);
-        void suppress();
-        void restore();
-        ~suppress_log();
-    };
-
-
 }// namespace ut
 
 #endif//SPOOKY_ACTION_UTILS_HPP

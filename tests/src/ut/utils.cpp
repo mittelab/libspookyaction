@@ -8,31 +8,6 @@
 
 namespace ut {
 
-
-    suppress_log::suppress_log(std::initializer_list<const char *> tags) {
-        tag_log_lev.reserve(tags.size());
-        for (const char *tag : tags) {
-            tag_log_lev.emplace_back(tag, esp_log_level_get(tag));
-        }
-        suppress();
-    }
-
-    void suppress_log::suppress() {
-        for (auto const &tag_lev : tag_log_lev) {
-            esp_log_level_set(tag_lev.first, ESP_LOG_NONE);
-        }
-    }
-
-    void suppress_log::restore() {
-        for (auto const &[tag, lev] : tag_log_lev) {
-            esp_log_level_set(tag, lev);
-        }
-    }
-
-    suppress_log::~suppress_log() {
-        restore();
-    }
-
     unity_patch_test_file::unity_patch_test_file(const char *new_file) : prev_test_file{Unity.TestFile} {
         Unity.TestFile = new_file;
     }

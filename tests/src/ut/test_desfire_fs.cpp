@@ -4,6 +4,7 @@
 
 #include "test_desfire_fs.hpp"
 #include "utils.hpp"
+#include <desfire/esp32/utils.hpp>
 #include <desfire/fs.hpp>
 #include <esp_random.h>
 #include <unity.h>
@@ -14,6 +15,7 @@ namespace ut::fs {
         constexpr auto missing_instance_msg = "desfire::fs test instance missing";
 
         using namespace ::desfire::fs;
+        using namespace ::desfire::esp32;
 
 
         template <bool B, class R>

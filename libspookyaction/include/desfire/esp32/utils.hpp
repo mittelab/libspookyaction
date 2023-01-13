@@ -12,10 +12,12 @@
 namespace desfire::esp32 {
     struct suppress_log {
         std::vector<std::pair<const char *, esp_log_level_t>> tag_log_lev{};
+        esp_log_level_t min_level = ESP_LOG_NONE;
         bool is_suppressed = false;
 
         suppress_log() = default;
         suppress_log(std::initializer_list<const char *> tags);
+        suppress_log(esp_log_level_t min_level, std::initializer_list<const char *> tags);
         suppress_log(suppress_log const &) = delete;
         suppress_log(suppress_log &&other) noexcept;
 

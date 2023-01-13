@@ -225,7 +225,7 @@ namespace ut::fs {
         const auto fid = file_id{0x00};
         const auto expected_data = bin_data{{0xf0, 0xf1, 0xf2}};
 
-        TEST_ASSERT(create_ro_free_plain_data_file(tag, fid, expected_data));
+        TEST_ASSERT(create_ro_free_data_file(tag, fid, expected_data));
 
         auto r_file_settings = tag.get_file_settings(fid);
 
@@ -274,7 +274,7 @@ namespace ut::fs {
         const auto fid = file_id{0x00};
         const auto expected_data = std::int32_t{0xbadb007};
 
-        TEST_ASSERT(create_ro_free_plain_value_file(tag, fid, expected_data));
+        TEST_ASSERT(create_ro_free_value_file(tag, fid, expected_data));
 
         auto r_file_settings = tag.get_file_settings(fid);
 

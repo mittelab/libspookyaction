@@ -20,27 +20,27 @@ namespace desfire::fs {
         return mlab::result_success;
     }
 
-    r<> create_ro_value_file(tag &tag, file_id fid, std::int32_t value, key_actor<all_keys_t> read_access) {
+    r<> create_ro_value_file(tag &tag, file_id fid, std::int32_t value, key_actor<all_keys_t> read_access, file_security security) {
         // A value file can be directly created with no write access, because it takes an initial value
         const file_settings<file_type::value> ro_settings{
-                file_security::none,
+                security,
                 access_rights{no_key, no_key, read_access, no_key},
                 value, value, value, false};
         return tag.create_file(fid, ro_settings);
     }
 
     r<> create_ro_free_value_file(tag &tag, file_id fid, std::int32_t value) {
-        return create_ro_value_file(tag, fid, value, all_keys);
+        return create_ro_value_file(tag, fid, value, all_keys, file_security::none);
     }
 
     r<> create_ro_free_data_file(tag &tag, file_id fid, mlab::bin_data const &value) {
-        return create_ro_data_file(tag, fid, value, all_keys);
+        return create_ro_data_file(tag, fid, value, all_keys, file_security::none);
     }
 
-    r<> create_ro_data_file(tag &tag, file_id fid, mlab::bin_data const &value, key_actor<all_keys_t> read_access) {
+    r<> create_ro_data_file(tag &tag, file_id fid, mlab::bin_data const &value, key_actor<all_keys_t> read_access, file_security security) {
         // A data file must be created with write access, because we have to write on it before locking it.
         const file_settings<file_type::standard> init_settings{
-                file_security::none,
+                security,
                 access_rights{no_key, tag.active_key_no(), all_keys, tag.active_key_no()},
                 value.size()};
         // Final access rights revoke the write access

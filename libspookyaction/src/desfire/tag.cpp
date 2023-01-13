@@ -573,6 +573,7 @@ namespace desfire {
             return cipher_mode::ciphered;
         }
         // Otherwise, fall back on the file's security
+        ESP_LOGW("KA", "Cipher security mode is %s", to_string(security));
         return cipher_mode_from_security(security);
     }
 
@@ -595,6 +596,7 @@ namespace desfire {
 
     tag::result<bin_data> tag::read_data(file_id fid, trust_card_t, std::uint32_t offset, std::uint32_t length) {
         if (const auto res_mode = determine_operation_mode(file_access::read, fid); res_mode) {
+            ESP_LOGW("KA", "Determined operation mode: %s", to_string(*res_mode));
             return read_data(fid, *res_mode, offset, length);
         } else {
             return res_mode.error();

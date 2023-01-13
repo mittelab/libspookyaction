@@ -71,6 +71,20 @@ namespace desfire {
         }
     }// namespace
 
+
+    tag::tag(std::shared_ptr<desfire::pcd> pcd, std::unique_ptr<cipher_provider> provider)
+        : _pcd{std::move(pcd)},
+          _provider{std::move(provider)},
+          _active_cipher{std::make_unique<cipher_dummy>()},
+          _active_key_type{cipher_type::none},
+          _active_key_number{std::numeric_limits<std::uint8_t>::max()},
+          _active_app{root_app} {
+#ifdef DESFIRE_DEBUG_LOG_ROOT_KEY
+        ESP_LOGE("AUTH ROOT KEY", "Revealing root key enabled! Disable in prod.");
+#endif
+    }
+
+
     tag::result<> tag::safe_drop_payload(command_code cmd, tag::result<bin_data> const &result) {
         if (result) {
             if (not result->empty()) {
@@ -344,7 +358,12 @@ namespace desfire {
         _active_cipher = std::move(pcipher);
         _active_key_type = k.type();
         _active_key_number = k.key_number();
-
+#ifdef DESFIRE_DEBUG_LOG_ROOT_KEY
+        if (k.key_number() == 0 and active_app() == root_app) {
+            auto b = k.get_packed_key_body();
+            ESP_LOG_BUFFER_HEX_LEVEL("AUTH ROOT KEY", b.data(), b.size(), ESP_LOG_WARN);
+        }
+#endif
         return result_success;
     }
 
@@ -503,6 +522,12 @@ namespace desfire {
                 comm_cfg{cipher_mode::ciphered_no_crc, cipher_mode::plain, 2});
         if (res_cmd) {
             DESFIRE_LOGD("Key %d (%s) was changed.", new_key.key_number(), to_string(new_key.type()));
+#ifdef DESFIRE_DEBUG_LOG_ROOT_KEY
+            if (new_key.key_number() == 0 and active_app() == root_app) {
+                auto b = new_key.get_packed_key_body();
+                ESP_LOG_BUFFER_HEX_LEVEL("AUTH ROOT KEY", b.data(), b.size(), ESP_LOG_WARN);
+            }
+#endif
         } else {
             DESFIRE_LOGW("Could not change key %d (%s): %s.", new_key.key_number(), to_string(new_key.type()), to_string(res_cmd.error()));
         }

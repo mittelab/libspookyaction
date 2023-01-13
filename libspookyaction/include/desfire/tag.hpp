@@ -89,7 +89,7 @@ namespace desfire {
          * @param pcd_ a @ref desfire::pcd class that handles the tag communication. This must be alive at least as long as the @ref tag object.
          * @param provider Any @ref cipher_provider implementation to convert keys into the respective cipher.
          */
-        inline tag(std::shared_ptr<desfire::pcd> pcd, std::unique_ptr<cipher_provider> provider);
+        tag(std::shared_ptr<desfire::pcd> pcd, std::unique_ptr<cipher_provider> provider);
 
         /**
          * @brief Constructs a new tag object instantiating the given cipher provider.
@@ -1276,13 +1276,6 @@ namespace desfire {
     desfire::pcd &tag::pcd() {
         return *_pcd;
     }
-
-    tag::tag(std::shared_ptr<desfire::pcd> pcd, std::unique_ptr<cipher_provider> provider) : _pcd{std::move(pcd)},
-                                                                                             _provider{std::move(provider)},
-                                                                                             _active_cipher{std::make_unique<cipher_dummy>()},
-                                                                                             _active_key_type{cipher_type::none},
-                                                                                             _active_key_number{std::numeric_limits<std::uint8_t>::max()},
-                                                                                             _active_app{root_app} {}
 
     template <class CipherProvider, class PCD>
     tag tag::make(PCD &&pcd) {

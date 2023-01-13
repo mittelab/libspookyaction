@@ -41,11 +41,11 @@ namespace desfire::fs {
         // A data file must be created with write access, because we have to write on it before locking it.
         const file_settings<file_type::standard> init_settings{
                 security,
-                access_rights{no_key, tag.active_key_no(), all_keys, tag.active_key_no()},
+                access_rights{no_key, tag.active_key_no(), read_access, tag.active_key_no()},
                 value.size()};
         // Final access rights revoke the write access
         const generic_file_settings final_settings{
-                file_security::none,
+                security,
                 access_rights{no_key, no_key, read_access, no_key}};
         TRY(tag.create_file(fid, init_settings))
         TRY(tag.write_data(fid, value, tag::determine_operation_mode(file_access::write, init_settings)))

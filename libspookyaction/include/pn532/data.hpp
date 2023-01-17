@@ -351,6 +351,11 @@ namespace mlab {
     template <baudrate_modulation BrMd>
     bin_stream &operator>>(bin_stream &s, std::vector<bits::target<BrMd>> &targets);
 
+    /**
+     * @note This is a custom operator because we do not have ATS bytes.
+     */
+    bin_stream &operator>>(bin_stream &s, poll_entry<target_type::dep_passive_106kbps> &entry);
+
     template <target_type Type>
     bin_stream &operator>>(bin_stream &s, poll_entry<Type> &entry);
 

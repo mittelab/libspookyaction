@@ -143,6 +143,30 @@ namespace mlab {
         return s;
     }
 
+    bin_stream &operator>>(bin_stream &s, poll_entry<target_type::dep_passive_106kbps> &entry) {
+        if (s.remaining() < 20) {
+            PN532_LOGW("Unable to parse kbps106_iso_iec_14443_typea poll_entry_dep_passive, too little data.");
+            s.set_bad();
+            return s;
+        }
+
+        s >> entry.logical_index >> entry.info.sens_res >> entry.info.sel_res;
+
+        const auto expected_nfcid_length = s.pop();
+        if (s.remaining() < expected_nfcid_length) {
+            PN532_LOGW("Unable to parse kbps106_iso_iec_14443_typea entry info, missing NFC ID data.");
+            s.set_bad();
+            return s;
+        }
+        entry.info.nfcid.resize(expected_nfcid_length);
+        s.read(std::begin(entry.info.nfcid), expected_nfcid_length);
+        // Different here: it's no ATS bytes
+        entry.info.ats.clear();
+
+        s >> entry.atr_info;
+        return s;
+    }
+
     bin_stream &operator>>(bin_stream &s, target_kbps106_typea &target) {
         if (s.remaining() < 5) {
             PN532_LOGW("Unable to parse kbps106_iso_iec_14443_typea target info, too little data.");
@@ -255,7 +279,9 @@ namespace mlab {
 
         s >> atr_res.nfcid_3t >> atr_res.did_t >> atr_res.b_st >> atr_res.b_rt >> atr_res.to >> atr_res.pp_t;
         atr_res.g_t.resize(s.remaining());
-        s.read(std::begin(atr_res.g_t), s.remaining());
+        if (not s.eof()) {
+            s.read(std::begin(atr_res.g_t), s.remaining());
+        }
         return s;
     }
 

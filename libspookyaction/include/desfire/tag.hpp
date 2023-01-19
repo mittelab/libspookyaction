@@ -52,6 +52,9 @@
 #include <mlab/result.hpp>
 #include <type_traits>
 
+namespace pn532 {
+    class controller;
+}
 
 namespace ut::desfire_exchanges {
     struct session;
@@ -92,6 +95,16 @@ namespace desfire {
         tag(std::shared_ptr<desfire::pcd> pcd, std::unique_ptr<cipher_provider> provider);
 
         /**
+         * @brief Construct a new tag object through a @ref pn532::desfire_pcd PCD subclass.
+         * @param ctrl PN532 controller
+         * @param logical_index Index of the target
+         * @param provider Cipher provider
+         * @see pn532::desfire_pcd
+         * @see pn532::controller::initiator_data_exchange
+         */
+        tag(pn532::controller &ctrl, std::uint8_t logical_index, std::unique_ptr<cipher_provider> provider);
+
+        /**
          * @brief Constructs a new tag object instantiating the given cipher provider.
          * @tparam CipherProvider A subclass of @ref desfire::cipher_provider, which must be default-constructible.
          * @tparam PCD A subclass of @ref desfire::pcd or a @ref std::shared_ptr to such a subclass
@@ -100,6 +113,16 @@ namespace desfire {
          */
         template <class CipherProvider, class PCD>
         [[nodiscard]] static inline tag make(PCD &&pcd);
+
+        /**
+         * @brief Constructs a new tag object instantiating the given cipher provider, and using @ref pn532::desfire_pcd as PCD.
+         * @tparam CipherProvider A subclass of @ref desfire::cipher_provider, which must be default-constructible.
+         * @param ctrl PN532 controller
+         * @param logical_index Index of the target
+         * @return An instance of @ref tag.
+         */
+        template <class CipherProvider>
+        [[nodiscard]] static inline tag make(pn532::controller &ctrl, std::uint8_t logical_index);
 
         tag(tag const &) = delete;
 
@@ -1289,6 +1312,13 @@ namespace desfire {
             static_assert(std::is_convertible_v<PCD, std::shared_ptr<desfire::pcd>>);
             return tag{std::forward<PCD>(pcd), std::make_unique<CipherProvider>()};
         }
+    }
+
+    template <class CipherProvider>
+    tag tag::make(pn532::controller &ctrl, std::uint8_t logical_index) {
+        static_assert(std::is_base_of_v<desfire::cipher_provider, CipherProvider>);
+        static_assert(std::is_default_constructible_v<CipherProvider>);
+        return tag{ctrl, logical_index, std::make_unique<CipherProvider>()};
     }
 
     template <cipher_type Type>

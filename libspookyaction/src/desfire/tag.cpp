@@ -3,6 +3,8 @@
 //
 
 #include <desfire/tag.hpp>
+#include <pn532/controller.hpp>
+#include <pn532/desfire_pcd.hpp>
 
 #define ESP_LOG_BIN_DATA(tag, bin_data_like, level)                       \
     do {                                                                  \
@@ -83,6 +85,10 @@ namespace desfire {
         ESP_LOGE("AUTH ROOT KEY", "Revealing root key enabled! Disable in prod.");
 #endif
     }
+
+    tag::tag(pn532::controller &ctrl, std::uint8_t logical_index, std::unique_ptr<cipher_provider> provider)
+            : tag{std::make_shared<pn532::desfire_pcd>(ctrl, logical_index), std::move(provider)}
+    {}
 
 
     tag::result<> tag::safe_drop_payload(command_code cmd, tag::result<bin_data> const &result) {

@@ -36,7 +36,7 @@ namespace desfire {
 
     template <class CipherProvider>
     pn532::post_interaction tag_responder<CipherProvider>::interact(pn532::scanner &scanner, pn532::scanned_target const &target) {
-        auto tag = tag::make<CipherProvider>(pn532::desfire_pcd{scanner.ctrl(), target.index});
+        auto tag = tag::make<CipherProvider>(scanner.ctrl(), target.index);
         return interact(tag);
     }
 }

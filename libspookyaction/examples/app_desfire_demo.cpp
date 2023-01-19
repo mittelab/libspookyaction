@@ -1,33 +1,13 @@
 #include <desfire/esp32/cipher_provider.hpp>
 #include <desfire/tag.hpp>
+#include <desfire/tag_responder.hpp>
 #include <pn532/controller.hpp>
-#include <pn532/desfire_pcd.hpp>
 #include <pn532/esp32/hsu.hpp>
 #include <thread>
 
 #define TAG "EXAMPLE"
 
 using namespace std::chrono_literals;
-
-pn532::desfire_pcd find_desfire(pn532::controller &pn532) {
-    static constexpr auto retry_time = 3s;
-    ESP_LOGI(TAG, "Please bring card close now (searching for one passive 106 kbps target)...");
-    while (true) {
-        if (auto res = pn532.initiator_list_passive_kbps106_typea(); res) {
-            if (not res->empty()) {
-                ESP_LOGI(TAG, "Found one target:");
-                auto const &nfcid = res->front().info.nfcid;
-                ESP_LOG_BUFFER_HEX_LEVEL(TAG, nfcid.data(), nfcid.size(), ESP_LOG_INFO);
-                return {pn532, res->front().logical_index};
-            }
-            ESP_LOGW(TAG, "No target found.");
-        } else {
-            ESP_LOGE(TAG, "Failed to scan for any target, error: %s", pn532::to_string(res.error()));
-        }
-        ESP_LOGI(TAG, "Retrying in %lld seconds.", retry_time.count());
-        std::this_thread::sleep_for(retry_time);
-    }
-}
 
 bool authenticate_to_root_app(desfire::tag &tag) {
     static const auto default_key = desfire::key<desfire::cipher_type::des>{/* all zero */};
@@ -171,6 +151,18 @@ void demo_app_and_file(desfire::tag &tag) {
     }
 }
 
+struct app_desfire : desfire::tag_responder<desfire::esp32::default_cipher_provider> {
+    pn532::post_interaction interact(desfire::tag &tag) override {
+        if (authenticate_to_root_app(tag)) {
+            print_card_info(tag);
+            list_apps(tag);
+            demo_app_and_file(tag);
+            ESP_LOGI(TAG, "Desfire demo complete.");
+        }
+        return pn532::post_interaction::reject;
+    }
+};
+
 extern "C" void app_main() {
     /**
      * @note This is mostly identical to the example in @ref initialize.cpp, except the final part of the body.
@@ -203,14 +195,7 @@ extern "C" void app_main() {
     /**
      * @note The following code is specific to this example.
      */
-
-    // Find any compatible target and onstruct the default cipher provider for an ESP32 and initialize the tag.
-    auto tag = desfire::tag::make<desfire::esp32::default_cipher_provider>(find_desfire(pn532));
-
-    if (authenticate_to_root_app(tag)) {
-        print_card_info(tag);
-        list_apps(tag);
-        demo_app_and_file(tag);
-        ESP_LOGI(TAG, "Desfire demo complete.");
-    }
+    app_desfire responder{};
+    pn532::scanner scanner{pn532};
+    scanner.loop(responder);
 }

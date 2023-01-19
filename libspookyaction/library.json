@@ -42,19 +42,28 @@
       ]
     },
     {
-      "name": "Scans any tag and prints type",
+      "name": "Application which reacts to all targets in the field",
       "base": "examples",
       "files": [
-        "scan_any_target.cpp",
+        "app_scan_loop.cpp",
         "sdkconfig.defaults",
         "platformio.ini"
       ]
     },
     {
-      "name": "Scans specific tags and prints UUID",
+      "name": "Scans any tag and prints type using directly PN532 functions",
       "base": "examples",
       "files": [
-        "scan_desfire.cpp",
+        "scan_any_target_lowlev.cpp",
+        "sdkconfig.defaults",
+        "platformio.ini"
+      ]
+    },
+    {
+      "name": "Scans specific tags and prints UUID using directly PN532 functions",
+      "base": "examples",
+      "files": [
+        "scan_desfire_lowlev.cpp",
         "sdkconfig.defaults",
         "platformio.ini"
       ]
@@ -63,7 +72,7 @@
       "name": "Complete Desfire example",
       "base": "examples",
       "files": [
-        "desfire_demo.cpp",
+        "app_desfire_demo.cpp",
         "sdkconfig.defaults",
         "platformio.ini"
       ]

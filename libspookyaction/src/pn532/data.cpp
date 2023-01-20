@@ -324,8 +324,8 @@ namespace mlab {
             case target_type::innovision_jewel_tag:
                 t = extract_poll_entry<target_type::innovision_jewel_tag>(s);
                 break;
-            case target_type::mifare_card:
-                t = extract_poll_entry<target_type::mifare_card>(s);
+            case target_type::mifare_classic_ultralight:
+                t = extract_poll_entry<target_type::mifare_classic_ultralight>(s);
                 break;
             case target_type::felica_212kbps_card:
                 t = extract_poll_entry<target_type::felica_212kbps_card>(s);

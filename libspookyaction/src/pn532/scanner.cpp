@@ -49,8 +49,8 @@ namespace pn532 {
             case target_type::innovision_jewel_tag:
                 *this = scanned_target{index_, entry.get<target_type::innovision_jewel_tag>()};
                 break;
-            case target_type::mifare_card:
-                *this = scanned_target{index_, entry.get<target_type::mifare_card>()};
+            case target_type::mifare_classic_ultralight:
+                *this = scanned_target{index_, entry.get<target_type::mifare_classic_ultralight>()};
                 break;
             case target_type::felica_212kbps_card:
                 *this = scanned_target{index_, entry.get<target_type::felica_212kbps_card>()};

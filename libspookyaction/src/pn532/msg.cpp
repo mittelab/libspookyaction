@@ -136,8 +136,8 @@ namespace pn532 {
                 return "Passive 106 kbps ISO/IEC14443-4B";
             case bits::target_type::innovision_jewel_tag:
                 return "Innovision Jewel tag";
-            case bits::target_type::mifare_card:
-                return "Mifare card";
+            case bits::target_type::mifare_classic_ultralight:
+                return "Mifare Classic or Ultralight";
             case bits::target_type::felica_212kbps_card:
                 return "FeliCa 212 kbps card";
             case bits::target_type::felica_424kbps_card:

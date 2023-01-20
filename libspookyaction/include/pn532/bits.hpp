@@ -426,7 +426,7 @@ namespace pn532::bits {
         generic_passive_424kbps = 0x02,
         passive_106kbps_iso_iec_14443_4_typeb = 0x03,
         innovision_jewel_tag = 0x04,
-        mifare_card = 0x10,
+        mifare_classic_ultralight = 0x10,
         felica_212kbps_card = 0x11,
         felica_424kbps_card = 0x12,
         passive_106kbps_iso_iec_14443_4_typea = 0x20,

@@ -164,9 +164,17 @@ namespace pn532 {
         inline void set_max_scan_interval(ms timeout);
 
         /**
-         * @brief Main loop scanning for tags.
+         * Performs SAM activation and some basic line and antenna tests.
+         * @return True if all critical tests passed, false otherwise.
          */
-        void loop(scanner_responder &responder);
+        [[nodiscard]] bool init_and_test_controller();
+
+        /**
+         * @brief Main loop scanning for tags.
+         * @param init_and_test If True, @ref init_and_test_controller will be called before the loop starts, and exit if it fails.
+         *  Otherwise, no test is performed and the loop jumps into scanning.
+         */
+        void loop(scanner_responder &responder, bool init_and_test = true);
 
         /**
          * @warning Calling this with a default-constructed @ref scanner will abort.

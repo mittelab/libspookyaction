@@ -130,8 +130,41 @@ namespace pn532 {
         return *_ctrl;
     }
 
-    void scanner::loop(scanner_responder &responder) {
+    bool scanner::init_and_test_controller() {
+        desfire::esp32::suppress_log suppress{ESP_LOG_ERROR, {PN532_TAG}};
+        if (const auto r = ctrl().sam_configuration(sam_mode::normal, 1s); not r) {
+            suppress.restore();
+            ESP_LOGE(PN532_TAG, "SAM configuration failed, cannot start scanning loop (%s).", to_string(r.error()));
+            return false;
+        }
+        if (const auto r = ctrl().diagnose_comm_line(); not r) {
+            suppress.restore();
+            ESP_LOGE(PN532_TAG, "Comm line test failed, cannot start scanning loop (%s).", to_string(r.error()));
+            return false;
+        }
+        if (const auto r = ctrl().diagnose_rom(); not r) {
+            suppress.restore();
+            ESP_LOGE(PN532_TAG, "ROM test failed, cannot start scanning loop (%s).", to_string(r.error()));
+            return false;
+        }
+        if (const auto r = ctrl().diagnose_ram(); not r) {
+            suppress.restore();
+            ESP_LOGE(PN532_TAG, "RAM test failed, cannot start scanning loop (%s).", to_string(r.error()));
+            return false;
+        }
+        if (const auto r = ctrl().diagnose_self_antenna(low_current_thr::mA_25, high_current_thr::mA_150); not r) {
+            suppress.restore();
+            ESP_LOGW(PN532_TAG, "Please inspect antenna, test failed (%s). Scanning might yield no result.", to_string(r.error()));
+        }
+        return true;
+    }
+
+    void scanner::loop(scanner_responder &responder, bool init_and_test) {
         if (_ctrl == nullptr) {
+            return;
+        }
+        // Perform some basic assessment
+        if (init_and_test and not init_and_test_controller()) {
             return;
         }
         _in_rf.clear();

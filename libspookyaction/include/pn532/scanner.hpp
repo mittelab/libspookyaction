@@ -25,6 +25,7 @@ namespace pn532 {
     struct scanned_target {
         /**
          * @brief Logical index to use e.g. in @ref controller::initiator_data_exchange.
+         * @note This is irrelevant w.r.t. sorting and comparing.
          */
         std::uint8_t index = std::numeric_limits<std::uint8_t>::max();
         /**
@@ -48,6 +49,10 @@ namespace pn532 {
 
         [[nodiscard]] bool operator==(scanned_target const &other) const;
         [[nodiscard]] bool operator!=(scanned_target const &other) const;
+        [[nodiscard]] bool operator<(scanned_target const &other) const;
+        [[nodiscard]] bool operator>(scanned_target const &other) const;
+        [[nodiscard]] bool operator<=(scanned_target const &other) const;
+        [[nodiscard]] bool operator>=(scanned_target const &other) const;
     };
 
     class scanner;

@@ -14,6 +14,25 @@ namespace pn532 {
         return type != other.type or nfcid != other.nfcid;
     }
 
+    bool scanned_target::operator<(scanned_target const &other) const {
+        return type < other.type or
+               (type == other.type and std::lexicographical_compare(
+                                               std::begin(nfcid), std::end(nfcid),
+                                               std::begin(other.nfcid), std::end(other.nfcid)));
+    }
+
+    bool scanned_target::operator>(scanned_target const &other) const {
+        return other.operator<(*this);
+    }
+
+    bool scanned_target::operator<=(scanned_target const &other) const {
+        return not other.operator<(*this);
+    }
+
+    bool scanned_target::operator>=(scanned_target const &other) const {
+        return not operator<(other);
+    }
+
     bool scanner::is_in_rejection_list(scanned_target const &target) const {
         return std::find(std::begin(_rejection_list), std::end(_rejection_list), target) != std::end(_rejection_list);
     }

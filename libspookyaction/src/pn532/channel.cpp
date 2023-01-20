@@ -194,6 +194,7 @@ namespace pn532 {
             if (id.info_frame_data_size == 1 and s.peek_one() == bits::specific_app_level_err_code) {
                 PN532_LOGW("Received failure from controller.");
                 f = frame<frame_type::error>{};
+                s.pop();
             } else {
                 // All info known frames must have the transport and the command
                 if (id.info_frame_data_size < 2) {

@@ -31,8 +31,6 @@ namespace pn532 {
 namespace pn532 {
     desfire_pcd::desfire_pcd(controller &controller, std::uint8_t target_logical_index) : _pcd{&controller}, _target{target_logical_index},
                                                                                           _last_result{rf_status{false, false, controller_error::none}} {
-        _pcd->rf_configuration_field(true, true);
-        _pcd->initiator_select(target_logical_index);
     }
 
     controller &desfire_pcd::ctrl() { return *_pcd; }

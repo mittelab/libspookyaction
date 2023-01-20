@@ -228,6 +228,8 @@ namespace pn532 {
     }
 
     controller::result<> controller::sam_configuration(sam_mode mode, ms sam_timeout, bool controller_drives_irq, ms timeout) {
+        // Make sure a wake command is sent before
+        chn().wake();
         const std::uint8_t sam_timeout_byte = std::min(0xffll, sam_timeout.count() / bits::sam_timeout_unit_ms);
         bin_data payload = bin_data::chain(
                 prealloc(3),

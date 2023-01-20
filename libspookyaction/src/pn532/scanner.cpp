@@ -167,6 +167,11 @@ namespace pn532 {
         if (init_and_test and not init_and_test_controller()) {
             return;
         }
+        // Perform some basic assessment
+        if (init_and_test and not init_and_test_controller()) {
+            return;
+        }
+        ESP_LOGI(PN532_TAG, "Entered scanning loop.");
         _in_rf.clear();
         _rejection_list.clear();
         _stop = false;

@@ -13,7 +13,7 @@ namespace desfire {
     template <class CipherProvider>
     struct tag_responder : virtual pn532::scanner_responder {
         /**
-         * @brief Restricts only to @ref pn532::target_type::generic_passive_106kbps
+         * @brief Restricts only to @ref pn532::target_type::passive_106kbps_iso_iec_14443_4_typea
          * @note The correct value for DesFIRE cards is not @ref pn532::target_type::mifare_classic_ultralight, otherwise
          *  the PN532 will enable syntax checking and prevent more advanced desfire commaands.
          * @param targets
@@ -33,7 +33,7 @@ namespace desfire {
 
     template <class CipherProvider>
     void tag_responder<CipherProvider>::get_scan_target_types(pn532::scanner &, std::vector<pn532::target_type> &targets) const {
-        targets = {pn532::target_type::generic_passive_106kbps};
+        targets = {pn532::target_type::passive_106kbps_iso_iec_14443_4_typea};
     }
 
     template <class CipherProvider>

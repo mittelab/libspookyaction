@@ -23,9 +23,9 @@ namespace desfire {
         /**
          * @brief Calls @ref interact(tag &tag).
          */
-        pn532::post_interaction interact(pn532::scanner &scanner, pn532::scanned_target const &target) final;
+        pn532::post_interaction interact(pn532::scanner &scanner, pn532::scanned_target const &target) override;
 
-        virtual pn532::post_interaction interact(desfire::tag &tag) = 0;
+        virtual pn532::post_interaction interact_with_tag(desfire::tag &tag) = 0;
     };
 }
 
@@ -39,7 +39,7 @@ namespace desfire {
     template <class CipherProvider>
     pn532::post_interaction tag_responder<CipherProvider>::interact(pn532::scanner &scanner, pn532::scanned_target const &target) {
         auto tag = tag::make<CipherProvider>(scanner.ctrl(), target.index);
-        return interact(tag);
+        return interact_with_tag(tag);
     }
 }
 

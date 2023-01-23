@@ -434,7 +434,7 @@ namespace pn532 {
 
         range<std::vector<std::uint8_t>::const_iterator> sanitize_vector(
                 command_code cmd, const char *v_name, std::vector<std::uint8_t> const &v, std::size_t max_len) {
-            if (v.size() > bits::general_info_max_length) {
+            if (v.size() > max_len) {
                 PN532_LOGW("%s: %s vector too long (%u), truncating to %u bytes.", to_string(cmd), v_name, v.size(), max_len);
             }
             return make_range(

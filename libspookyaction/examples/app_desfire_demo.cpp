@@ -152,7 +152,7 @@ void demo_app_and_file(desfire::tag &tag) {
 }
 
 struct app_desfire : desfire::tag_responder<desfire::esp32::default_cipher_provider> {
-    pn532::post_interaction interact(desfire::tag &tag) override {
+    pn532::post_interaction interact_with_tag(desfire::tag &tag) override {
         if (authenticate_to_root_app(tag)) {
             print_card_info(tag);
             list_apps(tag);

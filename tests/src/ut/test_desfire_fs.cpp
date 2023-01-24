@@ -33,8 +33,7 @@ namespace ut::fs {
                 : tag{tag_},
                   root_key{std::move(root_key_)},
                   aid{aid_},
-                  master_key{any_key{cipher, random_oracle{esp_fill_random}}}
-            {
+                  master_key{any_key{cipher, random_oracle{esp_fill_random}}} {
                 TEST_ASSERT(login_app(tag, root_app, root_key));
                 TEST_ASSERT(delete_app_if_exists(tag, aid));
                 TEST_ASSERT(create_app(tag, aid, master_key, key_rights{}, 0));
@@ -45,7 +44,7 @@ namespace ut::fs {
                 TEST_ASSERT(delete_app_if_exists(tag, aid));
             }
         };
-    }
+    }// namespace
 
     test_data::test_data(std::shared_ptr<ut::desfire_main::test_instance> main_test_instance)
         : _hold_test_instance{std::move(main_test_instance)} {}
@@ -304,4 +303,4 @@ namespace ut::fs {
         TEST_ASSERT_FALSE(delete_file_if_exists(tag, fid));
         suppress.restore();
     }
-}
+}// namespace ut::fs

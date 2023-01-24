@@ -19,8 +19,8 @@ namespace desfire {
         using mlab::bin_stream;
     }// namespace
 
-    using bits::all_records;
     using bits::all_data;
+    using bits::all_records;
     using bits::app_crypto;
     using bits::cipher_mode;
     using bits::cipher_type;
@@ -185,8 +185,7 @@ namespace desfire {
             : lower_limit{lowlim},
               upper_limit{uplim},
               value{v},
-              limited_credit_enabled{enable_lim_credit}
-        {}
+              limited_credit_enabled{enable_lim_credit} {}
     };
 
     struct record_file_settings {
@@ -211,9 +210,7 @@ namespace desfire {
         constexpr record_file_settings(std::uint32_t rec_size, std::uint32_t max_rec_count, std::uint32_t rec_count = 0)
             : record_size{rec_size},
               max_record_count{max_rec_count},
-              record_count{rec_count}
-        {}
-
+              record_count{rec_count} {}
     };
 
     template <file_type Type>
@@ -270,21 +267,17 @@ namespace desfire {
         constexpr file_settings(file_security security, access_rights rights,
                                 std::int32_t lowlim, std::int32_t uplim, std::int32_t v, bool enable_lim_credit = false)
             : generic_file_settings{security, rights},
-              value_file_settings{lowlim, uplim, v, enable_lim_credit}
-        {}
+              value_file_settings{lowlim, uplim, v, enable_lim_credit} {}
 
         constexpr file_settings(generic_file_settings generic,
                                 std::int32_t lowlim, std::int32_t uplim, std::int32_t v, bool enable_lim_credit = false)
             : generic_file_settings{generic},
-              value_file_settings{lowlim, uplim, v, enable_lim_credit}
-        {}
+              value_file_settings{lowlim, uplim, v, enable_lim_credit} {}
 
         constexpr file_settings(file_security security, access_rights rights,
                                 value_file_settings specific)
             : generic_file_settings{security, rights},
-              value_file_settings{specific}
-        {}
-
+              value_file_settings{specific} {}
     };
 
     template <>

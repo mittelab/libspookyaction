@@ -5,9 +5,9 @@
 #ifndef DESFIRE_ESP32_TAG_RESPONDER_HPP
 #define DESFIRE_ESP32_TAG_RESPONDER_HPP
 
-#include <pn532/scanner.hpp>
 #include <desfire/tag.hpp>
 #include <pn532/desfire_pcd.hpp>
+#include <pn532/scanner.hpp>
 
 namespace desfire {
     template <class CipherProvider>
@@ -27,7 +27,7 @@ namespace desfire {
 
         virtual pn532::post_interaction interact_with_tag(desfire::tag &tag) = 0;
     };
-}
+}// namespace desfire
 
 namespace desfire {
 
@@ -41,6 +41,6 @@ namespace desfire {
         auto tag = tag::make<CipherProvider>(scanner.ctrl(), target.index);
         return interact_with_tag(tag);
     }
-}
+}// namespace desfire
 
 #endif//DESFIRE_ESP32_TAG_RESPONDER_HPP

@@ -14,9 +14,9 @@ namespace pn532 {
      */
     enum struct post_interaction {
         reject, ///@< Releases the target and prevents re-reading until out of the RF field
-        release, ///@< Releases the target, but will re-activate if not removed
+        release,///@< Releases the target, but will re-activate if not removed
         retain, ///@< Does not deactivate the target
-        abort ///<@ Aborts the scan
+        abort   ///<@ Aborts the scan
     };
 
     /**
@@ -189,7 +189,7 @@ namespace pn532 {
          */
         void stop();
     };
-}
+}// namespace pn532
 
 
 namespace pn532 {
@@ -244,5 +244,5 @@ namespace pn532 {
             std::copy(std::begin(entry.atr_info.nfcid_3t), std::end(entry.atr_info.nfcid_3t), std::begin(nfcid));
         }
     }
-}
+}// namespace pn532
 #endif//PN532_SCANNER_HPP

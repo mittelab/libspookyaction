@@ -16,7 +16,7 @@
 
 #define DESFIRE_FAIL_CMD(CMD_STR, RESULT)                               \
     ESP_LOGW(DESFIRE_FS_LOG_PREFIX, "%s:%d failed " CMD_STR " with %s", \
-             __FILE__, __LINE__, to_string(RESULT.error())); \
+             __FILE__, __LINE__, to_string(RESULT.error()));            \
     return RESULT.error();
 
 #define DESFIRE_CMD_WITH_NAMED_RESULT(CMD, RESULT_NAME) \

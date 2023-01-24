@@ -5,9 +5,9 @@
 #ifndef DESFIRE_ESP32_UTILS_HPP
 #define DESFIRE_ESP32_UTILS_HPP
 
-#include <vector>
-#include <initializer_list>
 #include <esp_log.h>
+#include <initializer_list>
+#include <vector>
 
 namespace desfire::esp32 {
     struct suppress_log {
@@ -29,6 +29,6 @@ namespace desfire::esp32 {
 
         ~suppress_log();
     };
-}
+}// namespace desfire::esp32
 
 #endif//DESFIRE_ESP32_UTILS_HPP

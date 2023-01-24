@@ -2,8 +2,8 @@
 // Created by spak on 11/24/22.
 //
 
-#include <desfire/fs.hpp>
 #include <algorithm>
+#include <desfire/fs.hpp>
 
 namespace desfire::fs {
 

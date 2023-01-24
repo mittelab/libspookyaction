@@ -2,8 +2,8 @@
 // Created by spak on 1/18/23.
 //
 
-#include <pn532/scanner.hpp>
 #include <desfire/esp32/utils.hpp>
+#include <pn532/scanner.hpp>
 
 namespace pn532 {
     bool scanned_target::operator==(scanned_target const &other) const {
@@ -219,4 +219,4 @@ namespace pn532 {
             }
         }
     }
-}
+}// namespace pn532

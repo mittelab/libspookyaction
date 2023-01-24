@@ -16,13 +16,14 @@ namespace ut {
 
         class test_data {
             std::shared_ptr<ut::desfire_main::test_instance> _hold_test_instance;
+
         public:
             explicit test_data(std::shared_ptr<ut::desfire_main::test_instance> main_test_instance);
 
             [[nodiscard]] ::desfire::tag &tag();
         };
 
-    }
+    }// namespace fs
 
     template <>
     struct test_instance<fs::test_tag> : public fs::test_data {
@@ -37,7 +38,7 @@ namespace ut {
         void test_file();
         void test_ro_data_file();
         void test_ro_value_file();
-    }// namespace desfire_files
-}// namespace ut::desfire_exchanges
+    }// namespace fs
+}// namespace ut
 
 #endif//SPOOKY_ACTION_TEST_DESFIRE_FS_HPP

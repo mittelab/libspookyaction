@@ -1,6 +1,6 @@
 #include <pn532/controller.hpp>
-#include <pn532/scanner.hpp>
 #include <pn532/esp32/hsu.hpp>
+#include <pn532/scanner.hpp>
 #include <thread>
 
 #define TAG "EXAMPLE"

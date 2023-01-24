@@ -87,8 +87,7 @@ namespace desfire {
     }
 
     tag::tag(pn532::controller &ctrl, std::uint8_t logical_index, std::unique_ptr<cipher_provider> provider)
-            : tag{std::make_shared<pn532::desfire_pcd>(ctrl, logical_index), std::move(provider)}
-    {}
+        : tag{std::make_shared<pn532::desfire_pcd>(ctrl, logical_index), std::move(provider)} {}
 
 
     tag::result<> tag::safe_drop_payload(command_code cmd, tag::result<bin_data> const &result) {
@@ -555,7 +554,7 @@ namespace desfire {
 
     tag::result<cipher_mode> tag::determine_operation_mode(file_access requested_access, file_id fid) {
         if (const auto res_get_settings = get_file_settings(fid); res_get_settings) {
-            return determine_operation_mode(requested_access , *res_get_settings);
+            return determine_operation_mode(requested_access, *res_get_settings);
         } else {
             return res_get_settings.error();
         }

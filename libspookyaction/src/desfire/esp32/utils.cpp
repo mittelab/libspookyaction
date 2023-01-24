@@ -6,8 +6,7 @@
 
 namespace desfire::esp32 {
 
-    suppress_log::suppress_log(esp_log_level_t min_level, std::initializer_list<const char *> tags) : tag_log_lev{}, min_level{min_level}
-    {
+    suppress_log::suppress_log(esp_log_level_t min_level, std::initializer_list<const char *> tags) : tag_log_lev{}, min_level{min_level} {
         tag_log_lev.reserve(tags.size());
         for (const char *tag : tags) {
             tag_log_lev.emplace_back(tag, esp_log_level_get(tag));
@@ -17,8 +16,7 @@ namespace desfire::esp32 {
 
     suppress_log::suppress_log(std::initializer_list<const char *> tags) : suppress_log{ESP_LOG_NONE, tags} {}
 
-    suppress_log::suppress_log(suppress_log &&other) noexcept : tag_log_lev{}
-    {
+    suppress_log::suppress_log(suppress_log &&other) noexcept : tag_log_lev{} {
         this->operator=(std::move(other));
     }
 

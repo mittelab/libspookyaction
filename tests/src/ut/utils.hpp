@@ -7,11 +7,12 @@
 
 #include <esp_log.h>
 #include <initializer_list>
+#include <unity.h>
 #include <utility>
 #include <vector>
-#include <unity.h>
 
-#define UNITY_PATCH_TEST_FILE auto _patch_test_file = unity_patch_test_file{__FILE__}
+#define UNITY_PATCH_TEST_FILE \
+    auto _patch_test_file = unity_patch_test_file { __FILE__ }
 
 namespace ut {
 

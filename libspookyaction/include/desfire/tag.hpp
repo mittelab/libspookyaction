@@ -1183,7 +1183,7 @@ namespace desfire {
          * @ingroup card
          * @param allow_format Allow clearing all the card
          * @param enable_random_id Enable if UID should be randomized (the real UID can be read with @ref get_card_uid)
-         * @warning Watch out when using this function! It is not clear whether any of this is reversible.
+         * @warning Enabling random id is an **irreversible** operation! And @ref get_card_uid does not seem to work.
          * @return None, or the following errors:
          * - @ref error::malformed
          * - @ref error::crypto_error

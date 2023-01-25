@@ -107,7 +107,7 @@ namespace ut::desfire_files {
         static constexpr record_file_settings rfs{8, 2};
         static constexpr value_file_settings vfs{-10, 10, 0, true};
         // Select either all keys, or one key (the one we are using
-        const generic_file_settings gfs{security, free_access ? access_rights{all_keys} : access_rights{0}};
+        const generic_file_settings gfs{security, free_access ? access_rights{free_access} : access_rights{0}};
 
         switch (type) {
             case file_type::standard:

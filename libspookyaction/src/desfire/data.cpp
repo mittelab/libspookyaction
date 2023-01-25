@@ -123,11 +123,11 @@ namespace desfire {
     bool access_rights::is_free(file_access access) const {
         switch (access) {
             case file_access::read:
-                return read == all_keys or read_write == all_keys;
+                return read == free or read_write == free;
             case file_access::write:
-                return write == all_keys or read_write == all_keys;
+                return write == free or read_write == free;
             case file_access::change:
-                return change == all_keys;
+                return change == free;
         }
         return false;
     }

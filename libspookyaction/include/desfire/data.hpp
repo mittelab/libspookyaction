@@ -149,6 +149,9 @@ namespace desfire {
         [[nodiscard]] inline static access_rights from_word(std::uint16_t word);
 
         [[nodiscard]] bool is_free(file_access access) const;
+
+        [[nodiscard]] inline bool operator==(access_rights const &other) const;
+        [[nodiscard]] inline bool operator!=(access_rights const &other) const;
     };
 
     struct generic_file_settings {
@@ -505,6 +508,21 @@ namespace desfire {
         retval.set_word(word);
         return retval;
     }
+
+    bool access_rights::operator==(access_rights const &other) const {
+        return change == other.change and
+               read_write == other.read_write and
+               write == other.write and
+               read == other.read;
+    }
+
+    bool access_rights::operator!=(access_rights const &other) const {
+        return change != other.change or
+               read_write != other.read_write or
+               write != other.write or
+               read != other.read;
+    }
+
 
     constexpr generic_file_settings::generic_file_settings(file_security security_, access_rights rights_) : security{security_}, rights{rights_} {}
 

@@ -98,20 +98,20 @@ namespace desfire {
         static constexpr std::size_t size = KeyLength;
         using key_data = std::array<std::uint8_t, size>;
 
-        [[nodiscard]] inline mlab::range<std::uint8_t const *> as_range() const;
+        [[nodiscard]] constexpr mlab::range<std::uint8_t const *> as_range() const;
 
         key_storage() = default;
 
         inline explicit key_storage(random_oracle rng);
-        inline key_storage(random_oracle rng, std::uint8_t v);
+        key_storage(random_oracle rng, std::uint8_t v);
 
-        inline explicit key_storage(key_data k);
-        inline key_storage(key_data k, std::uint8_t v);
+        constexpr explicit key_storage(key_data k);
+        constexpr key_storage(key_data k, std::uint8_t v);
 
-        [[nodiscard]] inline std::uint8_t version() const;
+        [[nodiscard]] constexpr std::uint8_t version() const;
         inline void set_version(std::uint8_t v);
 
-        [[nodiscard]] inline key_data const &data() const;
+        [[nodiscard]] constexpr key_data const &data() const;
         inline void set_data(key_data k);
 
         void randomize(random_oracle rng);
@@ -128,17 +128,17 @@ namespace desfire {
         using key_storage<KeyLength, true>::size;
         using key_storage<KeyLength, true>::as_range;
 
-        key_storage() = default;
+        constexpr key_storage() = default;
 
-        inline explicit key_storage(random_oracle rng, std::uint8_t v = 0);
-        inline explicit key_storage(key_data k, std::uint8_t v = 0);
+        explicit key_storage(random_oracle rng, std::uint8_t v = 0);
+        constexpr explicit key_storage(key_data k, std::uint8_t v = 0);
 
         /**
          * @addtogroup Shadowing
          * @note Deliberately shadowing for conveniency
          * @{
          */
-        [[nodiscard]] inline std::uint8_t version() const;
+        [[nodiscard]] constexpr std::uint8_t version() const;
         inline void set_version(std::uint8_t v);
         void randomize(random_oracle rng);
         /**
@@ -170,17 +170,20 @@ namespace desfire {
         using storage::size;
         using storage::version;
 
-        key_base() = default;
+        constexpr key_base() = default;
         explicit key_base(random_oracle rng);
         key_base(std::uint8_t key_no, random_oracle rng);
-        key_base(std::uint8_t key_no, key_data k);
+        constexpr key_base(std::uint8_t key_no, key_data k);
         key_base(std::uint8_t key_no, random_oracle rng, std::uint8_t v);
-        key_base(std::uint8_t key_no, key_data k, std::uint8_t v);
+        constexpr key_base(std::uint8_t key_no, key_data k, std::uint8_t v);
 
-        [[nodiscard]] inline CRTPSubclass with_key_number(std::uint8_t key_no) const;
+        [[nodiscard]] CRTPSubclass with_key_number(std::uint8_t key_no) const;
 
-        [[nodiscard]] inline std::uint8_t key_number() const;
+        [[nodiscard]] constexpr std::uint8_t key_number() const;
         inline void set_key_number(std::uint8_t key_no);
+
+        [[nodiscard]] inline bool operator==(key_base const &other) const;
+        [[nodiscard]] inline bool operator!=(key_base const &other) const;
 
     private:
         std::uint8_t _key_no{0};
@@ -259,13 +262,13 @@ namespace mlab {
 namespace desfire {
 
     template <std::size_t KeyLength>
-    key_storage<KeyLength, false>::key_storage(key_data k, std::uint8_t v) : key_storage<KeyLength, true>{k}, _version{v} {}
+    constexpr key_storage<KeyLength, false>::key_storage(key_data k, std::uint8_t v) : key_storage<KeyLength, true>{k}, _version{v} {}
 
     template <std::size_t KeyLength>
     key_storage<KeyLength, false>::key_storage(random_oracle rng, std::uint8_t v) : key_storage<KeyLength, true>{rng}, _version{v} {}
 
     template <std::size_t KeyLength>
-    std::uint8_t key_storage<KeyLength, false>::version() const {
+    constexpr std::uint8_t key_storage<KeyLength, false>::version() const {
         return _version;
     }
 
@@ -280,12 +283,12 @@ namespace desfire {
     }
 
     template <std::size_t KeyLength>
-    mlab::range<std::uint8_t const *> key_storage<KeyLength, true>::as_range() const {
+    constexpr mlab::range<std::uint8_t const *> key_storage<KeyLength, true>::as_range() const {
         return mlab::make_range(_data);
     }
 
     template <std::size_t KeyLength>
-    key_storage<KeyLength, true>::key_storage(key_data k) : _data{k} {}
+    constexpr key_storage<KeyLength, true>::key_storage(key_data k) : _data{k} {}
 
     template <std::size_t KeyLength>
     key_storage<KeyLength, true>::key_storage(random_oracle rng) : key_storage{} {
@@ -299,12 +302,12 @@ namespace desfire {
     }
 
     template <std::size_t KeyLength>
-    key_storage<KeyLength, true>::key_storage(key_data k, std::uint8_t v) : _data{k} {
+    constexpr key_storage<KeyLength, true>::key_storage(key_data k, std::uint8_t v) : _data{k} {
         set_version(v);
     }
 
     template <std::size_t KeyLength>
-    std::uint8_t key_storage<KeyLength, true>::version() const {
+    constexpr std::uint8_t key_storage<KeyLength, true>::version() const {
         return get_key_version(_data);
     }
 
@@ -321,7 +324,7 @@ namespace desfire {
     }
 
     template <std::size_t KeyLength>
-    typename key_storage<KeyLength, true>::key_data const &key_storage<KeyLength, true>::data() const {
+    constexpr typename key_storage<KeyLength, true>::key_data const &key_storage<KeyLength, true>::data() const {
         return _data;
     }
 
@@ -331,10 +334,10 @@ namespace desfire {
     }
 
     template <std::size_t KeyLength, bool ParityBitsAreVersion, class CRTPSubclass>
-    key_base<KeyLength, ParityBitsAreVersion, CRTPSubclass>::key_base(std::uint8_t key_no, key_data k_) : storage{k_}, _key_no{key_no} {}
+    constexpr key_base<KeyLength, ParityBitsAreVersion, CRTPSubclass>::key_base(std::uint8_t key_no, key_data k_) : storage{k_}, _key_no{key_no} {}
 
     template <std::size_t KeyLength, bool ParityBitsAreVersion, class CRTPSubclass>
-    key_base<KeyLength, ParityBitsAreVersion, CRTPSubclass>::key_base(std::uint8_t key_no, key_data k_, std::uint8_t v_) : storage{k_, v_}, _key_no{key_no} {}
+    constexpr key_base<KeyLength, ParityBitsAreVersion, CRTPSubclass>::key_base(std::uint8_t key_no, key_data k_, std::uint8_t v_) : storage{k_, v_}, _key_no{key_no} {}
 
     template <std::size_t KeyLength, bool ParityBitsAreVersion, class CRTPSubclass>
     key_base<KeyLength, ParityBitsAreVersion, CRTPSubclass>::key_base(random_oracle rng) : storage{rng}, _key_no{0} {}
@@ -351,13 +354,22 @@ namespace desfire {
     }
 
     template <std::size_t KeyLength, bool ParityBitsAreVersion, class CRTPSubclass>
-    std::uint8_t key_base<KeyLength, ParityBitsAreVersion, CRTPSubclass>::key_number() const {
+    constexpr std::uint8_t key_base<KeyLength, ParityBitsAreVersion, CRTPSubclass>::key_number() const {
         return _key_no;
     }
 
     template <std::size_t KeyLength, bool ParityBitsAreVersion, class CRTPSubclass>
     void key_base<KeyLength, ParityBitsAreVersion, CRTPSubclass>::set_key_number(std::uint8_t key_no) {
         _key_no = key_no;
+    }
+
+    template <std::size_t KeyLength, bool ParityBitsAreVersion, class CRTPSubclass>
+    bool key_base<KeyLength, ParityBitsAreVersion, CRTPSubclass>::operator==(key_base const &other) const {
+        return key_number() == other.key_number() and version() == other.version() and data() == other.data();
+    }
+    template <std::size_t KeyLength, bool ParityBitsAreVersion, class CRTPSubclass>
+    bool key_base<KeyLength, ParityBitsAreVersion, CRTPSubclass>::operator!=(key_base const &other) const {
+        return key_number() != other.key_number() or version() != other.version() or data() != other.data();
     }
 
     template <cipher_type Cipher>

@@ -18,6 +18,7 @@ namespace desfire {
     [[nodiscard]] const char *to_string(file_type t);
     [[nodiscard]] const char *to_string(crypto_operation op);
     [[nodiscard]] const char *to_string(file_security);
+    [[nodiscard]] const char *to_string(app_crypto crypto);
 }// namespace desfire
 
 #endif//DESFIRE_MSG_HPP

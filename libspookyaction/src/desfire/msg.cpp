@@ -31,6 +31,18 @@ namespace desfire {
         return "UNKNOWN";
     }
 
+    const char *to_string(app_crypto crypto) {
+        switch (crypto) {
+            case app_crypto::aes_128:
+                return "AES129";
+            case app_crypto::iso_3k3des:
+                return "3K3DES";
+            case app_crypto::legacy_des_2k3des:
+                return "DES/2K3DES";
+        }
+        return "UNKNOWN";
+    }
+
     const char *to_string(crypto_operation op) {
         switch (op) {
             case crypto_operation::encrypt:

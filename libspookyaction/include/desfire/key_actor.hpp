@@ -36,6 +36,8 @@ namespace desfire {
         inline key_actor &operator=(SpecialT);
         inline key_actor &operator=(no_key_t);
 
+        [[nodiscard]] constexpr char describe() const;
+
         inline bool operator==(key_actor const &other) const;
         inline bool operator!=(key_actor const &other) const;
     };
@@ -88,6 +90,17 @@ namespace desfire {
     key_actor<SpecialT> &key_actor<SpecialT>::operator=(no_key_t) {
         _repr = no_key_value;
         return *this;
+    }
+
+    template <class SpecialT>
+    constexpr char key_actor<SpecialT>::describe() const {
+        if (_repr == special_value) {
+            return 'S';
+        } else if (_repr == no_key_value) {
+            return 'N';
+        } else {
+            return "0123456789ABCDEF"[_repr];
+        }
     }
 
     template <class SpecialT>

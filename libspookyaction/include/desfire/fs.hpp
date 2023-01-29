@@ -27,12 +27,29 @@
         DESFIRE_FAIL_CMD(#CMD, RESULT_NAME)             \
     }
 
+#define DESFIRE_CMD_WITH_NAMED_RESULT_SILENT(CMD, RESULT_NAME) \
+    if (auto RESULT_NAME = (CMD); not RESULT_NAME) {           \
+        return RESULT_NAME.error();                            \
+    }
+
 #define TRY(CMD) DESFIRE_CMD_WITH_NAMED_RESULT(CMD, _r)
+
+#define TRY_SILENT(CMD) DESFIRE_CMD_WITH_NAMED_RESULT_SILENT(CMD, _r)
+
 #define TRY_RESULT(CMD)                   \
     DESFIRE_CMD_WITH_NAMED_RESULT(CMD, r) \
     else
+
+#define TRY_RESULT_SILENT(CMD)                   \
+    DESFIRE_CMD_WITH_NAMED_RESULT_SILENT(CMD, r) \
+    else
+
 #define TRY_RESULT_AS(CMD, RES_VAR)             \
     DESFIRE_CMD_WITH_NAMED_RESULT(CMD, RES_VAR) \
+    else
+
+#define TRY_RESULT_AS_SILENT(CMD, RES_VAR)             \
+    DESFIRE_CMD_WITH_NAMED_RESULT_SILENT(CMD, RES_VAR) \
     else
 
 #endif

@@ -396,6 +396,7 @@ namespace desfire {
          * - @ref error::malformed
          * - @ref error::crypto_error
          * - @ref error::controller_error
+         * @todo Comm mode is incorrect
          */
         result<manufacturing_info> get_info();
 

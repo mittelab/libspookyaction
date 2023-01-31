@@ -410,10 +410,10 @@ namespace ut::desfire_main {
             TEST_ASSERT(mifare.authenticate(app.primary_key))
             const auto next_key_new = app.secondary_key.with_key_number(1);
             TEST_ASSERT(next_key_new.key_number() == 1);
-            TEST_ASSERT(mifare.change_key(app.primary_key, next_key_new.key_number(), next_key_new));
+            TEST_ASSERT(mifare.change_key(next_key_old, next_key_new));
             TEST_ASSERT(mifare.authenticate(next_key_new));
             TEST_ASSERT(mifare.authenticate(app.primary_key))
-            TEST_ASSERT(mifare.change_key(app.primary_key, next_key_old.key_number(), next_key_old));
+            TEST_ASSERT(mifare.change_key(next_key_new, next_key_old));
         }
     }
 

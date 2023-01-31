@@ -451,12 +451,12 @@ namespace desfire {
 
 
         /**
-         * @note Used to change a different key than the current (when key settings allow to do so). It is necessary to
-         * pass the current key in order to change another, even if already authenticated.
+         * @note Used to change a different key than the active (when key settings allow to do so). It is necessary to
+         * pass the previous key in order to change it, even if already authenticated.
          */
-        template <cipher_type Type1, cipher_type Type2>
-        result<> change_key(key<Type1> const &current_key, std::uint8_t key_no_to_change, key<Type2> const &new_key);
-        result<> change_key(any_key const &current_key, std::uint8_t key_no_to_change, any_key const &new_key);
+        template <cipher_type Type>
+        result<> change_key(key<Type> const &previous_key, key<Type> const &new_key);
+        result<> change_key(any_key const &previous_key, any_key const &new_key);
 
         /**
          * @dot
@@ -1255,7 +1255,7 @@ namespace desfire {
 
         [[nodiscard]] inline desfire::pcd &pcd();
 
-        result<> change_key_internal(any_key const *current_key, std::uint8_t key_no_to_change, any_key const &new_key);
+        result<> change_key_internal(any_key const *previous_key, any_key const &new_key);
 
         /**
          * @param cmd Must be one of @ref command_code::credit, @ref command_code::debit, @ref command_code::limited_credit.
@@ -1331,9 +1331,9 @@ namespace desfire {
         return change_key(any_key{new_key});
     }
 
-    template <cipher_type Type1, cipher_type Type2>
-    tag::result<> tag::change_key(key<Type1> const &current_key, std::uint8_t key_no_to_change, key<Type2> const &new_key) {
-        return change_key(any_key{current_key}, key_no_to_change, any_key{new_key});
+    template <cipher_type Type>
+    tag::result<> tag::change_key(key<Type> const &previous_key, key<Type> const &new_key) {
+        return change_key(any_key{previous_key}, any_key{new_key});
     }
 
 

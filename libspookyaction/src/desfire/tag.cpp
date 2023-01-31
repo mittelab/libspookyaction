@@ -446,6 +446,10 @@ namespace desfire {
     }
 
     tag::result<> tag::change_key(any_key const &new_key) {
+        if (new_key.key_number() != active_key_no()) {
+            DESFIRE_LOGE("%s: mismatching key no, active: %d, key: %d.", to_string(command_code::change_key), active_key_no(), new_key.key_number());
+            return error::parameter_error;
+        }
         if (active_key_no() >= bits::max_keys_per_app) {
             DESFIRE_LOGE("%s: not authenticated.", to_string(command_code::change_key));
             return error::authentication_error;
@@ -457,43 +461,48 @@ namespace desfire {
                          to_string(active_key_type()), to_string(new_key.type()));
             return error::parameter_error;
         }
-        return change_key_internal(nullptr, active_key_no(), new_key);
+        return change_key_internal(nullptr, new_key);
     }
 
-    tag::result<> tag::change_key(any_key const &current_key, std::uint8_t key_no_to_change, any_key const &new_key) {
-        if (key_no_to_change >= bits::max_keys_per_app) {
-            DESFIRE_LOGE("%s: invalid key num %u (max %u).", to_string(command_code::change_key), key_no_to_change, bits::max_keys_per_app);
+    tag::result<> tag::change_key(any_key const &previous_key, any_key const &new_key) {
+        if (previous_key.type() != new_key.type()) {
+            DESFIRE_LOGE("%s: mismatching key type, previous: %s, new: %s.", to_string(command_code::change_key), to_string(previous_key.type()), to_string(new_key.type()));
             return error::parameter_error;
-        } else if (key_no_to_change != new_key.key_number()) {
-            DESFIRE_LOGE("%s: mismatching key no, parameter: %d, key: %d.", to_string(command_code::change_key), key_no_to_change, new_key.key_number());
+        }
+        if (previous_key.key_number() != new_key.key_number()) {
+            DESFIRE_LOGE("%s: mismatching key no, parameter: %d, key: %d.", to_string(command_code::change_key), previous_key.key_number(), new_key.key_number());
+            return error::parameter_error;
+        }
+        if (previous_key.key_number() >= bits::max_keys_per_app) {
+            DESFIRE_LOGE("%s: invalid key num %u (max %u).", to_string(command_code::change_key), previous_key.key_number(), bits::max_keys_per_app);
             return error::parameter_error;
         }
         // Make sure that the keys are compatible. The root app makes exception
         if (active_app() != root_app and
-            app_crypto_from_cipher(current_key.type()) != app_crypto_from_cipher(new_key.type())) {
+            app_crypto_from_cipher(previous_key.type()) != app_crypto_from_cipher(new_key.type())) {
             DESFIRE_LOGE("%s: cannot change a key to %s, using a %s key.", to_string(command_code::change_key),
-                         to_string(new_key.type()), to_string(current_key.type()));
+                         to_string(new_key.type()), to_string(previous_key.type()));
             return error::parameter_error;
         }
         if (active_key_type() == cipher_type::none) {
             DESFIRE_LOGE("%s: not authenticated.", to_string(command_code::change_key));
             return error::authentication_error;
         }
-        return change_key_internal(&current_key, key_no_to_change, new_key);
+        return change_key_internal(&previous_key, new_key);
     }
 
-    tag::result<> tag::change_key_internal(any_key const *current_key, std::uint8_t key_no_to_change, any_key const &new_key) {
+    tag::result<> tag::change_key_internal(any_key const *previous_key, any_key const &new_key) {
         // Tweak the key number to allow change type of key on the root app (since cipher type must be set at creation).
         const std::uint8_t key_no_flag = (active_app() == root_app
-                                                  ? key_no_to_change | static_cast<std::uint8_t>(app_crypto_from_cipher(new_key.type()))
-                                                  : key_no_to_change);
+                                                  ? new_key.key_number() | static_cast<std::uint8_t>(app_crypto_from_cipher(new_key.type()))
+                                                  : new_key.key_number());
         bin_data payload{prealloc(33)};
         payload << key_no_flag;
         // Changing from a different key requires to xor it with that other key
-        if (current_key != nullptr) {
-            ESP_LOGD(DESFIRE_LOG_PREFIX " KEY", "Current key %d: %s", current_key->key_number(), to_string(current_key->type()));
-            ESP_LOG_BIN_DATA(DESFIRE_LOG_PREFIX " KEY", current_key->get_packed_key_body(), ESP_LOG_DEBUG);
-            payload << new_key.xored_with(*current_key);
+        if (previous_key != nullptr) {
+            ESP_LOGD(DESFIRE_LOG_PREFIX " KEY", "Previous key %d: %s", previous_key->key_number(), to_string(previous_key->type()));
+            ESP_LOG_BIN_DATA(DESFIRE_LOG_PREFIX " KEY", previous_key->get_packed_key_body(), ESP_LOG_DEBUG);
+            payload << new_key.xored_with(*previous_key);
         } else {
             payload << new_key;
         }
@@ -506,7 +515,7 @@ namespace desfire {
         if (active_cipher_is_legacy()) {
             // CRC on (maybe xored data). However, skip the key number
             payload << lsb16 << compute_crc16(payload.data_view(1));
-            if (current_key != nullptr) {
+            if (previous_key != nullptr) {
                 // Extra CRC on new key
                 payload << lsb16 << compute_crc16(new_key.get_packed_key_body());
             }
@@ -518,7 +527,7 @@ namespace desfire {
             // CRC on command code, key number, (maybe xored data). Note that the command code is added by the
             // command_response method, so we precomputed a different init value that accounts for it.
             payload << lsb32 << compute_crc32(payload, crc32_init_with_chgkey);
-            if (current_key != nullptr) {
+            if (previous_key != nullptr) {
                 // Extra CRC on new key
                 payload << lsb32 << compute_crc32(new_key.get_packed_key_body());
             }

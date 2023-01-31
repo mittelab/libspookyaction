@@ -183,6 +183,12 @@ namespace ut::desfire_main {
         TEST_ASSERT(mifare.select_application(root_app))
         test_auth_attempt(mifare.authenticate(key<cipher_type::des>{}));
         TEST_ASSERT(mifare.format_picc())
+        TEST_ASSERT(mifare.select_application(root_app));
+        TEST_ASSERT(mifare.authenticate(key<cipher_type::des>{}));
+        auto r_settings = mifare.get_app_settings();
+        r_settings->rights.dir_access_without_auth = true;
+        r_settings->rights.create_delete_without_master_key = false;
+        TEST_ASSERT(mifare.change_app_settings(r_settings->rights));
 
         const auto r_info = mifare.get_info();
         TEST_ASSERT(r_info)

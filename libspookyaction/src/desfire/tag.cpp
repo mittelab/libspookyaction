@@ -537,7 +537,7 @@ namespace desfire {
         const auto res_cmd = command_response(
                 command_code::change_key,
                 payload,// command code and key number are not encrypted
-                comm_cfg{cipher_mode::ciphered_no_crc, cipher_mode::plain, 2});
+                comm_cfg{cipher_mode::ciphered_no_crc, previous_key != nullptr ? default_comm_cfg().rx : cipher_mode::plain, 2});
         if (res_cmd) {
             DESFIRE_LOGD("Key %d (%s) was changed.", new_key.key_number(), to_string(new_key.type()));
 #ifdef DESFIRE_DEBUG_LOG_ROOT_KEY

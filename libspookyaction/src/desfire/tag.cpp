@@ -438,12 +438,7 @@ namespace desfire {
     }
 
     tag::result<> tag::format_picc() {
-        const auto res_cmd = command_response(command_code::format_picc, bin_data{}, default_comm_cfg());
-        if (res_cmd) {
-            logout(false);
-            _active_app = root_app;
-        }
-        return safe_drop_payload(command_code::format_picc, res_cmd);
+        return safe_drop_payload(command_code::format_picc, command_response(command_code::format_picc, bin_data{}, default_comm_cfg()));
     }
 
     tag::result<> tag::change_key(any_key const &new_key) {

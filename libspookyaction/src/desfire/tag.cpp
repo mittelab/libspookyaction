@@ -464,6 +464,9 @@ namespace desfire {
         if (key_no_to_change >= bits::max_keys_per_app) {
             DESFIRE_LOGE("%s: invalid key num %u (max %u).", to_string(command_code::change_key), key_no_to_change, bits::max_keys_per_app);
             return error::parameter_error;
+        } else if (key_no_to_change != new_key.key_number()) {
+            DESFIRE_LOGE("%s: mismatching key no, parameter: %d, key: %d.", to_string(command_code::change_key), key_no_to_change, new_key.key_number());
+            return error::parameter_error;
         }
         // Make sure that the keys are compatible. The root app makes exception
         if (active_app() != root_app and

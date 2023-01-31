@@ -20,7 +20,7 @@ namespace desfire::fs {
         return mlab::result_success;
     }
 
-    r<> create_ro_value_file(tag &tag, file_id fid, std::int32_t value, key_actor<free_t> read_access, file_security security) {
+    r<> create_ro_value_file(tag &tag, file_id fid, std::int32_t value, key_actor<free_access_t> read_access, file_security security) {
         // A value file can be directly created with no write access, because it takes an initial value
         const file_settings<file_type::value> ro_settings{
                 security,
@@ -30,14 +30,14 @@ namespace desfire::fs {
     }
 
     r<> create_ro_free_value_file(tag &tag, file_id fid, std::int32_t value) {
-        return create_ro_value_file(tag, fid, value, free, file_security::none);
+        return create_ro_value_file(tag, fid, value, free_access, file_security::none);
     }
 
     r<> create_ro_free_data_file(tag &tag, file_id fid, mlab::bin_data const &value) {
-        return create_ro_data_file(tag, fid, value, free, file_security::none);
+        return create_ro_data_file(tag, fid, value, free_access, file_security::none);
     }
 
-    r<> create_ro_data_file(tag &tag, file_id fid, mlab::bin_data const &value, key_actor<free_t> read_access, file_security security) {
+    r<> create_ro_data_file(tag &tag, file_id fid, mlab::bin_data const &value, key_actor<free_access_t> read_access, file_security security) {
         // A data file must be created with write access, because we have to write on it before locking it.
         const file_settings<file_type::standard> init_settings{
                 security,
@@ -69,7 +69,7 @@ namespace desfire::fs {
         const app_settings initial_settings{
                 app_crypto_from_cipher(master_key.type()),
                 inital_rights,
-                std::uint8_t(std::min(unsigned(bits::max_keys_per_app), extra_keys + 1u))};
+                std::min<std::uint8_t>(bits::max_keys_per_app, extra_keys + 1)};
         TRY(tag.create_application(aid, initial_settings))
         // Enter the application with the default key
         TRY(login_app(tag, aid, any_key(master_key.type())))

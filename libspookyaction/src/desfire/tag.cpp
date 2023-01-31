@@ -36,6 +36,7 @@ namespace desfire {
         using mlab::lsb32;
         using mlab::prealloc;
         using mlab::result_success;
+        using pn532::operator""_b;
 
         template <class T>
         [[nodiscard]] T saturate_sub(T a, T b) {
@@ -405,10 +406,10 @@ namespace desfire {
 
     tag::result<> tag::change_app_settings(key_rights new_rights) {
         if (active_app() == root_app) {
-            if (new_rights.allowed_to_change_keys != 0) {
+            if (new_rights.allowed_to_change_keys != 0_b) {
                 DESFIRE_LOGW("%s: only the unique master key can have the right to change keys in the root app.",
                              to_string(command_code::change_key_settings));
-                new_rights.allowed_to_change_keys = 0;
+                new_rights.allowed_to_change_keys = 0_b;
             }
         }
         if (active_key_no() >= bits::max_keys_per_app) {

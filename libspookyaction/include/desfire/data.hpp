@@ -120,8 +120,8 @@ namespace desfire {
               config_changeable{config_changeable_} {}
     };
 
-    struct free_t {};
-    static constexpr free_t free{};
+    struct free_access_t {};
+    static constexpr free_access_t free_access{};
 
     enum struct file_access {
         change,
@@ -130,18 +130,19 @@ namespace desfire {
     };
 
     struct access_rights {
-        key_actor<free_t> change;
-        key_actor<free_t> read_write;
-        key_actor<free_t> write;
-        key_actor<free_t> read;
+        key_actor<free_access_t> change;
+        key_actor<free_access_t> read_write;
+        key_actor<free_access_t> write;
+        key_actor<free_access_t> read;
 
         constexpr access_rights() = default;
         constexpr access_rights(no_key_t);
-        constexpr access_rights(free_t);
+        constexpr access_rights(free_access_t);
 
         constexpr explicit access_rights(std::uint8_t single_key);
-        constexpr access_rights(key_actor<free_t> rw, key_actor<free_t> chg);
-        constexpr access_rights(key_actor<free_t> rw, key_actor<free_t> chg, key_actor<free_t> r, key_actor<free_t> w);
+        access_rights(bool) = delete;
+        constexpr access_rights(key_actor<free_access_t> rw, key_actor<free_access_t> chg);
+        constexpr access_rights(key_actor<free_access_t> rw, key_actor<free_access_t> chg, key_actor<free_access_t> r, key_actor<free_access_t> w);
 
         inline void set_word(std::uint16_t v);
         [[nodiscard]] inline std::uint16_t get_word() const;
@@ -474,14 +475,14 @@ namespace desfire {
 
     constexpr access_rights::access_rights(no_key_t) : change{no_key}, read_write{no_key}, write{no_key}, read{no_key} {}
 
-    constexpr access_rights::access_rights(free_t) : change{free}, read_write{free}, write{free}, read{free} {}
+    constexpr access_rights::access_rights(free_access_t) : change{free_access}, read_write{free_access}, write{free_access}, read{free_access} {}
 
-    constexpr access_rights::access_rights(key_actor<free_t> rw, key_actor<free_t> chg) : access_rights{no_key} {
+    constexpr access_rights::access_rights(key_actor<free_access_t> rw, key_actor<free_access_t> chg) : access_rights{no_key} {
         read_write = rw;
         change = chg;
     }
 
-    constexpr access_rights::access_rights(key_actor<free_t> rw, key_actor<free_t> chg, key_actor<free_t> r, key_actor<free_t> w)
+    constexpr access_rights::access_rights(key_actor<free_access_t> rw, key_actor<free_access_t> chg, key_actor<free_access_t> r, key_actor<free_access_t> w)
         : access_rights{no_key} {
         read_write = rw;
         change = chg;

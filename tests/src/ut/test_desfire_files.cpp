@@ -5,12 +5,14 @@
 #include "test_desfire_files.hpp"
 #include "utils.hpp"
 #include <numeric>
+#include <pn532/data.hpp>
 #include <unity.h>
 
 namespace ut::desfire_files {
     namespace {
         constexpr const char *missing_instance_msg = "File test instance was not set up.";
-    }
+        using pn532::operator""_b;
+    }// namespace
 
     test_data::test_data(std::shared_ptr<ut::desfire_main::test_instance> main_test_instance)
         : _hold_test_instance{std::move(main_test_instance)}, _file{}, _test_load{} {
@@ -107,7 +109,7 @@ namespace ut::desfire_files {
         static constexpr record_file_settings rfs{8, 2};
         static constexpr value_file_settings vfs{-10, 10, 0, true};
         // Select either all keys, or one key (the one we are using
-        const generic_file_settings gfs{security, free_access ? access_rights{free_access} : access_rights{0}};
+        const generic_file_settings gfs{security, free_access ? access_rights{desfire::free_access} : access_rights{0_b}};
 
         switch (type) {
             case file_type::standard:

@@ -187,7 +187,7 @@ namespace mlab {
         target.info.ats.clear();
         if (s.good()) {
             // ATS length includes the ats bit
-            const std::uint8_t expected_ats_length = std::max(std::uint8_t(1), s.pop()) - 1;
+            const std::uint8_t expected_ats_length = std::max(1_b, s.pop()) - 1;
             if (s.remaining() < expected_ats_length) {
                 PN532_LOGW("Unable to parse kbps106_iso_iec_14443_typea target info, not enough data.");
                 s.set_bad();

@@ -256,7 +256,7 @@ namespace pn532 {
         bin_data payload = bin_data::chain(
                 prealloc(4),
                 bits::rf_config_item::timings,
-                std::uint8_t(0x00),
+                0_b,
                 atr_res_timeout,
                 retry_timeout);
         return chn().command_response(command_code::rf_configuration, std::move(payload), timeout);

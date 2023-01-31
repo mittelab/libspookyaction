@@ -71,8 +71,8 @@ namespace desfire::fs {
      * @return A result representing whether the operation was successful or not.
      * @{
      */
-    r<> create_ro_data_file(tag &tag, file_id fid, mlab::bin_data const &value, key_actor<free_t> read_access, file_security security);
-    r<> create_ro_value_file(tag &tag, file_id fid, std::int32_t value, key_actor<free_t> read_access, file_security security);
+    r<> create_ro_data_file(tag &tag, file_id fid, mlab::bin_data const &value, key_actor<free_access_t> read_access, file_security security);
+    r<> create_ro_value_file(tag &tag, file_id fid, std::int32_t value, key_actor<free_access_t> read_access, file_security security);
     r<> create_ro_free_data_file(tag &tag, file_id fid, mlab::bin_data const &value);
     r<> create_ro_free_value_file(tag &tag, file_id fid, std::int32_t value);
     /**

@@ -8,11 +8,13 @@
 #include <desfire/tag.hpp>
 #include <list>
 #include <numeric>
+#include <pn532/data.hpp>
 #include <unity.h>
 
 namespace ut::desfire_exchanges {
     namespace {
         using namespace ::desfire;
+        using pn532::operator""_b;
 
         struct assert_comm_pcd final : public pcd {
             std::list<std::pair<mlab::bin_data, mlab::bin_data>> txrx_fifo;
@@ -57,7 +59,7 @@ namespace ut::desfire_exchanges {
     void test_key_actor() {
         using actor = key_actor<same_key_t>;
         constexpr std::array<actor, 0x10> all_actors = {
-                0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xa, 0xb, 0xc, 0xd, same_key, no_key};
+                0x0_b, 0x1_b, 0x2_b, 0x3_b, 0x4_b, 0x5_b, 0x6_b, 0x7_b, 0x8_b, 0x9_b, 0xa_b, 0xb_b, 0xc_b, 0xd_b, same_key, no_key};
         bin_data buffer{mlab::prealloc(1)};
         auto cycle = [&](actor const &a) -> actor {
             buffer.clear();

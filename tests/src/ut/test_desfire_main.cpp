@@ -17,6 +17,7 @@ namespace ut::desfire_main {
 
     namespace {
         using namespace ::desfire::esp32;
+        using ::pn532::operator""_b;
         constexpr const char *missing_instance_msg = "Desfire test instance was not set up.";
 
         void issue_format_warning() {
@@ -396,12 +397,12 @@ namespace ut::desfire_main {
             TEST_ASSERT(mifare.change_key(app.primary_key))
 
             TEST_ASSERT(res_key_settings->max_num_keys > 2);
-            res_key_settings->rights.allowed_to_change_keys = 0;
+            res_key_settings->rights.allowed_to_change_keys = 0_b;
             TEST_ASSERT(mifare.authenticate(app.primary_key));
             TEST_ASSERT(mifare.change_app_settings(res_key_settings->rights))
             res_key_settings = mifare.get_app_settings();
             TEST_ASSERT(res_key_settings);
-            TEST_ASSERT(res_key_settings->rights.allowed_to_change_keys == 0);
+            TEST_ASSERT(res_key_settings->rights.allowed_to_change_keys == 0_b);
             TEST_ASSERT(app.primary_key.key_number() == 0);
             TEST_ASSERT(mifare.authenticate(app.primary_key))
             const auto next_key_old = any_key{cipher}.with_key_number(1);

@@ -29,10 +29,12 @@ namespace desfire {
 
         constexpr key_actor();
         constexpr key_actor(std::uint8_t key_index);
+        key_actor(bool) = delete;
         constexpr key_actor(SpecialT);
         constexpr key_actor(no_key_t);
 
         inline key_actor &operator=(std::uint8_t key_index);
+        key_actor &operator=(bool) = delete;
         inline key_actor &operator=(SpecialT);
         inline key_actor &operator=(no_key_t);
 

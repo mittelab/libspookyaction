@@ -65,7 +65,7 @@ namespace desfire {
         void set_data(mlab::range<std::uint8_t const *> k);
         void randomize(random_oracle rng);
 
-        [[nodiscard]] any_key with_key_number(std::uint8_t v);
+        [[nodiscard]] any_key with_key_number(std::uint8_t v) const;
 
         /**
          * Size in bytes of the key. Does not account for the fact that DES key in Desfire cards are stored as 16 bytes,

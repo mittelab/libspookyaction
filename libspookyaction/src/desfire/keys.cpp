@@ -316,7 +316,7 @@ namespace desfire {
     }
 
 
-    any_key any_key::with_key_number(std::uint8_t v) {
+    any_key any_key::with_key_number(std::uint8_t v) const {
         any_key copy{*this};
         copy.set_version(v);
         return copy;

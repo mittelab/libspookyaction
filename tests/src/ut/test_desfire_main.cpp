@@ -394,6 +394,26 @@ namespace ut::desfire_main {
             res_key_settings->rights.dir_access_without_auth = false;
             TEST_ASSERT(mifare.change_app_settings(res_key_settings->rights))
             TEST_ASSERT(mifare.change_key(app.primary_key))
+
+            TEST_ASSERT(res_key_settings->max_num_keys > 2);
+            res_key_settings->rights.allowed_to_change_keys = 0;
+            TEST_ASSERT(mifare.authenticate(app.primary_key));
+            TEST_ASSERT(mifare.change_app_settings(res_key_settings->rights))
+            res_key_settings = mifare.get_app_settings();
+            TEST_ASSERT(res_key_settings);
+            TEST_ASSERT(res_key_settings->rights.allowed_to_change_keys == 0);
+            TEST_ASSERT(app.primary_key.key_number() == 0);
+            TEST_ASSERT(mifare.authenticate(app.primary_key))
+            const auto next_key_old = any_key{cipher}.with_key_number(1);
+            TEST_ASSERT(next_key_old.key_number() == 1);
+            TEST_ASSERT(mifare.authenticate(next_key_old));
+            TEST_ASSERT(mifare.authenticate(app.primary_key))
+            const auto next_key_new = app.secondary_key.with_key_number(1);
+            TEST_ASSERT(next_key_new.key_number() == 1);
+            TEST_ASSERT(mifare.change_key(app.primary_key, next_key_new.key_number(), next_key_new));
+            TEST_ASSERT(mifare.authenticate(next_key_new));
+            TEST_ASSERT(mifare.authenticate(app.primary_key))
+            TEST_ASSERT(mifare.change_key(app.primary_key, next_key_old.key_number(), next_key_old));
         }
     }
 

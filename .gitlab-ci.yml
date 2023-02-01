@@ -121,6 +121,7 @@ build examples:
           --build-dir="${BUILD_DIR}" \
           --project-conf=cicd/platformio.ini \
           --lib=${PIO_LIB_FOLDER} \
+          --lib=tests/lib/mittelib \
           --keep-build-dir \
           $file
         rm -rf "${BUILD_DIR}"

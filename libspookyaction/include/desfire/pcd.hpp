@@ -5,7 +5,6 @@
 #ifndef DESFIRE_PCD_HPP
 #define DESFIRE_PCD_HPP
 
-#include <limits>
 #include <mlab/bin_data.hpp>
 #include <utility>
 

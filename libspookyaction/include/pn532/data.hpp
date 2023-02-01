@@ -5,7 +5,6 @@
 #ifndef PN532_DATA_HPP
 #define PN532_DATA_HPP
 
-#include <limits>
 #include <mlab/bin_data.hpp>
 #include <mlab/result.hpp>
 #include <pn532/bits.hpp>

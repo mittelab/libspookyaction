@@ -3,4 +3,4 @@
 	url = https://github.com/espressif/esp-wolfssl.git
 [submodule "tests/lib/_mittelib"]
 	path = tests/lib/_mittelib
-	url = git@git.mittelab.org:proj/mittelib.git
+	url = https://git.mittelab.org/proj/mittelib.git

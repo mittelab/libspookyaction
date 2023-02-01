@@ -41,22 +41,22 @@ namespace desfire {
                 set<cipher_type::none>(key<cipher_type::none>{});
                 break;
             case cipher_type::des: {
-                key<cipher_type::des>::key_data kd{};
+                key<cipher_type::des>::key_data_t kd{};
                 std::copy_n(std::begin(k), kd.size(), std::begin(kd));
                 set<cipher_type::des>(key<cipher_type::des>{key_no, kd});
             } break;
             case cipher_type::des3_2k: {
-                key<cipher_type::des3_2k>::key_data kd{};
+                key<cipher_type::des3_2k>::key_data_t kd{};
                 std::copy_n(std::begin(k), kd.size(), std::begin(kd));
                 set<cipher_type::des3_2k>(key<cipher_type::des3_2k>{key_no, kd});
             } break;
             case cipher_type::des3_3k: {
-                key<cipher_type::des3_3k>::key_data kd{};
+                key<cipher_type::des3_3k>::key_data_t kd{};
                 std::copy_n(std::begin(k), kd.size(), std::begin(kd));
                 set<cipher_type::des3_3k>(key<cipher_type::des3_3k>{key_no, kd});
             } break;
             case cipher_type::aes128: {
-                key<cipher_type::aes128>::key_data kd{};
+                key<cipher_type::aes128>::key_data_t kd{};
                 std::copy_n(std::begin(k), kd.size(), std::begin(kd));
                 set<cipher_type::aes128>(key<cipher_type::aes128>{key_no, kd});
             } break;
@@ -70,22 +70,22 @@ namespace desfire {
                 set<cipher_type::none>(key<cipher_type::none>{});
                 break;
             case cipher_type::des: {
-                key<cipher_type::des>::key_data kd{};
+                key<cipher_type::des>::key_data_t kd{};
                 std::copy_n(std::begin(k), kd.size(), std::begin(kd));
                 set<cipher_type::des>(key<cipher_type::des>{key_no, kd, v});
             } break;
             case cipher_type::des3_2k: {
-                key<cipher_type::des3_2k>::key_data kd{};
+                key<cipher_type::des3_2k>::key_data_t kd{};
                 std::copy_n(std::begin(k), kd.size(), std::begin(kd));
                 set<cipher_type::des3_2k>(key<cipher_type::des3_2k>{key_no, kd, v});
             } break;
             case cipher_type::des3_3k: {
-                key<cipher_type::des3_3k>::key_data kd{};
+                key<cipher_type::des3_3k>::key_data_t kd{};
                 std::copy_n(std::begin(k), kd.size(), std::begin(kd));
                 set<cipher_type::des3_3k>(key<cipher_type::des3_3k>{key_no, kd, v});
             } break;
             case cipher_type::aes128: {
-                key<cipher_type::aes128>::key_data kd{};
+                key<cipher_type::aes128>::key_data_t kd{};
                 std::copy_n(std::begin(k), kd.size(), std::begin(kd));
                 set<cipher_type::aes128>(key<cipher_type::aes128>{key_no, kd, v});
             } break;
@@ -287,25 +287,25 @@ namespace desfire {
         }
         switch (type()) {
             case cipher_type::des: {
-                key<cipher_type::des>::key_data kd{};
+                key<cipher_type::des>::key_data_t kd{};
                 std::copy_n(std::begin(k), kd.size(), std::begin(kd));
                 get<cipher_type::des>().set_data(kd);
             } break;
 
             case cipher_type::des3_2k: {
-                key<cipher_type::des3_2k>::key_data kd{};
+                key<cipher_type::des3_2k>::key_data_t kd{};
                 std::copy_n(std::begin(k), kd.size(), std::begin(kd));
                 get<cipher_type::des3_2k>().set_data(kd);
             } break;
 
             case cipher_type::des3_3k: {
-                key<cipher_type::des3_3k>::key_data kd{};
+                key<cipher_type::des3_3k>::key_data_t kd{};
                 std::copy_n(std::begin(k), kd.size(), std::begin(kd));
                 get<cipher_type::des3_3k>().set_data(kd);
             } break;
 
             case cipher_type::aes128: {
-                key<cipher_type::aes128>::key_data kd{};
+                key<cipher_type::aes128>::key_data_t kd{};
                 std::copy_n(std::begin(k), kd.size(), std::begin(kd));
                 get<cipher_type::aes128>().set_data(kd);
             } break;

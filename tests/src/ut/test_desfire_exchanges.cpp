@@ -8,13 +8,12 @@
 #include <desfire/tag.hpp>
 #include <list>
 #include <numeric>
-#include <pn532/data.hpp>
 #include <unity.h>
 
 namespace ut::desfire_exchanges {
     namespace {
         using namespace ::desfire;
-        using pn532::operator""_b;
+        using namespace ::mlab_literals;
 
         struct assert_comm_pcd final : public pcd {
             std::list<std::pair<mlab::bin_data, mlab::bin_data>> txrx_fifo;

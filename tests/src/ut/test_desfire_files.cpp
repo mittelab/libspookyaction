@@ -5,13 +5,12 @@
 #include "test_desfire_files.hpp"
 #include "utils.hpp"
 #include <numeric>
-#include <pn532/data.hpp>
 #include <unity.h>
 
 namespace ut::desfire_files {
     namespace {
         constexpr const char *missing_instance_msg = "File test instance was not set up.";
-        using pn532::operator""_b;
+        using namespace ::mlab_literals;
     }// namespace
 
     test_data::test_data(std::shared_ptr<ut::desfire_main::test_instance> main_test_instance)

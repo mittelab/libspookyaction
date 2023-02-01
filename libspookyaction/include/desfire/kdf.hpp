@@ -9,6 +9,7 @@
 #include <desfire/cmac_provider.hpp>
 #include <desfire/crypto.hpp>
 #include <desfire/log.h>
+#include <desfire/keys.hpp>
 #include <mlab/bin_data.hpp>
 
 namespace desfire {
@@ -46,7 +47,7 @@ namespace desfire {
      * @return A diversified key of length `BlockSize * NBlocks`.
      */
     template <std::size_t BlockSize, std::size_t NBlocks>
-    [[nodiscard]] std::array<std::uint8_t, BlockSize * NBlocks> kdf_an10922(
+    [[nodiscard]] key_data<BlockSize * NBlocks> kdf_an10922(
             cmac_keychain const &keychain,
             crypto &crypto,
             mlab::bin_data &diversify_input,
@@ -101,13 +102,13 @@ namespace desfire {
      * @see kdf_an10922
      * @{
      */
-    std::array<std::uint8_t, 8> kdf_an10922(crypto_des_base &crypto, mlab::bin_data &diversify_input);
-    std::array<std::uint8_t, 16> kdf_an10922(crypto_2k3des_base &crypto, mlab::bin_data &diversify_input);
-    std::array<std::uint8_t, 24> kdf_an10922(crypto_3k3des_base &crypto, mlab::bin_data &diversify_input);
-    std::array<std::uint8_t, 16> kdf_an10922(crypto_aes_base &crypto, mlab::bin_data &diversify_input);
-    std::array<std::uint8_t, 8> kdf_an10922(crypto_des_base &crypto, mlab::bin_data &diversify_input, std::uint8_t key_version);
-    std::array<std::uint8_t, 16> kdf_an10922(crypto_2k3des_base &crypto, mlab::bin_data &diversify_input, std::uint8_t key_version);
-    std::array<std::uint8_t, 24> kdf_an10922(crypto_3k3des_base &crypto, mlab::bin_data &diversify_input, std::uint8_t key_version);
+    key_data<8>  kdf_an10922(crypto_des_base &crypto, mlab::bin_data &diversify_input);
+    key_data<16> kdf_an10922(crypto_2k3des_base &crypto, mlab::bin_data &diversify_input);
+    key_data<24> kdf_an10922(crypto_3k3des_base &crypto, mlab::bin_data &diversify_input);
+    key_data<16> kdf_an10922(crypto_aes_base &crypto, mlab::bin_data &diversify_input);
+    key_data<8>  kdf_an10922(crypto_des_base &crypto, mlab::bin_data &diversify_input, std::uint8_t key_version);
+    key_data<16> kdf_an10922(crypto_2k3des_base &crypto, mlab::bin_data &diversify_input, std::uint8_t key_version);
+    key_data<24> kdf_an10922(crypto_3k3des_base &crypto, mlab::bin_data &diversify_input, std::uint8_t key_version);
     /**
      * @}
      */
@@ -117,7 +118,7 @@ namespace desfire {
 namespace desfire {
 
     template <std::size_t BlockSize, std::size_t NBlocks>
-    std::array<std::uint8_t, BlockSize * NBlocks> kdf_an10922(
+    key_data<BlockSize * NBlocks> kdf_an10922(
             cmac_keychain const &keychain,
             crypto &crypto,
             mlab::bin_data &diversify_input,
@@ -126,7 +127,7 @@ namespace desfire {
         static constexpr auto KeyLength = BlockSize * NBlocks;
 
         // This will be the final key returned.
-        std::array<std::uint8_t, KeyLength> diversified_key{};
+        key_data<KeyLength> diversified_key{};
         std::fill_n(std::begin(diversified_key), KeyLength, 0);
 
         if (keychain.block_size() != BlockSize) {

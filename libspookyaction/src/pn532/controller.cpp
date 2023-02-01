@@ -10,6 +10,7 @@ namespace pn532 {
         using mlab::ms;
         using mlab::prealloc;
         using mlab::reduce_timeout;
+        using namespace mlab_literals;
 
         template <class It>
         using range = mlab::range<It>;

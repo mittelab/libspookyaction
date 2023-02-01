@@ -6,6 +6,7 @@
 #include <desfire/cipher.hpp>
 #include <desfire/crypto_algo.hpp>
 #include <desfire/log.h>
+#include <mlab/mathutils.hpp>
 
 namespace desfire {
     namespace {
@@ -48,7 +49,7 @@ namespace desfire {
 
         // Resize the buffer and copy data
         buffer.clear();
-        buffer.resize(padded_length<block_size>(data.size()), 0x00);
+        buffer.resize(mlab::next_multiple<std::size_t>(data.size(), block_size), 0x00);
         std::copy(std::begin(data), std::end(data), std::begin(buffer));
 
         // Return the first 4 bytes of the last block
@@ -85,12 +86,12 @@ namespace desfire {
             data << mac;
         } else {
             if (mode == cipher_mode::ciphered) {
-                data.reserve(offset + padded_length<block_size>(data.size() + crc_size - offset));
+                data.reserve(offset + mlab::next_multiple(data.size() + crc_size - offset, block_size));
                 data << lsb16 << compute_crc16(data.data_view(offset));
             } else {
-                data.reserve(offset + padded_length<block_size>(data.size() - offset));
+                data.reserve(offset + mlab::next_multiple(data.size() - offset, block_size));
             }
-            data.resize(offset + padded_length<block_size>(data.size() - offset), 0x00);
+            data.resize(offset + mlab::next_multiple(data.size() - offset, block_size), 0x00);
             crypto_provider().do_crypto(data.data_view(offset), make_range(get_zeroed_iv()), crypto_operation::encrypt);
         }
     }
@@ -202,13 +203,13 @@ namespace desfire {
                 return;// Nothing to do
             }
             if (mode == cipher_mode::ciphered) {
-                data.reserve(offset + padded_length(data.size() + crc_size - offset, crypto_provider().block_size()));
+                data.reserve(offset + mlab::next_multiple(data.size() + crc_size - offset, crypto_provider().block_size()));
                 // CRC has to be computed on the whole data
                 data << lsb32 << compute_crc32(data);
             } else {
-                data.reserve(offset + padded_length(data.size() - offset, crypto_provider().block_size()));
+                data.reserve(offset + mlab::next_multiple(data.size() - offset, crypto_provider().block_size()));
             }
-            data.resize(offset + padded_length(data.size() - offset, crypto_provider().block_size()), 0x00);
+            data.resize(offset + mlab::next_multiple(data.size() - offset, crypto_provider().block_size()), 0x00);
             crypto_provider().do_crypto(data.data_view(offset), iv(), crypto_operation::encrypt);
         }
     }

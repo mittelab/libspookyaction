@@ -8,39 +8,39 @@
 
 namespace desfire {
 
-    std::array<std::uint8_t, 8> kdf_an10922(crypto_des_base &crypto, mlab::bin_data &diversify_input) {
+    key_data<8> kdf_an10922(crypto_des_base &crypto, mlab::bin_data &diversify_input) {
         cmac_keychain keychain{8, bits::crypto_cmac_xor_byte_des};
         keychain.initialize_subkeys(crypto);
         return kdf_an10922<8, 1>(keychain, crypto, diversify_input, bits::kdf_des_const);
     }
 
-    std::array<std::uint8_t, 16> kdf_an10922(crypto_2k3des_base &crypto, mlab::bin_data &diversify_input) {
+    key_data<16> kdf_an10922(crypto_2k3des_base &crypto, mlab::bin_data &diversify_input) {
         cmac_keychain keychain{8, bits::crypto_cmac_xor_byte_2k3des};
         keychain.initialize_subkeys(crypto);
         return kdf_an10922<8, 2>(keychain, crypto, diversify_input, bits::kdf_2k3des_const);
     }
 
-    std::array<std::uint8_t, 24> kdf_an10922(crypto_3k3des_base &crypto, mlab::bin_data &diversify_input) {
+    key_data<24> kdf_an10922(crypto_3k3des_base &crypto, mlab::bin_data &diversify_input) {
         // No need to initialize the subkeys here
         return kdf_an10922<8, 3>(crypto.provider().keychain(), crypto, diversify_input, bits::kdf_3k3des_const);
     }
 
-    std::array<std::uint8_t, 16> kdf_an10922(crypto_aes_base &crypto, mlab::bin_data &diversify_input) {
+    key_data<16> kdf_an10922(crypto_aes_base &crypto, mlab::bin_data &diversify_input) {
         // No need to initialize the subkeys here
         return kdf_an10922<16, 1>(crypto.provider().keychain(), crypto, diversify_input, bits::kdf_aes_const);
     }
 
-    std::array<std::uint8_t, 8> kdf_an10922(crypto_des_base &crypto, mlab::bin_data &diversify_input, std::uint8_t key_version) {
+    key_data<8> kdf_an10922(crypto_des_base &crypto, mlab::bin_data &diversify_input, std::uint8_t key_version) {
         auto div_key = kdf_an10922(crypto, diversify_input);
         set_key_version(div_key, key_version);
         return div_key;
     }
-    std::array<std::uint8_t, 16> kdf_an10922(crypto_2k3des_base &crypto, mlab::bin_data &diversify_input, std::uint8_t key_version) {
+    key_data<16> kdf_an10922(crypto_2k3des_base &crypto, mlab::bin_data &diversify_input, std::uint8_t key_version) {
         auto div_key = kdf_an10922(crypto, diversify_input);
         set_key_version(div_key, key_version);
         return div_key;
     }
-    std::array<std::uint8_t, 24> kdf_an10922(crypto_3k3des_base &crypto, mlab::bin_data &diversify_input, std::uint8_t key_version) {
+    key_data<24> kdf_an10922(crypto_3k3des_base &crypto, mlab::bin_data &diversify_input, std::uint8_t key_version) {
         auto div_key = kdf_an10922(crypto, diversify_input);
         set_key_version(div_key, key_version);
         return div_key;

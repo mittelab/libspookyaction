@@ -56,7 +56,7 @@ namespace desfire {
 
     void cmac_keychain::prepare_cmac_data(bin_data &data, std::size_t desired_padded_length) const {
         // Ensure the padded length is a multiple of the block size
-        desired_padded_length = padded_length(desired_padded_length, block_size());
+        desired_padded_length = mlab::next_multiple(desired_padded_length, block_size());
         const auto old_size = data.size();
         data.resize(desired_padded_length);
 
@@ -85,7 +85,7 @@ namespace desfire {
 
         // Resize the buffer and copy data
         _cmac_buffer.clear();
-        _cmac_buffer.reserve(padded_length(data.size(), keychain().block_size()));
+        _cmac_buffer.reserve(mlab::next_multiple<std::size_t>(data.size(), keychain().block_size()));
         _cmac_buffer.resize(data.size());
 
         std::copy(std::begin(data), std::end(data), std::begin(_cmac_buffer));

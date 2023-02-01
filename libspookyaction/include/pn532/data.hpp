@@ -55,8 +55,6 @@ namespace pn532 {
     struct infty_t {
     };
 
-    [[nodiscard]] constexpr std::uint8_t operator""_b(unsigned long long int n);
-
     /**
      * @brief A marker for the infinity value added by @ref with_inf to an integral type.
      * @see with_inf
@@ -463,10 +461,6 @@ namespace pn532 {
     reg_addr::reg_addr(std::uint16_t xram_mmap_reg) : std::array<std::uint8_t, 2>{{std::uint8_t(xram_mmap_reg >> 8),
                                                                                    std::uint8_t(xram_mmap_reg & 0xff)}} {}
 
-
-    constexpr std::uint8_t operator""_b(unsigned long long int n) {
-        return std::uint8_t(n);
-    }
 }// namespace pn532
 
 namespace mlab {

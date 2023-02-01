@@ -36,7 +36,7 @@ namespace desfire {
         using mlab::lsb32;
         using mlab::prealloc;
         using mlab::result_success;
-        using pn532::operator""_b;
+        using namespace ::mlab_literals;
 
         template <class T>
         [[nodiscard]] T saturate_sub(T a, T b) {

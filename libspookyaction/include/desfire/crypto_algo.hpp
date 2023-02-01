@@ -11,21 +11,14 @@
 #include <iterator>
 #include <mlab/bin_data.hpp>
 #include <utility>
+#include <mlab/mathutils.hpp>
 
 namespace desfire {
 
     static constexpr std::array<std::uint8_t, 2> default_padding_bytes = {0x00, 0x80};
 
-    template <class Integral>
-    [[nodiscard]] std::pair<unsigned, Integral> log2_remainder(Integral n);
-
     template <class It>
     void lshift_sequence(It begin, It end, unsigned lshift);
-
-    template <std::size_t BlockSize>
-    [[nodiscard]] std::size_t padded_length(std::size_t size);
-
-    inline std::size_t padded_length(std::size_t size, std::size_t block_size);
 
     template <class Container>
     void set_key_version(Container &c, std::uint8_t v);
@@ -101,21 +94,6 @@ namespace desfire {
         }
     }
 
-    template <std::size_t BlockSize>
-    std::size_t padded_length(std::size_t size) {
-        static_assert(BlockSize % 2 == 0, "This version works just with powers of two.");
-        return (size + BlockSize - 1) & -BlockSize;
-    }
-
-    std::size_t padded_length(std::size_t size, std::size_t block_size) {
-        if (block_size % 2 == 0) {
-            return (size + block_size - 1) & -block_size;
-        } else {
-            const auto rem_div = std::div(long(size), long(block_size));
-            return rem_div.quot * block_size + (rem_div.rem > 0 ? block_size : 0);
-        }
-    }
-
     template <class ByteIterator, class N, class Fn, std::size_t NPaddingBytes>
     std::pair<ByteIterator, bool> find_crc_tail(ByteIterator begin, ByteIterator end, Fn &&crc_fn, N init,
                                                 std::size_t block_size, bool incremental_crc,
@@ -153,20 +131,6 @@ namespace desfire {
         }
         return {end, false};
     }
-
-    template <class Integral>
-    std::pair<unsigned, Integral> log2_remainder(Integral n) {
-        static_assert(std::is_integral_v<Integral> and std::is_unsigned_v<Integral>);
-        Integral mask = ~Integral(0);
-        for (unsigned i = 0; i < sizeof(Integral) * 8; ++i) {
-            mask >>= 1;
-            if (const Integral remainder = n & mask; remainder != n) {
-                return {sizeof(Integral) * 8 - i - 1, remainder};
-            }
-        }
-        return {0, n};
-    }
-
 
     template <class Container>
     void set_key_version(Container &c, std::uint8_t v) {

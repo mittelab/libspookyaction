@@ -93,16 +93,8 @@
   "frameworks": "espidf",
   "platforms": "espressif32",
   "flags": [
-    "-std=gnu++17",
     "-Wall",
     "-Wextra"
-  ],
-  "unflags": [
-    "-std=gnu++11",
-    "-std=gnu++14",
-    "-std=c++11",
-    "-std=c++14",
-    "-std=c++17"
   ],
   "dependencies": {
     "mitteLib": "^1.0.3"

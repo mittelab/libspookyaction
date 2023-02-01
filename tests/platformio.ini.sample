@@ -46,9 +46,7 @@ lib_deps = libspookyaction
 ;   PN532_RSTN: the GPIO pin number which connects to the RSTN line on the PN532
 ;
 
-build_unflags = -std=gnu++11 -std=gnu++14 -std=c++11 -std=c++14 -std=c++17
 build_flags =
-    -std=gnu++17
     -Wall -Wextra
 ;   -D PN532_IRQ=4
     -D SPOOKY_HSU

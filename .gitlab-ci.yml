@@ -12,6 +12,7 @@ stages:
 variables:
   PIO_LIB_FOLDER: libspookyaction
   PIO_PROJ_FOLDER: tests
+  GIT_SUBMODULE_STRATEGY: normal
 
 .pio-cache: &pio-cache
   cache:

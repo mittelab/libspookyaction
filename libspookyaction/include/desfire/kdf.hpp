@@ -8,8 +8,8 @@
 #include <cstdint>
 #include <desfire/cmac_provider.hpp>
 #include <desfire/crypto.hpp>
-#include <desfire/log.h>
 #include <desfire/keys.hpp>
+#include <desfire/log.h>
 #include <mlab/bin_data.hpp>
 
 namespace desfire {
@@ -102,11 +102,11 @@ namespace desfire {
      * @see kdf_an10922
      * @{
      */
-    key_data<8>  kdf_an10922(crypto_des_base &crypto, mlab::bin_data &diversify_input);
+    key_data<8> kdf_an10922(crypto_des_base &crypto, mlab::bin_data &diversify_input);
     key_data<16> kdf_an10922(crypto_2k3des_base &crypto, mlab::bin_data &diversify_input);
     key_data<24> kdf_an10922(crypto_3k3des_base &crypto, mlab::bin_data &diversify_input);
     key_data<16> kdf_an10922(crypto_aes_base &crypto, mlab::bin_data &diversify_input);
-    key_data<8>  kdf_an10922(crypto_des_base &crypto, mlab::bin_data &diversify_input, std::uint8_t key_version);
+    key_data<8> kdf_an10922(crypto_des_base &crypto, mlab::bin_data &diversify_input, std::uint8_t key_version);
     key_data<16> kdf_an10922(crypto_2k3des_base &crypto, mlab::bin_data &diversify_input, std::uint8_t key_version);
     key_data<24> kdf_an10922(crypto_3k3des_base &crypto, mlab::bin_data &diversify_input, std::uint8_t key_version);
     /**

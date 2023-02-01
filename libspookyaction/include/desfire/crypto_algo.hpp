@@ -10,8 +10,8 @@
 #include <desfire/log.h>
 #include <iterator>
 #include <mlab/bin_data.hpp>
-#include <utility>
 #include <mlab/mathutils.hpp>
+#include <utility>
 
 namespace desfire {
 

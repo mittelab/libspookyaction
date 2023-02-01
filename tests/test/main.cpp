@@ -6,8 +6,10 @@
 #include "ut/test_desfire_main.hpp"
 #include "ut/test_pn532.hpp"
 #include "ut/utils.hpp"
-#include <mbcontroller.h>
+#include <thread>
 #include <unity.h>
+
+using namespace std::chrono_literals;
 
 #define TEST_TAG "UT"
 
@@ -16,7 +18,7 @@ void issue_header(std::string const &title) {
     const std::size_t tail_length = std::max(68u, title.length()) - title.length();
     const std::string header = "---------- " + title + " " + std::string(tail_length, '-');
     ESP_LOGI(TEST_TAG, "%s", header.c_str());
-    vTaskDelay(pdMS_TO_TICKS(2000));
+    std::this_thread::sleep_for(2s);
 }
 
 void unity_perform_cipher_tests() {

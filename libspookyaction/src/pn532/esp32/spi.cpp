@@ -2,8 +2,8 @@
 // Created by spak on 3/25/21.
 //
 
-#include <mbcontroller.h>
 #include <pn532/esp32/spi.hpp>
+#include <thread>
 
 #define PN532_SPI_TAG "PN532-SPI"
 
@@ -87,7 +87,7 @@ namespace pn532::esp32 {
                 return res.error();
             } else if ((_dma_buffer.back() & 0b1) == 0) {
                 // Wait a bit
-                vTaskDelay(pdMS_TO_TICKS((10ms).count()));
+                std::this_thread::sleep_for(10ms);
             } else {
                 // Successful
                 _recv_op_status = recv_op_status::did_poll;

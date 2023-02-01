@@ -7,8 +7,8 @@
 #include <desfire/esp32/cipher_provider.hpp>
 #include <desfire/esp32/utils.hpp>
 #include <map>
-#include <mbcontroller.h>
 #include <pn532/msg.hpp>
+#include <thread>
 #include <unity.h>
 
 #define TEST_TAG "UT"
@@ -17,6 +17,7 @@ namespace ut::desfire_main {
 
     namespace {
         using namespace ::desfire::esp32;
+        using namespace std::chrono_literals;
         using ::pn532::operator""_b;
         constexpr const char *missing_instance_msg = "Desfire test instance was not set up.";
 
@@ -25,7 +26,7 @@ namespace ut::desfire_main {
             ESP_LOGW(TEST_TAG, "Remove the tag from RF field if you care for your data.");
             for (unsigned i = 3; i > 0; --i) {
                 ESP_LOGW(TEST_TAG, "%d...", i);
-                vTaskDelay(pdMS_TO_TICKS(1000));
+                std::this_thread::sleep_for(1s);
             }
         }
 
@@ -210,7 +211,7 @@ namespace ut::desfire_main {
 
         const auto r_mem = mifare.get_free_mem();
         TEST_ASSERT(r_mem)
-        ESP_LOGI(TEST_TAG, " free mem [B]: %d", *r_mem);
+        ESP_LOGI(TEST_TAG, " free mem [B]: %lu", *r_mem);
     }
 
     void test_mifare_uid() {

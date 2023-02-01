@@ -563,7 +563,7 @@ namespace pn532 {
         } else {
             _result = retval.error();
         }
-        return std::move(retval);
+        return retval;
     }
 }// namespace pn532
 #endif//PN532_CHANNEL_REPL_HPP

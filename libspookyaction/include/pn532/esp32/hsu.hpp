@@ -6,7 +6,7 @@
 #define PN532_ESP32_HSU_HPP
 
 #include <driver/gpio.h>
-#include <mbcontroller.h>
+#include <driver/uart.h>
 #include <pn532/channel.hpp>
 
 namespace pn532::esp32 {

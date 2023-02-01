@@ -4,7 +4,7 @@
 
 #include <desfire/crypto_algo.hpp>
 #include <esp32/rom/crc.h>
-#include <esp_system.h>
+#include <esp_random.h>
 
 namespace desfire {
 

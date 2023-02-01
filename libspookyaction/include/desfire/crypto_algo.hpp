@@ -9,6 +9,7 @@
 #include <cstdint>
 #include <desfire/log.h>
 #include <iterator>
+#include <limits>
 #include <mlab/bin_data.hpp>
 #include <utility>
 

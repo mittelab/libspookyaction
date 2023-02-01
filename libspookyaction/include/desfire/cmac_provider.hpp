@@ -6,6 +6,7 @@
 #define DESFIRE_CRYPTO_CMAC_HPP
 
 #include <memory>
+#include <limits>
 #include <mlab/bin_data.hpp>
 
 namespace desfire {

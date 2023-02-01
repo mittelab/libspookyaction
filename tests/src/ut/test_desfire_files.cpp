@@ -137,7 +137,7 @@ namespace ut::desfire_files {
         const auto r_free_mem = mifare.get_free_mem();
         TEST_ASSERT(r_free_mem)
         if (*r_free_mem < 1376) {
-            ESP_LOGI("UT", "Formatting to recover space (only %d B free).", *r_free_mem);
+            ESP_LOGI("UT", "Formatting to recover space (only %lu B free).", *r_free_mem);
             TEST_ASSERT(mifare.format_picc())
         }
         const ut::desfire_main::demo_app app{cipher};

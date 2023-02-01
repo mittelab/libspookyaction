@@ -1427,11 +1427,11 @@ namespace desfire {
             s >> records.back();
         }
         if (not s.eof()) {
-            DESFIRE_LOGW("%s: could not parse all records, there are %d stray bytes.",
+            DESFIRE_LOGW("%s: could not parse all records, there are %u stray bytes.",
                          to_string(command_code::read_records), s.remaining());
         }
         if (exp_count != all_records and records.size() != exp_count) {
-            DESFIRE_LOGW("%s: expected to parse %d records, got only %d.",
+            DESFIRE_LOGW("%s: expected to parse %lu records, got only %u.",
                          to_string(command_code::read_records), exp_count, records.size());
         }
         return records;

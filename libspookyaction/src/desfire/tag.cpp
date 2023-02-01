@@ -198,7 +198,7 @@ namespace desfire {
         // Reappend status byte
         rx_data << last_status;
 
-        return std::move(rx_data);
+        return rx_data;
     }
 
     tag::result<status, bin_data> tag::command_status_response(command_code cmd, bin_data const &data, comm_cfg const &cfg, bool rx_fetch_additional_frames, cipher *override_cipher) {
@@ -615,17 +615,17 @@ namespace desfire {
     }
 
     tag::result<bin_data> tag::read_data(file_id fid, cipher_mode operation_mode, std::uint32_t offset, std::uint32_t length) {
-        if (fid > bits::max_backup_data_file_id or fid > bits::max_standard_data_file_id) {
+        if (fid > std::max(bits::max_backup_data_file_id, bits::max_standard_data_file_id)) {
             DESFIRE_LOGW("%s: invalid file id %d for data or backup file.", to_string(command_code::read_data), fid);
             return error::parameter_error;
         }
         if ((offset & 0xffffff) != offset) {
-            DESFIRE_LOGW("%s: offset can be at most 24 bits, %d is an invalid value.",
+            DESFIRE_LOGW("%s: offset can be at most 24 bits, %lu is an invalid value.",
                          to_string(command_code::read_data), offset);
             return error::parameter_error;
         }
         if ((length & 0xffffff) != length) {
-            DESFIRE_LOGW("%s: length can be at most 24 bits, %d is an invalid value.",
+            DESFIRE_LOGW("%s: length can be at most 24 bits, %lu is an invalid value.",
                          to_string(command_code::read_data), length);
             return error::parameter_error;
         }
@@ -645,12 +645,12 @@ namespace desfire {
     }
 
     tag::result<> tag::write_data(file_id fid, bin_data const &data, cipher_mode operation_mode, std::uint32_t offset) {
-        if (fid > bits::max_backup_data_file_id or fid > bits::max_standard_data_file_id) {
+        if (fid > std::max(bits::max_backup_data_file_id, bits::max_standard_data_file_id)) {
             DESFIRE_LOGW("%s: invalid file id %d for data or backup file.", to_string(command_code::write_data), fid);
             return error::parameter_error;
         }
         if ((offset & 0xffffff) != offset) {
-            DESFIRE_LOGW("%s: offset can be at most 24 bits, %d is an invalid value.",
+            DESFIRE_LOGW("%s: offset can be at most 24 bits, %lu is an invalid value.",
                          to_string(command_code::write_data), offset);
             return error::parameter_error;
         }
@@ -758,7 +758,7 @@ namespace desfire {
             return error::parameter_error;
         }
         if ((offset & 0xffffff) != offset) {
-            DESFIRE_LOGW("%s: offset can be at most 24 bits, %d is an invalid value.",
+            DESFIRE_LOGW("%s: offset can be at most 24 bits, %lu is an invalid value.",
                          to_string(command_code::write_record), offset);
             return error::parameter_error;
         }
@@ -791,12 +791,12 @@ namespace desfire {
             return error::parameter_error;
         }
         if ((record_index & 0xffffff) != record_index) {
-            DESFIRE_LOGW("%s: record index can be at most 24 bits, %d is an invalid value.",
+            DESFIRE_LOGW("%s: record index can be at most 24 bits, %lu is an invalid value.",
                          to_string(command_code::read_records), record_index);
             return error::parameter_error;
         }
         if ((record_count & 0xffffff) != record_count) {
-            DESFIRE_LOGW("%s: record count can be at most 24 bits, %d is an invalid value.",
+            DESFIRE_LOGW("%s: record count can be at most 24 bits, %lu is an invalid value.",
                          to_string(command_code::read_records), record_count);
             return error::parameter_error;
         }

@@ -25,7 +25,7 @@ namespace ut {
                 lower_bd->second = instance;
                 return true;
             } else {
-                ESP_LOGE("UT", "Test instance for tag %d already registered and in use.", tag);
+                ESP_LOGE("UT", "Test instance for tag %lu already registered and in use.", tag);
                 return false;
             }
         }

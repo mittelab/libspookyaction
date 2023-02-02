@@ -1258,11 +1258,28 @@ namespace desfire {
         result<> change_key_internal(any_key const *previous_key, any_key const &new_key);
 
         /**
+         * @addtogroup Assert cipher mode
+         * @note All these methods take a @p validated parameter. This means that the communication mode has been validated,
+         *  i.e. tested and decided by libSpookyAction. For the overloads that instead take the comm mode from the user,
+         *  we assume that there could be a user error and the comm mode is incorrect. In the first case, we have a hard error
+         *  message on a different message tag. In the second, we just issue a regular warning.
+         *  @{
+         */
+        result<> change_file_settings_internal(file_id fid, generic_file_settings const &settings, cipher_mode operation_mode, bool validated);
+        result<bin_data> read_data_internal(file_id fid, cipher_mode operation_mode, std::uint32_t offset, std::uint32_t length, bool validated);
+        result<> write_data_internal(file_id fid, bin_data const &data, cipher_mode operation_mode, std::uint32_t offset, bool validated);
+        result<std::int32_t> get_value_internal(file_id fid, cipher_mode operation_mode, bool validated);
+        /**
          * @param cmd Must be one of @ref command_code::credit, @ref command_code::debit, @ref command_code::limited_credit.
          * @param fid Max @ref bits::max_value_file_id.
          * @param amount Must be nonnegative.
          */
-        result<> write_value(command_code cmd, file_id fid, std::int32_t amount, cipher_mode operation_mode);
+        result<> write_value_internal(command_code cmd, file_id fid, std::int32_t amount, cipher_mode operation_mode, bool validated);
+        result<> write_record_internal(file_id fid, bin_data const &data, cipher_mode operation_mode, std::uint32_t offset, bool validated);
+        result<bin_data> read_records_internal(file_id fid, std::uint32_t record_index, std::uint32_t record_count, cipher_mode operation_mode, bool validated);
+        /**
+         * @}
+         */
 
 
         /**
@@ -1287,9 +1304,10 @@ namespace desfire {
         cipher_mode tx = cipher_mode::plain;
         cipher_mode rx = cipher_mode::plain;
         std::size_t tx_secure_data_offset = 0;
+        bool is_validated = false;
 
-        inline constexpr comm_cfg(cipher_mode txrx, std::size_t sec_data_ofs = 1);
-        inline constexpr comm_cfg(cipher_mode tx, cipher_mode rx, std::size_t sec_data_ofs = 1);
+        inline constexpr comm_cfg(cipher_mode txrx, std::size_t sec_data_ofs = 1, bool validated = false);
+        inline constexpr comm_cfg(cipher_mode tx, cipher_mode rx, std::size_t sec_data_ofs = 1, bool validated = false);
     };
 }// namespace desfire
 
@@ -1345,13 +1363,17 @@ namespace desfire {
         return _active_key_number;
     }
 
-    constexpr tag::comm_cfg::comm_cfg(cipher_mode txrx, std::size_t sec_data_ofs) : tx{txrx},
-                                                                                    rx{txrx},
-                                                                                    tx_secure_data_offset{sec_data_ofs} {}
+    constexpr tag::comm_cfg::comm_cfg(cipher_mode txrx, std::size_t sec_data_ofs, bool validated)
+        : tx{txrx},
+          rx{txrx},
+          tx_secure_data_offset{sec_data_ofs},
+          is_validated{validated} {}
 
-    constexpr tag::comm_cfg::comm_cfg(cipher_mode tx, cipher_mode rx, std::size_t sec_data_ofs) : tx{tx},
-                                                                                                  rx{rx},
-                                                                                                  tx_secure_data_offset{sec_data_ofs} {}
+    constexpr tag::comm_cfg::comm_cfg(cipher_mode tx, cipher_mode rx, std::size_t sec_data_ofs, bool validated)
+        : tx{tx},
+          rx{rx},
+          tx_secure_data_offset{sec_data_ofs},
+          is_validated{validated} {}
 
     template <class Data, class>
     tag::result<Data> tag::command_parse_response(command_code cmd, bin_data const &payload, comm_cfg const &cfg) {

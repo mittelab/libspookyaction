@@ -106,18 +106,6 @@ namespace desfire {
         ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_LOG_PREFIX, data.data(), data.size(), ESP_LOG_DEBUG);
     }
 
-
-    struct tag::auto_logout {
-        tag &owner;
-        bool assume_success;
-
-        ~auto_logout() {
-            if (not assume_success) {
-                owner.logout(true);
-            }
-        }
-    };
-
     bool tag::active_cipher_is_legacy() const {
         return _active_cipher == nullptr or _active_cipher->is_legacy();
     }
@@ -132,10 +120,7 @@ namespace desfire {
         }
     }
 
-    void tag::logout(bool due_to_error) {
-        if (due_to_error and active_key_type() != cipher_type::none) {
-            DESFIRE_LOGE("Authentication will have to be performed again.");
-        }
+    void tag::logout() {
         _active_cipher = std::make_unique<cipher_dummy>();
         _active_key_type = cipher_type::none;
         _active_key_number = std::numeric_limits<std::uint8_t>::max();
@@ -211,9 +196,6 @@ namespace desfire {
         DESFIRE_LOGD("%s: RX mode: %s, fetch AF: %u", to_string(cmd),
                      to_string(cfg.rx), rx_fetch_additional_frames);
 
-        // If we exit prematurely, and we are using the cipher of this tag, trigger a logout by error.
-        auto_logout logout_on_error{*this, override_cipher != nullptr};
-
         // Select the right cipher and prepare the buffers
         cipher &c = override_cipher == nullptr ? *_active_cipher : *override_cipher;
 
@@ -251,13 +233,10 @@ namespace desfire {
         DESFIRE_LOGD("%s: completed with status %s", to_string(cmd), to_string(cmd_status));
 
         // Passthrough the status byte, the caller decides if that is an error.
-        logout_on_error.assume_success = true;
         return {cmd_status, std::move(rx_data)};
     }
 
     tag::result<bin_data> tag::command_response(command_code cmd, const bin_data &payload, const tag::comm_cfg &cfg, bool rx_fetch_additional_frames, cipher *override_cipher) {
-        auto_logout logout_on_error{*this, override_cipher != nullptr};
-
         if (auto res_status_cmd = command_status_response(cmd, payload, cfg, rx_fetch_additional_frames, override_cipher); res_status_cmd) {
             auto &[cmd_status, data] = *res_status_cmd;
 
@@ -267,7 +246,6 @@ namespace desfire {
                 return error_from_status(cmd_status);
             }
 
-            logout_on_error.assume_success = true;
             return std::move(data);
         } else {
             return res_status_cmd.error();
@@ -275,18 +253,20 @@ namespace desfire {
     }
 
     tag::result<> tag::select_application(app_id const &app) {
+        logout();
         const auto res_cmd = command_response(command_code::select_application, bin_data::chain(app), cipher_mode::plain);
         if (res_cmd) {
             DESFIRE_LOGD("Selected application %02x %02x %02x.", app[0], app[1], app[2]);
-            logout(false);
             _active_app = app;
+        } else {
+            _active_app = root_app;
         }
         return safe_drop_payload(command_code::select_application, res_cmd);
     }
 
     tag::result<> tag::authenticate(const any_key &k) {
         /// Clear preexisting authentication, check parms
-        logout(false);
+        logout();
         if (k.type() == cipher_type::none) {
             return error::parameter_error;
         }
@@ -480,6 +460,14 @@ namespace desfire {
                          to_string(new_key.type()), to_string(previous_key.type()));
             return error::parameter_error;
         }
+        // This is normally not allowed, would fail
+        if (previous_key.key_number() == active_key_no()) {
+            DESFIRE_LOGW("%s: trying to change the active key, I will re-do authentication.", to_string(command_code::change_key));
+            if (const auto r = authenticate(previous_key); not r) {
+                return r.error();
+            }
+            return change_key(new_key);
+        }
         if (active_key_type() == cipher_type::none) {
             DESFIRE_LOGE("%s: not authenticated.", to_string(command_code::change_key));
             return error::authentication_error;
@@ -496,6 +484,7 @@ namespace desfire {
         payload << key_no_flag;
         // Changing from a different key requires to xor it with that other key
         if (previous_key != nullptr) {
+            assert(previous_key->key_number() != active_key_no());
             ESP_LOGD(DESFIRE_LOG_PREFIX " KEY", "Previous key %d: %s", previous_key->key_number(), to_string(previous_key->type()));
             ESP_LOG_BIN_DATA(DESFIRE_LOG_PREFIX " KEY", previous_key->get_packed_key_body(), ESP_LOG_DEBUG);
             payload << new_key.xored_with(*previous_key);
@@ -543,6 +532,10 @@ namespace desfire {
 #endif
         } else {
             DESFIRE_LOGW("Could not change key %d (%s): %s.", new_key.key_number(), to_string(new_key.type()), to_string(res_cmd.error()));
+        }
+        if (previous_key == nullptr) {
+            // If we are changing the same key that was active then we must log out
+            logout();
         }
         return safe_drop_payload(command_code::change_key, res_cmd);
     }

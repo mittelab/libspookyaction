@@ -52,7 +52,7 @@ namespace ut::desfire_exchanges {
     }
 
     session::~session() {
-        tag.logout(false);
+        tag.logout();
     }
 
     void test_key_actor() {

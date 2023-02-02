@@ -1268,12 +1268,10 @@ namespace desfire {
         /**
          * Clears data __locally__ (i.e. it may be out of sync with the card if not called at the right time).
          */
-        void logout(bool due_to_error);
+        void logout();
 
         [[nodiscard]] comm_cfg const &default_comm_cfg() const;
         [[nodiscard]] bool active_cipher_is_legacy() const;
-
-        struct auto_logout;
 
         std::shared_ptr<desfire::pcd> _pcd;
 

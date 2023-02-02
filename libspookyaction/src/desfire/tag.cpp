@@ -102,7 +102,7 @@ namespace desfire {
     }
 
     void tag::log_not_empty(command_code cmd, range<bin_data::const_iterator> data) {
-        DESFIRE_LOGW("%s: stray data (%d bytes) in response.", to_string(cmd), data.size());
+        ESP_LOGE(DESFIRE_LOG_PREFIX "-DEV", "%s: %d stray bytes in response.", to_string(cmd), data.size());
         ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_LOG_PREFIX, data.data(), data.size(), ESP_LOG_DEBUG);
     }
 
@@ -212,6 +212,10 @@ namespace desfire {
         auto res_cmd = raw_command_response(tx_stream, rx_fetch_additional_frames);
         if (not res_cmd) {
             DESFIRE_LOGE("%s: failed, %s", to_string(cmd), to_string(res_cmd.error()));
+            /**
+             * This is a controller-level error, so is probably not recoverable. However, we do not
+             * know anything of what happened card-side, thus we do not logout.
+             */
             return res_cmd.error();
         }
 
@@ -219,7 +223,12 @@ namespace desfire {
 
         // Postprocessing requires to know the status byte
         if (not c.confirm_rx(rx_data, cfg.rx)) {
-            DESFIRE_LOGE("%s: failed, received data did not pass validation.", to_string(cmd));
+            ESP_LOGE(DESFIRE_LOG_PREFIX "-DEV", "%s: failed, received data did not pass validation.", to_string(cmd));
+            /**
+             * This is probably some misconfiguration of the communication mode. It's very likely
+             * not recoverable, but probably the card continues happily in its state (it's just that
+             * we lost sync), so we do not log out.
+             */
             return error::crypto_error;
         }
         assert(not rx_data.empty());

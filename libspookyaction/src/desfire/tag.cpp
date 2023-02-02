@@ -252,6 +252,7 @@ namespace desfire {
             // Check the returned status. This is the only error condition handled by this method
             if (cmd_status != status::ok and cmd_status != status::no_changes) {
                 DESFIRE_LOGE("%s: failed with status %s.", to_string(cmd), to_string(cmd_status));
+                logout();
                 return error_from_status(cmd_status);
             }
 

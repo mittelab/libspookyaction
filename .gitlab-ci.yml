@@ -127,17 +127,17 @@ build examples:
     key: ${CI_COMMIT_REF_SLUG}-examples
   script:
     # Note that we need to set sdkconfig.defaults up in beforehand, so we make our own folder and manage it ourselves
+    # Afterwards we save the firmware so that we can use it as artifact to signal that the example has been built
     - BUILD_DIR="$(mktemp -d)"
     - cp ${PIO_LIB_FOLDER}/examples/sdkconfig.defaults "${BUILD_DIR}"
-    - pio ci \
-      --build-dir="${BUILD_DIR}" \
-      --project-conf=cicd/platformio.ini \
-      --lib=${PIO_LIB_FOLDER} \
-      --lib=tests/lib/mittelib \
-      --keep-build-dir \
+    - pio ci
+      --build-dir="${BUILD_DIR}"
+      --project-conf=cicd/platformio.ini
+      --lib=${PIO_LIB_FOLDER}
+      --lib=tests/lib/mittelib
+      --keep-build-dir
       "${PIO_LIB_FOLDER}/examples/${EXAMPLE_FILE}"
-    # Copy the firmware to the root folder so that we can use it as artifact to signal that the example has been built
-    - cp "${BUILD_DIR}/.pio/**/firmware.bin" "${PIO_LIB_FOLDER}/examples/${EXAMPLE_FILE}.bin"
+    - find "${BUILD_DIR}/.pio" -name firmware.bin -exec cp {} "${PIO_LIB_FOLDER}/examples/${EXAMPLE_FILE}.bin" \;
     - rm -rf "${BUILD_DIR}"
   parallel:
     matrix:
@@ -150,7 +150,7 @@ build examples:
         - self_test.cpp
   artifacts:
     paths:
-      - "*.bin"
+      - "${PIO_LIB_FOLDER}/examples/*.bin"
     expire_in: 1 week
   needs: []
 

@@ -189,6 +189,7 @@ test all examples have been built:
         else
           echo "Failed uploading attempt $i/5. Sleeping a bit before retrying."
           sleep $(( i * 2 ))
+        fi
       done
     - test $UPLOADED -ne 0
     - pio test --without-building --without-uploading -vv

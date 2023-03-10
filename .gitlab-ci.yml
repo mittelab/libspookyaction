@@ -179,8 +179,18 @@ test all examples have been built:
     - cp cicd/platformio.ini "${PIO_PROJ_FOLDER}/platformio.ini"
     - cd "${PIO_PROJ_FOLDER}"
   script:
-    # Make two attempts at uploading.
-    - pio test --without-building --without-testing -vv || pio test --without-building --without-testing -vv
+    # Make several attempts at uploading.
+    - UPLOADED=0
+    - >
+      for i in $(seq 1 5); do
+        if pio test --without-building --without-testing -vv; then
+          UPLOADED=1
+          break
+        else
+          echo "Failed uploading attempt $i/5. Sleeping a bit before retrying."
+          sleep $(( i * 2 ))
+      done
+    - test $UPLOADED -ne 0
     - pio test --without-building --without-uploading -vv
   rules:
     # Run always, on merge request too

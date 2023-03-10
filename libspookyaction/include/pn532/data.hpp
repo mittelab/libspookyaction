@@ -11,63 +11,37 @@
 #include <pn532/log.h>
 #include <pn532/msg.hpp>
 
+/**
+ * @defgroup IOOperators I/O binary operators
+ * Operators to serialize a given data structure to a `bin_data`, or to deserialize it from a `bin_stream`.
+ * These implement the various binary data formats described in the manual references.
+ */
 namespace pn532 {
-    using controller_error = bits::error;
-    using command_code = bits::command;
-
-    using bits::atr_res_info;
-    using bits::baudrate;
-    using bits::baudrate_modulation;
-    using bits::modulation;
-    using bits::nfcip1_picc_status;
-    using bits::polling_method;
-    using bits::rf_timeout;
-    using bits::sam_mode;
-    using bits::serial_baudrate;
-    using bits::sfr_register;
-    using bits::tx_mode;
-
-    using bits::ciu_reg_106kbps_typea;
-    using bits::ciu_reg_212_424kbps;
-    using bits::ciu_reg_iso_iec_14443_4;
-    using bits::ciu_reg_iso_iec_14443_4_at_baudrate;
-    using bits::ciu_reg_typeb;
-    using bits::framing;
-    using bits::high_current_thr;
-    using bits::low_current_thr;
-    using bits::poll_period;
-    using bits::target_type;
-    using bits::wakeup_source;
-
-    using target_kbps106_typea = bits::target<baudrate_modulation::kbps106_iso_iec_14443_typea>;
-    using target_kbps212_felica = bits::target<baudrate_modulation::kbps212_felica_polling>;
-    using target_kbps424_felica = bits::target<baudrate_modulation::kbps424_felica_polling>;
-    using target_kbps106_typeb = bits::target<baudrate_modulation::kbps106_iso_iec_14443_3_typeb>;
-    using target_kbps106_jewel_tag = bits::target<baudrate_modulation::kbps106_innovision_jewel_tag>;
-
-    template <target_type Type>
-    struct poll_entry : public bits::target<bits::baudrate_modulation_of_target<Type>> {
-    };
+    using target_kbps106_typea = target<baudrate_modulation::kbps106_iso_iec_14443_typea>;
+    using target_kbps212_felica = target<baudrate_modulation::kbps212_felica>;
+    using target_kbps424_felica = target<baudrate_modulation::kbps424_felica>;
+    using target_kbps106_typeb = target<baudrate_modulation::kbps106_iso_iec_14443_3_typeb>;
+    using target_kbps106_jewel_tag = target<baudrate_modulation::kbps106_innovision_jewel_tag>;
 
     /**
-     * @brief Monostate structure that signals infinity. Use @ref infty.
+     * @brief Monostate structure that signals infinity. Use as @ref pn532::infty.
+     * This is intended together with @ref with_inf to mark integral types.
      */
     struct infty_t {
     };
 
     /**
-     * @brief A marker for the infinity value added by @ref with_inf to an integral type.
-     * @see with_inf
+     * Marker that stands for `std::numeric_limits<Integral>::max()` in @ref with_inf.
      */
-    static constexpr infty_t infty = infty_t{};
+    static constexpr infty_t infty{};
 
     /**
-     * @brief "Concept-like" wrapper that adds a signalling "infinity" value to an integral type.
+     * @brief Wrapper around an integral type that can take @ref pn532::infty and assign to the underlying integer type its maximum value.
      *
      * In the PN532, sometimes the natural maximum (`std::numeric_limits<Integral>::max()`) of an integral type is used
      * to signal infinity, e.g. repeat an operation indefinitely. This template explicitly marks this property by adding some
      * syntactic sugar to the type. This type behaves exactly like the underlying integral type, but moreover can be assigned
-     * and compared with @ref infty.
+     * and compared with @ref pn532::infty.
      * @code
      *  with_inf<int> i = infty;
      *  if (i == infty) {
@@ -80,25 +54,39 @@ namespace pn532 {
      */
     template <class Integral>
     struct with_inf {
-        static_assert(std::is_integral_v<Integral>);
+        static_assert(std::is_integral_v<Integral> and not std::is_same_v<Integral, bool>);
+        /// Integral member.
         Integral v = Integral{};
 
+        /// Zero-initializes the underlying value @ref v.
         with_inf() = default;
 
+        /// Initializes @ref v to `std::numeric_limits<Integral>::max()`.
         inline with_inf(infty_t) : v{std::numeric_limits<Integral>::max()} {}
 
+        /// Implicitly wraps @p n.
         inline with_inf(Integral n) : v{n} {}
 
+        /// Prevents accidental cast from bool.
+        with_inf(bool) = delete;
+
+        /// Implicitly converts back to integral.
         inline operator Integral() const { return v; }
 
+        /// Assigns the maximum.
         inline with_inf &operator=(infty_t) {
             v = std::numeric_limits<Integral>::max();
             return *this;
         }
 
+        /**
+         * @name Comparison operators
+         * Compares against @ref pn532::infty (i.e. `std::numeric_limits<Integral>::max()`).
+         */
+        ///@{
         inline bool operator==(infty_t) const { return v == std::numeric_limits<Integral>::max(); }
-
         inline bool operator!=(infty_t) const { return v != std::numeric_limits<Integral>::max(); }
+        ///@}
     };
 
     /**
@@ -106,55 +94,192 @@ namespace pn532 {
      */
     using infbyte = with_inf<std::uint8_t>;
 
-    struct poll_entry_with_atr {
-        atr_res_info atr_info;
-    };
+    /**
+     * @defgroup PollTargetSpecialization Poll target specializations and mixins
+     */
 
-    template <baudrate_modulation BrMd>
-    struct poll_entry_dep_passive : public bits::target<BrMd>, public poll_entry_with_atr {
-    };
-
-    template <>
-    struct poll_entry<target_type::dep_passive_106kbps> : public poll_entry_dep_passive<
-                                                                  bits::baudrate_modulation_of_target<target_type::dep_passive_106kbps>> {
-    };
-
-    template <>
-    struct poll_entry<target_type::dep_passive_212kbps> : public poll_entry_dep_passive<
-                                                                  bits::baudrate_modulation_of_target<target_type::dep_passive_212kbps>> {
-    };
-
-    template <>
-    struct poll_entry<target_type::dep_passive_424kbps> : public poll_entry_dep_passive<
-                                                                  bits::baudrate_modulation_of_target<target_type::dep_passive_424kbps>> {
-    };
-
-    template <>
-    struct poll_entry<target_type::dep_active_106kbps> : public poll_entry_with_atr {
-    };
-
-    template <>
-    struct poll_entry<target_type::dep_active_212kbps> : public poll_entry_with_atr {
-    };
-
-    template <>
-    struct poll_entry<target_type::dep_active_424kbps> : public poll_entry_with_atr {
-    };
-
-
-    using any_target = mlab::any_of<target_type, poll_entry>;
-
-    enum struct gpio_loc {
-        p3,
-        p7,
-        i0i1
+    /**
+     * @brief A scanned @ref target, as a result of a polling operation.
+     * Note that the actual content of the struture depends on the @ref baudrate_modulation, rather than
+     * the actual @ref target_type.
+     * For most target types, this is just a @ref target class. However, DEP entries also carry
+     * a ATR_RES member @ref atr_res_info; these are
+     *  - @ref poll_target<target_type::dep_passive_106kbps>
+     *  - @ref poll_target<target_type::dep_passive_212kbps>
+     *  - @ref poll_target<target_type::dep_passive_424kbps>
+     *
+     * Active DEP entries instead, have no @ref target member and only have a @ref atr_res_info member. These are
+     *  - @ref poll_target<target_type::dep_active_106kbps>
+     *  - @ref poll_target<target_type::dep_active_212kbps>
+     *  - @ref poll_target<target_type::dep_active_424kbps>
+     *
+     * @see
+     *  - pn532::controller::initiator_auto_poll
+     *  - baudrate_modulation_of
+     *  - any_poll_target
+     *  - target
+     * @tparam Type The target type @ref target_type.
+     *
+     * @rst
+     * Poll target specializations and mixins
+     * --------------------------------------
+     * .. doxygengroup:: PollTargetSpecialization
+     *    :content-only:
+     *    :project: libSpookyAction
+     *    :members:
+     *    :outline:
+     * @endrst
+     */
+    template <target_type Type>
+    struct poll_target : public target<baudrate_modulation_of(Type)> {
     };
 
     /**
-     * @brief Data returned after "GetFirmwareVersion" (@ref controller::get_firmware_version) (UM0701-02 §7.2.2)
+     * @addtogroup PollTargetSpecialization
+     * @{
+     */
+
+    /**
+     * Mixin for all DEP variants of @ref poll_target which carries a @ref atr_res_info member.
+     */
+    struct poll_target_with_atr {
+        /**
+         * @brief ATR_RES info associated to the activation of a DEP target
+         * @see
+         *  - pn532::controller::initiator_auto_poll
+         *  - poll_target<target_type::dep_passive_106kbps>
+         *  - poll_target<target_type::dep_passive_212kbps>
+         *  - poll_target<target_type::dep_passive_424kbps>
+         *  - poll_target<target_type::dep_active_106kbps>
+         *  - poll_target<target_type::dep_active_212kbps>
+         *  - poll_target<target_type::dep_active_424kbps>
+         *  - pn532::controller::initiator_activate_target
+         *  - pn532::controller::initiator_auto_poll
+         *  - pn532::controller::initiator_jump_for_dep_active
+         *  - pn532::controller::initiator_jump_for_dep_passive_106kbps
+         *  - pn532::controller::initiator_jump_for_dep_passive_212kbps
+         *  - pn532::controller::initiator_jump_for_dep_passive_424kbps
+         *  - pn532::controller::initiator_jump_for_psl
+         */
+        atr_res_info atr_info;
+    };
+
+    /**
+     * Mixin for all passive DEP variants of @ref poll_target, which carries both a @ref poll_target_with_atr and a @ref target.
+         * @see
+         *  - pn532::controller::initiator_auto_poll
+         *  - target
+         *  - poll_target_with_atr
+         *  - atr_res_info
+         *  - poll_target<target_type::dep_passive_106kbps>
+         *  - poll_target<target_type::dep_passive_212kbps>
+         *  - poll_target<target_type::dep_passive_424kbps>
+     * @tparam BrMd Baudrate and modulation of the target.
+     */
+    template <baudrate_modulation BrMd>
+    struct poll_target_dep_passive : public target<BrMd>, public poll_target_with_atr {
+    };
+
+    /**
+     * @brief 106 kbps DEP passive polling target.
+     * @see
+     *  - pn532::controller::initiator_auto_poll
+     *  - target<baudrate_modulation::kbps106_iso_iec_14443_typea>
+     */
+    template <>
+    struct poll_target<target_type::dep_passive_106kbps> : public poll_target_dep_passive<
+                                                                   baudrate_modulation_of(target_type::dep_passive_106kbps)> {
+    };
+
+    /**
+     * @brief 212 kbps DEP passive polling target.
+     * @see
+     *  - pn532::controller::initiator_auto_poll
+     *  - target<baudrate_modulation::kbps212_felica>
+     */
+    template <>
+    struct poll_target<target_type::dep_passive_212kbps> : public poll_target_dep_passive<
+                                                                   baudrate_modulation_of(target_type::dep_passive_212kbps)> {
+    };
+
+    /**
+     * @brief 424 kbps DEP passive polling target.
+     * @see
+     *  - pn532::controller::initiator_auto_poll
+     *  - target<baudrate_modulation::kbps424_felica>
+     */
+    template <>
+    struct poll_target<target_type::dep_passive_424kbps> : public poll_target_dep_passive<
+                                                                   baudrate_modulation_of(target_type::dep_passive_424kbps)> {
+    };
+
+    /**
+     * @brief 106 kbps DEP active polling target.
+     * @see
+     *  - pn532::controller::initiator_auto_poll
+     *  - target<baudrate_modulation::kbps106_iso_iec_14443_typea>
+     */
+    template <>
+    struct poll_target<target_type::dep_active_106kbps> : public poll_target_with_atr {
+    };
+
+    /**
+     * @brief 212 kbps DEP active polling target.
+     * @see
+     *  - pn532::controller::initiator_auto_poll
+     *  - target<baudrate_modulation::kbps212_felica>
+     */
+    template <>
+    struct poll_target<target_type::dep_active_212kbps> : public poll_target_with_atr {
+    };
+
+    /**
+     * @brief 424 kbps DEP active polling target.
+     * @see
+     *  - pn532::controller::initiator_auto_poll
+     *  - target<baudrate_modulation::kbps424_felica>
+     */
+    template <>
+    struct poll_target<target_type::dep_active_424kbps> : public poll_target_with_atr {
+    };
+
+    /**
+     * @}
+     */
+
+    /**
+     * @brief Variant class that encompasses any of the @ref poll_target classes
+     * @see
+     *  - poll_target
+     *  - pn532::controller::initiator_auto_poll
+     */
+    class any_poll_target : public mlab::any_of<target_type, poll_target> {
+    public:
+        using mlab::any_of<target_type, poll_target>::any_of;
+        explicit any_poll_target(enum_type) = delete;
+    };
+
+    /**
+     * Represents one of the accessible GPIOs of the PN532  (UM0701-02 §7.2.6).
+     * @note I0 and I1 can be used as general purpose I/O once the selection of the transmission protocol
+     * has been performed.
+     * @see
+     *  - pn532::controller::read_gpio
+     *  - pn532::controller::write_gpio
+     *  - pn532::controller::set_gpio_pin
+     */
+    enum struct gpio_port {
+        p3, ///< P3 port GPIO.
+        p7, ///< P6 port GPIO
+        i0i1////< I0 and I1 port GPIO (the ones used to select the communication channel).
+    };
+
+    /**
+     * @brief Data returned after "GetFirmwareVersion" (UM0701-02 §7.2.2).
+     * @see pn532::controller::get_firmware_version
      */
     struct firmware_version {
-        std::uint8_t ic;         //!< The ic version, for PN532 is always 0x32
+        std::uint8_t ic;         //!< The IC version, for PN532 is always `0x32`
         std::uint8_t version;    //!< IC firmware version
         std::uint8_t revision;   //!< IC firmware revision
         bool iso_18092;          //!< The chip supports ISO18092 tags
@@ -163,28 +288,23 @@ namespace pn532 {
     };
 
     /**
-     * @brief Data returned after "GetGeneralStatus" (@ref controller::get_general_status) (one for each tag) (UM0701-02 §7.2.3)
-     */
-    struct target_status {
-        std::uint8_t logical_index;//!< Tag index (given at initialization from the PN532)
-        baudrate baudrate_rx;      //!< Bit rate in reception
-        baudrate baudrate_tx;      //!< Bit rate in transmission
-        modulation modulation_type;//!< Modulation type
-    };
-
-    /**
      * @brief Data returned after most of initiator calls on @ref controller (UM0701-02 §7.1)
+     * This represents the status of the RF communication after the completed command.
      */
     struct rf_status {
-        bool nad_present;      //!< True if NAD bit is present
-        bool expect_more_info; //!< True if the tag expect another byte to be sent
-        controller_error error;//!< PN532 error
+        bool nad_present;         //!< True if NAD bit is present
+        bool expect_more_info;    //!< True if the tag expect another byte to be sent
+        internal_error_code error;//!< PN532-specific error
 
-        inline explicit operator bool() const { return error == controller_error::none; }
+        /**
+         * @return True if @ref error is @ref internal_error_code::none.
+         */
+        inline explicit operator bool() const;
     };
 
     /**
-     * @brief Data returned after "SetParameter" (@ref controller::set_parameters) (UM0701-02 §7.2.9)
+     * @brief PN532 settings, i.e. data consumed by "SetParameters" (UM0701-02 §7.2.9)
+     * @see pn532::controller::set_parameters
      */
     struct parameters {
         bool use_nad_data;                     //!< Use NAD information (used in initiator mode)
@@ -196,106 +316,135 @@ namespace pn532 {
     };
 
     /**
-     * @brief Data returned after "GetGeneralStatus" (@ref controller::get_general_status) (UM0701-02 §7.2.3)
+     * @brief Status of each activated target in the PN532 RF field. (UM0701-02 §7.2.3)
+     * Only used as a member of @ref general_status.
+     * @see general_status
      */
-    struct sam_status {
+    struct general_status_target {
+        std::uint8_t logical_index;//!< Tag index (given at initialization from the PN532)
+        baudrate baudrate_rx;      //!< Bit rate in reception
+        baudrate baudrate_tx;      //!< Bit rate in transmission
+        modulation modulation_type;//!< Modulation type
+    };
+
+    /**
+     * @brief Status of the SAM companion chip (UM0701-02 §7.2.3).
+     * Only used as a member of @ref general_status.
+     * @see general_status
+     */
+    struct general_status_sam {
+        /// A full negative pulse has been detected on the CLAD line.
         bool neg_pulse_on_clad_line;
+        /// An external RF field has been detected and switched off during or after a transaction.
         bool detected_rf_field_off;
+        /// A timeout has been detected after SigActIRQ has felt down.
         bool timeout_after_sig_act_irq;
+        /// The CLAD line is high level if and only if this bit is set.
         bool clad_line_high;
     };
-
     /**
-     * @brief Data returned after "GetGeneralStatus" (@ref controller::get_general_status) (UM0701-02 §7.2.3)
+     * @brief Data returned after "GetGeneralStatus" (UM0701-02 §7.2.3)
+     * Represents the overall status of the PN532.
+     * @see
+     *  - general_status_sam
+     *  - general_status_target
+     *  - controller::get_general_status
      */
     struct general_status {
-        controller_error last_error;       //!< Last error of the controller
-        bool rf_field_present;             //!< True if the RF field is switched on
-        std::vector<target_status> targets;//!< List of target inizialized by the controller (max 2)
-        sam_status sam;                    //!< SAM status information
+        internal_error_code last_error;            //!< Last error of the controller
+        bool rf_field_present;                     //!< True if the RF field is switched on
+        std::vector<general_status_target> targets;//!< Status of each of the targets (max 2) activated by the PN532.
+        general_status_sam sam;                    //!< SAM status information
     };
 
     /**
-     * @brief Data returned after "TgGetTargetStatus" (@ref controller::target_get_target_status) (UM0701-02 §7.2.21)
+     * @brief Status of the PN532 when operating as a target.
+     * Data returned after "TgGetTargetStatus" (UM0701-02 §7.2.21)
+     * @see controller::target_get_target_status
      */
     struct status_as_target {
-        nfcip1_picc_status status;
-        baudrate initiator_speed;
-        baudrate target_speed;
+        nfcip1_picc_status status;//!< Activation status.
+        baudrate initiator_speed; //!< @ref baudrate supported by the initiator (only meaningful when the PN532 is activated).
+        baudrate target_speed;    //!< @ref baudrate supported by the target (only meaningful when the PN532 is activated).
     };
 
     /**
-     * Parameters for the command "Diagnose" (@ref controller::diagnose_self_antenna) (UM0701-02 §7.2.1)
-     * The parameters are described in (PN532/C1 §8.6.9.2)
-     */
-    struct reg_antenna_detector {
-        bool detected_low_pwr;                  //!< Too low power consuption detection flag (must be 0) (PN532/C1 §8.6.9.2)
-        bool detected_high_pwr;                 //!< Too high power consuptiond detection flag (must be 0) (PN532/C1 §8.6.9.2)
-        low_current_thr low_current_threshold;  //!< Lower current threshold for low power detection (PN532/C1 §8.6.9.2)
-        high_current_thr high_current_threshold;//!< Higher current threshold for high current detection (PN532/C1 §8.6.9.2)
-        bool enable_detection;                  //!< Start antenna selftest (must be 1) (PN532/C1 §8.6.9.2)
-    };
-
-    /**
-     * @brief Data returned after "InJumpForDEP" (UM0701-02 §7.3.3)
+     * @brief Result of the activation of target (active or passive) with DEP or PSL.
+     * Data returned after "InJumpForDEP" and "InJumpForPSL" (UM0701-02 §7.3.3)
+     * @see
+     *  - pn532::controllerinitiator_jump_for_dep_active
+     *  - pn532::controllerinitiator_jump_for_dep_passive_106kbps
+     *  - pn532::controllerinitiator_jump_for_dep_passive_212kbps
+     *  - pn532::controllerinitiator_jump_for_dep_passive_424kbps
+     *  - pn532::controllerinitiator_jump_for_psl_active
+     *  - pn532::controllerinitiator_jump_for_psl_passive_106kbps
+     *  - pn532::controllerinitiator_jump_for_psl_passive_212kbps
+     *  - pn532::controllerinitiator_jump_for_psl_passive_424kbps
      */
     struct jump_dep_psl {
-        rf_status status{};                 //!< Error Byte (UM0701-02 §7.1)
-        std::uint8_t target_logical_index{};//!< Logical number assigned to the tag
-        atr_res_info atr_info;              //!< ATR_RES sent by the tag
+        rf_status status{};                 //!< RF communication status (UM0701-02 §7.1)
+        std::uint8_t target_logical_index{};//!< Logical number assigned to the target
+        atr_res_info atr_info;              //!< ATR_RES sent by the target
     };
 
     /**
-     * @brief Data returned after "TgInitAsTarget"  (UM0701-02 §7.3.14)
-     */
-    struct mode_as_target {
-        baudrate speed;           //!< Trasmission baud rate.
-        bool iso_iec_14443_4_picc;//!< Whether it's a ISO/IEC 1443-4 PICC
-        bool dep;                 //!< Whether uses DEP
-        framing framing_type;     //!< Type of framing
-    };
-
-    /**
-     * @brief Parameters for the command "TgGetTargetStatus" (@ref controller::target_init_as_target) (UM0701-02 §7.3.21)
+     * @brief Parameters for the PN532 to act as a Mifare target (UM0701-02 §7.3.21).
+     * @see controller::target_init_as_target
      */
     struct mifare_params {
-        std::array<std::uint8_t, 2> sens_res;
-        std::array<std::uint8_t, 3> nfcid_1t;
-        std::uint8_t sel_res;
+        std::array<std::uint8_t, 2> sens_res;//!< `SENS_RES` bytes
+        std::array<std::uint8_t, 3> nfcid_1t;//!< NFCID 1t.
+        std::uint8_t sel_res;                //!< `SEL_RES` byte
     };
 
     /**
-     * @note Identical to @ref bits::target_info<baudrate_modulation::kbps212_felica_polling>.
+     * @brief Parameters for the PN532 to act as a FeliCa target (UM0701-02 §7.3.21).
+     * @note Identical to @ref target<baudrate_modulation::kbps212_felica>.
      */
     struct felica_params {
-        std::array<std::uint8_t, 8> nfcid_2t;
-        std::array<std::uint8_t, 8> pad;
-        std::array<std::uint8_t, 2> syst_code;
+        std::array<std::uint8_t, 8> nfcid_2t; //!< NFCID 2t (includes a cascade byte).
+        std::array<std::uint8_t, 8> pad;      //!< Padding bytes.
+        std::array<std::uint8_t, 2> syst_code;//!< SYST_CODE.
     };
 
     /**
-     * @brief Data returned after "TgInitAsTarget" (@ref controller::target_init_as_target) (UM0701-02 §7.3.14)
+     * @brief Description of the mode in which the PN532 has been activated.
+     * Only used as a member of @ref activation_as_target.
+     * @see activation_as_target
      */
-    struct init_as_target_res {
-        mode_as_target mode;                        //!< A byte containing witch mode the PN532 has been activated
+    struct activation_as_target_mode {
+        baudrate speed;                //!< Trasmission baud rate.
+        bool iso_iec_14443_4_picc;     //!< Whether the PN532 behaves as a ISO/IEC 1443-4 PICC
+        bool dep;                      //!< Whether uses DEP
+        framing_as_target framing_type;//!< Type of framing
+    };
+
+    /**
+     * @brief Result of the activation procedure as a target.
+     * Data returned after "TgInitAsTarget"  (UM0701-02 §7.3.14)
+     * @see pn532::controller::target_init_as_target
+     */
+    struct activation_as_target {
+        activation_as_target_mode mode;             //!< A byte containing witch mode the PN532 has been activated
         std::vector<std::uint8_t> initiator_command;//!< A vector containing the first frame received by the PN532
     };
 
-    template <std::size_t Length>
-    struct uid_cascade : public std::array<std::uint8_t, Length> {
-        using std::array<std::uint8_t, Length>::array;
-    };
-
-    using uid_cascade_l1 = uid_cascade<4>;
-    using uid_cascade_l2 = uid_cascade<7>;
-    using uid_cascade_l3 = uid_cascade<10>;
-
-    struct reg_addr : public std::array<std::uint8_t, 2> {
-        inline reg_addr(sfr_register sfr_reg);
-
-        inline reg_addr(std::uint16_t xram_mmap_reg);
-    };
-
+    /**
+     * @brief Bitmap of the PN532's GPIO.
+     * This class holds the values of all the GPIOs on the ports P3, P7 and I0/I1 of the PN532.
+     * You can set and read the whole mask (@ref gpio_status::mask, @ref gpio_status::set_mask) or individual
+     * bits with @ref gpio_status::operator[]:
+     * @code
+     * gpio_status gpio{};
+     * gpio[{gpio_port::p3, 2}] = true;
+     * @endcode
+     * @see
+     *  - pn532::controller::read_gpio
+     *  - pn532::controller::write_gpio
+     *  - pn532::controller::set_gpio_pin
+     * @note Setting a bit in this class does not automatically set it on the PN532, this just holds the value.
+     *  You need to call e.g. @ref controller::write_gpio
+     */
     class gpio_status {
     private:
         std::uint8_t _p3_mask = 0x00;
@@ -303,126 +452,147 @@ namespace pn532 {
         std::uint8_t _i0i1_mask = 0x00;
 
     public:
+        /// Zero-initializes the data structure (all GPIO low).
         gpio_status() = default;
 
+        /// Initialized the value of the GPIO for a bitmask for each port.
         inline gpio_status(std::uint8_t p3_mask, std::uint8_t p7_mask, std::uint8_t i0i1_mask);
 
-        [[nodiscard]] inline std::uint8_t mask(gpio_loc loc) const;
+        /// Read the bitmask of a single GPIO port.
+        [[nodiscard]] inline std::uint8_t mask(gpio_port loc) const;
 
-        inline void set_mask(gpio_loc loc, std::uint8_t mask);
+        /// Set the bitmask of a single GPIO port.
+        inline void set_mask(gpio_port loc, std::uint8_t mask);
 
-        [[nodiscard]] inline bool operator[](std::pair<gpio_loc, std::uint8_t> const &gpio_idx) const;
+        /**
+         * Reads the status of a single GPIO.
+         * @param gpio_idx A port, index pair, e.g. `{gpio_port::p3, 2}`.
+         * @return True if the GPIO is high.
+         */
+        [[nodiscard]] inline bool operator[](std::pair<gpio_port, std::uint8_t> const &gpio_idx) const;
 
-        inline mlab::bit_ref operator[](std::pair<gpio_loc, std::uint8_t> const &gpio_idx);
+        /**
+         * Returns a writable reference to a single bit, representing the status of a single GPIO.
+         * @param gpio_idx A port, index pair, e.g. `{gpio_port::p3, 2}`.
+         * @return A `mlab::bit_ref` instance (which should not outlive this object).
+         */
+        inline mlab::bit_ref operator[](std::pair<gpio_port, std::uint8_t> const &gpio_idx);
     };
 }// namespace pn532
 
 namespace mlab {
-    // Locally import pn532 so that these declaration make sense
-    namespace {
-        using namespace pn532;
-    }
 
-    bin_data &operator<<(bin_data &bd, ciu_reg_212_424kbps const &reg);
+    /**
+     * @addtogroup IOOperators
+     * @{
+     */
+    bin_data &operator<<(bin_data &bd, pn532::reg::ciu_212_424kbps const &reg);
 
-    bin_data &operator<<(bin_data &bd, ciu_reg_106kbps_typea const &reg);
+    bin_data &operator<<(bin_data &bd, pn532::reg::ciu_106kbps_typea const &reg);
 
-    bin_data &operator<<(bin_data &bd, ciu_reg_typeb const &reg);
+    bin_data &operator<<(bin_data &bd, pn532::reg::ciu_typeb const &reg);
 
-    bin_data &operator<<(bin_data &bd, ciu_reg_iso_iec_14443_4_at_baudrate const &reg);
+    bin_data &operator<<(bin_data &bd, pn532::reg::ciu_iso_iec_14443_4_at_baudrate const &reg);
 
-    bin_data &operator<<(bin_data &bd, ciu_reg_iso_iec_14443_4 const &reg);
+    bin_data &operator<<(bin_data &bd, pn532::reg::ciu_iso_iec_14443_4 const &reg);
 
-    bin_data &operator<<(bin_data &bd, uid_cascade_l2 const &uid);
+    bin_data &operator<<(bin_data &bd, pn532::nfcid_2t const &uid);
 
-    bin_data &operator<<(bin_data &bd, uid_cascade_l3 const &uid);
+    bin_data &operator<<(bin_data &bd, pn532::nfcid_3t const &uid);
 
-    bin_data &operator<<(bin_data &bd, reg_antenna_detector const &r);
+    bin_data &operator<<(bin_data &bd, pn532::bits::reg_antenna_detector const &r);
 
-    bin_data &operator<<(bin_data &s, parameters const &p);
+    bin_data &operator<<(bin_data &s, pn532::parameters const &p);
 
-    bin_data &operator<<(bin_data &s, std::vector<wakeup_source> const &vws);
+    bin_data &operator<<(bin_data &s, std::vector<pn532::wakeup_source> const &vws);
 
-    bin_data &operator<<(bin_data &s, mifare_params const &p);
+    bin_data &operator<<(bin_data &s, pn532::mifare_params const &p);
 
-    bin_data &operator<<(bin_data &s, felica_params const &p);
+    bin_data &operator<<(bin_data &s, pn532::felica_params const &p);
 
-    template <baudrate_modulation BrMd>
-    bin_stream &operator>>(bin_stream &s, std::vector<bits::target<BrMd>> &targets);
+    template <pn532::baudrate_modulation BrMd>
+    bin_stream &operator>>(bin_stream &s, std::vector<pn532::target<BrMd>> &targets);
 
     /**
      * @note This is a custom operator because we do not have ATS bytes.
      */
-    bin_stream &operator>>(bin_stream &s, poll_entry<target_type::dep_passive_106kbps> &entry);
+    bin_stream &operator>>(bin_stream &s, pn532::poll_target<pn532::target_type::dep_passive_106kbps> &entry);
 
-    template <target_type Type>
-    bin_stream &operator>>(bin_stream &s, poll_entry<Type> &entry);
+    template <pn532::target_type Type>
+    bin_stream &operator>>(bin_stream &s, pn532::poll_target<Type> &entry);
 
-    bin_stream &operator>>(bin_stream &s, any_target &t);
+    bin_stream &operator>>(bin_stream &s, pn532::any_poll_target &t);
 
-    bin_stream &operator>>(bin_stream &s, std::vector<any_target> &targets);
+    bin_stream &operator>>(bin_stream &s, std::vector<pn532::any_poll_target> &targets);
 
-    bin_stream &operator>>(bin_stream &s, std::pair<rf_status, bin_data> &status_data_pair);
+    bin_stream &operator>>(bin_stream &s, std::pair<pn532::rf_status, bin_data> &status_data_pair);
 
-    bin_stream &operator>>(bin_stream &s, rf_status &status);
+    bin_stream &operator>>(bin_stream &s, pn532::rf_status &status);
 
-    bin_stream &operator>>(bin_stream &s, gpio_status &gpio);
+    bin_stream &operator>>(bin_stream &s, pn532::gpio_status &gpio);
 
-    bin_stream &operator>>(bin_stream &s, firmware_version &fw);
+    bin_stream &operator>>(bin_stream &s, pn532::firmware_version &fw);
 
-    bin_stream &operator>>(bin_stream &s, general_status &gs);
+    bin_stream &operator>>(bin_stream &s, pn532::general_status &gs);
 
-    bin_stream &operator>>(bin_stream &s, target_status &ts);
+    bin_stream &operator>>(bin_stream &s, pn532::general_status_target &ts);
 
-    bin_stream &operator>>(bin_stream &s, target_kbps106_typea &target);
+    bin_stream &operator>>(bin_stream &s, pn532::target_kbps106_typea &target);
 
-    bin_stream &operator>>(bin_stream &s, target_kbps212_felica &target);
+    bin_stream &operator>>(bin_stream &s, pn532::target_kbps212_felica &target);
 
-    bin_stream &operator>>(bin_stream &s, target_kbps424_felica &target);
+    bin_stream &operator>>(bin_stream &s, pn532::target_kbps424_felica &target);
 
-    bin_stream &operator>>(bin_stream &s, target_kbps106_typeb &target);
+    bin_stream &operator>>(bin_stream &s, pn532::target_kbps106_typeb &target);
 
-    bin_stream &operator>>(bin_stream &s, target_kbps106_jewel_tag &target);
+    bin_stream &operator>>(bin_stream &s, pn532::target_kbps106_jewel_tag &target);
 
-    bin_stream &operator>>(bin_stream &s, atr_res_info &atr_res);
+    bin_stream &operator>>(bin_stream &s, pn532::atr_res_info &atr_res);
 
-    bin_stream &operator>>(bin_stream &s, std::pair<rf_status, atr_res_info> &status_atr_res);
+    bin_stream &operator>>(bin_stream &s, std::pair<pn532::rf_status, pn532::atr_res_info> &status_atr_res);
 
-    bin_stream &operator>>(bin_stream &s, reg_antenna_detector &r);
+    bin_stream &operator>>(bin_stream &s, pn532::bits::reg_antenna_detector &r);
 
-    bin_stream &operator>>(bin_stream &s, jump_dep_psl &r);
+    bin_stream &operator>>(bin_stream &s, pn532::jump_dep_psl &r);
 
-    bin_stream &operator>>(bin_stream &s, sam_status &sams);
+    bin_stream &operator>>(bin_stream &s, pn532::general_status_sam &sams);
 
-    bin_stream &operator>>(bin_stream &s, status_as_target &st);
+    bin_stream &operator>>(bin_stream &s, pn532::status_as_target &st);
 
-    bin_stream &operator>>(bin_stream &s, mode_as_target &mt);
+    bin_stream &operator>>(bin_stream &s, pn532::activation_as_target_mode &mt);
 
-    bin_stream &operator>>(bin_stream &s, init_as_target_res &mt);
+    bin_stream &operator>>(bin_stream &s, pn532::activation_as_target &mt);
+    /**
+     * @}
+     */
 
 }// namespace mlab
 
 namespace pn532 {
 
-    bool gpio_status::operator[](std::pair<gpio_loc, std::uint8_t> const &gpio_idx) const {
+    rf_status::operator bool() const {
+        return error == internal_error_code::none;
+    }
+
+    bool gpio_status::operator[](std::pair<gpio_port, std::uint8_t> const &gpio_idx) const {
         switch (gpio_idx.first) {
-            case gpio_loc::p3:
+            case gpio_port::p3:
                 return 0 != (_p3_mask & (1 << gpio_idx.second));
-            case gpio_loc::p7:
+            case gpio_port::p7:
                 return 0 != (_p7_mask & (1 << gpio_idx.second));
-            case gpio_loc::i0i1:
+            case gpio_port::i0i1:
                 return 0 != (_i0i1_mask & (1 << gpio_idx.second));
         }
     }
 
-    mlab::bit_ref gpio_status::operator[](std::pair<gpio_loc, std::uint8_t> const &gpio_idx) {
+    mlab::bit_ref gpio_status::operator[](std::pair<gpio_port, std::uint8_t> const &gpio_idx) {
         static std::uint8_t _garbage = 0x00;
         switch (gpio_idx.first) {
-            case gpio_loc::p3:
+            case gpio_port::p3:
                 return mlab::bit_ref{_p3_mask, gpio_idx.second, bits::gpio_p3_pin_mask};
-            case gpio_loc::p7:
+            case gpio_port::p7:
                 return mlab::bit_ref{_p7_mask, gpio_idx.second, bits::gpio_p7_pin_mask};
-            case gpio_loc::i0i1:
+            case gpio_port::i0i1:
                 return mlab::bit_ref{_i0i1_mask, gpio_idx.second, bits::gpio_i0i1_pin_mask};
         }
         return mlab::bit_ref{_garbage, gpio_idx.second, 0xff};
@@ -430,51 +600,46 @@ namespace pn532 {
 
     gpio_status::gpio_status(std::uint8_t p3_mask, std::uint8_t p7_mask, std::uint8_t i0i1_mask) : _p3_mask{p3_mask}, _p7_mask{p7_mask}, _i0i1_mask{i0i1_mask} {}
 
-    inline std::uint8_t gpio_status::mask(gpio_loc loc) const {
+    inline std::uint8_t gpio_status::mask(gpio_port loc) const {
         switch (loc) {
-            case gpio_loc::p3:
+            case gpio_port::p3:
                 return _p3_mask;
-            case gpio_loc::p7:
+            case gpio_port::p7:
                 return _p7_mask;
-            case gpio_loc::i0i1:
+            case gpio_port::i0i1:
                 return _i0i1_mask;
         }
         return 0x00;
     }
 
-    void gpio_status::set_mask(gpio_loc loc, std::uint8_t mask) {
+    void gpio_status::set_mask(gpio_port loc, std::uint8_t mask) {
         switch (loc) {
-            case gpio_loc::p3:
+            case gpio_port::p3:
                 _p3_mask = mask & bits::gpio_p3_pin_mask;
                 break;
-            case gpio_loc::p7:
+            case gpio_port::p7:
                 _p7_mask = mask & bits::gpio_p7_pin_mask;
                 break;
-            case gpio_loc::i0i1:
+            case gpio_port::i0i1:
                 _i0i1_mask = mask & bits::gpio_i0i1_pin_mask;
                 break;
         }
     }
 
-    reg_addr::reg_addr(sfr_register sfr_reg) : std::array<std::uint8_t, 2>{{bits::sfr_registers_high, static_cast<std::uint8_t>(sfr_reg)}} {}
-
-    reg_addr::reg_addr(std::uint16_t xram_mmap_reg) : std::array<std::uint8_t, 2>{{std::uint8_t(xram_mmap_reg >> 8),
-                                                                                   std::uint8_t(xram_mmap_reg & 0xff)}} {}
-
 }// namespace pn532
 
 namespace mlab {
-    template <baudrate_modulation BrMd>
-    bin_stream &operator>>(bin_stream &s, std::vector<bits::target<BrMd>> &targets) {
+    template <pn532::baudrate_modulation BrMd>
+    bin_stream &operator>>(bin_stream &s, std::vector<pn532::target<BrMd>> &targets) {
         if (s.remaining() < 1) {
-            PN532_LOGE("Parsing vector<target<%s>>: not enough data.", to_string(BrMd));
+            PN532_LOGE("Parsing vector<target<%s>>: not enough data.", pn532::to_string(BrMd));
             s.set_bad();
             return s;
         }
         const auto num_targets = s.pop();
-        if (num_targets > bits::max_num_targets) {
+        if (num_targets > pn532::bits::max_num_targets) {
             PN532_LOGW("Parsing vector<target<%s>>: found %u targets, which is more than the number of supported targets %u.",
-                       to_string(BrMd), num_targets, bits::max_num_targets);
+                       pn532::to_string(BrMd), num_targets, pn532::bits::max_num_targets);
         }
         targets.resize(num_targets);
         for (auto &target : targets) {
@@ -486,14 +651,14 @@ namespace mlab {
         return s;
     }
 
-    template <target_type Type>
-    bin_stream &operator>>(bin_stream &s, poll_entry<Type> &entry) {
-        static constexpr baudrate_modulation BrMod = bits::baudrate_modulation_of_target<Type>;
-        if constexpr (std::is_base_of_v<bits::target<BrMod>, poll_entry<Type>>) {
-            s >> static_cast<bits::target<BrMod> &>(entry);
+    template <pn532::target_type Type>
+    bin_stream &operator>>(bin_stream &s, pn532::poll_target<Type> &entry) {
+        static constexpr pn532::baudrate_modulation BrMod = pn532::baudrate_modulation_of(Type);
+        if constexpr (std::is_base_of_v<pn532::target<BrMod>, pn532::poll_target<Type>>) {
+            s >> static_cast<pn532::target<BrMod> &>(entry);
         }
-        if constexpr (std::is_base_of_v<poll_entry_with_atr, poll_entry<Type>>) {
-            s >> static_cast<poll_entry_with_atr &>(entry).atr_info;
+        if constexpr (std::is_base_of_v<pn532::poll_target_with_atr, pn532::poll_target<Type>>) {
+            s >> static_cast<pn532::poll_target_with_atr &>(entry).atr_info;
         }
         return s;
     }

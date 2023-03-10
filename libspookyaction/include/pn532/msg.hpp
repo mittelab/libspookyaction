@@ -8,19 +8,31 @@
 #include <pn532/bits.hpp>
 #include <string>
 
-namespace pn532 {
-    [[nodiscard]] const char *to_string(bits::baudrate s);
+/**
+ * @defgroup StringConversion String conversion functions
+ * Human-readable description of the enumeration.
+ * All the returned `const char *` are static strings.
+ */
 
-    [[nodiscard]] const char *to_string(bits::command c);
+namespace pn532 {
+    /**
+     * @addtogroup StringConversion
+     * @{
+     */
+    [[nodiscard]] const char *to_string(baudrate s);
+
+    [[nodiscard]] const char *to_string(command_code c);
 
     [[nodiscard]] const char *to_string(bits::test t);
 
-    [[nodiscard]] const char *to_string(bits::baudrate_modulation bm);
+    [[nodiscard]] const char *to_string(baudrate_modulation bm);
 
-    [[nodiscard]] const char *to_string(bits::target_type t);
+    [[nodiscard]] const char *to_string(target_type t);
 
-    [[nodiscard]] const char *to_string(bits::error e);
-
+    [[nodiscard]] const char *to_string(internal_error_code e);
+    /**
+     * @}
+     */
 }// namespace pn532
 
 #endif//PN532_MSG_HPP

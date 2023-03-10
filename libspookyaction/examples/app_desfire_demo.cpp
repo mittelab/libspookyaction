@@ -27,7 +27,7 @@ bool authenticate_to_root_app(desfire::tag &tag) {
 void print_card_info(desfire::tag &tag) {
     // Make sure we are authenticated
     assert(tag.active_app() == desfire::root_app);
-    assert(tag.active_key_type() != desfire::cipher_type::none);
+    assert(tag.active_cipher_type() != desfire::cipher_type::none);
 
     if (const auto res = tag.get_info(); not res) {
         ESP_LOGE(TAG, "Could not retrieve card info, error: %s.", desfire::to_string(res.error()));
@@ -48,7 +48,7 @@ void print_card_info(desfire::tag &tag) {
 void list_apps(desfire::tag &tag) {
     // Make sure we are authenticated
     assert(tag.active_app() == desfire::root_app);
-    assert(tag.active_key_type() != desfire::cipher_type::none);
+    assert(tag.active_cipher_type() != desfire::cipher_type::none);
 
     if (const auto res = tag.get_application_ids(); not res) {
         ESP_LOGE(TAG, "Failed to retrieve the list of applications, error: %s.", desfire::to_string(res.error()));
@@ -78,7 +78,7 @@ void demo_app_and_file(desfire::tag &tag) {
             // The file is stored encrypted
             desfire::file_security::encrypted,
             // The file is accessible only by the demo app key
-            desfire::access_rights{demo_app_key.key_number()},
+            desfire::file_access_rights{demo_app_key.key_number()},
             // The file size is going to be 16 bytes
             demo_file_size};
 
@@ -87,7 +87,7 @@ void demo_app_and_file(desfire::tag &tag) {
 
     // Make sure we are authenticated
     assert(tag.active_app() == desfire::root_app);
-    assert(tag.active_key_type() != desfire::cipher_type::none);
+    assert(tag.active_cipher_type() != desfire::cipher_type::none);
 
     // Attempt at creating a new app. First check if it exists
     bool app_exists = false;

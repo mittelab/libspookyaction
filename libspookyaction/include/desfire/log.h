@@ -7,6 +7,7 @@
 
 #include <esp_log.h>
 
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -25,5 +26,5 @@ extern "C" {
 #ifdef __cplusplus
 }
 #endif
-
+#endif
 #endif//DESFIRE_LOG_H

@@ -14,11 +14,12 @@
 #define TEST_TAG "UT"
 
 namespace ut::desfire_main {
+    using namespace desfire::esp32;
+    using namespace std::chrono_literals;
+    using namespace mlab_literals;
+    using namespace std::chrono_literals;
 
     namespace {
-        using namespace ::desfire::esp32;
-        using namespace std::chrono_literals;
-        using namespace ::mlab_literals;
         constexpr const char *missing_instance_msg = "Desfire test instance was not set up.";
 
         void issue_format_warning() {
@@ -31,10 +32,10 @@ namespace ut::desfire_main {
         }
 
         constexpr std::uint8_t secondary_keys_version = 0x10;
-        constexpr desfire::key_data<8> secondary_des_key = {0x0, 0x2, 0x4, 0x6, 0x8, 0xa, 0xc, 0xe};
-        constexpr desfire::key_data<16> secondary_des3_2k_key = {0x0, 0x2, 0x4, 0x6, 0x8, 0xa, 0xc, 0xe, 0x10, 0x12, 0x14, 0x16, 0x18, 0x1a, 0x1c, 0x1e};
-        constexpr desfire::key_data<24> secondary_des3_3k_key = {0x0, 0x2, 0x4, 0x6, 0x8, 0xa, 0xc, 0xe, 0x10, 0x12, 0x14, 0x16, 0x18, 0x1a, 0x1c, 0x1e, 0x20, 0x22, 0x24, 0x26, 0x28, 0x2a, 0x2c, 0x2e};
-        constexpr desfire::key_data<16> secondary_aes_key = {0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf};
+        constexpr desfire::key_body<8> secondary_des_key = {0x0, 0x2, 0x4, 0x6, 0x8, 0xa, 0xc, 0xe};
+        constexpr desfire::key_body<16> secondary_des3_2k_key = {0x0, 0x2, 0x4, 0x6, 0x8, 0xa, 0xc, 0xe, 0x10, 0x12, 0x14, 0x16, 0x18, 0x1a, 0x1c, 0x1e};
+        constexpr desfire::key_body<24> secondary_des3_3k_key = {0x0, 0x2, 0x4, 0x6, 0x8, 0xa, 0xc, 0xe, 0x10, 0x12, 0x14, 0x16, 0x18, 0x1a, 0x1c, 0x1e, 0x20, 0x22, 0x24, 0x26, 0x28, 0x2a, 0x2c, 0x2e};
+        constexpr desfire::key_body<16> secondary_aes_key = {0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf};
 
         app_id get_default_aid(cipher_type c) {
             switch (c) {
@@ -150,7 +151,7 @@ namespace ut::desfire_main {
      * @{
      */
 
-    void test_auth_attempt(tag::result<> const &result) {
+    void test_auth_attempt(desfire::result<> const &result) {
         UNITY_PATCH_TEST_FILE;
         auto instance = default_registrar().get<test_instance>();
         if (instance == nullptr) {
@@ -424,8 +425,6 @@ namespace ut::desfire_main {
      */
 
     namespace {
-        using namespace std::chrono_literals;
-
         std::uint8_t try_find_card(pn532::controller &tag_reader) {
             ESP_LOGI(TEST_TAG, "Please bring card close now (searching for one passive 106 kbps target)...");
             const auto r_scan = tag_reader.initiator_list_passive_kbps106_typea(1, 10s);
@@ -434,7 +433,7 @@ namespace ut::desfire_main {
                 return std::numeric_limits<std::uint8_t>::max();
             }
             ESP_LOGI(TEST_TAG, "Found one target:");
-            auto const &nfcid = r_scan->front().info.nfcid;
+            auto const &nfcid = r_scan->front().nfcid;
             ESP_LOG_BUFFER_HEX_LEVEL(TEST_TAG, nfcid.data(), nfcid.size(), ESP_LOG_INFO);
 
             return r_scan->front().logical_index;

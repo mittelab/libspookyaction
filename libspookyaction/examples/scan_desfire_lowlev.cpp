@@ -16,7 +16,7 @@ void scan_uuids(pn532::controller &pn532) {
         } else {
             for (pn532::target_kbps106_typea const &target : *res) {
                 ESP_LOGI(TAG, "Logical index %u; NFC ID:", target.logical_index);
-                ESP_LOG_BUFFER_HEX_LEVEL(TAG, target.info.nfcid.data(), target.info.nfcid.size(), ESP_LOG_INFO);
+                ESP_LOG_BUFFER_HEX_LEVEL(TAG, target.nfcid.data(), target.nfcid.size(), ESP_LOG_INFO);
             }
         }
     } else {

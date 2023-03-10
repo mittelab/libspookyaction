@@ -8,10 +8,9 @@
 #include <unity.h>
 
 namespace ut::desfire_files {
-    namespace {
-        constexpr const char *missing_instance_msg = "File test instance was not set up.";
-        using namespace ::mlab_literals;
-    }// namespace
+    using namespace mlab_literals;
+
+    static constexpr const char *missing_instance_msg = "File test instance was not set up.";
 
     test_data::test_data(std::shared_ptr<ut::desfire_main::test_instance> main_test_instance)
         : _hold_test_instance{std::move(main_test_instance)}, _file{}, _test_load{} {
@@ -63,7 +62,7 @@ namespace ut::desfire_files {
                 return "des3_3k";
             case cipher_type::aes128:
                 return "aes128";
-            case bits::cipher_type::none:
+            case cipher_type::none:
                 break;
         }
         return nullptr;
@@ -108,7 +107,7 @@ namespace ut::desfire_files {
         static constexpr record_file_settings rfs{8, 2};
         static constexpr value_file_settings vfs{-10, 10, 0, true};
         // Select either all keys, or one key (the one we are using
-        const generic_file_settings gfs{security, free_access ? access_rights{desfire::free_access} : access_rights{0_b}};
+        const common_file_settings gfs{security, free_access ? file_access_rights{desfire::free_access} : file_access_rights{0_b}};
 
         switch (type) {
             case file_type::standard:
@@ -163,7 +162,7 @@ namespace ut::desfire_files {
                 test_record_file(mifare);
                 break;
         }
-        TEST_ASSERT(mifare.change_file_settings(fid(), get_settings().generic_settings(), trust_card));
+        TEST_ASSERT(mifare.change_file_settings(fid(), get_settings().common_settings(), trust_card));
         TEST_ASSERT(mifare.delete_file(fid()))
     }
 
@@ -219,7 +218,7 @@ namespace ut::desfire_files {
         TEST_ASSERT(mifare.write_record(fid(), nibble, trust_card, 4))
         TEST_ASSERT(mifare.commit_transaction())
         test_get_record_count(1);
-        const auto res_records = mifare.read_parse_records<record_t>(fid(), trust_card, 0, bits::all_records);
+        const auto res_records = mifare.read_parse_records<record_t>(fid(), trust_card, 0, all_records);
         TEST_ASSERT(res_records)
         TEST_ASSERT_EQUAL(res_records->size(), 1);
         const record_t expected = {0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x02, 0x03};

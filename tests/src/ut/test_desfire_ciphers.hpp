@@ -12,12 +12,10 @@
 #include <unity.h>
 
 namespace ut {
-    namespace {
-        using mlab::range;
-    }
+    using mlab::range;
 
     /**
-     * Enables usage of @ref desfire::cipher_default with DES and 2K3DES.
+     * Enables usage of @ref desfire::protocol_default with DES and 2K3DES.
      * This is used in some of the examples from hack.cert.pl, which employ the "modern" authentication command with
      * legacy ciphers. It is unclear how to use CMAC in this case because we do not know what constants to use in the
      * subkey derivation, so that is disabled and broken, but other than that, it allows us to replay the examples
@@ -49,8 +47,8 @@ namespace ut {
             fake_cmac_crypto<desfire::esp32::crypto_2k3des, 8, 16>,
             desfire::esp32::crypto_3k3des,
             desfire::esp32::crypto_aes,
-            desfire::cipher_default, desfire::cipher_default,
-            desfire::cipher_default, desfire::cipher_default>;
+            desfire::protocol_default, desfire::protocol_default,
+            desfire::protocol_default, desfire::protocol_default>;
 
     namespace desfire_ciphers {
         void test_des();

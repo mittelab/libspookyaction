@@ -5,7 +5,7 @@
 
 using namespace std::chrono_literals;
 
-const char *bool_result_to_str(pn532::controller::result<bool> result, const char *success = "OK", const char *failure = "FAIL") {
+const char *bool_result_to_str(pn532::result<bool> result, const char *success = "OK", const char *failure = "FAIL") {
     if (not result) {
         return pn532::to_string(result.error());
     }

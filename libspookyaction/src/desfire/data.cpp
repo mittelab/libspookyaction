@@ -7,29 +7,10 @@
 #include <desfire/msg.hpp>
 
 namespace desfire {
+    using mlab::prealloc;
 
-    namespace {
-        using mlab::prealloc;
-    }
-
-    command_code auth_command(cipher_type t) {
-        switch (t) {
-            case cipher_type::des3_2k:
-                return command_code::authenticate_legacy;
-            case cipher_type::des3_3k:
-                return command_code::authenticate_iso;
-            case cipher_type::des:
-                return command_code::authenticate_legacy;
-            case cipher_type::aes128:
-                return command_code::authenticate_aes;
-            default:
-                DESFIRE_LOGE("Requesting authentication command for no cipher!");
-                return command_code::additional_frame;
-        }
-    }
-
-    error error_from_status(status s) {
-        if (s == status::ok or s == status::no_changes or s == status::additional_frame) {
+    error error_from_status(bits::status s) {
+        if (s == bits::status::ok or s == bits::status::no_changes or s == bits::status::additional_frame) {
             return error::malformed;
         }
         return static_cast<error>(s);
@@ -58,7 +39,7 @@ namespace desfire {
         return s << _flag;
     }
 
-    generic_file_settings const &any_file_settings::generic_settings() const {
+    common_file_settings const &any_file_settings::common_settings() const {
         switch (type()) {
             case file_type::standard:
                 return get<file_type::standard>();
@@ -71,7 +52,7 @@ namespace desfire {
             case file_type::cyclic_record:
                 return get<file_type::cyclic_record>();
         }
-        static generic_file_settings _dummy{};
+        static common_file_settings _dummy{};
         DESFIRE_LOGE("Cannot retrieve file settings from an empty file settings container.");
         _dummy = {};
         return _dummy;
@@ -120,7 +101,7 @@ namespace desfire {
         return _dummy;
     }
 
-    bool access_rights::is_free(file_access access) const {
+    bool file_access_rights::is_free(file_access access) const {
         switch (access) {
             case file_access::read:
                 return read == free_access or read_write == free_access;
@@ -132,8 +113,8 @@ namespace desfire {
         return false;
     }
 
-    generic_file_settings &any_file_settings::generic_settings() {
-        return const_cast<generic_file_settings &>(static_cast<any_file_settings const *>(this)->generic_settings());
+    common_file_settings &any_file_settings::common_settings() {
+        return const_cast<common_file_settings &>(static_cast<any_file_settings const *>(this)->common_settings());
     }
 
     data_file_settings &any_file_settings::data_settings() {
@@ -151,9 +132,7 @@ namespace desfire {
 }// namespace desfire
 
 namespace mlab {
-    namespace {
-        namespace bits = desfire::bits;
-    }
+    using namespace desfire;
 
     bin_data &operator<<(bin_data &bd, desfire::key_rights const &kr) {
         const std::uint8_t flag = (kr.allowed_to_change_keys.get_nibble() << bits::app_change_keys_right_shift) |
@@ -201,20 +180,20 @@ namespace mlab {
                          ks.max_num_keys, bits::max_keys_per_app);
             ks.max_num_keys = bits::max_keys_per_app;
         }
-        static_assert(0 == static_cast<std::uint8_t>(bits::app_crypto::legacy_des_2k3des),
+        static_assert(0 == static_cast<std::uint8_t>(app_crypto::legacy_des_2k3des),
                       "This code relies on the fact that by default it's legacy, i.e. legacy has no bit set.");
-        const bool wants_iso_3k3des = 0 != (keys_crypto_flag & static_cast<std::uint8_t>(bits::app_crypto::iso_3k3des));
-        const bool wants_aes_128 = 0 != (keys_crypto_flag & static_cast<std::uint8_t>(bits::app_crypto::aes_128));
+        const bool wants_iso_3k3des = 0 != (keys_crypto_flag & static_cast<std::uint8_t>(app_crypto::iso_3k3des));
+        const bool wants_aes_128 = 0 != (keys_crypto_flag & static_cast<std::uint8_t>(app_crypto::aes_128));
         if (not wants_aes_128 and not wants_iso_3k3des) {
-            ks.crypto = bits::app_crypto::legacy_des_2k3des;
+            ks.crypto = app_crypto::legacy_des_2k3des;
         } else if (wants_iso_3k3des) {
-            ks.crypto = bits::app_crypto::iso_3k3des;
+            ks.crypto = app_crypto::iso_3k3des;
             if (wants_aes_128) {
                 DESFIRE_LOGE("Error while parsing app_settings, the selected app has both the AES128 bit and the ISO "
                              "3K3DES bit. Will assume 3K3DES.");
             }
         } else {
-            ks.crypto = bits::app_crypto::aes_128;
+            ks.crypto = app_crypto::aes_128;
         }
         return s;
     }
@@ -259,7 +238,7 @@ namespace mlab {
         return s;
     }
 
-    bin_stream &operator>>(bin_stream &s, desfire::access_rights &ar) {
+    bin_stream &operator>>(bin_stream &s, desfire::file_access_rights &ar) {
         if (s.remaining() < 2) {
             DESFIRE_LOGE("Cannot parse access_rights: not enough data.");
             s.set_bad();
@@ -271,11 +250,11 @@ namespace mlab {
         return s;
     }
 
-    bin_data &operator<<(bin_data &bd, desfire::access_rights const &ar) {
+    bin_data &operator<<(bin_data &bd, desfire::file_access_rights const &ar) {
         return bd << lsb16 << ar.get_word();
     }
 
-    bin_stream &operator>>(bin_stream &s, desfire::generic_file_settings &fs) {
+    bin_stream &operator>>(bin_stream &s, desfire::common_file_settings &fs) {
         if (s.remaining() < 3) {
             DESFIRE_LOGE("Cannot parse generic_file_settings: not enough data.");
             s.set_bad();
@@ -284,7 +263,7 @@ namespace mlab {
         return s >> fs.security >> fs.rights;
     }
 
-    bin_data &operator<<(bin_data &bd, desfire::generic_file_settings const &fs) {
+    bin_data &operator<<(bin_data &bd, desfire::common_file_settings const &fs) {
         return bd << fs.security << fs.rights;
     }
 

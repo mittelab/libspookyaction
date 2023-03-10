@@ -87,6 +87,11 @@
 
 namespace desfire::esp32 {
 
+    /**
+     * ESP32-specific implementation of @ref crypto_des_base.
+     * Uses MbedTLS or WolfSSL depending on whether `SPOOKY_USE_MBEDTLS` or `SPOOKY_USE_WOLFSSL` is set
+     * (by default, MbedTLS).
+     */
     class crypto_des final : public crypto_des_base {
 #if defined(SPOOKY_USE_MBEDTLS)
         mbedtls_des_context _enc_context;
@@ -105,6 +110,11 @@ namespace desfire::esp32 {
 #endif//SPOOKY_USE_MBEDTLS
     };
 
+    /**
+     * ESP32-specific implementation of  @ref crypto_2k3des_base.
+     * Uses MbedTLS or WolfSSL depending on whether `SPOOKY_USE_MBEDTLS` or `SPOOKY_USE_WOLFSSL` is set
+     * (by default, MbedTLS).
+     */
     class crypto_2k3des final : public crypto_2k3des_base {
 #if defined(SPOOKY_USE_MBEDTLS)
         mbedtls_des3_context _enc_context;
@@ -124,6 +134,11 @@ namespace desfire::esp32 {
 #endif//SPOOKY_USE_MBEDTLS
     };
 
+    /**
+     * ESP32-specific implementation of  @ref crypto_3k3des_base.
+     * Uses MbedTLS or WolfSSL depending on whether `SPOOKY_USE_MBEDTLS` or `SPOOKY_USE_WOLFSSL` is set
+     * (by default, MbedTLS).
+     */
     class crypto_3k3des final : public crypto_3k3des_base {
 #if defined(SPOOKY_USE_MBEDTLS)
         mbedtls_des3_context _enc_context;
@@ -145,6 +160,11 @@ namespace desfire::esp32 {
         void setup_primitives_with_key(range<std::uint8_t const *> key) override;
     };
 
+    /**
+     * ESP32-specific implementation of @ref crypto_aes_base.
+     * Uses MbedTLS or WolfSSL depending on whether `SPOOKY_USE_MBEDTLS` or `SPOOKY_USE_WOLFSSL` is set
+     * (by default, MbedTLS).
+     */
     class crypto_aes final : public crypto_aes_base {
 #if defined(SPOOKY_USE_MBEDTLS)
         mbedtls_aes_context _enc_context;

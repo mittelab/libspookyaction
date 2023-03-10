@@ -11,24 +11,24 @@
 #include <unity.h>
 
 namespace ut::desfire_exchanges {
-    namespace {
-        using namespace ::desfire;
-        using namespace ::mlab_literals;
+    using namespace desfire;
+    using namespace mlab_literals;
 
+    namespace {
         struct assert_comm_pcd final : public pcd {
             std::list<std::pair<mlab::bin_data, mlab::bin_data>> txrx_fifo;
 
-            std::pair<mlab::bin_data, bool> communicate(mlab::bin_data const &data) override;
+            std::optional<mlab::bin_data> communicate(mlab::bin_data const &data) override;
 
             void append(std::initializer_list<std::uint8_t> tx, std::initializer_list<std::uint8_t> rx);
         };
 
-        std::pair<mlab::bin_data, bool> assert_comm_pcd::communicate(const mlab::bin_data &data) {
+        std::optional<mlab::bin_data> assert_comm_pcd::communicate(const mlab::bin_data &data) {
             auto txrx_pair = std::move(txrx_fifo.front());
             txrx_fifo.pop_front();
             TEST_ASSERT_EQUAL_HEX8_ARRAY(txrx_pair.first.data(), data.data(), std::min(txrx_pair.first.size(), data.size()));
             TEST_ASSERT_EQUAL(txrx_pair.first.size(), data.size());
-            return {std::move(txrx_pair.second), true};
+            return std::move(txrx_pair.second);
         }
 
         void assert_comm_pcd::append(std::initializer_list<std::uint8_t> tx,
@@ -155,7 +155,7 @@ namespace ut::desfire_exchanges {
         pcd->append({0xf5, 0x05}, {0x00, 0x00, 0x00, 0x11, 0x00, 0x50, 0x00, 0x00, 0x2A, 0xAC, 0x75, 0x17, 0x02, 0x4E, 0x09, 0xDC});
         pcd->append({0x3D, 0x05, 0x00, 0x00, 0x00, 0x34, 0x00, 0x00, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F, 0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x2A, 0x2B, 0x2C, 0x2D, 0x2E, 0x2F, 0x30, 0x31, 0x32, 0x33}, {0x00, 0x76, 0x5C, 0x9D, 0xAA, 0x50, 0xEC, 0xB6, 0x2F});
 
-        TEST_ASSERT(tag.create_file(5, file_settings<file_type::standard>{file_security::none, access_rights::from_word(0x0011), 80}))
+        TEST_ASSERT(tag.create_file(5, file_settings<file_type::standard>{file_security::none, file_access_rights::from_word(0x0011), 80}))
 
         TEST_ASSERT(tag.get_file_ids())
 

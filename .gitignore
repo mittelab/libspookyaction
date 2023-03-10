@@ -10,4 +10,6 @@ compile_commands.json
 sdkconfig
 sdkconfig.*
 docs/_build
+docs/api
 compile_commands.json.bak
+docs/build.log

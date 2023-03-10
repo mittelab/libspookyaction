@@ -3,48 +3,46 @@
 //
 
 #include <cassert>
-#include <desfire/cipher.hpp>
 #include <desfire/crypto_algo.hpp>
 #include <desfire/log.h>
+#include <desfire/protocol.hpp>
 #include <mlab/mathutils.hpp>
 
 namespace desfire {
-    namespace {
-        using mlab::bin_stream;
-        using mlab::lsb16;
-        using mlab::lsb32;
-        using mlab::make_range;
-    }// namespace
+    using mlab::bin_stream;
+    using mlab::lsb16;
+    using mlab::lsb32;
+    using mlab::make_range;
 
 
-    bool cipher_dummy::is_legacy() const {
+    bool protocol_dummy::is_legacy() const {
         return true;
     }
 
-    bool cipher_default::is_legacy() const {
+    bool protocol_default::is_legacy() const {
         return false;
     }
 
-    bool cipher_legacy::is_legacy() const {
+    bool protocol_legacy::is_legacy() const {
         return true;
     }
 
-    cipher_legacy::cipher_legacy(std::unique_ptr<desfire::crypto> crypto)
+    protocol_legacy::protocol_legacy(std::unique_ptr<desfire::crypto> crypto)
         : _iv{0, 0, 0, 0, 0, 0, 0, 0},
           _crypto{std::move(crypto)} {}
 
-    desfire::crypto &cipher_legacy::crypto_provider() {
+    desfire::crypto &protocol_legacy::crypto_provider() {
         return *_crypto;
     }
 
-    cipher_legacy::block_t &cipher_legacy::get_zeroed_iv() {
+    protocol_legacy::block_t &protocol_legacy::get_zeroed_iv() {
         // Reset every time
         std::fill_n(std::begin(_iv), block_size, 0x00);
         return _iv;
     }
 
 
-    cipher_legacy::mac_t cipher_legacy::compute_mac(range<bin_data::const_iterator> data) {
+    protocol_legacy::mac_t protocol_legacy::compute_mac(range<bin_data::const_iterator> data) {
         static bin_data buffer{};
 
         // Resize the buffer and copy data
@@ -58,11 +56,11 @@ namespace desfire {
         return {iv[0], iv[1], iv[2], iv[3]};
     }
 
-    void cipher_legacy::init_session(bin_data const &random_data) {
+    void protocol_legacy::init_session(bin_data const &random_data) {
         crypto_provider().init_session(random_data.data_view());
     }
 
-    bool cipher_legacy::drop_padding_verify_crc(bin_data &d) {
+    bool protocol_legacy::drop_padding_verify_crc(bin_data &d) {
         static const auto crc_fn = [](bin_data::const_iterator b, bin_data::const_iterator e, std::uint16_t init) -> std::uint16_t {
             return compute_crc16(range<std::uint8_t const *>{&*b, &*b + std::distance(b, e)}, init);
         };
@@ -76,16 +74,16 @@ namespace desfire {
         return false;
     }
 
-    void cipher_legacy::prepare_tx(bin_data &data, std::size_t offset, cipher_mode mode) {
-        if (offset >= data.size() or mode == cipher_mode::plain) {
+    void protocol_legacy::prepare_tx(bin_data &data, std::size_t offset, comm_mode mode) {
+        if (offset >= data.size() or mode == comm_mode::plain) {
             return;// Nothing to do
         }
-        if (mode == cipher_mode::maced) {
+        if (mode == comm_mode::maced) {
             const auto mac = compute_mac(data.view(offset));
             ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_LOG_PREFIX " TX MAC", mac.data(), mac.size(), ESP_LOG_DEBUG);
             data << mac;
         } else {
-            if (mode == cipher_mode::ciphered) {
+            if (mode == comm_mode::ciphered) {
                 data.reserve(offset + mlab::next_multiple(data.size() + crc_size - offset, block_size));
                 data << lsb16 << compute_crc16(data.data_view(offset));
             } else {
@@ -97,12 +95,12 @@ namespace desfire {
     }
 
 
-    bool cipher_legacy::confirm_rx(bin_data &data, cipher_mode mode) {
-        if (data.size() == 1 or mode == cipher_mode::plain) {
+    bool protocol_legacy::confirm_rx(bin_data &data, comm_mode mode) {
+        if (data.size() == 1 or mode == comm_mode::plain) {
             // Just status byte, return as-is
             return true;
         }
-        if (mode == cipher_mode::maced) {
+        if (mode == comm_mode::maced) {
             bin_stream s{data};
             // Data, followed by mac, followed by status
             const auto data_view = s.read(s.remaining() - mac_size - 1);
@@ -132,7 +130,7 @@ namespace desfire {
                 return false;
             }
             crypto_provider().do_crypto(data.data_view(), make_range(get_zeroed_iv()), crypto_operation::decrypt);
-            if (mode == cipher_mode::ciphered) {
+            if (mode == comm_mode::ciphered) {
                 // Truncate the padding and the crc
                 const bool did_verify = drop_padding_verify_crc(data);
                 // Reappend the status byte
@@ -147,13 +145,13 @@ namespace desfire {
     }
 
 
-    cipher_default::cipher_default(std::unique_ptr<crypto_with_cmac> crypto)
+    protocol_default::protocol_default(std::unique_ptr<crypto_with_cmac> crypto)
         : _iv{std::make_unique<std::uint8_t[]>(crypto->block_size())},
           _crypto{std::move(crypto)} {
         std::fill_n(_iv.get(), this->crypto_provider().block_size(), 0x00);
     }
 
-    bool cipher_default::drop_padding_verify_crc(bin_data &d, std::uint8_t status) {
+    bool protocol_default::drop_padding_verify_crc(bin_data &d, std::uint8_t status) {
         const auto crc_fn = [=](bin_data::const_iterator b, bin_data::const_iterator e, std::uint32_t init) -> std::uint32_t {
             // Here we get a sequence [[ DATA || CRC ]]. But we need to compute the CRC on [[ DATA || STATUS || CRC ]].
             // So we split into two ranges, b..m and m..e, and chain the CRCs
@@ -180,21 +178,21 @@ namespace desfire {
         return false;
     }
 
-    crypto_with_cmac &cipher_default::crypto_provider() {
+    crypto_with_cmac &protocol_default::crypto_provider() {
         return *_crypto;
     }
 
-    range<std::uint8_t *> cipher_default::iv() {
+    range<std::uint8_t *> protocol_default::iv() {
         return {_iv.get(), _iv.get() + crypto_provider().block_size()};
     }
 
-    void cipher_default::prepare_tx(bin_data &data, std::size_t offset, cipher_mode mode) {
-        if (mode == cipher_mode::plain or mode == cipher_mode::maced) {
+    void protocol_default::prepare_tx(bin_data &data, std::size_t offset, comm_mode mode) {
+        if (mode == comm_mode::plain or mode == comm_mode::maced) {
             // Plain and MAC may still require to pass data through CMAC, unless specified otherwise
             // CMAC has to be computed on the whole data
             const auto cmac = crypto_provider().do_cmac(data.data_view(), iv());
             ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_LOG_PREFIX " TX MAC", cmac.data(), cmac.size(), ESP_LOG_DEBUG);
-            if (mode == cipher_mode::maced) {
+            if (mode == comm_mode::maced) {
                 // Only MAC comm mode will actually append
                 data << cmac;
             }
@@ -202,7 +200,7 @@ namespace desfire {
             if (offset >= data.size()) {
                 return;// Nothing to do
             }
-            if (mode == cipher_mode::ciphered) {
+            if (mode == comm_mode::ciphered) {
                 data.reserve(offset + mlab::next_multiple(data.size() + crc_size - offset, crypto_provider().block_size()));
                 // CRC has to be computed on the whole data
                 data << lsb32 << compute_crc32(data);
@@ -214,17 +212,17 @@ namespace desfire {
         }
     }
 
-    bool cipher_default::confirm_rx(bin_data &data, cipher_mode mode) {
+    bool protocol_default::confirm_rx(bin_data &data, comm_mode mode) {
         if (data.size() == 1) {
             // Just status byte, return as-is
             return true;
         }
-        if (mode == cipher_mode::plain) {
+        if (mode == comm_mode::plain) {
             // Always pass data + status byte through CMAC
             // This will keep the IV in sync
             const auto cmac = crypto_provider().do_cmac(data.data_view(), iv());
             ESP_LOG_BUFFER_HEX_LEVEL(DESFIRE_LOG_PREFIX " RX MAC", cmac.data(), cmac.size(), ESP_LOG_DEBUG);
-        } else if (mode == cipher_mode::maced) {
+        } else if (mode == comm_mode::maced) {
             // [ data || maced || status ] -> [ data || status || maced ]; rotate mac_size + 1 bytes
             std::rotate(data.rbegin(), data.rbegin() + 1, data.rbegin() + mac_size + 1);
             // This will keep the IV in sync
@@ -254,7 +252,7 @@ namespace desfire {
                 return false;
             }
             crypto_provider().do_crypto(data.data_view(), iv(), crypto_operation::decrypt);
-            if (mode == cipher_mode::ciphered) {
+            if (mode == comm_mode::ciphered) {
                 // Truncate the padding and the crc
                 const bool did_verify = drop_padding_verify_crc(data, status);
                 // Reappend the status byte
@@ -269,7 +267,7 @@ namespace desfire {
         return true;
     }
 
-    void cipher_default::init_session(bin_data const &random_data) {
+    void protocol_default::init_session(bin_data const &random_data) {
         crypto_provider().init_session(random_data.data_view());
         // Reset the IV
         std::fill_n(_iv.get(), this->crypto_provider().block_size(), 0x00);

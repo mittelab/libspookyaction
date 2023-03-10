@@ -9,13 +9,11 @@
 #include <mlab/bin_data.hpp>
 
 namespace desfire {
-
-    namespace {
-        using mlab::bin_data;
-        using mlab::range;
-    }// namespace
-
+    using mlab::bin_data;
+    using mlab::range;
     class crypto;
+
+    struct mac_tag {};
 
     /**
      * @brief Class which holds and derives subkeys to use when computing CMAC.
@@ -30,17 +28,23 @@ namespace desfire {
         std::unique_ptr<std::uint8_t[]> _subkey_nopad;
 
     public:
+        static constexpr auto xor_byte_des = desfire::bits::crypto_cmac_xor_byte_des;      //!< Xor byte for DES cipher (presumed).
+        static constexpr auto xor_byte_2k3des = desfire::bits::crypto_cmac_xor_byte_2k3des;//!< Xor byte for 2K3DES cipher (presumed).
+        static constexpr auto xor_byte_3k3des = desfire::bits::crypto_cmac_xor_byte_3k3des;//!< Xor byte for 3K3DES cipher.
+        static constexpr auto xor_byte_aes = desfire::bits::crypto_cmac_xor_byte_aes;      //!< Xor byte for AES128 cipher.
+
         /**
          * @brief Initialize a new CMAC keychain with zero subkeys.
          *
          * @param block_size Size of the block used in the @ref crypto object (8 bytes for 3K3DES, 16 for AES128).
          * @param last_byte_xor Used in subkey generation, this is specific to the Desfire implementation. Refer to
-         *  @ref prepare_subkey for more details; the values used are @ref desfire::bits::crypto_cmac_xor_byte_3k3des
-         *  for 3K3DES, and @ref desfire::bits::crypto_cmac_xor_byte_aes for AES128.
+         *  @ref prepare_subkey for more details; the values used are @ref xor_byte_3k3des
+         *  for 3K3DES, and @ref xor_byte_aes for AES128.
          *
-         * @see prepare_subkey
-         * @see desfire::bits::crypto_cmac_xor_byte_3k3des
-         * @see desfire::bits::crypto_cmac_xor_byte_aes
+         * @see
+         *  - prepare_subkey
+         *  - xor_byte_3k3des
+         *  - xor_byte_aes
          */
         inline cmac_keychain(std::size_t block_size, std::uint8_t last_byte_xor);
 
@@ -64,9 +68,10 @@ namespace desfire {
          * @brief The value used in subkey generation for the underlying @ref crypto implementation.
          * @return The value specified in @ref cmac_provider::cmac_provider.
          *
-         * @see prepare_subkey
-         * @see desfire::bits::crypto_cmac_xor_byte_3k3des
-         * @see desfire::bits::crypto_cmac_xor_byte_aes
+         * @see
+         *  - prepare_subkey
+         *  - xor_byte_3k3des
+         *  - xor_byte_aes
          */
         [[nodiscard]] inline std::uint8_t last_byte_xor() const;
 
@@ -87,10 +92,10 @@ namespace desfire {
          * @brief Recomputes the subkeys.
          *
          * This method performs the following key-derivation operations:
-         * -# Call @ref crypto::do_crypto with @ref crypto_operation::mac, a zero-filled IV and a zero-filled data.
-         * -# Pass the result through @ref prepare_subkey with @ref last_byte_xor. This produces the first key that is
+         *  -# Call @ref crypto::do_crypto with @ref crypto_operation::mac, a zero-filled IV and a zero-filled data.
+         *  -# Pass the result through @ref prepare_subkey with @ref last_byte_xor. This produces the first key that is
          *  used for messages that need padding.
-         * -# Pass the newly generated key through @ref prepare_subkey again, with @ref last_byte_xor. This produces the
+         *  -# Pass the newly generated key through @ref prepare_subkey again, with @ref last_byte_xor. This produces the
          *  second key, that is used for messages that do not need padding.
          *
          * @param crypto Cryptographic implementation to use for deriving the keys. Make sure that the block size matches
@@ -109,27 +114,27 @@ namespace desfire {
         /**
          * @brief Prepares data for CMAC operation by padding it and XORing with the appropriate key.
          *
-         * This performs a subset of the operations of @ref compute_cmac, namely:
-         * -# Pads @p data with `80 00 .. 00`.
-         * -# XORs the last block with the appropriate key, depending on whether it was padded or not.
+         * This performs a subset of the operations of @ref cmac_provider::compute_cmac, namely:
+         *  -# Pads @p data with `80 00 .. 00`.
+         *  -# XORs the last block with the appropriate key, depending on whether it was padded or not.
          *
          * @param data Data to pad and XOR, modified in-place. Will be resized to a multiple of @ref block_size.
          *
-         * @see compute_cmac
+         * @see cmac_provider::compute_cmac
          */
         void prepare_cmac_data(bin_data &data) const;
 
         /**
          * @brief Prepares data for CMAC operation by padding it and XORing with the appropriate key.
          *
-         * This performs a subset of the operations of @ref compute_cmac, namely:
-         * -# Pads @p data with `80 00 .. 00` up to @p desired_padded_length.
-         * -# XORs the last block with the appropriate key, depending on whether it was padded or not.
+         * This performs a subset of the operations of @ref cmac_provider::compute_cmac, namely:
+         *  -# Pads @p data with `80 00 .. 00` up to @p desired_padded_length.
+         *  -# XORs the last block with the appropriate key, depending on whether it was padded or not.
          *
          * @param data Data to pad and XOR, modified in-place. Will be resized to a multiple of the block size.
          * @param desired_padded_length Minimum length for the padded message. Will be rounded to the next multiple of @ref block_size.
          *
-         * @see compute_cmac
+         * @see cmac_provider::compute_cmac
          */
         void prepare_cmac_data(bin_data &data, std::size_t desired_padded_length) const;
     };
@@ -139,8 +144,9 @@ namespace desfire {
      *
      * CMAC codes are actually used only for more modern ciphers, like 3DES and AES128, but in principle can be computed
      * on any @ref crypto implementation. This is used internally by @ref crypto_aes_base and @ref crypto_3k3des_base.
-     * @see crypto_aes_base
-     * @see crypto_3k3des_base
+     * @see
+     *  - crypto_aes_base
+     *  - crypto_3k3des_base
      */
     class cmac_provider {
         cmac_keychain _keychain;
@@ -150,7 +156,7 @@ namespace desfire {
         /**
          * @brief All CMAC codes are 8 bytes long.
          */
-        using mac_t = std::array<std::uint8_t, 8>;
+        using mac_t = mlab::tagged_array<mac_tag, 8>;
 
         /**
          * @brief Initialize a new CMAC provider.
@@ -159,13 +165,14 @@ namespace desfire {
          *
          * @param block_size Size of the block used in the @ref crypto object (8 bytes for 3K3DES, 16 for AES128).
          * @param last_byte_xor Used in subkey generation, this is specific to the Desfire implementation. Refer to
-         *  @ref prepare_subkey for more details; the values used are @ref desfire::bits::crypto_cmac_xor_byte_3k3des
-         *  for 3K3DES, and @ref desfire::bits::crypto_cmac_xor_byte_aes for AES128.
+         *  @ref cmac_keychain::prepare_subkey for more details; the values used are @ref cmac_keychain::xor_byte_3k3des
+         *  for 3K3DES, and @ref cmac_keychain::xor_byte_aes for AES128.
          *
-         * @see cmac_keychain::cmac_keychain
-         * @see cmac_keychain::prepare_subkey
-         * @see desfire::bits::crypto_cmac_xor_byte_3k3des
-         * @see desfire::bits::crypto_cmac_xor_byte_aes
+         * @see
+         *  - cmac_keychain::cmac_keychain
+         *  - cmac_keychain::prepare_subkey
+         *  - cmac_keychain::xor_byte_3k3des
+         *  - cmac_keychain::xor_byte_aes
          */
         inline cmac_provider(std::size_t block_size, std::uint8_t last_byte_xor);
 
@@ -194,13 +201,13 @@ namespace desfire {
          *
          * Make sure that the subkeys are initialized with @ref initialize_subkeys before calling.
          * This method performs the following operations:
-         * -# Pads @p data with `80 00 .. 00`.
-         * -# XORs the last block with the appropriate key, depending on whether it was padded or not.
-         * -# Calls @ref crypto::do_crypto with @ref crypto_operation::mac on the resulting data together with @p iv.
-         * -# The first 8 bytes of the resulting @p iv are the CMAC that is returned.
+         *  -# Pads @p data with `80 00 .. 00`.
+         *  -# XORs the last block with the appropriate key, depending on whether it was padded or not.
+         *  -# Calls @ref crypto::do_crypto with @ref crypto_operation::mac on the resulting data together with @p iv.
+         *  -# The first 8 bytes of the resulting @p iv are the CMAC that is returned.
          *
          * @param crypto Cryptographic implementation to use for deriving the keys. Make sure that the block size matches
-         *  to what used in the constructor (i.e. @ref block_size).
+         *  to what used in the constructor (i.e. @ref cmac_keychain::block_size).
          * @param iv Initialization vector to use. This method passes the initialization vector to the
          *  method @ref crypto::do_crypto, therefore upon exit it is modified accordingly (and should contain the
          *  resulting initialization vector state after the cryptographic operation).

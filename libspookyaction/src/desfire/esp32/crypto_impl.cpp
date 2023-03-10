@@ -53,7 +53,7 @@ namespace desfire::esp32 {
         assert(data.size() % 8 == 0);
         /**
          * @note Using @ref _dec_context with encrypt operation is **deliberate**, see note on
-         * @ref cipher_scheme_legacy.
+         * @ref protocol_legacy.
          */
 #if defined(SPOOKY_USE_MBEDTLS)
         switch (op) {
@@ -116,7 +116,7 @@ namespace desfire::esp32 {
         assert(data.size() % 8 == 0);
         /**
          * @note Using @ref _dec_context with encrypt operation is **deliberate**, see note on
-         * @ref cipher_scheme_legacy.
+         * @ref protocol_legacy.
          */
 #if defined(SPOOKY_USE_MBEDTLS)
         switch (op) {

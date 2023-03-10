@@ -10,10 +10,11 @@
 
 namespace pn532::esp32 {
     using namespace std::chrono_literals;
+    using mlab::prealloc;
+    using mlab::reduce_timeout;
 
 
     namespace {
-        using mlab::prealloc;
 
         [[nodiscard]] TickType_t duration_cast(std::chrono::milliseconds ms) {
             return pdMS_TO_TICKS(ms.count());
@@ -96,13 +97,13 @@ namespace pn532::esp32 {
     }// namespace i2c
 
 
-    i2c::command i2c_channel::raw_prepare_command(comm_mode mode) const {
+    i2c::command i2c_channel::raw_prepare_command(comm_dir mode) const {
         i2c::command cmd;
         switch (mode) {
-            case comm_mode::receive:
+            case comm_dir::receive:
                 cmd.write(slave_address_to_read(), true);
                 break;
-            case comm_mode::send:
+            case comm_dir::send:
                 cmd.write(slave_address_to_write(), true);
                 break;
             default:
@@ -111,12 +112,12 @@ namespace pn532::esp32 {
         return cmd;
     }
 
-    channel::result<> i2c_channel::raw_send(mlab::range<bin_data::const_iterator> buffer, ms timeout) {
+    result<> i2c_channel::raw_send(mlab::range<bin_data::const_iterator> buffer, ms timeout) {
         if (_port == I2C_NUM_MAX) {
-            return error::comm_error;
+            return channel_error::hw_error;
         }
         ESP_LOG_BUFFER_HEX_LEVEL(PN532_I2C_TAG " >>", buffer.data(), buffer.size(), ESP_LOG_VERBOSE);
-        auto cmd = raw_prepare_command(comm_mode::send);
+        auto cmd = raw_prepare_command(comm_dir::send);
         if (buffer.size() > 0) {
             cmd.write({&*std::begin(buffer), &*std::begin(buffer) + buffer.size()}, true);
         }
@@ -128,14 +129,14 @@ namespace pn532::esp32 {
         return mlab::result_success;
     }
 
-    channel::result<> i2c_channel::raw_receive(mlab::range<bin_data::iterator> buffer, ms timeout) {
+    result<> i2c_channel::raw_receive(mlab::range<bin_data::iterator> buffer, ms timeout) {
         if (_port == I2C_NUM_MAX) {
-            return error::comm_error;
+            return channel_error::hw_error;
         }
         reduce_timeout rt{timeout};
         std::uint8_t ready_byte = 0x00;
         while (rt and (ready_byte & 0b1) == 0) {
-            auto cmd = raw_prepare_command(comm_mode::receive);
+            auto cmd = raw_prepare_command(comm_dir::receive);
             if (buffer.size() > 0) {
                 cmd.read(ready_byte, I2C_MASTER_ACK);
                 cmd.read({&*std::begin(buffer), &*std::begin(buffer) + buffer.size()}, I2C_MASTER_LAST_NACK);
@@ -155,7 +156,7 @@ namespace pn532::esp32 {
             // Wait a bit
             vTaskDelay(duration_cast(10ms));
         }
-        return error::comm_timeout;
+        return channel_error::timeout;
     }
 
 
@@ -184,7 +185,7 @@ namespace pn532::esp32 {
     }
 
     bool i2c_channel::wake() {
-        if (comm_operation op{*this, comm_mode::send, 100ms}; op.ok()) {
+        if (comm_operation op{*this, comm_dir::send, 100ms}; op.ok()) {
             return bool(op.update(raw_send({}, 10ms)));
         } else {
             return false;

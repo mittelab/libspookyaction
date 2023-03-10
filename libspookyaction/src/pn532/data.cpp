@@ -5,44 +5,43 @@
 #include <pn532/data.hpp>
 
 namespace mlab {
-    namespace {
-        using namespace ::mlab_literals;
-    }
+    using namespace pn532;
+    using namespace mlab_literals;
 
-    bin_data &operator<<(bin_data &bd, ciu_reg_212_424kbps const &reg) {
-        return bd << prealloc(sizeof(ciu_reg_212_424kbps)) << reg.rf_cfg << reg.gs_n_on << reg.cw_gs_p
+    bin_data &operator<<(bin_data &bd, reg::ciu_212_424kbps const &reg) {
+        return bd << prealloc(sizeof(reg::ciu_212_424kbps)) << reg.rf_cfg << reg.gs_n_on << reg.cw_gs_p
                   << reg.mod_gs_p << reg.demod_own_rf_on << reg.rx_threshold << reg.demod_own_rf_off << reg.gs_n_off;
     }
 
-    bin_data &operator<<(bin_data &bd, ciu_reg_106kbps_typea const &reg) {
-        return bd << prealloc(sizeof(ciu_reg_106kbps_typea)) << reg.rf_cfg << reg.gs_n_on << reg.cw_gs_p
+    bin_data &operator<<(bin_data &bd, reg::ciu_106kbps_typea const &reg) {
+        return bd << prealloc(sizeof(reg::ciu_106kbps_typea)) << reg.rf_cfg << reg.gs_n_on << reg.cw_gs_p
                   << reg.mod_gs_p << reg.demod_own_rf_on << reg.rx_threshold << reg.demod_own_rf_off << reg.gs_n_off
                   << reg.mod_width << reg.mif_nfc << reg.tx_bit_phase;
     }
 
-    bin_data &operator<<(bin_data &bd, ciu_reg_typeb const &reg) {
-        return bd << prealloc(sizeof(ciu_reg_typeb)) << reg.gs_n_on << reg.mod_gs_p << reg.rx_threshold;
+    bin_data &operator<<(bin_data &bd, reg::ciu_typeb const &reg) {
+        return bd << prealloc(sizeof(reg::ciu_typeb)) << reg.gs_n_on << reg.mod_gs_p << reg.rx_threshold;
     }
 
-    bin_data &operator<<(bin_data &bd, ciu_reg_iso_iec_14443_4_at_baudrate const &reg) {
-        return bd << prealloc(sizeof(ciu_reg_iso_iec_14443_4_at_baudrate)) << reg.rx_threshold << reg.mod_width
+    bin_data &operator<<(bin_data &bd, reg::ciu_iso_iec_14443_4_at_baudrate const &reg) {
+        return bd << prealloc(sizeof(reg::ciu_iso_iec_14443_4_at_baudrate)) << reg.rx_threshold << reg.mod_width
                   << reg.mif_nfc;
     }
 
-    bin_data &operator<<(bin_data &bd, ciu_reg_iso_iec_14443_4 const &reg) {
-        return bd << prealloc(sizeof(ciu_reg_iso_iec_14443_4)) << reg.kbps212 << reg.kbps424 << reg.kbps848;
+    bin_data &operator<<(bin_data &bd, reg::ciu_iso_iec_14443_4 const &reg) {
+        return bd << prealloc(sizeof(reg::ciu_iso_iec_14443_4)) << reg.kbps212 << reg.kbps424 << reg.kbps848;
     }
 
-    bin_data &operator<<(bin_data &bd, uid_cascade_l2 const &uid) {
+    bin_data &operator<<(bin_data &bd, nfcid_2t const &uid) {
         return bd << prealloc(8) << bits::uid_cascade_tag << static_cast<std::array<std::uint8_t, 7> const &>(uid);
     }
 
-    bin_data &operator<<(bin_data &bd, uid_cascade_l3 const &uid) {
+    bin_data &operator<<(bin_data &bd, nfcid_3t const &uid) {
         return bd << prealloc(12) << bits::uid_cascade_tag << make_range(std::begin(uid), std::begin(uid) + 3)
                   << bits::uid_cascade_tag << make_range(std::begin(uid) + 3, std::end(uid));
     }
 
-    bin_data &operator<<(bin_data &bd, reg_antenna_detector const &r) {
+    bin_data &operator<<(bin_data &bd, bits::reg_antenna_detector const &r) {
         std::uint8_t bitpack = 0x0;
         bitpack |= static_cast<std::uint8_t>(r.low_current_threshold);
         bitpack |= static_cast<std::uint8_t>(r.high_current_threshold);
@@ -52,7 +51,7 @@ namespace mlab {
         return bd << bitpack;
     }
 
-    bin_stream &operator>>(bin_stream &s, reg_antenna_detector &r) {
+    bin_stream &operator>>(bin_stream &s, bits::reg_antenna_detector &r) {
         const std::uint8_t bitpack = s.pop();
         r.enable_detection = 0 != (bitpack & bits::reg_andet_control_antenna_detect_mask);
         r.detected_low_pwr = 0 != (bitpack & bits::reg_andet_control_too_low_power_mask);
@@ -98,7 +97,7 @@ namespace mlab {
         const auto flag_byte = s.pop();
         status.nad_present = 0 != (flag_byte & bits::status_nad_mask);
         status.expect_more_info = 0 != (flag_byte & bits::status_more_info_mask);
-        status.error = static_cast<controller_error>(flag_byte & bits::status_error_mask);
+        status.error = static_cast<internal_error_code>(flag_byte & bits::status_error_mask);
         return s;
     }
 
@@ -113,9 +112,9 @@ namespace mlab {
         return s;
     }
 
-    bin_stream &operator>>(bin_stream &s, target_status &ts) {
+    bin_stream &operator>>(bin_stream &s, general_status_target &ts) {
         if (s.remaining() < 4) {
-            PN532_LOGE("Parsing target_status: expected at least 4 bytes of data, got %u.", s.remaining());
+            PN532_LOGE("Parsing general_status::target_status: expected at least 4 bytes of data, got %u.", s.remaining());
             s.set_bad();
             return s;
         }
@@ -124,12 +123,12 @@ namespace mlab {
 
     bin_stream &operator>>(bin_stream &s, general_status &gs) {
         if (s.remaining() < 4) {
-            PN532_LOGE("Parsing general_stastus: expected at least 4 bytes of data, got %u.", s.remaining());
+            PN532_LOGE("Parsing general_status: expected at least 4 bytes of data, got %u.", s.remaining());
             s.set_bad();
             return s;
         }
 
-        gs.last_error = static_cast<controller_error>(s.pop() & bits::status_error_mask);
+        gs.last_error = static_cast<internal_error_code>(s.pop() & bits::status_error_mask);
         s >> gs.rf_field_present;
 
         const auto num_targets = s.pop();
@@ -137,8 +136,8 @@ namespace mlab {
             PN532_LOGW("%s: detected %u targets, more than %u targets handled by PN532, most likely an error.",
                        to_string(command_code::get_general_status), num_targets, bits::max_num_targets);
         }
-        gs.targets.resize(num_targets, target_status{});
-        for (target_status &ts : gs.targets) {
+        gs.targets.resize(num_targets, general_status_target{});
+        for (general_status_target &ts : gs.targets) {
             s >> ts;
         }
         s >> gs.sam;
@@ -146,14 +145,14 @@ namespace mlab {
         return s;
     }
 
-    bin_stream &operator>>(bin_stream &s, poll_entry<target_type::dep_passive_106kbps> &entry) {
+    bin_stream &operator>>(bin_stream &s, poll_target<target_type::dep_passive_106kbps> &entry) {
         if (s.remaining() < 20) {
-            PN532_LOGW("Unable to parse kbps106_iso_iec_14443_typea poll_entry_dep_passive, too little data.");
+            PN532_LOGW("Unable to parse kbps106_iso_iec_14443_typea poll_target_dep_passive, too little data.");
             s.set_bad();
             return s;
         }
 
-        s >> entry.logical_index >> entry.info.sens_res >> entry.info.sel_res;
+        s >> entry.logical_index >> entry.sens_res >> entry.sel_res;
 
         const auto expected_nfcid_length = s.pop();
         if (s.remaining() < expected_nfcid_length) {
@@ -161,10 +160,10 @@ namespace mlab {
             s.set_bad();
             return s;
         }
-        entry.info.nfcid.resize(expected_nfcid_length);
-        s.read(std::begin(entry.info.nfcid), expected_nfcid_length);
+        entry.nfcid.resize(expected_nfcid_length);
+        s.read(std::begin(entry.nfcid), expected_nfcid_length);
         // Different here: it's no ATS bytes
-        entry.info.ats.clear();
+        entry.ats.clear();
 
         s >> entry.atr_info;
         return s;
@@ -177,7 +176,7 @@ namespace mlab {
             return s;
         }
 
-        s >> target.logical_index >> target.info.sens_res >> target.info.sel_res;
+        s >> target.logical_index >> target.sens_res >> target.sel_res;
 
         const auto expected_nfcid_length = s.pop();
         if (s.remaining() < expected_nfcid_length) {
@@ -185,9 +184,9 @@ namespace mlab {
             s.set_bad();
             return s;
         }
-        target.info.nfcid.resize(expected_nfcid_length);
-        s.read(std::begin(target.info.nfcid), expected_nfcid_length);
-        target.info.ats.clear();
+        target.nfcid.resize(expected_nfcid_length);
+        s.read(std::begin(target.nfcid), expected_nfcid_length);
+        target.ats.clear();
         if (s.good()) {
             // ATS length includes the ats bit
             const std::uint8_t expected_ats_length = std::max(1_b, s.pop()) - 1;
@@ -196,8 +195,8 @@ namespace mlab {
                 s.set_bad();
                 return s;
             }
-            target.info.ats.resize(expected_ats_length);
-            s.read(std::begin(target.info.ats), expected_ats_length);
+            target.ats.resize(expected_ats_length);
+            s.read(std::begin(target.ats), expected_ats_length);
         }
 
         return s;
@@ -224,11 +223,11 @@ namespace mlab {
                        response_code);
         }
 
-        s >> target.info.nfcid_2t;
-        s >> target.info.pad;
+        s >> target.nfcid_2t;
+        s >> target.pad;
         if (pol_length == 20) {
             // Copy also SYST_CODE
-            s >> target.info.syst_code;
+            s >> target.syst_code;
         }
         return s;
     }
@@ -236,7 +235,10 @@ namespace mlab {
     bin_stream &operator>>(bin_stream &s, target_kbps212_felica &target) {
         target_kbps424_felica identical{};
         s >> identical;
-        target = {.logical_index = identical.logical_index, .info = identical.info};
+        target.logical_index = identical.logical_index;
+        target.nfcid_2t = identical.nfcid_2t;
+        target.pad = identical.pad;
+        target.syst_code = identical.syst_code;
         return s;
     }
 
@@ -247,7 +249,7 @@ namespace mlab {
             return s;
         }
 
-        s >> target.logical_index >> target.info.atqb_response;
+        s >> target.logical_index >> target.atqb_response;
 
         const auto expected_attrib_res_length = s.pop();
         if (s.remaining() < expected_attrib_res_length) {
@@ -256,8 +258,8 @@ namespace mlab {
             return s;
         }
 
-        target.info.attrib_res.resize(expected_attrib_res_length);
-        s.read(std::begin(target.info.attrib_res), expected_attrib_res_length);
+        target.attrib_res.resize(expected_attrib_res_length);
+        s.read(std::begin(target.attrib_res), expected_attrib_res_length);
 
         return s;
     }
@@ -269,7 +271,7 @@ namespace mlab {
             return s;
         }
 
-        s >> target.logical_index >> target.info.sens_res >> target.info.jewel_id;
+        s >> target.logical_index >> target.sens_res >> target.jewel_id;
         return s;
     }
 
@@ -280,7 +282,7 @@ namespace mlab {
             return s;
         }
 
-        s >> atr_res.nfcid_3t >> atr_res.did_t >> atr_res.b_st >> atr_res.b_rt >> atr_res.to >> atr_res.pp_t;
+        s >> atr_res.nfcid >> atr_res.did_t >> atr_res.b_st >> atr_res.b_rt >> atr_res.to >> atr_res.pp_t;
         atr_res.g_t.resize(s.remaining());
         if (not s.eof()) {
             s.read(std::begin(atr_res.g_t), s.remaining());
@@ -300,16 +302,16 @@ namespace mlab {
 
     namespace {
         template <target_type Type>
-        poll_entry<Type> extract_poll_entry(bin_stream &s) {
-            poll_entry<Type> entry{};
+        poll_target<Type> extract_poll_entry(bin_stream &s) {
+            poll_target<Type> entry{};
             s >> entry;
             return entry;
         }
     }// namespace
 
-    bin_stream &operator>>(bin_stream &s, any_target &t) {
+    bin_stream &operator>>(bin_stream &s, any_poll_target &t) {
         if (s.remaining() < 2) {
-            PN532_LOGW("Unable to parse any_target, missing target type and data length.");
+            PN532_LOGW("Unable to parse any_poll_target, missing target type and data length.");
             s.set_bad();
             return s;
         }
@@ -366,23 +368,23 @@ namespace mlab {
                 break;
         }
         if (s.bad()) {
-            PN532_LOGW("Unable to parse any_target.");
+            PN532_LOGW("Unable to parse any_poll_target.");
         } else if (s.tell() - old_pos != length) {
-            PN532_LOGW("Parsing any_target: mismatch in declared payload length and read data.");
+            PN532_LOGW("Parsing any_poll_target: mismatch in declared payload length and read data.");
             s.set_bad();
         }
         return s;
     }
 
-    bin_stream &operator>>(bin_stream &s, std::vector<any_target> &targets) {
+    bin_stream &operator>>(bin_stream &s, std::vector<any_poll_target> &targets) {
         if (s.remaining() < 1) {
-            PN532_LOGE("Parsing vector<any_target>: not enough data.");
+            PN532_LOGE("Parsing vector<any_poll_target>: not enough data.");
             s.set_bad();
             return s;
         }
         const auto num_targets = s.pop();
         if (num_targets > bits::max_num_targets) {
-            PN532_LOGW("Parsing vector<any_target>: found %u targets, which is more than the number of supported targets %u.",
+            PN532_LOGW("Parsing vector<any_poll_target>: found %u targets, which is more than the number of supported targets %u.",
                        num_targets, bits::max_num_targets);
         }
         targets.resize(num_targets);
@@ -404,7 +406,7 @@ namespace mlab {
         return s >> r.status >> r.target_logical_index >> r.atr_info;
     }
 
-    bin_stream &operator>>(bin_stream &s, sam_status &sams) {
+    bin_stream &operator>>(bin_stream &s, general_status_sam &sams) {
         if (s.remaining() < 1) {
             PN532_LOGE("Parsing sam_status: not enough data.");
             s.set_bad();
@@ -451,9 +453,9 @@ namespace mlab {
         return s;
     }
 
-    bin_stream &operator>>(bin_stream &s, mode_as_target &mt) {
+    bin_stream &operator>>(bin_stream &s, activation_as_target_mode &mt) {
         if (s.remaining() < 1) {
-            PN532_LOGE("Parsing mode_as_target: not enough data.");
+            PN532_LOGE("Parsing activation_as_target: not enough data.");
             s.set_bad();
             return s;
         }
@@ -461,11 +463,11 @@ namespace mlab {
         mt.speed = static_cast<baudrate>((byte >> bits::init_as_target_res_baudrate_shift) & bits::baudrate_mask);
         mt.iso_iec_14443_4_picc = 0 != (byte & bits::init_as_target_res_picc_bit);
         mt.dep = 0 != (byte & bits::init_as_target_res_dep_bit);
-        mt.framing_type = static_cast<framing>(byte & bits::framing_mask);
+        mt.framing_type = static_cast<framing_as_target>(byte & bits::framing_mask);
         return s;
     }
 
-    bin_stream &operator>>(bin_stream &s, init_as_target_res &mt) {
+    bin_stream &operator>>(bin_stream &s, activation_as_target &mt) {
         if (s.remaining() < 1) {
             PN532_LOGE("Parsing init_as_target_res: not enough data.");
             s.set_bad();

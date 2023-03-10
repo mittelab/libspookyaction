@@ -51,7 +51,7 @@ namespace pn532 {
         std::swap(_rejection_list, new_rejection_list);
     }
 
-    scanned_target::scanned_target(std::uint8_t index_, const any_target &entry) : scanned_target{} {
+    scanned_target::scanned_target(std::uint8_t index_, const any_poll_target &entry) : scanned_target{} {
         switch (entry.type()) {
             case target_type::generic_passive_106kbps:
                 *this = scanned_target{index_, entry.get<target_type::generic_passive_106kbps>()};
@@ -104,7 +104,7 @@ namespace pn532 {
         }
     }
 
-    void scanner::update_in_rf_list(std::vector<any_target> const &targets) {
+    void scanner::update_in_rf_list(std::vector<any_poll_target> const &targets) {
         _in_rf.clear();
         for (std::size_t i = 0; i < targets.size(); ++i) {
             // Logical index is the 1-based index of the array
@@ -175,14 +175,13 @@ namespace pn532 {
         _in_rf.clear();
         _rejection_list.clear();
         _stop = false;
-        std::vector<target_type> tt{};
         while (not _stop) {
-            responder.get_scan_target_types(*this, tt);
+            std::vector<target_type> tt = responder.get_scan_target_types(*this);
             if (tt.empty()) {
                 return;
             }
             desfire::esp32::suppress_log suppress{ESP_LOG_ERROR, {PN532_TAG}};
-            if (auto r = ctrl().initiator_auto_poll(tt, 3, poll_period::ms_150, max_scan_interval()); r) {
+            if (auto r = ctrl().initiator_auto_poll(tt, 3_b, poll_period::ms_150, max_scan_interval()); r) {
                 update_in_rf_list(*r);
                 update_rejection_list(responder);
                 for (scanned_target const &st : in_rf()) {

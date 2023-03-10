@@ -10,13 +10,11 @@
 #include <unity.h>
 
 namespace ut::fs {
+    using namespace desfire::fs;
+    using namespace desfire::esp32;
 
     namespace {
         constexpr auto missing_instance_msg = "desfire::fs test instance missing";
-
-        using namespace ::desfire::fs;
-        using namespace ::desfire::esp32;
-
 
         template <bool B, class R>
         [[nodiscard]] bool ok_and(R const &r) {
@@ -72,10 +70,10 @@ namespace ut::fs {
         }
 
         TEST_ASSERT(tag.active_app() == aid);
-        TEST_ASSERT(tag.active_key_type() == r_key->type());
+        TEST_ASSERT(tag.active_cipher_type() == r_key->type());
         TEST_ASSERT(tag.active_key_no() == r_key->key_number());
 
-        TEST_ASSERT(tag.create_file(0x00, file_settings<file_type::value>{file_security::none, access_rights{}, 0, 0, 0}));
+        TEST_ASSERT(tag.create_file(0x00, file_settings<file_type::value>{file_security::none, file_access_rights{}, 0, 0, 0}));
         TEST_ASSERT(tag.delete_file(0x00));
 
         TEST_ASSERT(tag.authenticate(*r_key));
@@ -181,7 +179,7 @@ namespace ut::fs {
 
         TEST_ASSERT(delete_file_if_exists(tag, fid));
 
-        TEST_ASSERT(tag.create_file(fid, file_settings<file_type::standard>{file_security::none, access_rights{}, 1}));
+        TEST_ASSERT(tag.create_file(fid, file_settings<file_type::standard>{file_security::none, file_access_rights{}, 1}));
 
         TEST_ASSERT(ok_and<true>(does_file_exist(tag, fid)));
 
@@ -192,8 +190,8 @@ namespace ut::fs {
         TEST_ASSERT(ok_and<false>(does_file_exist(tag, fid)));
 
         // Create several
-        TEST_ASSERT(tag.create_file(fid + 1, file_settings<file_type::standard>{file_security::none, access_rights{}, 1}));
-        TEST_ASSERT(tag.create_file(fid + 2, file_settings<file_type::standard>{file_security::none, access_rights{}, 1}));
+        TEST_ASSERT(tag.create_file(fid + 1, file_settings<file_type::standard>{file_security::none, file_access_rights{}, 1}));
+        TEST_ASSERT(tag.create_file(fid + 2, file_settings<file_type::standard>{file_security::none, file_access_rights{}, 1}));
 
         // Check which of those exists
         auto r_exist = which_files_exist(tag, {fid, fid + 1, fid + 3, fid + 2});
@@ -233,15 +231,15 @@ namespace ut::fs {
             return;
         }
 
-        TEST_ASSERT(r_file_settings->generic_settings().security == file_security::none);
-        TEST_ASSERT(r_file_settings->generic_settings().rights.is_free(file_access::read));
-        TEST_ASSERT(r_file_settings->generic_settings().rights.write == no_key);
-        TEST_ASSERT(r_file_settings->generic_settings().rights.read_write == no_key);
-        TEST_ASSERT(r_file_settings->generic_settings().rights.change == no_key);
+        TEST_ASSERT(r_file_settings->common_settings().security == file_security::none);
+        TEST_ASSERT(r_file_settings->common_settings().rights.is_free(file_access::read));
+        TEST_ASSERT(r_file_settings->common_settings().rights.write == no_key);
+        TEST_ASSERT(r_file_settings->common_settings().rights.read_write == no_key);
+        TEST_ASSERT(r_file_settings->common_settings().rights.change == no_key);
 
         TEST_ASSERT(logout_app(tag));
 
-        const auto r_data = tag.read_data(fid, cipher_mode::plain);
+        const auto r_data = tag.read_data(fid, comm_mode::plain);
         TEST_ASSERT(r_data);
 
         if (not r_data) {
@@ -282,15 +280,15 @@ namespace ut::fs {
             return;
         }
 
-        TEST_ASSERT(r_file_settings->generic_settings().security == file_security::none);
-        TEST_ASSERT(r_file_settings->generic_settings().rights.is_free(file_access::read));
-        TEST_ASSERT(r_file_settings->generic_settings().rights.write == no_key);
-        TEST_ASSERT(r_file_settings->generic_settings().rights.read_write == no_key);
-        TEST_ASSERT(r_file_settings->generic_settings().rights.change == no_key);
+        TEST_ASSERT(r_file_settings->common_settings().security == file_security::none);
+        TEST_ASSERT(r_file_settings->common_settings().rights.is_free(file_access::read));
+        TEST_ASSERT(r_file_settings->common_settings().rights.write == no_key);
+        TEST_ASSERT(r_file_settings->common_settings().rights.read_write == no_key);
+        TEST_ASSERT(r_file_settings->common_settings().rights.change == no_key);
 
         TEST_ASSERT(logout_app(tag));
 
-        const auto r_value = tag.get_value(fid, cipher_mode::plain);
+        const auto r_value = tag.get_value(fid, comm_mode::plain);
         TEST_ASSERT(r_value);
 
         if (not r_value) {

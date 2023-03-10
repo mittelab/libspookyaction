@@ -47,7 +47,7 @@ namespace desfire {
      * @return A diversified key of length `BlockSize * NBlocks`.
      */
     template <std::size_t BlockSize, std::size_t NBlocks>
-    [[nodiscard]] key_data<BlockSize * NBlocks> kdf_an10922(
+    [[nodiscard]] key_body<BlockSize * NBlocks> kdf_an10922(
             cmac_keychain const &keychain,
             crypto &crypto,
             mlab::bin_data &diversify_input,
@@ -68,7 +68,6 @@ namespace desfire {
     [[nodiscard]] any_key kdf_an10922(crypto &crypto, mlab::bin_data &diversify_input, std::uint8_t key_version);
 
     /**
-     * @addtogroup KDFTemplateSpecialization
      * @brief Specialization of the AN10922 KDF function for specific key types.
      *
      * These overloads can derive a new key from a given @ref key object, by creating the appropriate cipher.
@@ -78,19 +77,56 @@ namespace desfire {
      * @param diversify_input Diversification input. At most `2 * BlockSize - 1` bytes wil be used. It will be modified by the operation.
      *
      * @return A diversified key of the same type, with the same version.
-     * @{
      */
-    [[nodiscard]] key<cipher_type::des> kdf_an10922(key<cipher_type::des> const &key, cipher_provider &provider, mlab::bin_data &diversify_input);
-    [[nodiscard]] key<cipher_type::des3_2k> kdf_an10922(key<cipher_type::des3_2k> const &key, cipher_provider &provider, mlab::bin_data &diversify_input);
-    [[nodiscard]] key<cipher_type::des3_3k> kdf_an10922(key<cipher_type::des3_3k> const &key, cipher_provider &provider, mlab::bin_data &diversify_input);
-    [[nodiscard]] key<cipher_type::aes128> kdf_an10922(key<cipher_type::aes128> const &key, cipher_provider &provider, mlab::bin_data &diversify_input);
     [[nodiscard]] any_key kdf_an10922(any_key const &key, cipher_provider &provider, mlab::bin_data &diversify_input);
-    /**
-     * @}
-     */
 
     /**
-     * @addtogroup KDFVirtualSpecialization
+     * @copydoc kdf_an10922(any_key const &, cipher_provider &, mlab::bin_data &)
+     */
+    [[nodiscard]] key<cipher_type::des> kdf_an10922(key<cipher_type::des> const &key, cipher_provider &provider, mlab::bin_data &diversify_input);
+
+    /**
+     * @copydoc kdf_an10922(any_key const &, cipher_provider &, mlab::bin_data &)
+     */
+    [[nodiscard]] key<cipher_type::des3_2k> kdf_an10922(key<cipher_type::des3_2k> const &key, cipher_provider &provider, mlab::bin_data &diversify_input);
+
+    /**
+     * @copydoc kdf_an10922(any_key const &, cipher_provider &, mlab::bin_data &)
+     */
+    [[nodiscard]] key<cipher_type::des3_3k> kdf_an10922(key<cipher_type::des3_3k> const &key, cipher_provider &provider, mlab::bin_data &diversify_input);
+
+    /**
+     * @copydoc kdf_an10922(any_key const &, cipher_provider &, mlab::bin_data &)
+     */
+    [[nodiscard]] key<cipher_type::aes128> kdf_an10922(key<cipher_type::aes128> const &key, cipher_provider &provider, mlab::bin_data &diversify_input);
+
+    /**
+     * @brief Specialization of AN10922 KDF functions for a given cryptographic implementation.
+     *
+     * These operate on a known subclass of @ref crypto. For AES and 3K3DES, this saves the cost of deriving CMAC subkeys.
+     * For DES-derived ciphers, it is also possible to set the version of the key directly into the returned binary blob.
+     *
+     * @param crypto Cryptographic object on which the CMAC operation will be run.
+     * @param diversify_input Diversification input. At most `2 * BlockSize - 1` bytes wil be used. It will be modified by the operation.
+     */
+    key_body<8> kdf_an10922(crypto_des_base &crypto, mlab::bin_data &diversify_input);
+
+    /**
+     * @copydoc kdf_an10922(crypto_des_base &, mlab::bin_data &)
+     */
+    key_body<16> kdf_an10922(crypto_2k3des_base &crypto, mlab::bin_data &diversify_input);
+
+    /**
+     * @copydoc kdf_an10922(crypto_des_base &, mlab::bin_data &)
+     */
+    key_body<24> kdf_an10922(crypto_3k3des_base &crypto, mlab::bin_data &diversify_input);
+
+    /**
+     * @copydoc kdf_an10922(crypto_des_base &, mlab::bin_data &)
+     */
+    key_body<16> kdf_an10922(crypto_aes_base &crypto, mlab::bin_data &diversify_input);
+
+    /**
      * @brief Specialization of AN10922 KDF functions for a given cryptographic implementation.
      *
      * These operate on a known subclass of @ref crypto. For AES and 3K3DES, this saves the cost of deriving CMAC subkeys.
@@ -99,26 +135,26 @@ namespace desfire {
      * @param crypto Cryptographic object on which the CMAC operation will be run.
      * @param diversify_input Diversification input. At most `2 * BlockSize - 1` bytes wil be used. It will be modified by the operation.
      * @param key_version Key version to set in the returned object.
-     * @see kdf_an10922
-     * @{
      */
-    key_data<8> kdf_an10922(crypto_des_base &crypto, mlab::bin_data &diversify_input);
-    key_data<16> kdf_an10922(crypto_2k3des_base &crypto, mlab::bin_data &diversify_input);
-    key_data<24> kdf_an10922(crypto_3k3des_base &crypto, mlab::bin_data &diversify_input);
-    key_data<16> kdf_an10922(crypto_aes_base &crypto, mlab::bin_data &diversify_input);
-    key_data<8> kdf_an10922(crypto_des_base &crypto, mlab::bin_data &diversify_input, std::uint8_t key_version);
-    key_data<16> kdf_an10922(crypto_2k3des_base &crypto, mlab::bin_data &diversify_input, std::uint8_t key_version);
-    key_data<24> kdf_an10922(crypto_3k3des_base &crypto, mlab::bin_data &diversify_input, std::uint8_t key_version);
+    key_body<8> kdf_an10922(crypto_des_base &crypto, mlab::bin_data &diversify_input, std::uint8_t key_version);
+
     /**
-     * @}
+     * @copydoc kdf_an10922(crypto_des_base &, mlab::bin_data &diversify_input, std::uint8_t)
      */
+    key_body<16> kdf_an10922(crypto_2k3des_base &crypto, mlab::bin_data &diversify_input, std::uint8_t key_version);
+
+    /**
+     * @copydoc kdf_an10922(crypto_des_base &, mlab::bin_data &diversify_input, std::uint8_t)
+     */
+    key_body<24> kdf_an10922(crypto_3k3des_base &crypto, mlab::bin_data &diversify_input, std::uint8_t key_version);
+
 
 }// namespace desfire
 
 namespace desfire {
 
     template <std::size_t BlockSize, std::size_t NBlocks>
-    key_data<BlockSize * NBlocks> kdf_an10922(
+    key_body<BlockSize * NBlocks> kdf_an10922(
             cmac_keychain const &keychain,
             crypto &crypto,
             mlab::bin_data &diversify_input,
@@ -127,7 +163,7 @@ namespace desfire {
         static constexpr auto KeyLength = BlockSize * NBlocks;
 
         // This will be the final key returned.
-        key_data<KeyLength> diversified_key{};
+        key_body<KeyLength> diversified_key{};
         std::fill_n(std::begin(diversified_key), KeyLength, 0);
 
         if (keychain.block_size() != BlockSize) {

@@ -2,8 +2,8 @@
 // Created by spak on 3/3/21.
 //
 
-#include <pn532/bits_algo.hpp>
 #include <pn532/channel.hpp>
+#include <pn532/checksum.hpp>
 
 namespace pn532 {
     using mlab::bin_stream;
@@ -60,7 +60,7 @@ namespace pn532 {
                   << bits::start_of_packet_code
                   << bits::length_and_checksum_short(1)
                   << bits::specific_app_level_err_code
-                  << bits::compute_checksum(bits::specific_app_level_err_code)
+                  << compute_checksum(bits::specific_app_level_err_code)
                   << bits::postamble;
     }
 
@@ -76,7 +76,7 @@ namespace pn532 {
                       << f.transport
                       << f.command
                       << truncated_data
-                      << bits::compute_checksum(checksum_init, std::begin(truncated_data), std::end(truncated_data))
+                      << compute_checksum(checksum_init, std::begin(truncated_data), std::end(truncated_data))
                       << bits::postamble;
         } else {
             return bd << prealloc(9 + f.data.size())
@@ -85,7 +85,7 @@ namespace pn532 {
                       << f.transport
                       << f.command
                       << f.data
-                      << bits::compute_checksum(checksum_init, std::begin(f.data), std::end(f.data))
+                      << compute_checksum(checksum_init, std::begin(f.data), std::end(f.data))
                       << bits::postamble;
         }
     }
@@ -185,7 +185,7 @@ namespace pn532 {
                 s.set_bad();
                 return s;
             }
-            if (auto const &view = s.peek(); not bits::checksum(std::begin(view), std::begin(view) + id.info_frame_data_size + 1)) {
+            if (auto const &view = s.peek(); not checksum(std::begin(view), std::begin(view) + id.info_frame_data_size + 1)) {
                 PN532_LOGE("Frame body checksum failed.");
                 s.set_bad();
                 return s;
@@ -234,73 +234,73 @@ namespace pn532 {
     }
 
 
-    channel::comm_operation::comm_operation(channel &owner, comm_mode event, ms timeout) : _owner{owner}, _event{event}, _result{result_success} {
+    comm_operation::comm_operation(channel &owner, comm_dir event, ms timeout) : _owner{owner}, _event{event}, _result{result_success} {
         if (_owner._has_operation) {
             PN532_LOGE("Nested comm_operation instantiated: a channel can only run one at a time.");
         }
         _owner._has_operation = true;
         bool prepare_success = true;
         switch (_event) {
-            case comm_mode::send:
+            case comm_dir::send:
                 prepare_success = _owner.on_send_prepare(timeout);
                 break;
-            case comm_mode::receive:
+            case comm_dir::receive:
                 prepare_success = _owner.on_receive_prepare(timeout);
                 break;
         }
         if (not prepare_success) {
-            _result = error::comm_timeout;
+            _result = channel_error::timeout;
         }
     }
 
-    channel::comm_operation::~comm_operation() {
+    comm_operation::~comm_operation() {
         switch (_event) {
-            case comm_mode::send:
+            case comm_dir::send:
                 _owner.on_send_complete(_result);
                 break;
-            case comm_mode::receive:
+            case comm_dir::receive:
                 _owner.on_receive_complete(_result);
                 break;
         }
         _owner._has_operation = false;
     }
 
-    channel::result<any_frame> channel::receive(ms timeout) {
+    result<any_frame> channel::receive(ms timeout) {
         switch (raw_receive_mode()) {
-            case receive_mode::stream:
+            case comm_rx_mode::stream:
                 return receive_stream(timeout);
-            case receive_mode::buffered:
+            case comm_rx_mode::buffered:
                 return receive_restart(timeout);
         }
-        return error::comm_error;
+        return channel_error::hw_error;
     }
 
 
-    channel::result<> channel::send(any_frame const &frame, ms timeout) {
+    result<> channel::send(any_frame const &frame, ms timeout) {
         reduce_timeout rt{timeout};
         bin_data &buffer = get_clean_buffer();
         buffer << frame;
-        if (comm_operation op{*this, comm_mode::send, rt.remaining()}; op.ok()) {
+        if (comm_operation op{*this, comm_dir::send, rt.remaining()}; op.ok()) {
             return op.update(raw_send(buffer.view(), rt.remaining()));
         } else {
             return op.error();
         }
     }
 
-    channel::result<> channel::receive_ack(bool ack_value, ms timeout) {
+    result<> channel::receive_ack(bool ack_value, ms timeout) {
         if (auto const res_recv = receive(timeout); res_recv) {
             if (res_recv->type() == (ack_value ? frame_type::ack : frame_type::nack)) {
                 return result_success;
             } else {
                 PN532_LOGE("Expected %s, got %s.", (ack_value ? "ack" : "nack"), to_string(res_recv->type()));
-                return error::comm_error;
+                return channel_error::malformed;
             }
         } else {
             return res_recv.error();
         }
     }
 
-    channel::result<> channel::send_ack(bool ack_value, ms timeout) {
+    result<> channel::send_ack(bool ack_value, ms timeout) {
         if (ack_value) {
             return send(frame<frame_type::ack>{}, timeout);
         } else {
@@ -308,7 +308,7 @@ namespace pn532 {
         }
     }
 
-    channel::result<any_frame> channel::receive_restart(ms timeout) {
+    result<any_frame> channel::receive_restart(ms timeout) {
         reduce_timeout rt{timeout};
         bin_data &buffer = get_clean_buffer();
         bin_stream s{buffer};
@@ -323,14 +323,14 @@ namespace pn532 {
             } else {
                 buffer.resize(id.frame_total_length);
             }
-            if (comm_operation op{*this, comm_mode::receive, rt.remaining()}; op.ok()) {
+            if (comm_operation op{*this, comm_dir::receive, rt.remaining()}; op.ok()) {
                 if (auto const res_recv = raw_receive(buffer.view(), rt.remaining()); res_recv) {
                     // Attempt to reparse the frame
                     s.seek(0);
                     s >> id;
                     if (s.bad()) {
                         PN532_LOGE("Could not identify frame from received data.");
-                        return op.update(error::comm_malformed);
+                        return op.update(channel_error::malformed);
                     }
                     // Do we finally have enough?
                     if (buffer.size() >= id.frame_total_length) {
@@ -342,7 +342,7 @@ namespace pn532 {
                         if (s.bad()) {
                             PN532_LOGE("Could not parse frame from data.");
                             ESP_LOG_BUFFER_HEX_LEVEL(PN532_TAG, buffer.data(), buffer.size(), ESP_LOG_DEBUG);
-                            return op.update(error::comm_malformed);
+                            return op.update(channel_error::malformed);
                         } else if (not s.eof()) {
                             PN532_LOGW("Stray data in frame (%d bytes)", s.remaining());
                             auto const view = s.peek();
@@ -362,12 +362,12 @@ namespace pn532 {
             }
         }
         PN532_LOGE("Control reached impossible location.");
-        return error::comm_error;
+        return channel_error::hw_error;
     }
 
-    channel::result<any_frame> channel::receive_stream(ms timeout) {
+    result<any_frame> channel::receive_stream(ms timeout) {
         reduce_timeout rt{timeout};
-        if (comm_operation op{*this, comm_mode::receive, rt.remaining()}; op.ok()) {
+        if (comm_operation op{*this, comm_dir::receive, rt.remaining()}; op.ok()) {
             bin_data &buffer = get_clean_buffer();
             bin_stream s{buffer};
             // Repeatedly fetch the data until you have determined the frame length
@@ -384,7 +384,7 @@ namespace pn532 {
                 s >> id;
                 if (s.bad()) {
                     PN532_LOGE("Could not identify frame from received data.");
-                    return op.update(error::comm_malformed);
+                    return op.update(channel_error::malformed);
                 }
             }
             // Now we have enough data to read the command entirely.
@@ -393,7 +393,7 @@ namespace pn532 {
             if (s.bad()) {
                 PN532_LOGE("Could not parse frame from data.");
                 ESP_LOG_BUFFER_HEX_LEVEL(PN532_TAG, buffer.data(), buffer.size(), ESP_LOG_DEBUG);
-                return op.update(error::comm_malformed);
+                return op.update(channel_error::malformed);
             } else if (not s.eof()) {
                 PN532_LOGW("Stray data in frame (%d bytes)", s.remaining());
                 auto const view = s.peek();
@@ -406,7 +406,7 @@ namespace pn532 {
     }
 
 
-    channel::result<> channel::command(bits::command cmd, bin_data data, ms timeout) {
+    result<> channel::command(command_code cmd, bin_data data, ms timeout) {
         reduce_timeout rt{timeout};
         frame<frame_type::info> f{bits::transport::host_to_pn532, cmd, std::move(data)};
         if (auto const res_send = send(std::move(f), rt.remaining()); not res_send) {
@@ -416,22 +416,22 @@ namespace pn532 {
         }
     }
 
-    channel::result<bin_data> channel::response(bits::command cmd, ms timeout) {
+    result<bin_data> channel::response(command_code cmd, ms timeout) {
         reduce_timeout rt{timeout};
-        result<bin_data> retval = error::comm_timeout;
+        result<bin_data> retval = channel_error::timeout;
         if (auto res_recv = receive(rt.remaining()); res_recv) {
             if (res_recv->type() == frame_type::error) {
                 PN532_LOGW("Command %s failed.", to_string(cmd));
-                retval = error::failure;
+                retval = channel_error::app_error;
             } else if (res_recv->type() != frame_type::info) {
                 PN532_LOGE("Received ack/nack instead of info/error frame to %s?", to_string(cmd));
-                retval = error::comm_malformed;
+                retval = channel_error::malformed;
             } else {
                 frame<frame_type::info> f = std::move(res_recv->get<frame_type::info>());
                 // Check that f matches
                 if (f.command != cmd) {
                     PN532_LOGE("Mismatch command, sent %s, received %s.", to_string(cmd), to_string(f.command));
-                    retval = error::comm_malformed;
+                    retval = channel_error::malformed;
                 } else {
                     if (f.transport != bits::transport::pn532_to_host) {
                         PN532_LOGW("Incorrect transport in response, ignoring...");
@@ -441,7 +441,7 @@ namespace pn532 {
                 }
             }
         } else {
-            if (res_recv.error() == error::comm_timeout) {
+            if (res_recv.error() == channel_error::timeout) {
                 PN532_LOGW("Command %s timed out.", to_string(cmd));
             } else {
                 PN532_LOGE("Command %s: %s", to_string(cmd), to_string(res_recv.error()));
@@ -453,7 +453,7 @@ namespace pn532 {
         return retval;
     }
 
-    channel::result<bin_data> channel::command_response(bits::command cmd, bin_data data, ms timeout) {
+    result<bin_data> channel::command_response(command_code cmd, bin_data data, ms timeout) {
         reduce_timeout rt{timeout};
         if (auto const res_cmd = command(cmd, std::move(data), rt.remaining()); not res_cmd) {
             return res_cmd.error();

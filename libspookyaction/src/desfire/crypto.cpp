@@ -8,10 +8,7 @@
 #include <desfire/msg.hpp>
 
 namespace desfire {
-
-    namespace {
-        using mlab::make_range;
-    }
+    using mlab::make_range;
 
     void crypto_des_base::init_session(range<const std::uint8_t *> random_data) {
         if (random_data.size() != 16) {

@@ -7,53 +7,53 @@
 
 namespace desfire::fs {
 
-    r<> logout_app(tag &tag) {
+    result<> logout_app(tag &tag) {
         const auto aid = tag.active_app();
         TRY(tag.select_application())
         TRY(tag.select_application(aid))
         return mlab::result_success;
     }
 
-    r<> login_app(tag &tag, app_id aid, any_key const &key) {
+    result<> login_app(tag &tag, app_id aid, any_key const &key) {
         TRY(tag.select_application(aid))
         TRY(tag.authenticate(key))
         return mlab::result_success;
     }
 
-    r<> create_ro_value_file(tag &tag, file_id fid, std::int32_t value, key_actor<free_access_t> read_access, file_security security) {
+    result<> create_ro_value_file(tag &tag, file_id fid, std::int32_t value, key_actor<free_access_t> read_access, file_security security) {
         // A value file can be directly created with no write access, because it takes an initial value
         const file_settings<file_type::value> ro_settings{
                 security,
-                access_rights{no_key, no_key, read_access, no_key},
+                file_access_rights{no_key, no_key, read_access, no_key},
                 value, value, value, false};
         return tag.create_file(fid, ro_settings);
     }
 
-    r<> create_ro_free_value_file(tag &tag, file_id fid, std::int32_t value) {
+    result<> create_ro_free_value_file(tag &tag, file_id fid, std::int32_t value) {
         return create_ro_value_file(tag, fid, value, free_access, file_security::none);
     }
 
-    r<> create_ro_free_data_file(tag &tag, file_id fid, mlab::bin_data const &value) {
-        return create_ro_data_file(tag, fid, value, free_access, file_security::none);
+    result<> create_ro_free_data_file(tag &tag, file_id fid, mlab::bin_data const &data) {
+        return create_ro_data_file(tag, fid, data, free_access, file_security::none);
     }
 
-    r<> create_ro_data_file(tag &tag, file_id fid, mlab::bin_data const &value, key_actor<free_access_t> read_access, file_security security) {
+    result<> create_ro_data_file(tag &tag, file_id fid, mlab::bin_data const &data, key_actor<free_access_t> read_access, file_security security) {
         // A data file must be created with write access, because we have to write on it before locking it.
         const file_settings<file_type::standard> init_settings{
                 security,
-                access_rights{no_key, tag.active_key_no(), read_access, tag.active_key_no()},
-                value.size()};
+                file_access_rights{no_key, tag.active_key_no(), read_access, tag.active_key_no()},
+                data.size()};
         // Final access rights revoke the write access
-        const generic_file_settings final_settings{
+        const common_file_settings final_settings{
                 security,
-                access_rights{no_key, no_key, read_access, no_key}};
+                file_access_rights{no_key, no_key, read_access, no_key}};
         TRY(tag.create_file(fid, init_settings))
-        TRY(tag.write_data(fid, value, tag::determine_operation_mode(file_access::write, init_settings)))
+        TRY(tag.write_data(fid, data, tag::determine_operation_mode(file_access::write, init_settings)))
         TRY(tag.change_file_settings(fid, final_settings, tag::determine_operation_mode(file_access::change, init_settings)))
         return mlab::result_success;
     }
 
-    r<> create_app(tag &tag, app_id aid, any_key master_key, key_rights const &rights, std::uint8_t extra_keys) {
+    result<> create_app(tag &tag, app_id aid, any_key master_key, key_rights const &rights, std::uint8_t extra_keys) {
         // Patch the key number
         if (master_key.key_number() != 0) {
             master_key.set_key_number(0);
@@ -84,7 +84,7 @@ namespace desfire::fs {
         return mlab::result_success;
     }
 
-    r<any_key> create_app_for_ro(tag &tag, cipher_type cipher, app_id aid, random_oracle rng) {
+    result<any_key> create_app_for_ro(tag &tag, cipher_type cipher, app_id aid, random_oracle rng) {
         // Create a random key
         const any_key k{cipher, rng};
         // Settings for an app with one key that can change keys
@@ -92,20 +92,20 @@ namespace desfire::fs {
         return k;
     }
 
-    r<> make_app_ro(tag &tag, bool list_requires_auth) {
+    result<> make_app_ro(tag &tag, bool list_requires_auth) {
         const key_rights ro_rights{
                 no_key, false, list_requires_auth, false, false};
         TRY(tag.change_app_settings(ro_rights))
         return mlab::result_success;
     }
 
-    r<bool> does_file_exist(tag &tag, file_id fid) {
+    result<bool> does_file_exist(tag &tag, file_id fid) {
         TRY_RESULT(tag.get_file_ids()) {
             return std::find(std::begin(*r), std::end(*r), fid) != std::end(*r);
         }
     }
 
-    r<std::vector<file_id>> which_files_exist(tag &tag, std::vector<file_id> fids) {
+    result<std::vector<file_id>> which_files_exist(tag &tag, std::vector<file_id> fids) {
         TRY_RESULT(tag.get_file_ids()) {
             std::sort(std::begin(*r), std::end(*r));
             std::sort(std::begin(fids), std::end(fids));
@@ -115,13 +115,13 @@ namespace desfire::fs {
         }
     }
 
-    r<bool> does_app_exist(tag &tag, app_id aid) {
+    result<bool> does_app_exist(tag &tag, app_id aid) {
         TRY_RESULT(tag.get_application_ids()) {
             return std::find(std::begin(*r), std::end(*r), aid) != std::end(*r);
         }
     }
 
-    r<> delete_file_if_exists(tag &tag, file_id fid) {
+    result<> delete_file_if_exists(tag &tag, file_id fid) {
         TRY_RESULT(does_file_exist(tag, fid)) {
             if (*r) {
                 TRY(tag.delete_file(fid))
@@ -130,7 +130,7 @@ namespace desfire::fs {
         return mlab::result_success;
     }
 
-    r<> delete_app_if_exists(tag &tag, app_id aid) {
+    result<> delete_app_if_exists(tag &tag, app_id aid) {
         TRY_RESULT(does_app_exist(tag, aid)) {
             if (*r) {
                 TRY(tag.delete_application(aid))

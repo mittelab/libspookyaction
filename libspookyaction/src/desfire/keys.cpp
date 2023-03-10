@@ -6,9 +6,7 @@
 #include <desfire/log.h>
 
 namespace desfire {
-    namespace {
-        using mlab::prealloc;
-    }
+    using mlab::prealloc;
 
     any_key::any_key(const any_key &other) : any_key{other.type()} {
         *this = other;
@@ -41,22 +39,22 @@ namespace desfire {
                 set<cipher_type::none>(key<cipher_type::none>{});
                 break;
             case cipher_type::des: {
-                key<cipher_type::des>::key_data_t kd{};
+                key<cipher_type::des>::key_body_t kd{};
                 std::copy_n(std::begin(k), kd.size(), std::begin(kd));
                 set<cipher_type::des>(key<cipher_type::des>{key_no, kd});
             } break;
             case cipher_type::des3_2k: {
-                key<cipher_type::des3_2k>::key_data_t kd{};
+                key<cipher_type::des3_2k>::key_body_t kd{};
                 std::copy_n(std::begin(k), kd.size(), std::begin(kd));
                 set<cipher_type::des3_2k>(key<cipher_type::des3_2k>{key_no, kd});
             } break;
             case cipher_type::des3_3k: {
-                key<cipher_type::des3_3k>::key_data_t kd{};
+                key<cipher_type::des3_3k>::key_body_t kd{};
                 std::copy_n(std::begin(k), kd.size(), std::begin(kd));
                 set<cipher_type::des3_3k>(key<cipher_type::des3_3k>{key_no, kd});
             } break;
             case cipher_type::aes128: {
-                key<cipher_type::aes128>::key_data_t kd{};
+                key<cipher_type::aes128>::key_body_t kd{};
                 std::copy_n(std::begin(k), kd.size(), std::begin(kd));
                 set<cipher_type::aes128>(key<cipher_type::aes128>{key_no, kd});
             } break;
@@ -70,22 +68,22 @@ namespace desfire {
                 set<cipher_type::none>(key<cipher_type::none>{});
                 break;
             case cipher_type::des: {
-                key<cipher_type::des>::key_data_t kd{};
+                key<cipher_type::des>::key_body_t kd{};
                 std::copy_n(std::begin(k), kd.size(), std::begin(kd));
                 set<cipher_type::des>(key<cipher_type::des>{key_no, kd, v});
             } break;
             case cipher_type::des3_2k: {
-                key<cipher_type::des3_2k>::key_data_t kd{};
+                key<cipher_type::des3_2k>::key_body_t kd{};
                 std::copy_n(std::begin(k), kd.size(), std::begin(kd));
                 set<cipher_type::des3_2k>(key<cipher_type::des3_2k>{key_no, kd, v});
             } break;
             case cipher_type::des3_3k: {
-                key<cipher_type::des3_3k>::key_data_t kd{};
+                key<cipher_type::des3_3k>::key_body_t kd{};
                 std::copy_n(std::begin(k), kd.size(), std::begin(kd));
                 set<cipher_type::des3_3k>(key<cipher_type::des3_3k>{key_no, kd, v});
             } break;
             case cipher_type::aes128: {
-                key<cipher_type::aes128>::key_data_t kd{};
+                key<cipher_type::aes128>::key_body_t kd{};
                 std::copy_n(std::begin(k), kd.size(), std::begin(kd));
                 set<cipher_type::aes128>(key<cipher_type::aes128>{key_no, kd, v});
             } break;
@@ -206,16 +204,16 @@ namespace desfire {
         }
     }
 
-    mlab::range<std::uint8_t const *> any_key::data() const {
+    mlab::range<std::uint8_t const *> any_key::body() const {
         switch (type()) {
             case cipher_type::des:
-                return mlab::make_range(get<cipher_type::des>().data());
+                return mlab::make_range(get<cipher_type::des>().body());
             case cipher_type::des3_2k:
-                return mlab::make_range(get<cipher_type::des3_2k>().data());
+                return mlab::make_range(get<cipher_type::des3_2k>().body());
             case cipher_type::des3_3k:
-                return mlab::make_range(get<cipher_type::des3_3k>().data());
+                return mlab::make_range(get<cipher_type::des3_3k>().body());
             case cipher_type::aes128:
-                return mlab::make_range(get<cipher_type::aes128>().data());
+                return mlab::make_range(get<cipher_type::aes128>().body());
             case cipher_type::none:
                 [[fallthrough]];
             default:
@@ -280,34 +278,34 @@ namespace desfire {
         }
     }
 
-    void any_key::set_data(mlab::range<std::uint8_t const *> k) {
+    void any_key::set_body(mlab::range<std::uint8_t const *> k) {
         if (std::size_t(k.size()) != size()) {
             DESFIRE_LOGE("Cannot setup a key of length %d with %d bytes.", size(), k.size());
             return;
         }
         switch (type()) {
             case cipher_type::des: {
-                key<cipher_type::des>::key_data_t kd{};
+                key<cipher_type::des>::key_body_t kd{};
                 std::copy_n(std::begin(k), kd.size(), std::begin(kd));
-                get<cipher_type::des>().set_data(kd);
+                get<cipher_type::des>().set_body(kd);
             } break;
 
             case cipher_type::des3_2k: {
-                key<cipher_type::des3_2k>::key_data_t kd{};
+                key<cipher_type::des3_2k>::key_body_t kd{};
                 std::copy_n(std::begin(k), kd.size(), std::begin(kd));
-                get<cipher_type::des3_2k>().set_data(kd);
+                get<cipher_type::des3_2k>().set_body(kd);
             } break;
 
             case cipher_type::des3_3k: {
-                key<cipher_type::des3_3k>::key_data_t kd{};
+                key<cipher_type::des3_3k>::key_body_t kd{};
                 std::copy_n(std::begin(k), kd.size(), std::begin(kd));
-                get<cipher_type::des3_3k>().set_data(kd);
+                get<cipher_type::des3_3k>().set_body(kd);
             } break;
 
             case cipher_type::aes128: {
-                key<cipher_type::aes128>::key_data_t kd{};
+                key<cipher_type::aes128>::key_body_t kd{};
                 std::copy_n(std::begin(k), kd.size(), std::begin(kd));
-                get<cipher_type::aes128>().set_data(kd);
+                get<cipher_type::aes128>().set_body(kd);
             } break;
 
             case cipher_type::none:
@@ -316,9 +314,9 @@ namespace desfire {
     }
 
 
-    any_key any_key::with_key_number(std::uint8_t v) const {
+    any_key any_key::with_key_number(std::uint8_t key_no) const {
         any_key copy{*this};
-        copy.set_key_number(v);
+        copy.set_key_number(key_no);
         return copy;
     }
 
@@ -353,18 +351,18 @@ namespace desfire {
                  * @note Special treatment for DES.
                  */
                 {
-                    auto const &k = get<cipher_type::des>().data();
+                    auto const &k = get<cipher_type::des>().body();
                     body << prealloc(2 * k.size()) << k << k;
                 }
                 break;
             case cipher_type::des3_2k:
-                body << get<cipher_type::des3_2k>().data();
+                body << get<cipher_type::des3_2k>().body();
                 break;
             case cipher_type::des3_3k:
-                body << get<cipher_type::des3_3k>().data();
+                body << get<cipher_type::des3_3k>().body();
                 break;
             case cipher_type::aes128:
-                body << get<cipher_type::aes128>().data();
+                body << get<cipher_type::aes128>().body();
                 break;
         }
         return body;
@@ -388,18 +386,14 @@ namespace desfire {
         return our_data;
     }
 
-    bin_data &any_key::operator<<(bin_data &bd) const {
-        bd << get_packed_key_body();
-        if (not parity_bits_are_version()) {
-            bd << version();
-        }
-        return bd;
-    }
-
 }// namespace desfire
 
 namespace mlab {
     bin_data &operator<<(bin_data &bd, desfire::any_key const &k) {
-        return k.operator<<(bd);
+        bd << k.get_packed_key_body();
+        if (not k.parity_bits_are_version()) {
+            bd << k.version();
+        }
+        return bd;
     }
 }// namespace mlab

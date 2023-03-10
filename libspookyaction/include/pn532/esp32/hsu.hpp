@@ -12,20 +12,36 @@
 namespace pn532::esp32 {
 
     /**
-     * @brief Implementation of HSU channel protocol for PN532 over ESP32's I2C driver.
+     * @brief Implementation of HSU channel protocol for PN532 over ESP32's I2C driver (UM0701-02 §6.2.3).
      */
     class hsu_channel final : public channel {
         uart_port_t _port;
 
     protected:
+        /**
+         * @brief Wraps around `uart_write_bytes`.
+         */
         result<> raw_send(mlab::range<bin_data::const_iterator> buffer, ms timeout) override;
+
+        /**
+         * @brief Wraps around `uart_read_bytes`.
+         */
         result<> raw_receive(mlab::range<bin_data::iterator> buffer, ms timeout) override;
 
-        [[nodiscard]] inline receive_mode raw_receive_mode() const override;
+        /**
+         * @return For @ref hsu_channel, this is always @ref comm_rx_mode::stream.
+         */
+        [[nodiscard]] inline comm_rx_mode raw_receive_mode() const override;
 
+        /**
+         * @brief Flushes the RX buffer via `uart_flush_input`.
+         */
         bool on_send_prepare(ms timeout) override;
 
     public:
+        /**
+         * @brief Sends the byte sequence `55 55 55`.
+         */
         bool wake() override;
 
         /**
@@ -39,13 +55,16 @@ namespace pn532::esp32 {
          */
         hsu_channel(uart_port_t port, uart_config_t config, gpio_num_t to_device_tx, gpio_num_t to_device_rx);
 
+        /**
+         * Deletes the allocated UART driver.
+         */
         ~hsu_channel() override;
     };
 }// namespace pn532::esp32
 
 namespace pn532::esp32 {
-    channel::receive_mode hsu_channel::raw_receive_mode() const {
-        return receive_mode::stream;
+    comm_rx_mode hsu_channel::raw_receive_mode() const {
+        return comm_rx_mode::stream;
     }
 }// namespace pn532::esp32
 

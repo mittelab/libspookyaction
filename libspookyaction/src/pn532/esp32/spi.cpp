@@ -8,38 +8,38 @@
 #define PN532_SPI_TAG "PN532-SPI"
 
 namespace pn532::esp32 {
+    using namespace std::chrono_literals;
+    using mlab::reduce_timeout;
 
     namespace {
-        using namespace std::chrono_literals;
-
-        channel::error error_from_esp_err(esp_err_t e) {
+        channel_error error_from_esp_err(esp_err_t e) {
             switch (e) {
                 case ESP_ERR_TIMEOUT:
-                    return channel::error::comm_timeout;
+                    return channel_error::timeout;
                 case ESP_ERR_INVALID_ARG:
-                    return channel::error::comm_malformed;
+                    return channel_error::malformed;
                 default:
-                    return channel::error::comm_error;
+                    return channel_error::hw_error;
             }
         }
     }// namespace
 
     bool spi_channel::wake() {
-        if (comm_operation op{*this, comm_mode::send, 10ms}; op.ok()) {
+        if (comm_operation op{*this, comm_dir::send, 10ms}; op.ok()) {
             // Send some dummy data to wake up
             _dma_buffer = {0x55, 0x55, 0x55};
-            return bool(op.update(perform_transaction(_dma_buffer, spi_command::data_write, comm_mode::send, 10ms)));
+            return bool(op.update(perform_transaction(_dma_buffer, spi_command::data_write, comm_dir::send, 10ms)));
         } else {
             return false;
         }
     }
 
-    channel::receive_mode spi_channel::raw_receive_mode() const {
-        return channel::receive_mode::stream;
+    comm_rx_mode spi_channel::raw_receive_mode() const {
+        return comm_rx_mode::stream;
     }
 
 
-    channel::result<> spi_channel::perform_transaction(capable_buffer &buffer, spi_command cmd, channel::comm_mode mode, ms timeout) {
+    result<> spi_channel::perform_transaction(capable_buffer &buffer, spi_command cmd, comm_dir mode, ms timeout) {
         reduce_timeout rt{timeout};
         spi_transaction_ext_t transaction{
                 .base = {
@@ -49,8 +49,8 @@ namespace pn532::esp32 {
                         .length = buffer.size() * 8,
                         .rxlength = 0,
                         .user = const_cast<spi_channel *>(this),
-                        .tx_buffer = mode == comm_mode::send ? const_cast<std::uint8_t *>(buffer.data()) : nullptr,
-                        .rx_buffer = mode == comm_mode::receive ? const_cast<std::uint8_t *>(buffer.data()) : nullptr},
+                        .tx_buffer = mode == comm_dir::send ? const_cast<std::uint8_t *>(buffer.data()) : nullptr,
+                        .rx_buffer = mode == comm_dir::receive ? const_cast<std::uint8_t *>(buffer.data()) : nullptr},
                 .command_bits = 0,
                 .address_bits = 0,
                 .dummy_bits = 0};
@@ -61,9 +61,9 @@ namespace pn532::esp32 {
         return mlab::result_success;
     }
 
-    channel::result<> spi_channel::raw_send(mlab::range<bin_data::const_iterator> buffer, ms timeout) {
+    result<> spi_channel::raw_send(mlab::range<bin_data::const_iterator> buffer, ms timeout) {
         if (_device == nullptr) {
-            return error::comm_error;
+            return channel_error::hw_error;
         }
         ESP_LOG_BUFFER_HEX_LEVEL(PN532_SPI_TAG " >>", buffer.data(), buffer.size(), ESP_LOG_VERBOSE);
         reduce_timeout rt{timeout};
@@ -71,10 +71,10 @@ namespace pn532::esp32 {
         if (buffer.size() > 0) {
             std::copy(std::begin(buffer), std::end(buffer), std::begin(_dma_buffer));
         }
-        return perform_transaction(_dma_buffer, spi_command::data_write, comm_mode::send, rt.remaining());
+        return perform_transaction(_dma_buffer, spi_command::data_write, comm_dir::send, rt.remaining());
     }
 
-    channel::result<> spi_channel::raw_poll_status(ms timeout) {
+    result<> spi_channel::raw_poll_status(ms timeout) {
         if (_recv_op_status != recv_op_status::init) {
             return mlab::result_success;
         }
@@ -83,7 +83,7 @@ namespace pn532::esp32 {
         _dma_buffer.resize(1, 0x00);
         while (rt) {
             // Perform a status read check
-            if (const auto res = perform_transaction(_dma_buffer, spi_command::status_read, comm_mode::receive, rt.remaining()); not res) {
+            if (const auto res = perform_transaction(_dma_buffer, spi_command::status_read, comm_dir::receive, rt.remaining()); not res) {
                 return res.error();
             } else if ((_dma_buffer.back() & 0b1) == 0) {
                 // Wait a bit
@@ -94,12 +94,12 @@ namespace pn532::esp32 {
                 return mlab::result_success;
             }
         }
-        return error::comm_timeout;
+        return channel_error::timeout;
     }
 
-    channel::result<> spi_channel::raw_receive(mlab::range<bin_data::iterator> buffer, ms timeout) {
+    result<> spi_channel::raw_receive(mlab::range<bin_data::iterator> buffer, ms timeout) {
         if (_device == nullptr) {
-            return error::comm_error;
+            return channel_error::hw_error;
         }
         reduce_timeout rt{timeout};
         if (const auto res = raw_poll_status(rt.remaining()); not res) {
@@ -112,7 +112,7 @@ namespace pn532::esp32 {
         const spi_command cmd = _recv_op_status == recv_op_status::data_read ? spi_command::none : spi_command::data_read;
         // Bump the status
         _recv_op_status = recv_op_status::data_read;
-        if (auto res = perform_transaction(_dma_buffer, cmd, comm_mode::receive, rt.remaining()); res) {
+        if (auto res = perform_transaction(_dma_buffer, cmd, comm_dir::receive, rt.remaining()); res) {
             // Copy back to buffer
             std::copy(std::begin(_dma_buffer), std::end(_dma_buffer), std::begin(buffer));
             ESP_LOG_BUFFER_HEX_LEVEL(PN532_SPI_TAG " <<", buffer.data(), buffer.size(), ESP_LOG_VERBOSE);

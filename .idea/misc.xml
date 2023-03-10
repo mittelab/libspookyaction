@@ -3,7 +3,9 @@
   <component name="CidrRootsConfiguration">
     <excludeRoots>
       <file path="$PROJECT_DIR$/docs/_build" />
+      <file path="$PROJECT_DIR$/docs/api" />
       <file path="$PROJECT_DIR$/tests/.pio" />
+      <file path="$PROJECT_DIR$/tests/components/esp-wolfssl" />
       <file path="$PROJECT_DIR$/tests/lib/libspookyaction" />
     </excludeRoots>
   </component>

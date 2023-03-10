@@ -4,6 +4,7 @@ include:
 
 stages:
   - check
+  - docker
   - build
   - test
   - deploy
@@ -12,7 +13,7 @@ stages:
 variables:
   PIO_LIB_FOLDER: libspookyaction
   PIO_PROJ_FOLDER: tests
-  GIT_SUBMODULE_STRATEGY: normal
+  GIT_SUBMODULE_STRATEGY: recursive
 
 .pio-cache: &pio-cache
   cache:
@@ -103,8 +104,6 @@ build test firmware wolfssl:
     - cp cicd/platformio.ini "${PIO_PROJ_FOLDER}/platformio.ini"
     - cd "${PIO_PROJ_FOLDER}"
     - cp sdkconfig-wolfssl.defaults sdkconfig.defaults
-  variables:
-    GIT_SUBMODULE_STRATEGY: recursive
 
 build examples:
   image: ${CI_REGISTRY}/proj/testinator/esp32:latest
@@ -184,15 +183,75 @@ publish library:
     - branches
 
 
+.docker-job-definition: &docker-job-template
+  image: docker:stable
+  stage: docker
+  tags:
+    - docker
+  before_script:
+    - docker login -u "${CI_REGISTRY_USER}" -p "${CI_REGISTRY_PASSWORD}" "${CI_REGISTRY}"
+    - export IMAGE_PATH="${CI_REGISTRY}/${CI_PROJECT_PATH}"
+
+
+prepare docs image:
+  <<: *docker-job-template
+  script:
+    - docker build
+      --tag ${IMAGE_PATH}:${CI_COMMIT_SHA}
+      --tag ${IMAGE_PATH}:latest
+      --cache-from ${IMAGE_PATH}:latest docs
+    - docker push "${IMAGE_PATH}:${CI_COMMIT_SHA}"
+    - docker push "${IMAGE_PATH}:latest"
+  rules:
+    # Run on merge request
+    - <<: *rules-merge-to-master
+    # Run when the Dockerfile or CI pipeline changes
+    - changes:
+        - docs/Dockerfile
+        - .gitlab-ci.yml
+      when: always
+  needs: []
+
+
+build docs:
+  image: "${CI_REGISTRY}/${CI_PROJECT_PATH}:latest"
+  stage: build
+  script:
+    - make -C docs clean
+    - make -C docs html 2>&1 | tee docs/build.log
+    - echo "Warning list:"
+    - grep -iF warning docs/build.log || true
+    # Consider doxygen warnings as a failure condition:
+    - "[ $(grep -ci '\\[~\\] [^ ]\\+\\?:\\d\\+: warning:' docs/build.log) -eq 0 ]"
+  allow_failure: true
+  artifacts:
+    paths:
+      - docs/_build/html
+  rules:
+    - <<: *rules-master
+    # [skip docs] tag for skipping
+    - if: '$CI_COMMIT_MESSAGE =~ /skip docs/'
+      when: never
+    # Run on merge request
+    - <<: *rules-merge-to-master
+    # Run when the docs change
+    - changes:
+        - docs/**/*
+      when: always
+    # But skip by default if the sources did not change
+    - <<: *rules-changes-sources
+  needs:
+    - job: prepare docs image
+      optional: true
+
+
 pages:
   stage: deploy
-  image: alpine
+  image: alpine:3.17
   needs:
     - check format
-  before_script:
-    - apk add --update --no-cache doxygen graphviz ttf-opensans
+    - build docs
   script:
-    - doxygen ./doxygen.conf
     - mkdir -p public
     - cp -r docs/_build/html/* public
   artifacts:

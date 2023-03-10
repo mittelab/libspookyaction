@@ -66,7 +66,7 @@ namespace ut::pn532 {
                 .post_cb = nullptr};
 
 
-        [[nodiscard]] bool ok_and_true(controller::result<bool> const &r) {
+        [[nodiscard]] bool ok_and_true(pn532::result<bool> const &r) {
             return r and *r;
         }
 
@@ -154,7 +154,7 @@ namespace ut::pn532 {
         if (r_scan) {
             for (target_kbps106_typea const &target : *r_scan) {
                 ESP_LOGI(TEST_TAG, "Logical index %u; NFC ID:", target.logical_index);
-                ESP_LOG_BUFFER_HEX_LEVEL(TEST_TAG, target.info.nfcid.data(), target.info.nfcid.size(), ESP_LOG_INFO);
+                ESP_LOG_BUFFER_HEX_LEVEL(TEST_TAG, target.nfcid.data(), target.nfcid.size(), ESP_LOG_INFO);
             }
         }
     }
@@ -214,7 +214,7 @@ namespace ut::pn532 {
             return;
         }
         ESP_LOGI(TEST_TAG, "Found one target:");
-        auto const &nfcid = r_scan->front().info.nfcid;
+        auto const &nfcid = r_scan->front().nfcid;
         ESP_LOG_BUFFER_HEX_LEVEL(TEST_TAG, nfcid.data(), nfcid.size(), ESP_LOG_INFO);
         ESP_LOGI(TEST_TAG, "Exchanging data.");
         const auto idx = r_scan->front().logical_index;
@@ -225,7 +225,7 @@ namespace ut::pn532 {
         }
         ESP_LOGI(TEST_TAG, "Exchange successful, received:");
         ESP_LOG_BUFFER_HEX_LEVEL(TEST_TAG, r_exchange->second.data(), r_exchange->second.size(), ESP_LOG_INFO);
-        TEST_ASSERT_EQUAL(r_exchange->first.error, controller_error::none);
+        TEST_ASSERT_EQUAL(r_exchange->first.error, internal_error_code::none);
         TEST_ASSERT_EQUAL(r_exchange->second.size(), 1);
         TEST_ASSERT_EQUAL(r_exchange->second.front(), 0x0);
     }

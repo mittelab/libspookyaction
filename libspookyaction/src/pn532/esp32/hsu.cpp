@@ -10,6 +10,7 @@
 
 namespace pn532::esp32 {
 
+    using mlab::reduce_timeout;
     using namespace std::chrono_literals;
 
     namespace {
@@ -49,8 +50,8 @@ namespace pn532::esp32 {
     }
 
     bool hsu_channel::wake() {
-        if (comm_operation op{*this, comm_mode::send, 100ms}; op.ok()) {
-            // One 0x55 would be enough but I always snooze at least twice, so...
+        if (comm_operation op{*this, comm_dir::send, 100ms}; op.ok()) {
+            // One 0x55 would be enough, but I always snooze at least twice, so...
             static const bin_data wake_cmd = {0x55, 0x55, 0x55};
             return bool(op.update(raw_send(wake_cmd.view(), 100ms)));
         }
@@ -62,35 +63,35 @@ namespace pn532::esp32 {
         return uart_flush_input(_port) == ESP_OK;
     }
 
-    channel::result<> hsu_channel::raw_send(mlab::range<bin_data::const_iterator> buffer, ms timeout) {
+    result<> hsu_channel::raw_send(mlab::range<bin_data::const_iterator> buffer, ms timeout) {
         if (_port == UART_NUM_MAX) {
-            return error::comm_error;
+            return channel_error::hw_error;
         }
         reduce_timeout rt{timeout};
         ESP_LOG_BUFFER_HEX_LEVEL(PN532_HSU_TAG " >>", buffer.data(), buffer.size(), ESP_LOG_VERBOSE);
         // Send and block until transmission is finished (or timeout time expired)
         if (uart_write_bytes(_port, reinterpret_cast<const char *>(buffer.data()), buffer.size()) != buffer.size()) {
             ESP_LOGE(PN532_HSU_TAG, "Failure to send data via HSU, parameter error at at uart_write_bytes (port = %d).", _port);
-            return error::comm_error;
+            return channel_error::hw_error;
         }
         const auto result = uart_wait_tx_done(_port, duration_cast(rt.remaining()));
         if (result == ESP_OK) {
             return mlab::result_success;
         } else if (result == ESP_ERR_TIMEOUT) {
             ESP_LOGE(PN532_HSU_TAG, "Failure to send data via HSU, timeout at uart_wait_tx_done (port = %d).", _port);
-            return error::comm_timeout;
+            return channel_error::timeout;
         }
         if (result == ESP_FAIL) {
             ESP_LOGE(PN532_HSU_TAG, "Failure to send data via HSU, parameter error (port = %d).", _port);
         } else {
             ESP_LOGE(PN532_HSU_TAG, "Unexpected result from uart_wait_tx_done: %d.", static_cast<int>(result));
         }
-        return error::comm_error;
+        return channel_error::hw_error;
     }
 
-    channel::result<> hsu_channel::raw_receive(mlab::range<bin_data::iterator> buffer, ms timeout) {
+    result<> hsu_channel::raw_receive(mlab::range<bin_data::iterator> buffer, ms timeout) {
         if (_port == UART_NUM_MAX) {
-            return error::comm_error;
+            return channel_error::hw_error;
         }
         reduce_timeout rt{timeout};
         std::size_t read_length = 0;
@@ -120,7 +121,7 @@ namespace pn532::esp32 {
         if (read_length >= buffer.size()) {
             return mlab::result_success;
         }
-        return error::comm_timeout;
+        return channel_error::timeout;
     }
 
 

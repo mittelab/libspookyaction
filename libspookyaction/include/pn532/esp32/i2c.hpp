@@ -13,34 +13,39 @@
 
 namespace pn532::esp32 {
 
+    /**
+     * Namespace containing C++ wrappers for ESP32's I2C driver.
+     */
     namespace i2c {
 
         /**
-         * Wrapper for the possible error code from ESP32's I2C driver. This is I2C specific and used only in @ref command.
-         * Refer to @ref esp_err.h for documentation.
+         * @brief Error codes from ESP32's I2C driver.
+         * This is I2C specific and used only in @ref pn532::esp32::i2c::command. Refer to `esp_err.h` for documentation.
          */
         enum struct error : std::int16_t {
-            parameter_error = ESP_ERR_INVALID_ARG,
-            fail = ESP_FAIL,
-            invalid_state = ESP_ERR_INVALID_STATE,
-            timeout = ESP_ERR_TIMEOUT
+            parameter_error = ESP_ERR_INVALID_ARG,///< Invalid argument
+            fail = ESP_FAIL,                      ///< Generic failure
+            invalid_state = ESP_ERR_INVALID_STATE,///<Invalid state
+            timeout = ESP_ERR_TIMEOUT             ///<Timeout occurred
         };
 
         /**
-         * Convert a @ref error into the corresponding string message representation.
-         * @param e Error code
-         * @return A C string.
+         * @addtogroup StringConversion
+         * @{
          */
         [[nodiscard]] const char *to_string(error e);
+        /**
+         * @}
+         */
 
         /**
          * @brief Class that wraps an I2C ESP32's command.
          *
          * ESP32's I2C driver does not allow direct control of the bus; it rather packs all the operations into a prebuild command
-         * (repesented by a `i2c_cmd_handle_t`) which is single use. This class is a wrapper for it. Since there is a resource
-         * associated to this command, this class is moveable but not copiable.
-         * The command can be invoked via @ref operator(), but once that method is called, it's unusable and any attempt to further
-         * use it or append read/write operation will fail.
+         * (represented by a `i2c_cmd_handle_t`) which is single use. This class is a wrapper for it. Since there is a resource
+         * associated to this command, this class has move-only semantics.
+         * The command can be invoked via @ref command::operator()(), but once that method is called, it's unusable and any attempt to
+         * further use it or append read/write operation will fail.
          *
          * @code
          *  using namespace std::chrono_literals;
@@ -57,14 +62,14 @@ namespace pn532::esp32 {
          *  cmd.stop();
          *
          *  if (const auto result = cmd(I2C_NUM_0, 100ms); result) {
-         *      std::cout << "Successfully trasmitted via I2C." << std::endl;
+         *      std::printf("Successfully trasmitted via I2C.\n");
          *      // Parse the 4 bytes into an unsigned integer
          *      std::uint32_t payload_data = 0;
          *      mlab::bin_stream s{slave_payload};
          *      s >> mlab::msb32 >> payload_data;
-         *      std::cout << "Slave status: " << status << " payload: " << payload_data << std::endl;
+         *      std::printf("Slave status: %d payload: %u\n", status,  payload_data);
          *  } else {
-         *      std::cout << "I2C command failed with status: " << pn532::i2c::to_string(result.error()) << std::endl;
+         *      std::printf("I2C command failed with status: %s\n", pn532::i2c::to_string(result.error()));
          *  }
          * @endcode
          */
@@ -76,9 +81,13 @@ namespace pn532::esp32 {
 
         public:
             /**
-             * Construts a new, empty, I2C command.
+             * Constructs a new, empty, I2C command (via `i2c_cmd_link_create`).
              */
             command();
+
+            /**
+             * Releases all associated resources via `i2c_cmd_link_delete`.
+             */
             ~command();
 
             command(command const &) = delete;
@@ -110,15 +119,15 @@ namespace pn532::esp32 {
              * @param buffer A preallocated buffer of bytes to fill. The caller is responsible for preallocating this memory to exactly
              *  the length of the read operation, and keep it in scope and valid until this command object is destroyed. This is passed
              *  directly down to the driver, so beware: it is not documented what happens if you pass an empty range.
-             * @param ack The type of ACK to send. See @ref i2c_types.h for further documentation.
+             * @param ack The type of ACK to send. See `i2c_types.h` for further documentation.
              */
             void read(mlab::range<uint8_t *> buffer, i2c_ack_type_t ack);
 
             /**
-             * Append a new read operation to the command, reading a single byte.
-             * @param b A non-constant reference to the byte to fill. Of course the caller is responsible of making sure that the reference
+             * @brief Append a new read operation to the command, reading a single byte.
+             * @param b A non-constant reference to the byte to fill. The caller is responsible of making sure that the reference
              *  is in scope until when this command object is destroyed.
-             * @param ack The type of ACK to send. See @ref i2c_types.h for further documentation.
+             * @param ack The type of ACK to send. See `i2c_types.h` for further documentation.
              */
             void read(std::uint8_t &b, i2c_ack_type_t ack);
 
@@ -129,10 +138,10 @@ namespace pn532::esp32 {
             void stop();
 
             /**
-             * @brief Executes the buffered command as is it, and invalidates it.
+             * @brief Executes the buffered command as is it, and invalidates this instance.
              * @param port The I2C port on which to run the command.
              * @param timeout The maximum time the driver is allowed to take to execute before it fails with a @ref error::timeout
-             * @return A result which is either @ref mlab::result_success, or carries one of the possible @ref error statuses.
+             * @return A result which is either `mlab::result_success`, or carries one of the possible @ref error statuses.
              */
             mlab::result<error> operator()(i2c_port_t port, std::chrono::milliseconds timeout);
         };
@@ -140,7 +149,7 @@ namespace pn532::esp32 {
 
 
     /**
-     * @brief Implementation of I2C channel protocol for PN532 over ESP32's I2C driver.
+     * @brief Implementation of I2C channel protocol for PN532 over ESP32's I2C driver (UM0701-02 §6.2.4).
      *
      * This class supports, when specified, the possibility of using a GPIO pin for the PN532's IRQ line; in that case, the
      * class does not have to poll the controller until the answers are ready, but it will instead idle and wait for the IRQ
@@ -150,7 +159,7 @@ namespace pn532::esp32 {
      *  channel is relatively slow because in order to read a full PN532 packet, it has to issue several I2C commands. The
      *  reason is that we need to build the I2C command in beforehand, so we need to know already the read length. To work
      *  around this limitation, we request the packet several times using an PN532-level NACK message until we have enough
-     *  information to read the full extent of the message. Attempts at "tricking" the ESP32's driver by not issueing the
+     *  information to read the full extent of the message. Attempts at "tricking" the ESP32's driver by not issuing the
      *  necessary stop failed, as they put the PN532 in an invalid state.
      */
     class i2c_channel final : public channel {
@@ -160,31 +169,51 @@ namespace pn532::esp32 {
 
     protected:
         /**
-         * Prepares a command with the correct mode (write, read) depending on @ref _mode;
-         * @return
+         * Prepares a command with the correct mode (write, read) depending on @p mode;
+         * @return A new command containing only the slave address.
          */
-        [[nodiscard]] i2c::command raw_prepare_command(comm_mode mode) const;
+        [[nodiscard]] i2c::command raw_prepare_command(comm_dir mode) const;
 
+        /**
+         * Wraps around `i2c_master_write`, `i2c_master_cmd_begin` and so on.
+         */
         result<> raw_send(mlab::range<bin_data::const_iterator> buffer, ms timeout) override;
+
+        /**
+         * Wraps around `i2c_master_read`, `i2c_master_cmd_begin` and so on.
+         */
         result<> raw_receive(mlab::range<bin_data::iterator> buffer, ms timeout) override;
 
-        [[nodiscard]] inline receive_mode raw_receive_mode() const override;
+        /**
+         * @return For @ref i2c_channel, this is always @ref comm_rx_mode::buffered.
+         */
+        [[nodiscard]] inline comm_rx_mode raw_receive_mode() const override;
 
+        /**
+         * @brief Asserts that that data is available to receive.
+         *
+         * When using an IRQ line, it waits until the the IRQ line is triggered.
+         * When not using an IRQ line, it will poll the PN532 every 10ms to know whether a response is ready or not.
+         * This is done directly in @ref raw_receive.
+         */
         bool on_receive_prepare(ms timeout) override;
 
     public:
         /**
-         * @brief Default PN532 slave address
+         * @brief Default PN532 slave address.
          */
         static constexpr std::uint8_t default_slave_address = 0x48;
 
         /**
-         * @brief Converts a @ref i2c::error into a @ref pn532::channel::error status code
+         * @brief Converts a @ref i2c::error into a @ref channel_error status code.
          * @param e I2C protocol-level error.
          * @return Channel-level error.
          */
-        [[nodiscard]] inline static error error_from_i2c_error(i2c::error e);
+        [[nodiscard]] inline static channel_error error_from_i2c_error(i2c::error e);
 
+        /**
+         * Sends an empty I2C command to wake the PN532.
+         */
         bool wake() override;
 
         /**
@@ -205,15 +234,18 @@ namespace pn532::esp32 {
          * @param config Configuration for the I2C channel. This is passed as-is to the I2C driver.
          * @param response_irq_line The GPIO pin connected to the IRQ line on the PN532. The PN532 signals when the responses are available
          *  by setting this line to low; an interrupt triggers then a semaphore that allows this class to read the answer only once it's ready.
-         * @param manage_isr_service If set to true, the class will call @ref gpio_install_isr_service and the corresponding uninstall command
+         * @param manage_isr_service If set to true, the class will call `gpio_install_isr_service` and the corresponding uninstall command
          *  at destruction. Unless the caller manages the ISR service by themselves, this parm should be set to true.
          * @param slave_address Override for the slave address, defaults to @ref default_slave_address.
          * @note In case of invalid port or configuration, an error message is printed, but the class is correctly constructed. It will simply
          *  always fail to send and receive anything (and may clog your output with error messages).
-         * @see mlab::irq_assert
+         * @see irq_assert
          */
         i2c_channel(i2c_port_t port, i2c_config_t config, gpio_num_t response_irq_line, bool manage_isr_service, std::uint8_t slave_address = default_slave_address);
 
+        /**
+         * Releases the I2C driver.
+         */
         ~i2c_channel() override;
 
         /**
@@ -222,8 +254,7 @@ namespace pn532::esp32 {
         [[nodiscard]] inline std::uint8_t slave_address_to_write() const;
 
         /**
-         *
-         * @return  Slave address for reading data from the PN532.
+         * @return Slave address for reading data from the PN532.
          */
         [[nodiscard]] inline std::uint8_t slave_address_to_read() const;
     };
@@ -233,18 +264,18 @@ namespace pn532::esp32 {
 
 namespace pn532::esp32 {
 
-    channel::error i2c_channel::error_from_i2c_error(i2c::error e) {
+    channel_error i2c_channel::error_from_i2c_error(i2c::error e) {
         switch (e) {
             case i2c::error::parameter_error:
-                return error::comm_malformed;
+                return channel_error::malformed;
             case i2c::error::timeout:
-                return error::comm_timeout;
+                return channel_error::timeout;
             case i2c::error::fail:
                 [[fallthrough]];
             case i2c::error::invalid_state:
-                return error::comm_error;
+                return channel_error::hw_error;
         }
-        return error::comm_error;
+        return channel_error::hw_error;
     }
 
     std::uint8_t i2c_channel::slave_address_to_write() const {
@@ -254,8 +285,8 @@ namespace pn532::esp32 {
         return _slave_addr + 1;
     }
 
-    channel::receive_mode i2c_channel::raw_receive_mode() const {
-        return receive_mode::buffered;
+    comm_rx_mode i2c_channel::raw_receive_mode() const {
+        return comm_rx_mode::buffered;
     }
 
 }// namespace pn532::esp32

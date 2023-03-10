@@ -105,26 +105,8 @@ build test firmware wolfssl:
     - cd "${PIO_PROJ_FOLDER}"
     - cp sdkconfig-wolfssl.defaults sdkconfig.defaults
 
-build examples:
-  image: ${CI_REGISTRY}/proj/testinator/esp32:latest
-  stage: build
-  <<: *pio-cache
-  cache:
-    key: ${CI_COMMIT_REF_SLUG}-examples
-  script:  # Note that we need to setup sdkconfig.defaults before, so we make our own folder and we manage it ourselves
-    - >
-      for file in ${PIO_LIB_FOLDER}/examples/*.cpp; do
-        BUILD_DIR="$(mktemp -d)"
-        cp ${PIO_LIB_FOLDER}/examples/sdkconfig.defaults "${BUILD_DIR}"
-        pio ci \
-          --build-dir="${BUILD_DIR}" \
-          --project-conf=cicd/platformio.ini \
-          --lib=${PIO_LIB_FOLDER} \
-          --lib=tests/lib/mittelib \
-          --keep-build-dir \
-          $file
-        rm -rf "${BUILD_DIR}"
-      done
+
+.example-build-rules: &example-build-rules
   rules:
     # [skip examples] tag for skipping
     - if: '$CI_COMMIT_MESSAGE =~ /skip examples/'
@@ -134,7 +116,58 @@ build examples:
     # But skip by default if the sources did not change
     - <<: *rules-changes-sources
     - <<: *rules-changes-cicd
+
+
+build examples:
+  image: ${CI_REGISTRY}/proj/testinator/esp32:latest
+  stage: build
+  <<: *pio-cache
+  <<: *example-build-rules
+  cache:
+    key: ${CI_COMMIT_REF_SLUG}-examples
+  script:
+    # Note that we need to set sdkconfig.defaults up in beforehand, so we make our own folder and manage it ourselves
+    - BUILD_DIR="$(mktemp -d)"
+    - cp ${PIO_LIB_FOLDER}/examples/sdkconfig.defaults "${BUILD_DIR}"
+    - pio ci \
+      --build-dir="${BUILD_DIR}" \
+      --project-conf=cicd/platformio.ini \
+      --lib=${PIO_LIB_FOLDER} \
+      --lib=tests/lib/mittelib \
+      --keep-build-dir \
+      "${PIO_LIB_FOLDER}/examples/${EXAMPLE_FILE}"
+    # Copy the firmware to the root folder so that we can use it as artifact to signal that the example has been built
+    - cp "${BUILD_DIR}/.pio/**/firmware.bin" "${PIO_LIB_FOLDER}/examples/${EXAMPLE_FILE}.bin"
+    - rm -rf "${BUILD_DIR}"
+  parallel:
+    matrix:
+      - EXAMPLE_FILE:
+        - app_desfire_demo.cpp
+        - app_scan_loop.cpp
+        - initialize.cpp
+        - scan_any_target_lowlev.cpp
+        - scan_desfire_lowlev.cpp
+        - self_test.cpp
+  artifacts:
+    paths:
+      - "*.bin"
+    expire_in: 1 week
   needs: []
+
+
+test all examples have been built:
+  # This job will make sure that the .gitlab-ci is up to date and all examples have been built
+  image: alpine:3.17
+  stage: test
+  <<: *example-build-rules
+  script:
+    - >
+      for file in ${PIO_LIB_FOLDER}/examples/*.cpp; do
+        echo "Testing that $file was included in the hardcoded list of build examples..."
+        test -e "$file.bin"
+      done
+  needs:
+    - build examples
 
 
 .test-hardware-template: &test-hardware-template
@@ -222,7 +255,7 @@ build docs:
     - echo "Warning list:"
     - grep -iF warning docs/build.log || true
     # Consider doxygen warnings as a failure condition:
-    - "[ $(grep -ci '\\[~\\] [^ ]\\+\\?:\\d\\+: warning:' docs/build.log) -eq 0 ]"
+    - "test $(grep -ci '\\[~\\] [^ ]\\+\\?:\\d\\+: warning:' docs/build.log) -eq 0"
   allow_failure: true
   artifacts:
     paths:

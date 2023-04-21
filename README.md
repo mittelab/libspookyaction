@@ -22,9 +22,6 @@
    platform = espressif32
    framework = espidf
    ; ...
-   build_unflags = -std=gnu++11 -std=gnu++14 -std=c++11 -std=c++14 -std=c++17
-   ; You can add more flags, but GNU++17 must be present
-   build_flags = -std=gnu++17
    ```
 4. Check that your app compiles with these settings, first, using `pio run` or `pio test`. If it does,
 5. add to `platformio.ini` the dependency on libSpookyAction:

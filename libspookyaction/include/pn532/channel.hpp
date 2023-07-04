@@ -414,7 +414,7 @@ namespace pn532 {
          * @return Either the received data, or any @ref channel_error (including @ref channel_error::malformed if the frame received is not an
          *  @ref frame_type::info frame or if the data cannot be parsed.).
          */
-        template <class Data, class = typename std::enable_if<bin_stream::is_extractable<Data>::value>::type>
+        template <mlab::is_extractable Data>
         [[nodiscard]] result<Data> command_parse_response(command_code cmd, bin_data data, ms timeout);
 
     private:
@@ -611,7 +611,7 @@ namespace pn532 {
 
 namespace pn532 {
 
-    template <class Data, class>
+    template <mlab::is_extractable Data>
     result<Data> channel::command_parse_response(command_code cmd, bin_data data, ms timeout) {
         if (const auto res_cmd = command_response(cmd, std::move(data), timeout); res_cmd) {
             bin_stream s{*res_cmd};

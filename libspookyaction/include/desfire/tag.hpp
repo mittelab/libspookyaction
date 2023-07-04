@@ -145,6 +145,10 @@ namespace desfire {
         inline constexpr comm_cfg(comm_mode tx, comm_mode rx, std::size_t sec_data_ofs = 1, bool validated = false);
     };
 
+
+    template <class T>
+    concept is_parsable_reponse_t = mlab::is_extractable<T> or std::is_integral_v<T>;
+
     /**
      * @brief Main class representing a Desfire tag.
      * @note This class is stateful, and despite being very lightweight (does not store anything about the card),
@@ -312,7 +316,7 @@ namespace desfire {
          * @return The response payload, or any of @ref error.
          * @see command_response
          */
-        template <class Data, class = typename std::enable_if<bin_stream::is_extractable<Data>::value or std::is_integral_v<Data>>::type>
+        template <is_parsable_reponse_t Data>
         result<Data> command_parse_response(bits::command_code cmd, bin_data const &payload, comm_cfg const &cfg);
 
         /**
@@ -1688,7 +1692,7 @@ namespace desfire {
           tx_secure_data_offset{sec_data_ofs},
           is_validated{validated} {}
 
-    template <class Data, class>
+    template <is_parsable_reponse_t Data>
     result<Data> tag::command_parse_response(bits::command_code cmd, bin_data const &payload, comm_cfg const &cfg) {
         const auto res_cmd = command_response(cmd, payload, cfg);
         if (not res_cmd) {

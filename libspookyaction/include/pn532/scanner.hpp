@@ -234,19 +234,6 @@ namespace pn532 {
         inline void set_max_scan_interval(ms timeout);
 
         /**
-         * @brief Performs SAM activation and some basic line and antenna tests.
-         * Normally this is what you call right after waking up the PN532 via @ref channel::wake.
-         * @return True if all critical tests passed, false otherwise.
-         * @see
-         *  - controller::sam_configuration
-         *  - controller::diagnose_comm_line
-         *  - controller::diagnose_rom
-         *  - controller::diagnose_ram
-         *  - controller::diagnose_self_antenna
-         */
-        [[nodiscard]] bool init_and_test_controller();
-
-        /**
          * @brief Main loop scanning for tags.
          * @param responder Responder class that reacts to the events.
          * @param init_and_test If True, @ref init_and_test_controller will be called before the loop starts, and exit if it fails.

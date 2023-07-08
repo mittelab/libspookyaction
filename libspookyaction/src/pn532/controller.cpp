@@ -916,6 +916,29 @@ namespace pn532 {
                                                        timeout);
     }
 
+    bool controller::init_and_test() {
+        if (const auto r = sam_configuration(sam_mode::normal, 1s); not r) {
+            PN532_LOGE("SAM configuration failed, cannot start scanning loop (%s).", to_string(r.error()));
+            return false;
+        }
+        if (const auto r = diagnose_comm_line(); not r) {
+            PN532_LOGE("Comm line test failed, cannot start scanning loop (%s).", to_string(r.error()));
+            return false;
+        }
+        if (const auto r = diagnose_rom(); not r) {
+            PN532_LOGE("ROM test failed, cannot start scanning loop (%s).", to_string(r.error()));
+            return false;
+        }
+        if (const auto r = diagnose_ram(); not r) {
+            PN532_LOGE("RAM test failed, cannot start scanning loop (%s).", to_string(r.error()));
+            return false;
+        }
+        if (const auto r = diagnose_self_antenna(low_current_thr::mA_25, high_current_thr::mA_150); not r) {
+            PN532_LOGW("Please inspect antenna, test failed (%s). Scanning might yield no result.", to_string(r.error()));
+        }
+        return true;
+    }
+
     result<> controller::rf_regulation_test(rf_test_mode mode, ms timeout) {
         return chn().command(command_code::rf_regulation_test, bin_data::chain(mode), timeout);
     }

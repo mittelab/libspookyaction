@@ -251,6 +251,18 @@ namespace pn532 {
          */
 
         /**
+         * @brief Performs SAM activation and some basic line and antenna tests.
+         * Normally this is what you call right after waking up the PN532 via @ref channel::wake.
+         * @return True if all critical tests passed, false otherwise.
+         * @see
+         *  - sam_configuration
+         *  - diagnose_comm_line
+         *  - diagnose_rom
+         *  - diagnose_ram
+         *  - diagnose_self_antenna
+         */
+        [[nodiscard]] bool init_and_test();
+        /**
          * @}
          */
 

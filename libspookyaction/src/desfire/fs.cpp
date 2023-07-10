@@ -4,6 +4,10 @@
 
 #include <algorithm>
 #include <desfire/fs.hpp>
+#include <mlab/result_macro.hpp>
+
+#undef MLAB_RESULT_LOG_PREFIX
+#define MLAB_RESULT_LOG_PREFIX "DESFIRE-FS"
 
 namespace desfire::fs {
 

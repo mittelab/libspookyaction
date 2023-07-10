@@ -52,6 +52,8 @@ namespace pn532::p2p {
         if (_controller == nullptr) {
             return pn532::channel_error::app_error;
         }
+        // Force-set the cascade byte as ISO/IEC 14443-3
+        nfcid[0] = nfcid[4] = 0x88;
         const pn532::mifare_params mp{
                 .sens_res = {0x04, 0x00},
                 .nfcid_1t = {nfcid[0], nfcid[1], nfcid[2]},

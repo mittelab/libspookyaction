@@ -124,11 +124,16 @@ namespace pn532::p2p {
          * exchange can begin. Of course the caller may also call @ref controller::target_init_as_target by themselves,
          * providing custom parameters.
          * This method will initialize a DEP-only, passive or active target for P2P NFC communications.
-         * @param nfcid NFCID to use when in the RF. 2t and 1t versions will be truncated from here.
+         * @param nfcid_data These bytes will be used to generate the NFC ID. Due to PN532 restrictions and requirements
+         *  from ISO/IEC 14443-3, the resulting NFC ids will be
+         *  - NFCID1: 0x08 XX XX
+         *  - NFCID2: 0x88 0x08 XX XX 0x88 XX XX XX
+         *  - NFCID3: 0x88 0x08 XX XX 0x88 XX XX XX 0x00 0x00
+         *  where all the XX fields are filled with consecutive bytes from @p nfcid_data
          * @param timeout Maximum time after which @ref channel_error::timeout is returned.
          * @see controller::target_init_as_target
          */
-        [[nodiscard]] result<pn532::activation_as_target> init_as_dep_target(nfcid_3t nfcid, ms timeout = 5s);
+        [[nodiscard]] result<pn532::activation_as_target> init_as_dep_target(std::array<std::uint8_t, 5> nfcid_data, ms timeout = 5s);
 
         /**
          * @brief Receives data over @ref controller::target_get_data.

@@ -224,7 +224,7 @@ namespace desfire {
         /**
          * Prevent accidental cast from bool.
          */
-        file_access_rights(bool) = delete;
+        explicit file_access_rights(bool) = delete;
 
         /**
          * Constructs the structure assigning read and write rights simultaneously.

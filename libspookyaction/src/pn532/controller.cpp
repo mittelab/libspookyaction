@@ -262,7 +262,7 @@ namespace pn532 {
         bin_data payload = bin_data::chain(
                 prealloc(2),
                 bits::rf_config_item::max_rty_com,
-                comm_retries);
+                std::uint8_t{comm_retries});
         return chn().command_response(command_code::rf_configuration, std::move(payload), timeout);
     }
 
@@ -272,9 +272,9 @@ namespace pn532 {
         bin_data payload = bin_data::chain(
                 prealloc(4),
                 bits::rf_config_item::max_retries,
-                atr_retries,
-                psl_retries,
-                passive_activation_retries);
+                std::uint8_t{atr_retries},
+                std::uint8_t{psl_retries},
+                std::uint8_t{passive_activation_retries});
         return chn().command_response(command_code::rf_configuration, std::move(payload), timeout);
     }
 
@@ -515,7 +515,7 @@ namespace pn532 {
         const auto target_view = make_range(std::begin(types_to_poll), std::begin(types_to_poll) + num_types);
         bin_data payload = bin_data::chain(
                 prealloc(2 + num_types),
-                polls_per_type,
+                std::uint8_t{polls_per_type},
                 period,
                 target_view);
         auto res_cmd = chn().command_parse_response<std::vector<any_poll_target>>(command_code::in_autopoll, std::move(payload), timeout);

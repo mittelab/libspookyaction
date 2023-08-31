@@ -31,7 +31,7 @@ namespace pn532 {
      * `target_`. This class has a move-only semantics.
      */
     class controller {
-        std::recursive_mutex _mtx;
+        std::recursive_timed_mutex _mtx;
 
     public:
         /**

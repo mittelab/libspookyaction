@@ -21,6 +21,7 @@ namespace pn532 {
             target_type::innovision_jewel_tag};
 
     result<bool> controller::diagnose_comm_line(ms timeout) {
+        std::unique_lock<std::recursive_mutex> lock{_mtx};
         PN532_LOGI("%s: running %s...", to_string(command_code::diagnose), to_string(bits::test::comm_line));
         // Generate 256 bytes of random data to test
         bin_data payload;
@@ -73,6 +74,7 @@ namespace pn532 {
     }// namespace
 
     result<unsigned, unsigned> controller::diagnose_poll_target(bool slow, bool fast, ms timeout) {
+        std::unique_lock<std::recursive_mutex> lock{_mtx};
         auto get_fails = [&](bool do_test, baudrate speed) -> result<unsigned> {
             if (not do_test) {
                 return std::numeric_limits<unsigned>::max();
@@ -106,6 +108,7 @@ namespace pn532 {
     }
 
     result<> controller::diagnose_echo_back(ms reply_delay, std::uint8_t tx_mode, std::uint8_t rx_mode, ms timeout) {
+        std::unique_lock<std::recursive_mutex> lock{_mtx};
         PN532_LOGI("%s: running %s...", to_string(command_code::diagnose), to_string(bits::test::echo_back));
         bin_data payload = bin_data::chain(
                 prealloc(4),
@@ -117,19 +120,23 @@ namespace pn532 {
     }
 
     result<bool> controller::diagnose_rom(ms timeout) {
+        std::unique_lock<std::recursive_mutex> lock{_mtx};
         return nfc_diagnose_simple(chn(), bits::test::rom, 0x00, timeout);
     }
 
     result<bool> controller::diagnose_ram(ms timeout) {
+        std::unique_lock<std::recursive_mutex> lock{_mtx};
         return nfc_diagnose_simple(chn(), bits::test::ram, 0x00, timeout);
     }
 
     result<bool> controller::diagnose_attention_req_or_card_presence(ms timeout) {
+        std::unique_lock<std::recursive_mutex> lock{_mtx};
         return nfc_diagnose_simple(chn(), bits::test::attention_req_or_card_presence, 0x00, timeout);
     }
 
     result<bool> controller::diagnose_self_antenna(
             low_current_thr low_threshold, high_current_thr high_threshold, ms timeout) {
+        std::unique_lock<std::recursive_mutex> lock{_mtx};
         const bits::reg_antenna_detector r{
                 .detected_low_pwr = false,
                 .detected_high_pwr = false,
@@ -140,15 +147,18 @@ namespace pn532 {
     }
 
     result<firmware_version> controller::get_firmware_version(ms timeout) {
+        std::unique_lock<std::recursive_mutex> lock{_mtx};
         return chn().command_parse_response<firmware_version>(command_code::get_firmware_version, bin_data{}, timeout);
     }
 
     result<general_status> controller::get_general_status(ms timeout) {
+        std::unique_lock<std::recursive_mutex> lock{_mtx};
         return chn().command_parse_response<general_status>(command_code::get_general_status, bin_data{}, timeout);
     }
 
 
     result<std::vector<uint8_t>> controller::read_registers(std::vector<reg::addr> const &addresses, ms timeout) {
+        std::unique_lock<std::recursive_mutex> lock{_mtx};
         static constexpr std::size_t max_addr_count = bits::max_firmware_data_length / 2;
         if (addresses.size() > max_addr_count) {
             PN532_LOGE("%s: requested %u addresses, but can read at most %u in a single batch.",
@@ -171,6 +181,7 @@ namespace pn532 {
     }
 
     result<> controller::write_registers(std::vector<std::pair<reg::addr, std::uint8_t>> const &addr_value_pairs, ms timeout) {
+        std::unique_lock<std::recursive_mutex> lock{_mtx};
         static constexpr std::size_t max_avp_count = bits::max_firmware_data_length / 3;
         if (addr_value_pairs.size() > max_avp_count) {
             PN532_LOGE("%s: requested %u addresses, but can read at most %u in a single batch.",
@@ -185,10 +196,12 @@ namespace pn532 {
     }
 
     result<gpio_status> controller::read_gpio(ms timeout) {
+        std::unique_lock<std::recursive_mutex> lock{_mtx};
         return chn().command_parse_response<gpio_status>(command_code::read_gpio, bin_data{}, timeout);
     }
 
     result<> controller::write_gpio(gpio_status const &status, bool write_p3, bool write_p7, ms timeout) {
+        std::unique_lock<std::recursive_mutex> lock{_mtx};
         if (not write_p3 and not write_p7) {
             PN532_LOGW("Attempt to write nothing on the GPIO, did you miss to pass some parameter?");
             return mlab::result_success;
@@ -208,6 +221,7 @@ namespace pn532 {
     }
 
     result<> controller::set_gpio_pin(gpio_port loc, std::uint8_t pin_idx, bool value, ms timeout) {
+        std::unique_lock<std::recursive_mutex> lock{_mtx};
         reduce_timeout rt{timeout};
         if (auto res_read = read_gpio(rt.remaining()); res_read) {
             (*res_read)[{loc, pin_idx}] = value;
@@ -220,10 +234,12 @@ namespace pn532 {
     }
 
     result<> controller::set_serial_baud_rate(serial_baudrate br, ms timeout) {
+        std::unique_lock<std::recursive_mutex> lock{_mtx};
         return chn().command_response(command_code::set_serial_baudrate, bin_data::chain(br), timeout);
     }
 
     result<> controller::sam_configuration(sam_mode mode, ms sam_timeout, bool controller_drives_irq, ms timeout) {
+        std::unique_lock<std::recursive_mutex> lock{_mtx};
         // Make sure a wake command is sent before
         chn().wake();
         const std::uint8_t sam_timeout_byte = std::min(0xffll, sam_timeout.count() / bits::sam_timeout_unit_ms);
@@ -236,6 +252,7 @@ namespace pn532 {
     }
 
     result<> controller::rf_configuration_field(bool auto_rfca, bool rf_on, ms timeout) {
+        std::unique_lock<std::recursive_mutex> lock{_mtx};
         const std::uint8_t config_data =
                 (auto_rfca ? bits::rf_configuration_field_auto_rfca_mask : 0x00) |
                 (rf_on ? bits::rf_configuration_field_auto_rf_on_mask : 0x00);
@@ -249,6 +266,7 @@ namespace pn532 {
     result<> controller::rf_configuration_timings(
             rf_timeout atr_res_timeout, rf_timeout retry_timeout,
             ms timeout) {
+        std::unique_lock<std::recursive_mutex> lock{_mtx};
         bin_data payload = bin_data::chain(
                 prealloc(4),
                 bits::rf_config_item::timings,
@@ -259,6 +277,7 @@ namespace pn532 {
     }
 
     result<> controller::rf_configuration_retries(infbyte comm_retries, ms timeout) {
+        std::unique_lock<std::recursive_mutex> lock{_mtx};
         bin_data payload = bin_data::chain(
                 prealloc(2),
                 bits::rf_config_item::max_rty_com,
@@ -269,6 +288,7 @@ namespace pn532 {
     result<> controller::rf_configuration_retries(
             infbyte atr_retries, infbyte psl_retries,
             infbyte passive_activation_retries, ms timeout) {
+        std::unique_lock<std::recursive_mutex> lock{_mtx};
         bin_data payload = bin_data::chain(
                 prealloc(4),
                 bits::rf_config_item::max_retries,
@@ -279,6 +299,7 @@ namespace pn532 {
     }
 
     result<> controller::rf_configuration_analog_106kbps_typea(reg::ciu_106kbps_typea const &config, ms timeout) {
+        std::unique_lock<std::recursive_mutex> lock{_mtx};
         bin_data payload = bin_data::chain(
                 prealloc(1 + sizeof(reg::ciu_106kbps_typea)),
                 bits::rf_config_item::analog_106kbps_typea,
@@ -287,6 +308,7 @@ namespace pn532 {
     }
 
     result<> controller::rf_configuration_analog_212_424kbps(reg::ciu_212_424kbps const &config, ms timeout) {
+        std::unique_lock<std::recursive_mutex> lock{_mtx};
         bin_data payload = bin_data::chain(
                 prealloc(1 + sizeof(reg::ciu_212_424kbps)),
                 bits::rf_config_item::analog_212_424kbps,
@@ -295,6 +317,7 @@ namespace pn532 {
     }
 
     result<> controller::rf_configuration_analog_typeb(reg::ciu_typeb const &config, ms timeout) {
+        std::unique_lock<std::recursive_mutex> lock{_mtx};
         bin_data payload = bin_data::chain(
                 prealloc(1 + sizeof(reg::ciu_typeb)),
                 bits::rf_config_item::analog_typeb,
@@ -303,6 +326,7 @@ namespace pn532 {
     }
 
     result<> controller::rf_configuration_analog_iso_iec_14443_4(reg::ciu_iso_iec_14443_4 const &config, ms timeout) {
+        std::unique_lock<std::recursive_mutex> lock{_mtx};
         bin_data payload = bin_data::chain(
                 prealloc(1 + sizeof(reg::ciu_iso_iec_14443_4)),
                 bits::rf_config_item::analog_iso_iec_14443_4,
@@ -320,16 +344,19 @@ namespace pn532 {
     }
 
     result<rf_status> controller::initiator_select(std::uint8_t target_logical_index, ms timeout) {
+        std::unique_lock<std::recursive_mutex> lock{_mtx};
         const std::uint8_t target_byte = get_target(command_code::in_select, target_logical_index, false);
         return chn().command_parse_response<rf_status>(command_code::in_select, bin_data{target_byte}, timeout);
     }
 
     result<rf_status> controller::initiator_deselect(std::uint8_t target_logical_index, ms timeout) {
+        std::unique_lock<std::recursive_mutex> lock{_mtx};
         const std::uint8_t target_byte = get_target(command_code::in_deselect, target_logical_index, false);
         return chn().command_parse_response<rf_status>(command_code::in_deselect, bin_data{target_byte}, timeout);
     }
 
     result<rf_status> controller::initiator_release(std::uint8_t target_logical_index, ms timeout) {
+        std::unique_lock<std::recursive_mutex> lock{_mtx};
         const std::uint8_t target_byte = get_target(command_code::in_release, target_logical_index, false);
         return chn().command_parse_response<rf_status>(command_code::in_release, bin_data{target_byte}, timeout);
     }
@@ -337,6 +364,7 @@ namespace pn532 {
     result<rf_status> controller::initiator_psl(
             std::uint8_t target_logical_index, baudrate in_to_trg, baudrate trg_to_in,
             ms timeout) {
+        std::unique_lock<std::recursive_mutex> lock{_mtx};
         const std::uint8_t target_byte = get_target(command_code::in_psl, target_logical_index, false);
         bin_data payload = bin_data::chain(prealloc(3), target_byte, in_to_trg, trg_to_in);
         return chn().command_parse_response<rf_status>(command_code::in_psl, std::move(payload), timeout);
@@ -408,6 +436,7 @@ namespace pn532 {
     template <baudrate_modulation BrMd>
     result<std::vector<target<BrMd>>> controller::initiator_list_passive(
             std::uint8_t max_targets, bin_data const &initiator_data, ms timeout) {
+        std::unique_lock<std::recursive_mutex> lock{_mtx};
         bin_data payload = bin_data::chain(
                 prealloc(2 + initiator_data.size()),
                 max_targets,
@@ -456,6 +485,7 @@ namespace pn532 {
 
 
     result<rf_status, atr_res_info> controller::initiator_activate_target(std::uint8_t target_logical_index, ms timeout) {
+        std::unique_lock<std::recursive_mutex> lock{_mtx};
         const auto next_byte = get_in_atr_next(false, false);
         return chn().command_parse_response<std::pair<rf_status, atr_res_info>>(
                 command_code::in_atr,
@@ -467,6 +497,7 @@ namespace pn532 {
             std::uint8_t target_logical_index,
             nfcid_3t const &nfcid,
             ms timeout) {
+        std::unique_lock<std::recursive_mutex> lock{_mtx};
         const auto next_byte = get_in_atr_next(true, false);
         return chn().command_parse_response<std::pair<rf_status, atr_res_info>>(
                 command_code::in_atr,
@@ -478,6 +509,7 @@ namespace pn532 {
             std::uint8_t target_logical_index,
             std::vector<std::uint8_t> const &general_info,
             ms timeout) {
+        std::unique_lock<std::recursive_mutex> lock{_mtx};
         const auto next_byte = get_in_atr_next(false, true);
         const auto gi_view = sanitize_initiator_general_info(command_code::in_atr, general_info);
         return chn().command_parse_response<std::pair<rf_status, atr_res_info>>(
@@ -491,6 +523,7 @@ namespace pn532 {
             nfcid_3t const &nfcid,
             std::vector<std::uint8_t> const &general_info,
             ms timeout) {
+        std::unique_lock<std::recursive_mutex> lock{_mtx};
         const auto next_byte = get_in_atr_next(true, true);
         const auto gi_view = sanitize_initiator_general_info(command_code::in_atr, general_info);
         return chn().command_parse_response<std::pair<rf_status, atr_res_info>>(
@@ -503,6 +536,7 @@ namespace pn532 {
             std::vector<target_type> const &types_to_poll,
             infbyte polls_per_type, poll_period period,
             ms timeout) {
+        std::unique_lock<std::recursive_mutex> lock{_mtx};
         if (types_to_poll.empty()) {
             PN532_LOGW("%s: no target types specified.", to_string(command_code::in_autopoll));
             return std::vector<any_poll_target>{};
@@ -528,6 +562,7 @@ namespace pn532 {
 
     result<rf_status, bin_data> controller::initiator_data_exchange(
             std::uint8_t target_logical_index, bin_data const &data, ms timeout) {
+        std::unique_lock<std::recursive_mutex> lock{_mtx};
         static constexpr std::size_t max_chunk_length = bits::max_firmware_data_length - 1;// - target byte
         const auto n_chunks = std::max(1u, (data.size() + max_chunk_length - 1) / max_chunk_length);
         if (n_chunks > 1) {
@@ -572,6 +607,7 @@ namespace pn532 {
 
 
     result<rf_status, bin_data> controller::initiator_communicate_through(bin_data raw_data, ms timeout) {
+        std::unique_lock<std::recursive_mutex> lock{_mtx};
         return chn().command_parse_response<std::pair<rf_status, bin_data>>(command_code::in_communicate_thru, std::move(raw_data),
                                                                             timeout);
     }
@@ -586,6 +622,7 @@ namespace pn532 {
     }// namespace
 
     result<jump_dep_psl> controller::initiator_jump_for_dep_active(baudrate speed, ms timeout) {
+        std::unique_lock<std::recursive_mutex> lock{_mtx};
         const auto next_byte = get_in_jump_for_dep_psl_next(false, false, false);
         return chn().command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_dep,
@@ -595,6 +632,7 @@ namespace pn532 {
 
     result<jump_dep_psl> controller::initiator_jump_for_dep_active(
             baudrate speed, nfcid_3t const &nfcid, ms timeout) {
+        std::unique_lock<std::recursive_mutex> lock{_mtx};
         const auto next_byte = get_in_jump_for_dep_psl_next(false, true, false);
         return chn().command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_dep,
@@ -603,6 +641,7 @@ namespace pn532 {
     }
 
     result<jump_dep_psl> controller::initiator_jump_for_dep_passive_106kbps(ms timeout) {
+        std::unique_lock<std::recursive_mutex> lock{_mtx};
         const auto next_byte = get_in_jump_for_dep_psl_next(false, false, false);
         return chn().command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_dep,
@@ -612,6 +651,7 @@ namespace pn532 {
 
     result<jump_dep_psl> controller::initiator_jump_for_dep_passive_106kbps(
             nfcid_3t const &nfcid, ms timeout) {
+        std::unique_lock<std::recursive_mutex> lock{_mtx};
         const auto next_byte = get_in_jump_for_dep_psl_next(false, true, false);
         return chn().command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_dep,
@@ -621,6 +661,7 @@ namespace pn532 {
 
     result<jump_dep_psl> controller::initiator_jump_for_dep_passive_106kbps(
             nfcid_1t target_id, ms timeout) {
+        std::unique_lock<std::recursive_mutex> lock{_mtx};
         const auto next_byte = get_in_jump_for_dep_psl_next(true, false, false);
         return chn().command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_dep,
@@ -630,6 +671,7 @@ namespace pn532 {
 
     result<jump_dep_psl> controller::initiator_jump_for_dep_passive_106kbps(
             nfcid_1t target_id, nfcid_3t const &nfcid, ms timeout) {
+        std::unique_lock<std::recursive_mutex> lock{_mtx};
         const auto next_byte = get_in_jump_for_dep_psl_next(true, true, false);
         return chn().command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_dep,
@@ -639,6 +681,7 @@ namespace pn532 {
 
     result<jump_dep_psl> controller::initiator_jump_for_dep_passive_212kbps(
             std::array<std::uint8_t, 5> const &payload, ms timeout) {
+        std::unique_lock<std::recursive_mutex> lock{_mtx};
         const auto next_byte = get_in_jump_for_dep_psl_next(true, false, false);
         return chn().command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_dep,
@@ -648,6 +691,7 @@ namespace pn532 {
 
     result<jump_dep_psl> controller::initiator_jump_for_dep_passive_424kbps(
             std::array<std::uint8_t, 5> const &payload, ms timeout) {
+        std::unique_lock<std::recursive_mutex> lock{_mtx};
         const auto next_byte = get_in_jump_for_dep_psl_next(true, false, false);
         return chn().command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_dep,
@@ -659,6 +703,7 @@ namespace pn532 {
     result<jump_dep_psl> controller::initiator_jump_for_dep_active(
             baudrate speed,
             std::vector<std::uint8_t> const &general_info, ms timeout) {
+        std::unique_lock<std::recursive_mutex> lock{_mtx};
         const auto next_byte = get_in_jump_for_dep_psl_next(false, false, true);
         const auto gi_view = sanitize_initiator_general_info(command_code::in_jump_for_dep, general_info);
         return chn().command_parse_response<jump_dep_psl>(
@@ -670,6 +715,7 @@ namespace pn532 {
     result<jump_dep_psl> controller::initiator_jump_for_dep_active(
             baudrate speed, nfcid_3t const &nfcid,
             std::vector<std::uint8_t> const &general_info, ms timeout) {
+        std::unique_lock<std::recursive_mutex> lock{_mtx};
         const auto next_byte = get_in_jump_for_dep_psl_next(false, true, true);
         const auto gi_view = sanitize_initiator_general_info(command_code::in_jump_for_dep, general_info);
         return chn().command_parse_response<jump_dep_psl>(
@@ -680,6 +726,7 @@ namespace pn532 {
 
     result<jump_dep_psl> controller::initiator_jump_for_dep_passive_106kbps(
             std::vector<std::uint8_t> const &general_info, ms timeout) {
+        std::unique_lock<std::recursive_mutex> lock{_mtx};
         const auto next_byte = get_in_jump_for_dep_psl_next(false, false, true);
         const auto gi_view = sanitize_initiator_general_info(command_code::in_jump_for_dep, general_info);
         return chn().command_parse_response<jump_dep_psl>(
@@ -691,6 +738,7 @@ namespace pn532 {
     result<jump_dep_psl> controller::initiator_jump_for_dep_passive_106kbps(
             nfcid_3t const &nfcid,
             std::vector<std::uint8_t> const &general_info, ms timeout) {
+        std::unique_lock<std::recursive_mutex> lock{_mtx};
         const auto next_byte = get_in_jump_for_dep_psl_next(false, true, true);
         const auto gi_view = sanitize_initiator_general_info(command_code::in_jump_for_dep, general_info);
         return chn().command_parse_response<jump_dep_psl>(
@@ -702,6 +750,7 @@ namespace pn532 {
     result<jump_dep_psl> controller::initiator_jump_for_dep_passive_106kbps(
             nfcid_1t target_id,
             std::vector<std::uint8_t> const &general_info, ms timeout) {
+        std::unique_lock<std::recursive_mutex> lock{_mtx};
         const auto next_byte = get_in_jump_for_dep_psl_next(true, false, true);
         const auto gi_view = sanitize_initiator_general_info(command_code::in_jump_for_dep, general_info);
         return chn().command_parse_response<jump_dep_psl>(
@@ -713,6 +762,7 @@ namespace pn532 {
     result<jump_dep_psl> controller::initiator_jump_for_dep_passive_106kbps(
             nfcid_1t target_id, nfcid_3t const &nfcid,
             std::vector<std::uint8_t> const &general_info, ms timeout) {
+        std::unique_lock<std::recursive_mutex> lock{_mtx};
         const auto next_byte = get_in_jump_for_dep_psl_next(true, true, true);
         const auto gi_view = sanitize_initiator_general_info(command_code::in_jump_for_dep, general_info);
         return chn().command_parse_response<jump_dep_psl>(
@@ -724,6 +774,7 @@ namespace pn532 {
     result<jump_dep_psl> controller::initiator_jump_for_dep_passive_212kbps(
             std::array<std::uint8_t, 5> const &payload,
             std::vector<std::uint8_t> const &general_info, ms timeout) {
+        std::unique_lock<std::recursive_mutex> lock{_mtx};
         const auto next_byte = get_in_jump_for_dep_psl_next(true, false, true);
         const auto gi_view = sanitize_initiator_general_info(command_code::in_jump_for_dep, general_info);
         return chn().command_parse_response<jump_dep_psl>(
@@ -735,6 +786,7 @@ namespace pn532 {
     result<jump_dep_psl> controller::initiator_jump_for_dep_passive_424kbps(
             std::array<std::uint8_t, 5> const &payload,
             std::vector<std::uint8_t> const &general_info, ms timeout) {
+        std::unique_lock<std::recursive_mutex> lock{_mtx};
         const auto next_byte = get_in_jump_for_dep_psl_next(true, false, true);
         const auto gi_view = sanitize_initiator_general_info(command_code::in_jump_for_dep, general_info);
         return chn().command_parse_response<jump_dep_psl>(
@@ -745,6 +797,7 @@ namespace pn532 {
 
 
     result<jump_dep_psl> controller::initiator_jump_for_psl_active(baudrate speed, ms timeout) {
+        std::unique_lock<std::recursive_mutex> lock{_mtx};
         const auto next_byte = get_in_jump_for_dep_psl_next(false, false, false);
         return chn().command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_psl,
@@ -754,6 +807,7 @@ namespace pn532 {
 
     result<jump_dep_psl> controller::initiator_jump_for_psl_active(
             baudrate speed, nfcid_3t const &nfcid, ms timeout) {
+        std::unique_lock<std::recursive_mutex> lock{_mtx};
         const auto next_byte = get_in_jump_for_dep_psl_next(false, true, false);
         return chn().command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_psl,
@@ -762,6 +816,7 @@ namespace pn532 {
     }
 
     result<jump_dep_psl> controller::initiator_jump_for_psl_passive_106kbps(ms timeout) {
+        std::unique_lock<std::recursive_mutex> lock{_mtx};
         const auto next_byte = get_in_jump_for_dep_psl_next(false, false, false);
         return chn().command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_psl,
@@ -771,6 +826,7 @@ namespace pn532 {
 
     result<jump_dep_psl> controller::initiator_jump_for_psl_passive_106kbps(
             nfcid_3t const &nfcid, ms timeout) {
+        std::unique_lock<std::recursive_mutex> lock{_mtx};
         const auto next_byte = get_in_jump_for_dep_psl_next(false, true, false);
         return chn().command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_psl,
@@ -780,6 +836,7 @@ namespace pn532 {
 
     result<jump_dep_psl> controller::initiator_jump_for_psl_passive_106kbps(
             nfcid_1t target_id, ms timeout) {
+        std::unique_lock<std::recursive_mutex> lock{_mtx};
         const auto next_byte = get_in_jump_for_dep_psl_next(true, false, false);
         return chn().command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_psl,
@@ -789,6 +846,7 @@ namespace pn532 {
 
     result<jump_dep_psl> controller::initiator_jump_for_psl_passive_106kbps(
             nfcid_1t target_id, nfcid_3t const &nfcid, ms timeout) {
+        std::unique_lock<std::recursive_mutex> lock{_mtx};
         const auto next_byte = get_in_jump_for_dep_psl_next(true, true, false);
         return chn().command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_psl,
@@ -798,6 +856,7 @@ namespace pn532 {
 
     result<jump_dep_psl> controller::initiator_jump_for_psl_passive_212kbps(
             std::array<std::uint8_t, 5> const &payload, ms timeout) {
+        std::unique_lock<std::recursive_mutex> lock{_mtx};
         const auto next_byte = get_in_jump_for_dep_psl_next(true, false, false);
         return chn().command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_psl,
@@ -807,6 +866,7 @@ namespace pn532 {
 
     result<jump_dep_psl> controller::initiator_jump_for_psl_passive_424kbps(
             std::array<std::uint8_t, 5> const &payload, ms timeout) {
+        std::unique_lock<std::recursive_mutex> lock{_mtx};
         const auto next_byte = get_in_jump_for_dep_psl_next(true, false, false);
         return chn().command_parse_response<jump_dep_psl>(
                 command_code::in_jump_for_psl,
@@ -818,6 +878,7 @@ namespace pn532 {
     result<jump_dep_psl> controller::initiator_jump_for_psl_active(
             baudrate speed,
             std::vector<std::uint8_t> const &general_info, ms timeout) {
+        std::unique_lock<std::recursive_mutex> lock{_mtx};
         const auto next_byte = get_in_jump_for_dep_psl_next(false, false, true);
         const auto gi_view = sanitize_initiator_general_info(command_code::in_jump_for_psl, general_info);
         return chn().command_parse_response<jump_dep_psl>(
@@ -829,6 +890,7 @@ namespace pn532 {
     result<jump_dep_psl> controller::initiator_jump_for_psl_active(
             baudrate speed, nfcid_3t const &nfcid,
             std::vector<std::uint8_t> const &general_info, ms timeout) {
+        std::unique_lock<std::recursive_mutex> lock{_mtx};
         const auto next_byte = get_in_jump_for_dep_psl_next(false, true, true);
         const auto gi_view = sanitize_initiator_general_info(command_code::in_jump_for_psl, general_info);
         return chn().command_parse_response<jump_dep_psl>(
@@ -839,6 +901,7 @@ namespace pn532 {
 
     result<jump_dep_psl> controller::initiator_jump_for_psl_passive_106kbps(
             std::vector<std::uint8_t> const &general_info, ms timeout) {
+        std::unique_lock<std::recursive_mutex> lock{_mtx};
         const auto next_byte = get_in_jump_for_dep_psl_next(false, false, true);
         const auto gi_view = sanitize_initiator_general_info(command_code::in_jump_for_psl, general_info);
         return chn().command_parse_response<jump_dep_psl>(
@@ -850,6 +913,7 @@ namespace pn532 {
     result<jump_dep_psl> controller::initiator_jump_for_psl_passive_106kbps(
             nfcid_3t const &nfcid,
             std::vector<std::uint8_t> const &general_info, ms timeout) {
+        std::unique_lock<std::recursive_mutex> lock{_mtx};
         const auto next_byte = get_in_jump_for_dep_psl_next(false, true, true);
         const auto gi_view = sanitize_initiator_general_info(command_code::in_jump_for_psl, general_info);
         return chn().command_parse_response<jump_dep_psl>(
@@ -861,6 +925,7 @@ namespace pn532 {
     result<jump_dep_psl> controller::initiator_jump_for_psl_passive_106kbps(
             nfcid_1t target_id,
             std::vector<std::uint8_t> const &general_info, ms timeout) {
+        std::unique_lock<std::recursive_mutex> lock{_mtx};
         const auto next_byte = get_in_jump_for_dep_psl_next(true, false, true);
         const auto gi_view = sanitize_initiator_general_info(command_code::in_jump_for_psl, general_info);
         return chn().command_parse_response<jump_dep_psl>(
@@ -872,6 +937,7 @@ namespace pn532 {
     result<jump_dep_psl> controller::initiator_jump_for_psl_passive_106kbps(
             nfcid_1t target_id, nfcid_3t const &nfcid,
             std::vector<std::uint8_t> const &general_info, ms timeout) {
+        std::unique_lock<std::recursive_mutex> lock{_mtx};
         const auto next_byte = get_in_jump_for_dep_psl_next(true, true, true);
         const auto gi_view = sanitize_initiator_general_info(command_code::in_jump_for_psl, general_info);
         return chn().command_parse_response<jump_dep_psl>(
@@ -883,6 +949,7 @@ namespace pn532 {
     result<jump_dep_psl> controller::initiator_jump_for_psl_passive_212kbps(
             std::array<std::uint8_t, 5> const &payload,
             std::vector<std::uint8_t> const &general_info, ms timeout) {
+        std::unique_lock<std::recursive_mutex> lock{_mtx};
         const auto next_byte = get_in_jump_for_dep_psl_next(true, false, true);
         const auto gi_view = sanitize_initiator_general_info(command_code::in_jump_for_psl, general_info);
         return chn().command_parse_response<jump_dep_psl>(
@@ -894,6 +961,7 @@ namespace pn532 {
     result<jump_dep_psl> controller::initiator_jump_for_psl_passive_424kbps(
             std::array<std::uint8_t, 5> const &payload,
             std::vector<std::uint8_t> const &general_info, ms timeout) {
+        std::unique_lock<std::recursive_mutex> lock{_mtx};
         const auto next_byte = get_in_jump_for_dep_psl_next(true, false, true);
         const auto gi_view = sanitize_initiator_general_info(command_code::in_jump_for_psl, general_info);
         return chn().command_parse_response<jump_dep_psl>(
@@ -903,20 +971,24 @@ namespace pn532 {
     }
 
     result<> controller::set_parameters(parameters const &parms, ms timeout) {
+        std::unique_lock<std::recursive_mutex> lock{_mtx};
         return chn().command_response(command_code::set_parameters, bin_data::chain(parms), timeout);
     }
 
     result<rf_status> controller::power_down(std::vector<wakeup_source> const &wakeup_sources, ms timeout) {
+        std::unique_lock<std::recursive_mutex> lock{_mtx};
         return chn().command_parse_response<rf_status>(command_code::power_down, bin_data::chain(wakeup_sources), timeout);
     }
 
     result<rf_status> controller::power_down(std::vector<wakeup_source> const &wakeup_sources, bool generate_irq, ms timeout) {
+        std::unique_lock<std::recursive_mutex> lock{_mtx};
         return chn().command_parse_response<rf_status>(command_code::power_down,
                                                        bin_data::chain(prealloc(2), wakeup_sources, generate_irq),
                                                        timeout);
     }
 
     bool controller::init_and_test() {
+        std::unique_lock<std::recursive_mutex> lock{_mtx};
         if (const auto r = sam_configuration(sam_mode::normal, 1s); not r) {
             PN532_LOGE("SAM configuration failed, cannot start scanning loop (%s).", to_string(r.error()));
             return false;
@@ -940,10 +1012,12 @@ namespace pn532 {
     }
 
     result<> controller::rf_regulation_test(rf_test_mode mode, ms timeout) {
+        std::unique_lock<std::recursive_mutex> lock{_mtx};
         return chn().command(command_code::rf_regulation_test, bin_data::chain(mode), timeout);
     }
 
     result<status_as_target> controller::target_get_target_status(ms timeout) {
+        std::unique_lock<std::recursive_mutex> lock{_mtx};
         return chn().command_parse_response<status_as_target>(command_code::tg_get_target_status, bin_data{}, timeout);
     }
 
@@ -952,6 +1026,7 @@ namespace pn532 {
             felica_params const &felica, nfcid_3t const &nfcid,
             std::vector<std::uint8_t> const &general_info,
             std::vector<std::uint8_t> const &historical_bytes, ms timeout) {
+        std::unique_lock<std::recursive_mutex> lock{_mtx};
         const std::uint8_t mode_byte = (picc_only ? bits::init_as_target_picc_only_bit : 0x00) |
                                        (dep_only ? bits::init_as_target_dep_only_bit : 0x00) |
                                        (passive_only ? bits::init_as_target_passive_only_bit : 0x00);
@@ -971,32 +1046,38 @@ namespace pn532 {
     }
 
     result<rf_status> controller::target_set_general_bytes(std::vector<std::uint8_t> const &general_info, ms timeout) {
+        std::unique_lock<std::recursive_mutex> lock{_mtx};
         const auto gi_view = sanitize_target_general_info(command_code::tg_set_general_bytes, general_info);
         return chn().command_parse_response<rf_status>(command_code::tg_set_general_bytes, bin_data::chain(gi_view),
                                                        timeout);
     }
 
     result<rf_status, bin_data> controller::target_get_data(ms timeout) {
+        std::unique_lock<std::recursive_mutex> lock{_mtx};
         return chn().command_parse_response<std::pair<rf_status, bin_data>>(command_code::tg_get_data, bin_data{}, timeout);
     }
 
     result<rf_status> controller::target_set_data(std::vector<std::uint8_t> const &data, ms timeout) {
+        std::unique_lock<std::recursive_mutex> lock{_mtx};
         const auto view = sanitize_vector(command_code::tg_set_data, "data", data, bits::max_firmware_data_length - 1);
         return chn().command_parse_response<rf_status>(command_code::tg_set_data, bin_data::chain(view), timeout);
     }
 
     result<rf_status> controller::target_set_metadata(std::vector<std::uint8_t> const &data, ms timeout) {
+        std::unique_lock<std::recursive_mutex> lock{_mtx};
         const auto view = sanitize_vector(command_code::tg_set_metadata, "metadata", data,
                                           bits::max_firmware_data_length - 1);
         return chn().command_parse_response<rf_status>(command_code::tg_set_metadata, bin_data::chain(view), timeout);
     }
 
     result<rf_status, bin_data> controller::target_get_initiator_command(ms timeout) {
+        std::unique_lock<std::recursive_mutex> lock{_mtx};
         return chn().command_parse_response<std::pair<rf_status, bin_data>>(command_code::tg_get_initiator_command,
                                                                             bin_data{}, timeout);
     }
 
     result<rf_status> controller::target_response_to_initiator(std::vector<std::uint8_t> const &data, ms timeout) {
+        std::unique_lock<std::recursive_mutex> lock{_mtx};
         const auto view = sanitize_vector(command_code::tg_response_to_initiator, "response", data,
                                           bits::max_firmware_data_length - 1);
         return chn().command_parse_response<rf_status>(command_code::tg_response_to_initiator, bin_data::chain(view),

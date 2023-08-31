@@ -6,6 +6,7 @@
 #define PN532_CONTROLLER_HPP
 
 #include <mlab/result.hpp>
+#include <mutex>
 #include <pn532/bits.hpp>
 #include <pn532/channel.hpp>
 #include <pn532/data.hpp>
@@ -30,6 +31,8 @@ namespace pn532 {
      * `target_`. This class has a move-only semantics.
      */
     class controller {
+        std::recursive_mutex _mtx;
+
     public:
         /**
          * A list of all possible targets to poll.
@@ -63,11 +66,11 @@ namespace pn532 {
 
         controller(controller const &) = delete;
 
-        controller(controller &&) = default;
+        controller(controller &&) = delete;
 
         controller &operator=(controller const &) = delete;
 
-        controller &operator=(controller &&) = default;
+        controller &operator=(controller &&) = delete;
 
         /**
          * @name Miscellanea commands

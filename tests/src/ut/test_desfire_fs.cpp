@@ -140,7 +140,7 @@ namespace ut::fs {
         TEST_ASSERT(create_app(tag, aid, master_key, {}));
 
         // Should fail if the app exists already
-        auto suppress = suppress_log{DESFIRE_LOG_PREFIX, DESFIRE_FS_LOG_PREFIX};
+        auto suppress = suppress_log{DESFIRE_LOG_PREFIX, "DESFIRE-FS"};
         TEST_ASSERT_FALSE(create_app(tag, aid, master_key, {}));
         suppress.restore();
         // Should be on the new app
@@ -251,7 +251,7 @@ namespace ut::fs {
         }
 
         // Should fail without authorization
-        auto suppress = suppress_log{DESFIRE_FS_LOG_PREFIX, DESFIRE_LOG_PREFIX};
+        auto suppress = suppress_log{"DESFIRE-FS", DESFIRE_LOG_PREFIX};
         TEST_ASSERT_FALSE(delete_file_if_exists(tag, fid));
         suppress.restore();
     }
@@ -297,7 +297,7 @@ namespace ut::fs {
         TEST_ASSERT_EQUAL(*r_value, expected_data);
 
         // Should fail without authorization
-        auto suppress = suppress_log{DESFIRE_FS_LOG_PREFIX, DESFIRE_LOG_PREFIX};
+        auto suppress = suppress_log{"DESFIRE-FS", DESFIRE_LOG_PREFIX};
         TEST_ASSERT_FALSE(delete_file_if_exists(tag, fid));
         suppress.restore();
     }

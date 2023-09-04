@@ -29,6 +29,7 @@ namespace pn532::esp32 {
             timeout = ESP_ERR_TIMEOUT             ///<Timeout occurred
         };
 
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
         /**
          * @addtogroup StringConversion
          * @{
@@ -37,6 +38,7 @@ namespace pn532::esp32 {
         /**
          * @}
          */
+#endif
 
         /**
          * @brief Class that wraps an I2C ESP32's command.

@@ -2,28 +2,6 @@
 // Created by Pietro Saccardi on 02/01/2021.
 //
 
-/**
- * @defgroup card Mifare Card
- *
- * @defgroup application Application management
- *
- * @defgroup data Data storage
- *
- * @defgroup standardFile Standard file
- *
- * @defgroup backupFile Backup file
- *
- * @defgroup recordFile Cyclic or linear record file
- *
- * @defgroup valueFile Value file
- *
- * @defgroup cardAndApplication Application/card authentication
- *
- * @defgroup standardAndBackupFile Data files
- *
- * @defgroup committableFiles Committable files
- */
-
 #ifndef DESFIRE_TAG_HPP
 #define DESFIRE_TAG_HPP
 
@@ -269,7 +247,6 @@ namespace desfire {
          * @see
          *  - command_response
          *  - command_parse_response
-         * @ingroup data
          * @param cmd Command code of the command to issue.
          * @param payload Payload of the command (might be empty).
          * @param cfg Communication configuration.
@@ -290,7 +267,6 @@ namespace desfire {
          * @brief Like @ref command_status_response, but will also convert the status byte into a @ref error.
          * Will automatically fetch all additional frames if requested to do so by @p cfg, and at the end will parse the
          * status byte to decide whether the command was successful (`status::ok` or `status::no_changes`).
-         * @ingroup data
          * @param cmd Command code of the command to issue.
          * @param payload Payload of the command (might be empty).
          * @param cfg Communication configuration.
@@ -308,7 +284,6 @@ namespace desfire {
         /**
          * @brief Like @ref command_response, but will also parse the returned `bin_data` into a specific type `Data`.
          * This command will always fetch additional frames until the end.
-         * @ingroup data
          * @tparam Data Type into which to convert the obtained response data. Must be extractable from `mlab::bin_stream`.
          * @param cmd Command code of the command to issue.
          * @param payload Payload of the command (might be empty).
@@ -321,7 +296,6 @@ namespace desfire {
 
         /**
          * The currently active app id (by default, @ref root_app).
-         * @ingroup card
          * @see select_application
          */
         [[nodiscard]] inline app_id const &active_app() const;
@@ -329,13 +303,11 @@ namespace desfire {
         /**
          * The @ref cipher_type of the currently active key (by default, @ref cipher_type::none).
          * @see authenticate
-         * @ingroup cardAndApplication
          */
         [[nodiscard]] inline cipher_type active_cipher_type() const;
 
         /**
          * The number of the currently authenticated key (0..13, included), or `0xff` if no authentication has taken place.
-         * @ingroup cardAndApplication
          * @see authenticate
          */
         [[nodiscard]] inline std::uint8_t active_key_no() const;
@@ -343,7 +315,6 @@ namespace desfire {
         /**
          * @brief Authenticates to the active application @ref active_app with key @p k.
          * As a consequence, @ref active_cipher_type and @ref active_key_no will be updated.
-         * @ingroup cardAndApplication
          * @param k Key to use to authenticate.
          * @return Either `mlab::result_success` or any of @ref error (usually @ref error::authentication_error or @ref error::permission_denied).
          */
@@ -353,7 +324,6 @@ namespace desfire {
          * @brief Authenticates to the active application @ref active_app with key @p k.
          * As a consequence, @ref active_cipher_type and @ref active_key_no will be updated.
          * Strongly-typed version of @ref authenticate(any_key const &).
-         * @ingroup cardAndApplication
          * @tparam Type Type of the key and cipher.
          * @param k Key to use to authenticate.
          * @return Either `mlab::result_success` or any of @ref error (usually @ref error::authentication_error or @ref error::permission_denied).
@@ -375,7 +345,6 @@ namespace desfire {
          *
          * @brief Selects the application to use for successive operations.
          * After selecting a new application, the PICC is logged out and you need to @ref authenticate again.
-         * @ingroup cardAndApplication
          * @param aid The id of the app to be selected.
          * @return Either `mlab::result_success` or any of @ref error. If the app is not present, @ref error::app_not_found is returned.
          */
@@ -397,7 +366,6 @@ namespace desfire {
          * Must be on the @ref root_app for this to succeed (@ref select_application), and a previous @ref authenticate
          * must have taken place, unless the @ref root_app's @ref key_rights::create_delete_without_master_key is set
          * to true. In that case, no authentication is necessary.
-         * @ingroup application
          * @param aid The id of the new app to be created.
          * @param settings Configuration of tha app (mainly: number of keys and witch cipher to use)
          * @return Either `mlab::result_success` or any of @ref error, in particular @ref error::permission_denied if the operation is now allowed,
@@ -420,7 +388,6 @@ namespace desfire {
          * @brief Change the setting of @ref active_app.
          * This requires a previous @ref authenticate command with the app master key (i.e. key number zero);
          * moreover the app's @ref key_rights::config_changeable must be set to true.
-         * @ingroup application
          * @param new_rights the new app settings
          * @return Either `mlab::result_success` or any of @ref error, in particular @ref error::permission_denied.
          */
@@ -442,7 +409,6 @@ namespace desfire {
          * The app need to be selected first (with @ref select_application) for this to succeed.
          * Moreover, you need to @ref authenticate with the master key, unless the app's @ref key_rights::dir_access_without_auth
          * is set to true.
-         * @ingroup application
          * @return The @ref app_settings, any of @ref error, in particular @ref error::permission_denied.
          */
         [[nodiscard]] result<app_settings> get_app_settings();
@@ -460,7 +426,6 @@ namespace desfire {
          * @enddot
          *
          * @brief Get the version of the key (in the @ref active_app).
-         * @ingroup application
          * @param key_no Number of the key, an integer in the range 0..13 (included).
          *  If an out-of-range number is specified, this method returns @ref error::parameter_error.
          * @return Integer representing the key version, any of @ref error, in particular
@@ -488,7 +453,6 @@ namespace desfire {
          * Must be on the @ref root_app (@ref select_application) for this to succeed.
          * Moreover, a previous @ref authenticate command might be required, unless the @ref root_app's @ref key_rights::dir_access_without_auth
          * is set to true.
-         * @ingroup application
          * @return Vector of @ref app_id, any of @ref error, in particular @ref error::permission_denied.
          */
         [[nodiscard]] result<std::vector<app_id>> get_application_ids();
@@ -509,7 +473,6 @@ namespace desfire {
          * Must authenticated on the @ref root_app or in @p aid, with the master key (key number zero) for this
          * to succeed. Alternatively, if the @ref root_app's @ref key_rights::create_delete_without_master_key
          * is set to true, the deletion can be performed without authentication on the @ref root_app.
-         * @ingroup application
          * @param aid The app ID of the application to be deleted
          * @return Either `mlab::result_success` or any of @ref error, in particular @ref error::permission_denied.
          */
@@ -544,7 +507,6 @@ namespace desfire {
          * @brief Read tag information.
          * Serial number, production year and so on.
          * We conjecture this can be called on any app and without authentication.
-         * @ingroup card
          * @return A @ref manufacturing_info instance containing tag information, or any of @ref error.
          */
         [[nodiscard]] result<manufacturing_info> get_info();
@@ -567,7 +529,6 @@ namespace desfire {
          * This requires a previous @ref authenticate of @ref root_app with the master (root) key.
          * Afterwards, the PICC will be on @ref root_app with no authentication.
          * @note This does not change the root key and the @ref root_app's settings!
-         * @ingroup cardAndApplication
          * @return Either `mlab::result_success` or any of @ref error.
          */
         result<> format_picc();
@@ -588,7 +549,6 @@ namespace desfire {
          * Moreover, the @ref active_app's @ref key_rights::allowed_to_change_keys must be either @ref same_key,
          * or exactly @ref active_key_no.
          * After this command, the app is unchanged but a new @ref authenticate command must be performed.
-         * @ingroup cardAndApplication
          * @return Either `mlab::result_success`, or any of @ref error, in particular @ref error::permission_denied.
          */
         result<> change_key(any_key const &new_key);
@@ -610,7 +570,6 @@ namespace desfire {
          * Moreover, the @ref active_app's @ref key_rights::allowed_to_change_keys must be either @ref same_key,
          * or exactly @ref active_key_no.
          * After this command, the app is unchanged but a new @ref authenticate command must be performed.
-         * @ingroup cardAndApplication
          * @return Either `mlab::result_success`, or any of @ref error, in particular @ref error::permission_denied.
          */
         template <cipher_type Type>
@@ -626,7 +585,6 @@ namespace desfire {
          *  A new authentication will thus be required.
          * @param previous_key Key to change. The @ref any_key::key_number must match @p new_key's.
          * @param new_key New key. The @ref any_key::key_number must match @p previous_key's.
-         * @ingroup cardAndApplication
          * @return Either `mlab::result_success`, or any of @ref error, in particular @ref error::permission_denied.
          */
         result<> change_key(any_key const &previous_key, any_key const &new_key);
@@ -642,7 +600,6 @@ namespace desfire {
          *  A new authentication will thus be required.
          * @param previous_key Key to change. The @ref any_key::key_number must match @p new_key's.
          * @param new_key New key. The @ref any_key::key_number must match @p previous_key's.
-         * @ingroup application
          * @return Either `mlab::result_success`, or any of @ref error, in particular @ref error::permission_denied.
          */
         template <cipher_type Type>
@@ -663,7 +620,6 @@ namespace desfire {
          * @brief Get a list of files in @ref active_app.
          * You must have a preceding @ref authenticate command on the app, or @ref active_app's @ref key_rights::dir_access_without_auth
          * must be set to true.
-         * @ingroup data
          * @return Vector of @ref file_id, or any of @ref error, in particular @ref error::permission_denied.
          */
         [[nodiscard]] result<std::vector<file_id>> get_file_ids();
@@ -672,7 +628,6 @@ namespace desfire {
          * @brief Read the file settings.
          * You must have a preceding @ref authenticate command on the app, or @ref active_app's @ref key_rights::dir_access_without_auth
          * must be set to true.
-         * @ingroup data
          * @param fid The file id, in the range 0..15 (included).
          * @return A @ref any_file_settings containing the file settings, or any of @ref error. In particular, if
          *  the file does not exist, @ref error::file_not_found, or if the operation is not allowed,
@@ -684,7 +639,6 @@ namespace desfire {
          * @brief Read the settings of a specific @ref file_type.
          * You must have a preceding @ref authenticate command on the app, or @ref active_app's @ref key_rights::dir_access_without_auth
          * must be set to true. Moreover, if the file exists, it must have exactly `Type` @ref file_type.
-         * @ingroup data
          * @tparam Type Expected @ref file_type. In case of mismatch, @ref error::malformed is returned.
          * @param fid The file id, in the range 0..15 (included).
          * @return A @ref file_settings containing the file settings, or any of @ref error. In particular, if
@@ -715,7 +669,6 @@ namespace desfire {
          * This requires a previous @ref authenticate command on @ref active_app, and the key must match the key number specified
          * in @ref any_file_settings::common_settings @ref file_access_rights::change. If instead @ref file_access_rights::change
          * is set to @ref free_access, no authentication is required, just @ref select_application.
-         * @ingroup data
          * @param fid The file id, in the range 0..15 (included).
          * @param settings The new file settings.
          * @return Either `mlab::result_success` or any of @ref error, in particular @ref error::permission_denied or
@@ -748,7 +701,6 @@ namespace desfire {
          * This requires a previous @ref authenticate command on @ref active_app, and the key must match the key number specified
          * in @ref any_file_settings::common_settings @ref file_access_rights::change. If instead @ref file_access_rights::change
          * is set to @ref free_access, no authentication is required, just @ref select_application.
-         * @ingroup data
          * @param fid The file id, in the range 0..15 (included).
          * @param settings The new file settings.
          * @param operation_mode The communication mode to use for this operation. This is derived from the base file security and
@@ -775,7 +727,6 @@ namespace desfire {
          * @brief Create a new standard data file in @ref active_app.
          * This requires a valid @ref authenticate command with the master key (key number zero), unless
          * @ref key_rights::create_delete_without_master_key is set to true.
-         * @ingroup standardFile
          * @param fid The file id, in the range 0..15 (included).
          * @param settings The new file settings.
          * @return Either `mlab::result_success` or any of @ref error, in particular @ref error::permission_denied or
@@ -787,7 +738,6 @@ namespace desfire {
          * @brief Create a new file in @ref active_app.
          * This requires a valid @ref authenticate command with the master key (key number zero), unless
          * @ref key_rights::create_delete_without_master_key is set to true.
-         * @ingroup data
          * @param fid The file id, in the range 0..15 (included). For any file other than @ref file_type::standard, this can be at most 7.
          * @param settings The new file settings.
          * @return Either `mlab::result_success` or any of @ref error, in particular @ref error::permission_denied or
@@ -811,7 +761,6 @@ namespace desfire {
          * @brief Create a new backup data file in @ref active_app.
          * This requires a valid @ref authenticate command with the master key (key number zero), unless
          * @ref key_rights::create_delete_without_master_key is set to true.
-         * @ingroup backupFile
          * @param fid The file id, in the range 0..7 (included).
          * @param settings The new file settings.
          * @return Either `mlab::result_success` or any of @ref error, in particular @ref error::permission_denied or
@@ -834,7 +783,6 @@ namespace desfire {
          * @brief Create a new value file in @ref active_app.
          * This requires a valid @ref authenticate command with the master key (key number zero), unless
          * @ref key_rights::create_delete_without_master_key is set to true.
-         * @ingroup data
          * @param fid The file id, in the range 0..7 (included).
          * @param settings Must have @ref value_file_settings::upper_limit greater than or equal to
          *  @ref value_file_settings::lower_limit.
@@ -858,7 +806,6 @@ namespace desfire {
          * @brief Create a new linear record file in @ref active_app.
          * This requires a valid @ref authenticate command with the master key (key number zero), unless
          * @ref key_rights::create_delete_without_master_key is set to true.
-         * @ingroup recordFile
          * @param fid The file id, in the range 0..7 (included).
          * @param settings Must have @ref record_file_settings::record_size > 0 and
          *  @ref record_file_settings::max_record_count > 0.
@@ -882,7 +829,6 @@ namespace desfire {
          * @brief Create a new cyclic record file in @ref active_app.
          * This requires a valid @ref authenticate command with the master key (key number zero), unless
          * @ref key_rights::create_delete_without_master_key is set to true.
-         * @ingroup recordFile
          * @param fid The file id, in the range 0..7 (included).
          * @param settings Must have @ref record_file_settings::record_size > 0 and
          *  @ref record_file_settings::max_record_count > 1 (at least 2).
@@ -907,7 +853,6 @@ namespace desfire {
          * @brief Deletes a file from @ref active_app.
          * This requires a valid @ref authenticate command with the master key (key number zero), unless
          * @ref key_rights::create_delete_without_master_key is set to true.
-         * @ingroup data
          * @param fid The file id, in the range 0..15 (included).
          * @return Either `mlab::result_success` or any of @ref error, in particular @ref error::permission_denied
          *  or @ref error::file_not_found if the file does not exist.
@@ -929,7 +874,6 @@ namespace desfire {
          * @brief Clear the records from a linear or cyclic record file.
          * This requires a valid @ref authenticate command with a key that satisfies @ref file_access_rights::read_write
          * (possibly none if set to @ref free_access).
-         * @ingroup recordFile
          * @param fid The file id of the record file, in the range 0..7 (included).
          * @return Either `mlab::result_success` or any of @ref error, in particular @ref error::permission_denied
          *  or @ref error::file_not_found if the file does not exist.
@@ -951,7 +895,6 @@ namespace desfire {
          * @brief Commits all data to a value, record or backup file.
          * The changes to any file type other than @ref file_type::standard require a call to this method to be saved.
          * @see abort_transaction
-         * @ingroup committableFiles
          * @return Either `mlab::result_success` or any of @ref error, in particular @ref error::permission_denied.
          */
         result<> commit_transaction();
@@ -972,7 +915,6 @@ namespace desfire {
          * @brief Aborts any change to a value, record or backup file.
          * Any change that has not been committed will be discarded.
          * @see commit_transaction.
-         * @ingroup committableFiles
          * @return Either `mlab::result_success` or any of @ref error.
          */
         result<> abort_transaction();
@@ -998,7 +940,6 @@ namespace desfire {
          * @ref file_access_rights::read (or @ref file_access_rights::read_write) in order to complete successfully.
          * If the file is a @ref file_type::backup, this will read the content of the file after the last
          * @ref commit_transaction call, i.e. uncommitted changes are not reflected here.
-         * @ingroup standardAndBackupFile
          * @param fid The file id, in the range 0..15 (included). For @ref file_type::backup, this can be at most 7.
          * @param offset Limited to 24 bits, i.e. must be below 0xFFFFFF. Must also be less than the file size.
          * @param length Limited to 24 bits, i.e. must be below 0xFFFFFF. Specify @ref all_data (zero) to read until the end.
@@ -1033,7 +974,6 @@ namespace desfire {
          * @ref file_access_rights::read (or @ref file_access_rights::read_write) in order to complete successfully.
          * If the file is a @ref file_type::backup, this will read the content of the file after the last
          * @ref commit_transaction call, i.e. uncommitted changes are not reflected here.
-         * @ingroup standardAndBackupFile
          * @param fid The file id, in the range 0..15 (included). For @ref file_type::backup, this can be at most 7.
          * @param operation_mode The communication mode to use for this operation. This is derived from the base file security and
          *  the value of @ref file_access_rights::read and @ref file_access_rights::read_write members: a free access implies no security
@@ -1052,7 +992,6 @@ namespace desfire {
          * This method requires a previous @ref authenticate command with a key that is compatible with the
          * @ref file_access_rights::write (or @ref file_access_rights::read_write) in order to complete successfully.
          * If the file is a @ref file_type::backup, a subsequent call to @ref commit_transaction is required.
-         * @ingroup standardAndBackupFile
          * @param fid The file id, in the range 0..15 (included). For @ref file_type::backup, this can be at most 7.
          * @param data Limited to 24 bits, i.e. must be shorter than 0xFFFFFF.
          * @param offset Limited to 24 bits, i.e. must be below 0xFFFFFF.
@@ -1072,7 +1011,6 @@ namespace desfire {
          * This method requires a previous @ref authenticate command with a key that is compatible with the
          * @ref file_access_rights::write (or @ref file_access_rights::read_write) in order to complete successfully.
          * If the file is a @ref file_type::backup, a subsequent call to @ref commit_transaction is required.
-         * @ingroup standardAndBackupFile
          * @param fid The file id, in the range 0..15 (included). For @ref file_type::backup, this can be at most 7.
          * @param data Limited to 24 bits, i.e. must be shorten than 0xFFFFFF.
          * @param operation_mode The communication mode to use for this operation. This is derived from the base file security and
@@ -1102,7 +1040,6 @@ namespace desfire {
          * This method requires a previous @ref authenticate command with a key that is compatible with the
          * @ref file_access_rights::read, or @ref file_access_rights::write, or @ref file_access_rights::read_write in order to complete successfully.
          * Any change that has not been committed via @ref commit_transaction is **not** reflected in the returned value.
-         * @ingroup valueFile
          * @param fid The file id, in the range 0..7 (included).
          * @return The value of the file or any of @ref error. In particular, @ref error::permission_denied, or
          *  @ref error::file_not_found if the file does not exist.
@@ -1129,7 +1066,6 @@ namespace desfire {
          * This method requires a previous @ref authenticate command with a key that is compatible with the
          * @ref file_access_rights::read, or @ref file_access_rights::write, or @ref file_access_rights::read_write in order to complete successfully.
          * Any change that has not been committed via @ref commit_transaction is **not** reflected in the returned value.
-         * @ingroup valueFile
          * @param fid The file id, in the range 0..7 (included).
          * @param operation_mode The communication mode to use for this operation. This is derived from the base file security and
          *  the value of @ref file_access_rights::read and @ref file_access_rights::read_write members: a free access implies no security
@@ -1156,7 +1092,6 @@ namespace desfire {
          * This method requires a previous @ref authenticate command with a key that is compatible with the
          * @ref file_access_rights::read_write in order to complete successfully.
          * A call to @ref commit_transaction is necessary to permanently update the value.
-         * @ingroup valueFile
          * @param fid The file id, in the range 0..7 (included).
          * @param amount Must be non-negative.
          * @return Either `mlab::result_success` or any of @ref error. In particular, @ref error::permission_denied, or
@@ -1185,7 +1120,6 @@ namespace desfire {
          * This method requires a previous @ref authenticate command with a key that is compatible with the
          * @ref file_access_rights::read_write in order to complete successfully.
          * A call to @ref commit_transaction is necessary to permanently update the value.
-         * @ingroup valueFile
          * @param fid The file id, in the range 0..7 (included).
          * @param amount Must be non-negative.
          * @param operation_mode The communication mode to use for this operation. This is derived from the base file security and
@@ -1215,7 +1149,6 @@ namespace desfire {
          * @ref file_access_rights::write (or @ref file_access_rights::read_write) in order to complete successfully.
          * Moreover, the setting @ref value_file_settings::limited_credit_enabled must be set to true.
          * A call to @ref commit_transaction is necessary to permanently update the value.
-         * @ingroup valueFile
          * @param fid The file id, in the range 0..7 (included).
          * @param amount Must be non-negative.
          * @note This can be used without full write/read permission. It can be use to refound a transaction in a safe way.
@@ -1246,7 +1179,6 @@ namespace desfire {
          * @ref file_access_rights::write (or @ref file_access_rights::read_write) in order to complete successfully.
          * Moreover, the setting @ref value_file_settings::limited_credit_enabled must be set to true.
          * A call to @ref commit_transaction is necessary to permanently update the value.
-         * @ingroup valueFile
          * @param fid The file id, in the range 0..7 (included).
          * @param amount Must be non-negative.
          * @param operation_mode The communication mode to use for this operation. This is derived from the base file security and
@@ -1276,7 +1208,6 @@ namespace desfire {
          * This method requires a previous @ref authenticate command with a key that is compatible with the
          * @ref file_access_rights::read, or @ref file_access_rights::write, or @ref file_access_rights::read_write in order to complete successfully.
          * A call to @ref commit_transaction is necessary to permanently update the value.
-         * @ingroup valueFile
          * @param fid The file id, in the range 0..7 (included).
          * @param amount Must be non-negative.
          * @return Either `mlab::result_success` or any of @ref error. In particular, @ref error::permission_denied, or
@@ -1305,7 +1236,6 @@ namespace desfire {
          * This method requires a previous @ref authenticate command with a key that is compatible with the
          * @ref file_access_rights::read, or @ref file_access_rights::write, or @ref file_access_rights::read_write in order to complete successfully.
          * A call to @ref commit_transaction is necessary to permanently update the value.
-         * @ingroup valueFile
          * @param fid The file id, in the range 0..7 (included).
          * @param amount Must be non-negative.
          * @param operation_mode The communication mode to use for this operation. This is derived from the base file security and
@@ -1323,7 +1253,6 @@ namespace desfire {
          * This method requires a previous @ref authenticate command with a key that is compatible with the
          * @ref file_access_rights::write (or @ref file_access_rights::read_write) in order to complete successfully.
          * A call to @ref commit_transaction is necessary to permanently update the value.
-         * @ingroup recordFile
          * @param fid The file id, in the range 0..7 (included).
          * @param data Limited to 24 bits, must match in length @ref record_file_settings::record_size.
          * @param offset Limited to 24 bits, i.e. must be below 0xFFFFFF. Must also be less than the record size.
@@ -1343,7 +1272,6 @@ namespace desfire {
          * This method requires a previous @ref authenticate command with a key that is compatible with the
          * @ref file_access_rights::write (or @ref file_access_rights::read_write) in order to complete successfully.
          * A call to @ref commit_transaction is necessary to permanently update the value.
-         * @ingroup recordFile
          * @param fid The file id, in the range 0..7 (included).
          * @param data Limited to 24 bits, must match in length @ref record_file_settings::record_size.
          * @param operation_mode The communication mode to use for this operation. This is derived from the base file security and
@@ -1363,7 +1291,6 @@ namespace desfire {
          * This method requires a previous @ref authenticate command with a key that is compatible with the
          * @ref file_access_rights::write (or @ref file_access_rights::read_write) in order to complete successfully.
          * A call to @ref commit_transaction is necessary to permanently update the value.
-         * @ingroup recordFile
          * @tparam T A record type which can be injected into `mlab::bin_data`.
          * @param fid The file id, in the range 0..7 (included).
          * @param record Record to write. Must be injectable to `mlab::bin_data` with as many bytes as @ref record_file_settings::record_size.
@@ -1383,7 +1310,6 @@ namespace desfire {
          * This method requires a previous @ref authenticate command with a key that is compatible with the
          * @ref file_access_rights::write (or @ref file_access_rights::read_write) in order to complete successfully.
          * A call to @ref commit_transaction is necessary to permanently update the value.
-         * @ingroup recordFile
          * @tparam T A record type which can be injected into `mlab::bin_data`.
          * @param fid The file id, in the range 0..7 (included).
          * @param record Record to write. Must be injectable to `mlab::bin_data` with as many bytes as @ref record_file_settings::record_size.
@@ -1403,7 +1329,6 @@ namespace desfire {
          * This method requires a previous @ref authenticate command with a key that is compatible with the
          * @ref file_access_rights::read (or @ref file_access_rights::read_write) in order to complete successfully.
          * The changes made by @ref write_record that have not been committed via @ref commit_transaction are not visible through this method.
-         * @ingroup recordFile
          * @tparam T A type that can be extracted from a `mlab::bin_stream`. They must be fixed-size when encoded into binary form, because each
          *  record has a fixed size, and they will be extracted one by one, in a flat-array form, from the binary data returned by the PICC.
          * @param fid The file id, in the range 0..7 (included).
@@ -1426,7 +1351,6 @@ namespace desfire {
          * This method requires a previous @ref authenticate command with a key that is compatible with the
          * @ref file_access_rights::read (or @ref file_access_rights::read_write) in order to complete successfully.
          * The changes made by @ref write_record that have not been committed via @ref commit_transaction are not visible through this method.
-         * @ingroup recordFile
          * @tparam T A type that can be extracted from a `mlab::bin_stream`. They must be fixed-size when encoded into binary form, because each
          *  record has a fixed size, and they will be extracted one by one, in a flat-array form, from the binary data returned by the PICC.
          * @param fid The file id, in the range 0..7 (included).
@@ -1449,7 +1373,6 @@ namespace desfire {
          * This method requires a previous @ref authenticate command with a key that is compatible with the
          * @ref file_access_rights::read (or @ref file_access_rights::read_write) in order to complete successfully.
          * The changes made by @ref write_record that have not been committed via @ref commit_transaction are not visible through this method.
-         * @ingroup recordFile
          * @param fid The file id, in the range 0..7 (included).
          * @param record_index Limited to 24 bits, i.e. must be below 0xFFFFFF. Must be less than the number of existing records.
          * @param record_count Limited to 24 bits, i.e. must be below 0xFFFFFF. Must be less or equal than the number of existing
@@ -1469,7 +1392,6 @@ namespace desfire {
          * This method requires a previous @ref authenticate command with a key that is compatible with the
          * @ref file_access_rights::read (or @ref file_access_rights::read_write) in order to complete successfully.
          * The changes made by @ref write_record that have not been committed via @ref commit_transaction are not visible through this method.
-         * @ingroup recordFile
          * @param fid The file id, in the range 0..7 (included).
          * @param record_index Limited to 24 bits, i.e. must be below 0xFFFFFF. Must be less than the number of existing records.
          * @param record_count Limited to 24 bits, i.e. must be below 0xFFFFFF. Must be less or equal than the number of existing
@@ -1492,7 +1414,6 @@ namespace desfire {
          * @warning We sacrificed some cards to the random UID features, and for the cards we tested, this method actually
          *  still returned the random UID even though it was authenticated, despite other publicly available libraries claiming
          *  otherwise (MF2DL(H)x0 §11.5.3).
-         * @ingroup card
          * @return The card UID or any of @ref error.
          */
         [[nodiscard]] result<pn532::nfcid_2t> get_card_uid();
@@ -1500,14 +1421,12 @@ namespace desfire {
         /**
          * @brief Read the amount of free flash memory.
          * We conjecture no authentication is required for this.
-         * @ingroup card
          * @return The amount of free memory in bytes, or one of @ref error.
          */
         [[nodiscard]] result<std::uint32_t> get_free_mem();
 
         /**
          * @brief Configure whether the card can be formatted, or whether will show the real UID.
-         * @ingroup card
          * @param allow_format Allow clearing all the apps and files in the card.
          * @param enable_random_id Enable if UID should be randomized (the real UID supposedly should be read with @ref get_card_uid).
          * @warning Enabling random id is an **irreversible** operation! And @ref get_card_uid does not seem to work.

@@ -10,6 +10,7 @@
 #include <desfire/data.hpp>
 
 namespace desfire {
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
     /**
      * @addtogroup StringConversion
      * @{
@@ -26,6 +27,7 @@ namespace desfire {
     /**
      * @}
      */
+#endif
 }// namespace desfire
 
 #endif//DESFIRE_MSG_HPP

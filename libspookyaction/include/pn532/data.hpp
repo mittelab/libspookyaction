@@ -481,7 +481,7 @@ namespace pn532 {
 }// namespace pn532
 
 namespace mlab {
-
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
     /**
      * @addtogroup IOOperators
      * @{
@@ -565,7 +565,7 @@ namespace mlab {
     /**
      * @}
      */
-
+#endif
 }// namespace mlab
 
 namespace pn532 {

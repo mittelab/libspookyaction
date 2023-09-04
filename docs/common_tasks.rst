@@ -6,11 +6,8 @@ Authentication shortcuts
 .. seealso::
    All these methods and their documentation can be found in the :ref:`namespace_desfire__fs`.
 
-.. doxygengroup:: authShortcuts
-   :project: libSpookyAction
-   :no-link:
-   :outline:
-   :content-only:
+* :func:`desfire::fs::logout_app`
+* :func:`desfire::fs::login_app`
 
 Generic filesystem helpers
 --------------------------
@@ -19,11 +16,12 @@ These methods check for existence and automate multiple-command tasks, such as c
 .. seealso::
    All these methods and their documentation can be found in the :ref:`namespace_desfire__fs`.
 
-.. doxygengroup:: fsHelpers
-   :project: libSpookyAction
-   :no-link:
-   :outline:
-   :content-only:
+* :func:`desfire::fs::create_app`
+* :func:`desfire::fs::delete_file_if_exists`
+* :func:`desfire::fs::delete_app_if_exists`
+* :func:`desfire::fs::does_file_exist`
+* :func:`desfire::fs::which_files_exist`
+* :func:`desfire::fs::does_app_exist`
 
 Creating read-only applications
 -------------------------------
@@ -39,11 +37,8 @@ this behavior by creating a randomized key which we can then throw away. This is
 .. seealso::
    All these methods and their documentation can be found in the :ref:`namespace_desfire__fs`.
 
-.. doxygengroup:: roApps
-   :project: libSpookyAction
-   :no-link:
-   :outline:
-   :content-only:
+* :func:`desfire::fs::make_app_ro`
+* :func:`desfire::fs::create_app_for_ro`
 
 Creating read-only files
 ------------------------
@@ -53,11 +48,8 @@ written to, and then sealed to not be writable anymore. These methods are shortc
 .. seealso::
    All these methods and their documentation can be found in the :ref:`namespace_desfire__fs`.
 
-.. doxygengroup:: roFiles
-   :project: libSpookyAction
-   :no-link:
-   :outline:
-   :content-only:
+* :func:`desfire::fs::create_ro_data_file`
+* :func:`desfire::fs::create_ro_value_file`
 
 Creating read-only, free-to-read files
 --------------------------------------
@@ -68,11 +60,8 @@ specify a :var:`desfire::free_access` for :member:`desfire::file_access_rights::
 .. seealso::
    All these methods and their documentation can be found in the :ref:`namespace_desfire__fs`.
 
-.. doxygengroup:: roFreeFiles
-   :project: libSpookyAction
-   :no-link:
-   :outline:
-   :content-only:
+* :func:`desfire::fs::create_ro_free_data_file`
+* :func:`desfire::fs::create_ro_free_value_file`
 
 
 Card-level operations
@@ -80,34 +69,35 @@ Card-level operations
 .. seealso::
    All these methods and their documentation can be found in :class:`desfire::tag`.
 
-.. doxygengroup:: card
-   :project: libSpookyAction
-   :no-link:
-   :outline:
-   :content-only:
-
-.. doxygengroup:: cardAndApplication
-   :project: libSpookyAction
-   :no-link:
-   :outline:
-   :content-only:
+* :func:`desfire::tag::active_app`
+* :func:`desfire::tag::active_cipher_type`
+* :func:`desfire::tag::active_key_no`
+* :func:`desfire::tag::authenticate`
+* :func:`desfire::tag::change_key`
+* :func:`desfire::tag::format_picc`
+* :func:`desfire::tag::get_card_uid`
+* :func:`desfire::tag::get_free_mem`
+* :func:`desfire::tag::get_info`
+* :func:`desfire::tag::select_application`
+* :func:`desfire::tag::set_configuration`
 
 Application management
 ----------------------
 .. seealso::
    All these methods and their documentation can be found in :class:`desfire::tag`.
 
-.. doxygengroup:: application
-   :project: libSpookyAction
-   :no-link:
-   :outline:
-   :content-only:
-
-.. doxygengroup:: cardAndApplication
-   :project: libSpookyAction
-   :no-link:
-   :outline:
-   :content-only:
+* :func:`desfire::tag::active_cipher_type`
+* :func:`desfire::tag::active_key_no`
+* :func:`desfire::tag::authenticate`
+* :func:`desfire::tag::change_app_settings`
+* :func:`desfire::tag::change_key`
+* :func:`desfire::tag::create_application`
+* :func:`desfire::tag::delete_application`
+* :func:`desfire::tag::format_picc`
+* :func:`desfire::tag::get_app_settings`
+* :func:`desfire::tag::get_application_ids`
+* :func:`desfire::tag::get_key_version`
+* :func:`desfire::tag::select_application`
 
 Generic file management
 -----------------------
@@ -116,80 +106,57 @@ Commands to create and read/write files on the card.
 .. seealso::
    All these methods and their documentation can be found in :class:`desfire::tag`.
 
-.. doxygengroup:: data
-   :project: libSpookyAction
-   :no-link:
-   :outline:
-   :content-only:
+* :func:`desfire::tag::change_file_settings`
+* :func:`desfire::tag::command_parse_response`
+* :func:`desfire::tag::command_response`
+* :func:`desfire::tag::command_status_response`
+* :func:`desfire::tag::create_file`
+* :func:`desfire::tag::delete_file`
+* :func:`desfire::tag::get_file_ids`
+* :func:`desfire::tag::get_file_settings`
+* :func:`desfire::tag::get_specific_file_settings`
 
 Standard file operations
 ------------------------
 .. seealso::
    All these methods and their documentation can be found in :class:`desfire::tag`.
 
-
-.. doxygengroup:: standardFile
-   :project: libSpookyAction
-   :no-link:
-   :outline:
-   :content-only:
-
-.. doxygengroup:: standardAndBackupFile
-   :project: libSpookyAction
-   :no-link:
-   :outline:
-   :content-only:
+* :func:`desfire::tag::create_file`
+* :func:`desfire::tag::read_data`
+* :func:`desfire::tag::write_data`
 
 Backup file operations
 ----------------------
 .. seealso::
    All these methods and their documentation can be found in :class:`desfire::tag`.
 
-.. doxygengroup:: backupFile
-   :project: libSpookyAction
-   :no-link:
-   :outline:
-   :content-only:
-
-.. doxygengroup:: standardAndBackupFile
-   :project: libSpookyAction
-   :no-link:
-   :outline:
-   :content-only:
-
-.. doxygengroup:: committableFiles
-   :project: libSpookyAction
-   :no-link:
-   :outline:
-   :content-only:
+* :func:`desfire::tag::abort_transaction`
+* :func:`desfire::tag::commit_transaction`
+* :func:`desfire::tag::create_file`
+* :func:`desfire::tag::read_data`
+* :func:`desfire::tag::write_data`
 
 Cyclic or linear record file operations
 ---------------------------------------
 .. seealso::
    All these methods and their documentation can be found in :class:`desfire::tag`.
 
-.. doxygengroup:: recordFile
-   :project: libSpookyAction
-   :no-link:
-   :outline:
-   :content-only:
-
-.. doxygengroup:: committableFiles
-   :project: libSpookyAction
-   :no-link:
-   :outline:
-   :content-only:
+* :func:`desfire::tag::abort_transaction`
+* :func:`desfire::tag::clear_record_file`
+* :func:`desfire::tag::commit_transaction`
+* :func:`desfire::tag::create_file`
+* :func:`desfire::tag::read_parse_records`
+* :func:`desfire::tag::read_records`
+* :func:`desfire::tag::write_record`
 
 Value file operations
 ---------------------
-.. doxygengroup:: valueFile
-   :project: libSpookyAction
-   :no-link:
-   :outline:
-   :content-only:
+.. seealso::
+   All these methods and their documentation can be found in :class:`desfire::tag`.
 
-.. doxygengroup:: committableFiles
-   :project: libSpookyAction
-   :no-link:
-   :outline:
-   :content-only:
+* :func:`desfire::tag::abort_transaction`
+* :func:`desfire::tag::commit_transaction`
+* :func:`desfire::tag::credit`
+* :func:`desfire::tag::debit`
+* :func:`desfire::tag::get_value`
+* :func:`desfire::tag::limited_credit`

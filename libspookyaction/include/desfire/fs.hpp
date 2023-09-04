@@ -8,18 +8,6 @@
 #include <desfire/tag.hpp>
 
 /**
- * @defgroup roFiles Creating read-only files
- *
- * @defgroup roFreeFiles Creating read-only, free-to-read files
- *
- * @defgroup authShortcuts Authentication shortcuts
- *
- * @defgroup fsHelpers Generic filesystem helpers
- *
- * @defgroup roApps Creating read-only applications
- */
-
-/**
  * Helper functions that automate common file and application tasks, which however require several calls
  * to the base methods of @ref desfire::tag.
  */
@@ -32,7 +20,6 @@ namespace desfire::fs {
      * This assumes the app is already selected, the user is already authenticated, if the security settings require so,
      * and file @p fid does not exists.
      * The caller is responsible for selecting the app and authenticating. No change in app and authentication is performed by this method.
-     * @ingroup roFiles
      * @param tag Tag on which to operate.
      * @param fid The file id, in the range 0..15 (included).
      * @param data Content of the file.
@@ -50,7 +37,6 @@ namespace desfire::fs {
      * of @p read_access. This assumes the app is already selected, the user is already authenticated, if the security settings require so,
      * and file @p fid does not exists.
      * The caller is responsible for selecting the app and authenticating. No change in app and authentication is performed by this method.
-     * @ingroup roFiles
      * @param tag Tag on which to operate.
      * @param fid The file id, in the range 0..7 (included).
      * @param value Value of the file.
@@ -67,7 +53,6 @@ namespace desfire::fs {
      * This assumes the app is already selected, the user is already authenticated, if the security settings require so,
      * and file @p fid does not exists.
      * The caller is responsible for selecting the app and authenticating. No change in app and authentication is performed by this method.
-     * @ingroup roFreeFiles
      * @param tag Tag on which to operate.
      * @param fid The file id, in the range 0..15 (included).
      * @param data Content of the file.
@@ -82,7 +67,6 @@ namespace desfire::fs {
      * This assumes the app is already selected, the user is already authenticated, if the security settings require so,
      * and file @p fid does not exists.
      * The caller is responsible for selecting the app and authenticating. No change in app and authentication is performed by this method.
-     * @ingroup roFreeFiles
      * @param tag Tag on which to operate.
      * @param fid The file id, in the range 0..7 (included).
      * @param value Value of the file.
@@ -93,7 +77,6 @@ namespace desfire::fs {
     /**
      * @brief Logs out the current key from @p tag, but maintains the current app selected.
      * This method cycles to the root app and back to @ref tag::active_app with @ref tag::select_application.
-     * @ingroup authShortcuts
      * @param tag Tag on which to operate.
      * @return Either `mlab::result_success`, or any of the error codes returned by @ref tag::select_application.
      */
@@ -102,7 +85,6 @@ namespace desfire::fs {
     /**
      * @brief Selects the app and authenticates to it with the given key.
      * This method is a shorthand for @ref tag::select_application and @ref tag::authenticate.
-     * @ingroup authShortcuts
      * @param tag Tag on which to operate.
      * @param aid Application id to select.
      * @param key Key to use for authentication to @p aid.
@@ -118,7 +100,6 @@ namespace desfire::fs {
      * If any other key is set up, then those keys will still be able to modify the application. Make sure the current key is the only
      * allowed key in the app.
      * @see create_app_for_ro
-     * @ingroup roApps
      * @param tag Tag on which to operate.
      * @param list_requires_auth True to require authentication with a key for listing files and their settings,
      *  as in @ref key_rights::dir_access_without_auth.
@@ -130,7 +111,6 @@ namespace desfire::fs {
      * @brief Creates an app with a unique, randomized key, suitable for being turned into a "read only" app later.
      * @note The caller is responsible for selecting the root app and authenticating, and ensuring that @p aid does not exist.
      *  On successful exit, the tag will have @p aid selected and be authenticated on the returned key.
-     * @ingroup roApps
      * @param tag Tag on which to operate.
      * @param cipher Cipher to use on this app. It is 2023, the only reasonable setting for this is @ref cipher_type::aes128.
      * @param aid Application id to create. Make sure it does not exist.
@@ -143,7 +123,6 @@ namespace desfire::fs {
      * @brief Creates a new AES128 app with the given @p master_key, allowing for a certain number of @p extra_keys.
      * The caller is responsible for selecting the root app and authenticating. On successful exit, the tag
      * will have @p aid selected and @p master_key authenticated.
-     * @ingroup fsHelpers
      * @param tag Tag on which to operate.
      * @param aid Application id to create. Make sure it does not exist.
      * @param master_key The key number is ignored, the key is used as master key with key number zero.
@@ -161,7 +140,6 @@ namespace desfire::fs {
      * This uses @ref does_file_exist to check for existence before calling @ref tag::delete_file, therefore the app must
      * allow a call to @ref tag::get_file_ids.
      * The caller is responsible for selecting the app and authenticating. No change in app and authentication is performed by this method.
-     * @ingroup fsHelpers
      * @param tag Tag on which to operate.
      * @param fid File to delete.
      * @return Either `mlab::result_success` or any of the @ref error codes returned by @ref tag::get_file_ids
@@ -174,7 +152,6 @@ namespace desfire::fs {
      * This uses @ref does_app_exist to check for existence before calling @ref tag::delete_application, therefore the card
      * settings must allow a call to @ref tag::get_application_ids. The caller is responsible for selecting the root app and
      * authenticating. No change in app and authentication is performed by this method.
-     * @ingroup fsHelpers
      * @param tag Tag on which to operate.
      * @param aid App to delete.
      * @return Either `mlab::result_success` or any of the @ref error codes returned by @ref tag::get_application_ids
@@ -187,7 +164,6 @@ namespace desfire::fs {
      * This method uses @ref tag::get_file_ids to retrieve the list of files, therefore the app must allow directory access,
      * either with the currently authenticated key or by having @ref key_rights::dir_access_without_auth set to true.
      * The caller is responsible for selecting the app and authenticating. No change in app and authentication is performed by this method.
-     * @ingroup fsHelpers
      * @param tag Tag on which to operate.
      * @param fid File to search for.
      * @return A boolean representing whether the file was found or not, or any error returned by @ref tag::get_file_ids.
@@ -199,7 +175,6 @@ namespace desfire::fs {
      * This method uses @ref tag::get_file_ids to retrieve the list of files, therefore the app must allow directory access,
      * either with the currently authenticated key or by having @ref key_rights::dir_access_without_auth set to true.
      * The caller is responsible for selecting the app and authenticating. No change in app and authentication is performed by this method.
-     * @ingroup fsHelpers
      * @param tag Tag on which to operate.
      * @param fids Vector of file IDs to search for.
      * @return A **sorted** list of items of @p fids that exist (possibly empty), or any error returned by @ref tag::get_file_ids.
@@ -211,7 +186,6 @@ namespace desfire::fs {
      * This method uses @ref tag::get_application_ids to retrieve the list of files, therefore the root app must allow listing,
      * either with the root key or by having @ref key_rights::dir_access_without_auth set to true.
      * The caller is responsible for selecting the root app and authenticating. No change in app and authentication is performed by this method.
-     * @ingroup fsHelpers
      * @param tag Tag on which to operate.
      * @param aid App to search for.
      * @return A boolean representing whether the app was found or not, or any error returned by @ref tag::get_application_ids.

@@ -15,6 +15,7 @@
  */
 
 namespace pn532 {
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
     /**
      * @addtogroup StringConversion
      * @{
@@ -33,6 +34,7 @@ namespace pn532 {
     /**
      * @}
      */
+#endif
 }// namespace pn532
 
 #endif//PN532_MSG_HPP

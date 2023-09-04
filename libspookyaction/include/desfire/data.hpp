@@ -705,7 +705,7 @@ namespace desfire {
 }// namespace desfire
 
 namespace mlab {
-
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
     /**
      * @addtogroup IOOperators
      * @{
@@ -741,6 +741,7 @@ namespace mlab {
     /**
      * @}
      */
+#endif
 }// namespace mlab
 
 namespace desfire {

@@ -111,6 +111,7 @@ namespace pn532 {
         std::size_t info_frame_data_size = 0;
     };
 
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
     /**
      * @addtogroup IOOperators
      * @{
@@ -157,6 +158,7 @@ namespace pn532 {
     /**
      * @}
      */
+#endif
 
     /**
      * @brief Channel-level errors.
@@ -431,7 +433,7 @@ namespace pn532 {
         bool _has_operation = false;
     };
 
-
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
     /**
      * @addtogroup StringConversion
      * @{
@@ -442,6 +444,7 @@ namespace pn532 {
     /**
      * @}
      */
+#endif
 
     /**
      * @brief Class managing the correct firing of the events in @ref channel.

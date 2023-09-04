@@ -1,5 +1,5 @@
-Concepts
-========
+Terminology
+===========
 
 This library is split in 3 main part
 

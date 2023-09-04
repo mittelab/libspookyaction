@@ -10,7 +10,7 @@ Welcome to libSpookyAction's documentation!
    :maxdepth: 2
    :caption: Contents:
 
-   concepts
+   terminology
    common_tasks
    api/library_root
 

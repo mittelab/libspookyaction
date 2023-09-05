@@ -1,4 +1,5 @@
-FROM python:3.11.5-alpine3.18 AS builder
+# NOTE: graphviz is broken on alpine 3.18
+FROM python:3.11.5-alpine3.17 AS builder
 RUN apk add --update --no-cache g++ make flex bison cmake \
     && wget https://github.com/doxygen/doxygen/releases/download/Release_1_9_8/doxygen-1.9.8.src.tar.gz \
     && tar -xzf doxygen-1.9.8.src.tar.gz \
@@ -9,7 +10,7 @@ RUN apk add --update --no-cache g++ make flex bison cmake \
     && make -j $(nproc) \
     && make install
 
-FROM python:3.11.5-alpine3.18
+FROM python:3.11.5-alpine3.17
 COPY requirements.txt /requirements.txt
 RUN apk add --update --no-cache libstdc++ git make graphviz \
     && pip install -r /requirements.txt

@@ -192,7 +192,7 @@ namespace desfire {
         /**
          * @brief Does this key store the version into the parity (LSB) bits of the key body?
          * True only for DES-based keys.
-         * @return True if the LSB bits of the @ref data include the version.
+         * @return True if the LSB bits of the @ref body include the version.
          */
         [[nodiscard]] bool parity_bits_are_version() const;
 

@@ -236,7 +236,7 @@ namespace pn532 {
         /**
          * @brief Main loop scanning for tags.
          * @param responder Responder class that reacts to the events.
-         * @param init_and_test If True, @ref init_and_test_controller will be called before the loop starts, and exit if it fails.
+         * @param init_and_test If True, @ref controller::init_and_test will be called before the loop starts, and exit if it fails.
          *  Otherwise, no test is performed and the loop jumps into scanning.
          */
         void loop(scanner_responder &responder, bool init_and_test = true);

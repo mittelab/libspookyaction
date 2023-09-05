@@ -334,7 +334,7 @@ namespace desfire {
         /**
          * @dot
          * digraph AlignmentMap {
-         *  node [shape=record fontname="sans-serif"];
+         *  node [shape=record fontname="Lato, proxima-nova, 'Helvetica Neue', Arial, sans-serif"];
          *  rankdir=LR;
          *  sent1 [label="{0x5A\n[1 byte]|AID\n[3 byte LSB first]}"];
          *  received1 [label="{0x00\n[1 byte]}"];
@@ -353,7 +353,7 @@ namespace desfire {
         /**
          * @dot
          * digraph AlignmentMap {
-         *  node [shape=record fontname="sans-serif"];
+         *  node [shape=record fontname="Lato, proxima-nova, 'Helvetica Neue', Arial, sans-serif"];
          *  rankdir=LR;
          *  sent1 [label="{0xCA\n[1 byte]|AID\n[3 byte LSB first]|key settings\n[1 byte]|# of Keys\n[1 byte]}"];
          *  received1 [label="{0x00\n[1 byte]}"];
@@ -376,7 +376,7 @@ namespace desfire {
         /**
          * @dot
          * digraph AlignmentMap {
-         *  node [shape=record fontname="sans-serif"];
+         *  node [shape=record fontname="Lato, proxima-nova, 'Helvetica Neue', Arial, sans-serif"];
          *  rankdir=LR;
          *  sent1 [label="{0x54\n[1 byte]|key settings\n[8 byte enchipered]}"];
          *  received1 [label="{0x00\n[1 byte]}"];
@@ -396,7 +396,7 @@ namespace desfire {
         /**
          * @dot
          * digraph AlignmentMap {
-         *  node [shape=record fontname="sans-serif"];
+         *  node [shape=record fontname="Lato, proxima-nova, 'Helvetica Neue', Arial, sans-serif"];
          *  rankdir=LR;
          *  sent1 [label="{0x45\n[1 byte]}"];
          *  received1 [label="{0x00\n[1 byte]|key settings\n[1 byte]|# of Keys\n[1 byte]}"];
@@ -416,7 +416,7 @@ namespace desfire {
         /**
          * @dot
          * digraph AlignmentMap {
-         *  node [shape=record fontname="sans-serif"];
+         *  node [shape=record fontname="Lato, proxima-nova, 'Helvetica Neue', Arial, sans-serif"];
          *  rankdir=LR;
          *  sent1 [label="{0x64\n[1 byte]|Key #\n[1 byte]}"];
          *  received1 [label="{0x00\n[1 byte]|key version\n[1 byte]}"];
@@ -436,7 +436,7 @@ namespace desfire {
         /**
          * @dot
          * digraph AlignmentMap {
-         *  node [shape=record fontname="sans-serif"];
+         *  node [shape=record fontname="Lato, proxima-nova, 'Helvetica Neue', Arial, sans-serif"];
          *  rankdir=LR;
          *  sent1 [label="{0x6A\n[1 byte]}"];
          *  received1 [label="{0x00\n[1 byte]|AID\n[3xN byte 0-7 AIDs]}"];
@@ -460,7 +460,7 @@ namespace desfire {
         /**
          * @dot
          * digraph AlignmentMap {
-         *  node [shape=record fontname="sans-serif"];
+         *  node [shape=record fontname="Lato, proxima-nova, 'Helvetica Neue', Arial, sans-serif"];
          *  rankdir=LR;
          *  sent1 [label="{0xDA\n[1 byte]|AID\n[3 byte LSB first]}"];
          *  received1 [label="{0x00\n[1 byte]}"];
@@ -481,7 +481,7 @@ namespace desfire {
         /**
          * @dot
          * digraph AlignmentMap {
-         *  node [shape=record fontname="sans-serif"];
+         *  node [shape=record fontname="Lato, proxima-nova, 'Helvetica Neue', Arial, sans-serif"];
          *  rankdir=LR;
          *     graph [ranksep=2]
          *
@@ -516,7 +516,7 @@ namespace desfire {
          *
          * @dot
          * digraph AlignmentMap {
-         *  node [shape=record fontname="sans-serif"];
+         *  node [shape=record fontname="Lato, proxima-nova, 'Helvetica Neue', Arial, sans-serif"];
          *  rankdir=LR;
          *  sent1 [label="{0xFC\n[1 byte]}"];
          *  received1 [label="{0x00\n[1 byte]}"];
@@ -536,7 +536,7 @@ namespace desfire {
         /**
          * @dot
          * digraph AlignmentMap {
-         *  node [shape=record fontname="sans-serif"];
+         *  node [shape=record fontname="Lato, proxima-nova, 'Helvetica Neue', Arial, sans-serif"];
          *  rankdir=LR;
          *  sent1 [label="{0x54\n[1 byte]|Key #\n[1 byte]|key body\n[24 byte echipered]}"];
          *  received1 [label="{0x00\n[1 byte]}"];
@@ -556,7 +556,7 @@ namespace desfire {
         /**
          * @dot
          * digraph AlignmentMap {
-         *  node [shape=record fontname="sans-serif"];
+         *  node [shape=record fontname="Lato, proxima-nova, 'Helvetica Neue', Arial, sans-serif"];
          *  rankdir=LR;
          *  sent1 [label="{0x54\n[1 byte]|Key #\n[1 byte]|key body\n[24 byte echipered]}"];
          *  received1 [label="{0x00\n[1 byte]}"];
@@ -608,7 +608,7 @@ namespace desfire {
         /**
          * @dot
          * digraph AlignmentMap {
-         *  node [shape=record fontname="sans-serif"];
+         *  node [shape=record fontname="Lato, proxima-nova, 'Helvetica Neue', Arial, sans-serif"];
          *  rankdir=LR;
          *  sent1 [label="{0x6F\n[1 byte]}"];
          *  received1 [label="{0x00\n[1 byte]|FID\n[1xN byte (0-16 FIDs)]}"];
@@ -651,7 +651,7 @@ namespace desfire {
         /**
          * @dot
          * digraph AlignmentMap {
-         *  node [shape=record fontname="sans-serif"];
+         *  node [shape=record fontname="Lato, proxima-nova, 'Helvetica Neue', Arial, sans-serif"];
          *  rankdir=LR;
          *  sent1 [label="{0x5F\n[1 byte]|FID\n[1 byte]|Comm. settings\n[1 byte]|Access rights\n[2 byte LDB first]}"];
          *  received1 [label="{0x00\n[1 byte]}"];
@@ -683,7 +683,7 @@ namespace desfire {
         /**
          * @dot
          * digraph AlignmentMap {
-         *  node [shape=record fontname="sans-serif"];
+         *  node [shape=record fontname="Lato, proxima-nova, 'Helvetica Neue', Arial, sans-serif"];
          *  rankdir=LR;
          *  sent1 [label="{0x5F\n[1 byte]|FID\n[1 byte]|Comm. settings\n[1 byte]|Access rights\n[2 byte LDB first]}"];
          *  received1 [label="{0x00\n[1 byte]}"];
@@ -715,7 +715,7 @@ namespace desfire {
         /**
          * @dot
          * digraph AlignmentMap {
-         *  node [shape=record fontname="sans-serif"];
+         *  node [shape=record fontname="Lato, proxima-nova, 'Helvetica Neue', Arial, sans-serif"];
          *  rankdir=LR;
          *  sent1 [label="{0xCD\n[1 byte]|FID\n[1 byte]|Comm. settings\n[1 byte]|Access rights\n[2 byte LSB first]|File size\n[3 byte LSB first]}"];
          *  received1 [label="{0x00\n[1 byte]}"];
@@ -749,7 +749,7 @@ namespace desfire {
         /**
          * @dot
          * digraph AlignmentMap {
-         *  node [shape=record fontname="sans-serif"];
+         *  node [shape=record fontname="Lato, proxima-nova, 'Helvetica Neue', Arial, sans-serif"];
          *  rankdir=LR;
          *  sent1 [label="{0xCB\n[1 byte]|FID\n[1 byte]|Comm. settings\n[1 byte]|Access rights\n[2 byte LSB first]|File size\n[3 byte LSB first]}"];
          *  received1 [label="{0x00\n[1 byte]}"];
@@ -771,7 +771,7 @@ namespace desfire {
         /**
          * @dot
          * digraph AlignmentMap {
-         *  node [shape=record fontname="sans-serif"];
+         *  node [shape=record fontname="Lato, proxima-nova, 'Helvetica Neue', Arial, sans-serif"];
          *  rankdir=LR;
          *  sent1 [label="{0xCC\n[1 byte]|FID\n[1 byte]|Comm. settings\n[1 byte]|Access rights\n[2 byte LSB first]|Lower Limit\n[4 byte LSB first]|Upper Limit\n[4 byte LSB first]|Value\n[4 byte LSB first]|Lim. credit\n[1 byte]}"];
          *  received1 [label="{0x00\n[1 byte]}"];
@@ -794,7 +794,7 @@ namespace desfire {
         /**
          * @dot
          * digraph AlignmentMap {
-         *  node [shape=record fontname="sans-serif"];
+         *  node [shape=record fontname="Lato, proxima-nova, 'Helvetica Neue', Arial, sans-serif"];
          *  rankdir=LR;
          *  sent1 [label="{0xC1\n[1 byte]|FID\n[1 byte]|Comm. settings\n[1 byte]|Access rights\n[2 byte LSB first]|Record Size\n[3 byte LSB first]|Max # of records\n[3 byte LSB first]}"];
          *  received1 [label="{0x00\n[1 byte]}"];
@@ -817,7 +817,7 @@ namespace desfire {
         /**
          * @dot
          * digraph AlignmentMap {
-         *  node [shape=record fontname="sans-serif"];
+         *  node [shape=record fontname="Lato, proxima-nova, 'Helvetica Neue', Arial, sans-serif"];
          *  rankdir=LR;
          *  sent1 [label="{0xC0\n[1 byte]|FID\n[1 byte]|Comm. settings\n[1 byte]|Access rights\n[2 byte LSB first]|Record Size\n[3 byte LSB first]|Max # of records\n[3 byte LSB first]}"];
          *  received1 [label="{0x00\n[1 byte]}"];
@@ -841,7 +841,7 @@ namespace desfire {
          *
          * @dot
          * digraph AlignmentMap {
-         *  node [shape=record fontname="sans-serif"];
+         *  node [shape=record fontname="Lato, proxima-nova, 'Helvetica Neue', Arial, sans-serif"];
          *  rankdir=LR;
          *  sent1 [label="{0xDF\n[1 byte]|FID\n[1 byte]}"];
          *  received1 [label="{0x00\n[1 byte]}"];
@@ -862,7 +862,7 @@ namespace desfire {
         /**
          * @dot
          * digraph AlignmentMap {
-         *  node [shape=record fontname="sans-serif"];
+         *  node [shape=record fontname="Lato, proxima-nova, 'Helvetica Neue', Arial, sans-serif"];
          *  rankdir=LR;
          *  sent1 [label="{0xEB\n[1 byte]|FID\n[1 byte]}"];
          *  received1 [label="{0x00\n[1 byte]}"];
@@ -883,7 +883,7 @@ namespace desfire {
         /**
          * @dot
          * digraph AlignmentMap {
-         *  node [shape=record fontname="sans-serif"];
+         *  node [shape=record fontname="Lato, proxima-nova, 'Helvetica Neue', Arial, sans-serif"];
          *  rankdir=LR;
          *  sent1 [label="{0xC7\n[1 byte]}"];
          *  received1 [label="{0x00\n[1 byte]}"];
@@ -903,7 +903,7 @@ namespace desfire {
          *
          * @dot
          * digraph AlignmentMap {
-         *  node [shape=record fontname="sans-serif"];
+         *  node [shape=record fontname="Lato, proxima-nova, 'Helvetica Neue', Arial, sans-serif"];
          *  rankdir=LR;
          *  sent1 [label="{0xA7\n[1 byte]}"];
          *  received1 [label="{0x00\n[1 byte]}"];
@@ -922,7 +922,7 @@ namespace desfire {
         /**
          * @dot
          * digraph AlignmentMap {
-         *  node [shape=record fontname="sans-serif"];
+         *  node [shape=record fontname="Lato, proxima-nova, 'Helvetica Neue', Arial, sans-serif"];
          *  rankdir=LR;
          *  sent1 [label="{0xBD\n[1 byte]|FID\n[1 byte]|Offset\n[3 byte LSB first]|Lenght\n[3 byte LSB first]}"];
          *  received1 [label="{0xAF\n[1 byte]|DATA\n[1-59 bytes]}"];
@@ -956,7 +956,7 @@ namespace desfire {
         /**
          * @dot
          * digraph AlignmentMap {
-         *  node [shape=record fontname="sans-serif"];
+         *  node [shape=record fontname="Lato, proxima-nova, 'Helvetica Neue', Arial, sans-serif"];
          *  rankdir=LR;
          *  sent1 [label="{0xBD\n[1 byte]|FID\n[1 byte]|Offset\n[3 byte LSB first]|Lenght\n[3 byte LSB first]}"];
          *  received1 [label="{0xAF\n[1 byte]|DATA\n[1-59 bytes]}"];
@@ -1027,7 +1027,7 @@ namespace desfire {
         /**
          * @dot
          * digraph AlignmentMap {
-         *  node [shape=record fontname="sans-serif"];
+         *  node [shape=record fontname="Lato, proxima-nova, 'Helvetica Neue', Arial, sans-serif"];
          *  rankdir=LR;
          *  sent1 [label="{0x6C\n[1 byte]|FID\n[1 byte]}"];
          *  received1 [label="{0x00\n[1 byte]|Value\n[4 byte]}"];
@@ -1053,7 +1053,7 @@ namespace desfire {
         /**
          * @dot
          * digraph AlignmentMap {
-         *  node [shape=record fontname="sans-serif"];
+         *  node [shape=record fontname="Lato, proxima-nova, 'Helvetica Neue', Arial, sans-serif"];
          *  rankdir=LR;
          *  sent1 [label="{0x6C\n[1 byte]|FID\n[1 byte]}"];
          *  received1 [label="{0x00\n[1 byte]|Value\n[4 byte]}"];
@@ -1079,7 +1079,7 @@ namespace desfire {
         /**
          * @dot
          * digraph AlignmentMap {
-         *  node [shape=record fontname="sans-serif"];
+         *  node [shape=record fontname="Lato, proxima-nova, 'Helvetica Neue', Arial, sans-serif"];
          *  rankdir=LR;
          *  sent1 [label="{0x0C\n[1 byte]|FID\n[1 byte]| Credit anmount\n[4 byte]}"];
          *  received1 [label="{0x00\n[1 byte]}"];
@@ -1107,9 +1107,9 @@ namespace desfire {
         /**
          * @dot
          * digraph AlignmentMap {
-         *  node [shape=record fontname="sans-serif"];
+         *  node [shape=record fontname="Lato, proxima-nova, 'Helvetica Neue', Arial, sans-serif"];
          *  rankdir=LR;
-         *  sent1 [label="{0x0C\n[1 byte]|FID\n[1 byte]| Credit anmount\n[4 byte]}"];
+         *  sent1 [label="{0x0C\n[1 byte]|FID\n[1 byte]| Credit amount\n[4 byte]}"];
          *  received1 [label="{0x00\n[1 byte]}"];
          *  error [style=dashed label="{Error code\n[1 byte]}"];
          *  sent1 -> {received1 error}[ sametail="b"];
@@ -1135,7 +1135,7 @@ namespace desfire {
         /**
          * @dot
          * digraph AlignmentMap {
-         *  node [shape=record fontname="sans-serif"];
+         *  node [shape=record fontname="Lato, proxima-nova, 'Helvetica Neue', Arial, sans-serif"];
          *  rankdir=LR;
          *  sent1 [label="{0xDC\n[1 byte]|FID\n[1 byte]| Credit anmount\n[4 byte]}"];
          *  received1 [label="{0x00\n[1 byte]}"];
@@ -1165,7 +1165,7 @@ namespace desfire {
         /**
          * @dot
          * digraph AlignmentMap {
-         *  node [shape=record fontname="sans-serif"];
+         *  node [shape=record fontname="Lato, proxima-nova, 'Helvetica Neue', Arial, sans-serif"];
          *  rankdir=LR;
          *  sent1 [label="{0xDC\n[1 byte]|FID\n[1 byte]| Credit anmount\n[4 byte]}"];
          *  received1 [label="{0x00\n[1 byte]}"];
@@ -1195,7 +1195,7 @@ namespace desfire {
         /**
          * @dot
          * digraph AlignmentMap {
-         *  node [shape=record fontname="sans-serif"];
+         *  node [shape=record fontname="Lato, proxima-nova, 'Helvetica Neue', Arial, sans-serif"];
          *  rankdir=LR;
          *  sent1 [label="{0xDC\n[1 byte]|FID\n[1 byte]| Debit anmount\n[4 byte]}"];
          *  received1 [label="{0x00\n[1 byte]}"];
@@ -1223,7 +1223,7 @@ namespace desfire {
         /**
          * @dot
          * digraph AlignmentMap {
-         *  node [shape=record fontname="sans-serif"];
+         *  node [shape=record fontname="Lato, proxima-nova, 'Helvetica Neue', Arial, sans-serif"];
          *  rankdir=LR;
          *  sent1 [label="{0xDC\n[1 byte]|FID\n[1 byte]| Debit anmount\n[4 byte]}"];
          *  received1 [label="{0x00\n[1 byte]}"];

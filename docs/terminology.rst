@@ -6,8 +6,9 @@ This library is split in 3 main part
 .. graphviz::
 
     digraph libspookyaction {
+       fontname="Lato, proxima-nova, 'Helvetica Neue', Arial, sans-serif"
        graph [nodesep=0.2, ranksep=1];
-       node [shape = "record"];
+       node [shape = "record" fontname="Lato, proxima-nova, 'Helvetica Neue', Arial, sans-serif"];
 
        newrank=true;
        compound=true;

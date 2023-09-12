@@ -92,10 +92,12 @@
   ],
   "frameworks": "espidf",
   "platforms": "espressif32",
-  "flags": [
-    "-Wall",
-    "-Wextra"
-  ],
+  "build": {
+    "flags": [
+      "-Wall",
+      "-Wextra"
+    ]
+  },
   "dependencies": {
     "mitteLib": "^1.0.5"
   }

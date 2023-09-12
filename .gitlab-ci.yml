@@ -93,12 +93,12 @@ check format:
 build test firmware mbedtls:
   <<: *build-test-firmware-template
   cache:
-    key: ${CI_COMMIT_REF_SLUG}-mbedtls
+    key: $CI_JOB_NAME
 
 build test firmware wolfssl:
   <<: *build-test-firmware-template
   cache:
-    key: ${CI_COMMIT_REF_SLUG}-wolfssl
+    key: $CI_JOB_NAME
   # Customize the before script so that it uses the correct defaults
   before_script:
     - cp cicd/platformio.ini "${PIO_PROJ_FOLDER}/platformio.ini"
@@ -121,10 +121,7 @@ build test firmware wolfssl:
 build examples:
   image: ${CI_REGISTRY}/proj/testinator/esp32:latest
   stage: build
-  <<: *pio-cache
   <<: *example-build-rules
-  cache:
-    key: ${CI_COMMIT_REF_SLUG}-examples
   script:
     # Note that we need to set sdkconfig.defaults up in beforehand, so we make our own folder and manage it ourselves
     # Afterwards we save the firmware so that we can use it as artifact to signal that the example has been built

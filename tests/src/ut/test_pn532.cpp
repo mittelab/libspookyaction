@@ -24,7 +24,7 @@ namespace ut::pn532 {
                 .stop_bits = UART_STOP_BITS_1,
                 .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
                 .rx_flow_ctrl_thresh = 122,
-                .source_clk = UART_SCLK_REF_TICK};
+                .source_clk = UART_SCLK_DEFAULT};
 
         constexpr i2c_config_t i2c_config = {
                 .mode = I2C_MODE_MASTER,
@@ -289,10 +289,10 @@ namespace ut::pn532 {
                 channel = std::make_unique<pn532::esp32::i2c_channel>(I2C_NUM_0, i2c_config, pinout::pn532_irq, true);
                 break;
             case channel_type::spi:
-                channel = std::make_unique<pn532::esp32::spi_channel>(SPI2_HOST, spi_bus_config, spi_device_config, SPI_DMA_CH1);
+                channel = std::make_unique<pn532::esp32::spi_channel>(SPI2_HOST, spi_bus_config, spi_device_config, SPI_DMA_CH_AUTO);
                 break;
             case channel_type::spi_irq:
-                channel = std::make_unique<pn532::esp32::spi_channel>(SPI2_HOST, spi_bus_config, spi_device_config, SPI_DMA_CH1, pinout::pn532_irq, true);
+                channel = std::make_unique<pn532::esp32::spi_channel>(SPI2_HOST, spi_bus_config, spi_device_config, SPI_DMA_CH_AUTO, pinout::pn532_irq, true);
                 break;
         }
         ESP_LOGI(TEST_TAG, "Channel %s ready.", to_string(type));

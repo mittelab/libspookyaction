@@ -33,7 +33,7 @@ extern "C" void app_main() {
             .stop_bits = UART_STOP_BITS_1,
             .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
             .rx_flow_ctrl_thresh = 122,
-            .source_clk = UART_SCLK_REF_TICK};
+            .source_clk = UART_SCLK_DEFAULT};
     auto hsu_chn = pn532::esp32::hsu_channel(UART_NUM_1, uart_config, gpio_serial_tx, gpio_serial_rx);
     auto pn532 = pn532::controller(hsu_chn);
     if (not hsu_chn.wake()) {

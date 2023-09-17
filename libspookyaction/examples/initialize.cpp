@@ -18,7 +18,7 @@ extern "C" void app_main() {
             .stop_bits = UART_STOP_BITS_1,
             .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
             .rx_flow_ctrl_thresh = 122,
-            .source_clk = UART_SCLK_REF_TICK};
+            .source_clk = UART_SCLK_DEFAULT};
 
     // Create a communication channel (high speed UART, HSU) with the PN532.
     auto hsu_chn = pn532::esp32::hsu_channel(UART_NUM_1, uart_config, gpio_serial_tx, gpio_serial_rx);

@@ -1,13 +1,10 @@
-[env:esp32dev]
+[env]
 platform = espressif32
 framework = espidf
-; board = esp32dev
 lib_deps = libspookyaction
 
-; upload_port=/dev/ttyUSB0
-; monitor_port=/dev/ttyUSB0
-; test_port=/dev/ttyUSB0
-; monitor_speed = 115200
+; These settings allow to use the helper classes in UT
+test_build_src = yes
 
 ; Configuration macro explanation
 ; ----
@@ -46,6 +43,14 @@ lib_deps = libspookyaction
 ;   PN532_RSTN: the GPIO pin number which connects to the RSTN line on the PN532
 ;
 
+[env:esp32dev]
+board = esp32dev
+
+; upload_port=/dev/ttyUSB0
+; monitor_port=/dev/ttyUSB0
+; test_port=/dev/ttyUSB0
+; monitor_speed = 115200
+
 build_flags =
     -Wall -Wextra
 ;   -D PN532_IRQ=4
@@ -68,6 +73,3 @@ build_flags =
 ;       -D PN532_RSTN=19
 ;   -D LOG_LOCAL_LEVEL=ESP_LOG_DEBUG
 ;   -D CORE_DEBUG_LEVEL=5
-
-; These settings allow to use the helper classes in UT
-test_build_src = yes

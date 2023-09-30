@@ -101,9 +101,9 @@ namespace ut::pn532 {
         auto &channel = instance->channel();
         auto &tag_reader = instance->tag_reader();
 
-        TEST_ASSERT(channel.wake())
+        TEST_ASSERT(channel.wake());
         const auto r_sam = tag_reader.sam_configuration(sam_mode::normal, 1s);
-        TEST_ASSERT(r_sam)
+        TEST_ASSERT(r_sam);
 
         instance->mark_channel_did_wake();
     }
@@ -118,7 +118,7 @@ namespace ut::pn532 {
         auto &tag_reader = instance->tag_reader();
 
         const auto r_fw = tag_reader.get_firmware_version();
-        TEST_ASSERT(r_fw)
+        TEST_ASSERT(r_fw);
         ESP_LOGI(TEST_TAG, "IC version %u, version: %u.%u", r_fw->ic, r_fw->version, r_fw->revision);
     }
 
@@ -131,11 +131,11 @@ namespace ut::pn532 {
         }
         auto &tag_reader = instance->tag_reader();
 
-        TEST_ASSERT(ok_and_true(tag_reader.diagnose_rom()))
-        TEST_ASSERT(ok_and_true(tag_reader.diagnose_ram()))
-        TEST_ASSERT(ok_and_true(tag_reader.diagnose_comm_line()))
+        TEST_ASSERT(ok_and_true(tag_reader.diagnose_rom()));
+        TEST_ASSERT(ok_and_true(tag_reader.diagnose_ram()));
+        TEST_ASSERT(ok_and_true(tag_reader.diagnose_comm_line()));
         TEST_ASSERT(
-                ok_and_true(tag_reader.diagnose_self_antenna(low_current_thr::mA_25, high_current_thr::mA_150)))
+                ok_and_true(tag_reader.diagnose_self_antenna(low_current_thr::mA_25, high_current_thr::mA_150)));
     }
 
     void test_scan_mifare() {
@@ -149,7 +149,7 @@ namespace ut::pn532 {
 
         ESP_LOGI(TEST_TAG, "Please bring card close now (searching for one passive 106 kbps target)...");
         const auto r_scan = tag_reader.initiator_list_passive_kbps106_typea();
-        TEST_ASSERT(r_scan)
+        TEST_ASSERT(r_scan);
         ESP_LOGI(TEST_TAG, "Found %u targets (passive, 106 kbps, type A).", r_scan->size());
         if (r_scan) {
             for (target_kbps106_typea const &target : *r_scan) {
@@ -172,7 +172,7 @@ namespace ut::pn532 {
 
         ESP_LOGI(TEST_TAG, "Please bring card close now (searching for any target)...");
         const auto r_scan = tag_reader.initiator_auto_poll();
-        TEST_ASSERT(r_scan)
+        TEST_ASSERT(r_scan);
         ESP_LOGI(TEST_TAG, "Found %u targets.", r_scan->size());
         if (r_scan) {
             for (std::size_t i = 0; i < r_scan->size(); ++i) {
@@ -191,11 +191,11 @@ namespace ut::pn532 {
         auto &tag_reader = instance->tag_reader();
 
         const auto r_status = tag_reader.get_general_status();
-        TEST_ASSERT(r_status)
+        TEST_ASSERT(r_status);
         for (auto const &target : r_status->targets) {
-            TEST_ASSERT(tag_reader.initiator_deselect(target.logical_index))
+            TEST_ASSERT(tag_reader.initiator_deselect(target.logical_index));
         }
-        TEST_ASSERT(tag_reader.rf_configuration_field(true, false))
+        TEST_ASSERT(tag_reader.rf_configuration_field(true, false));
     }
 
     void test_data_exchange() {

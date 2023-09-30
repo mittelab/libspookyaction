@@ -130,13 +130,13 @@ namespace ut::desfire_files {
         const any_key root_key{key<cipher_type::des>{}};
 
         // Make sure there is enough space to run. 1376B is a decent estimate for how much space is needed
-        TEST_ASSERT(mifare.select_application(root_app))
-        TEST_ASSERT(mifare.authenticate(root_key))
+        TEST_ASSERT(mifare.select_application(root_app));
+        TEST_ASSERT(mifare.authenticate(root_key));
         const auto r_free_mem = mifare.get_free_mem();
-        TEST_ASSERT(r_free_mem)
+        TEST_ASSERT(r_free_mem);
         if (*r_free_mem < 1376) {
             ESP_LOGI("UT", "Formatting to recover space (only %lu B free).", *r_free_mem);
-            TEST_ASSERT(mifare.format_picc())
+            TEST_ASSERT(mifare.format_picc());
         }
         const ut::desfire_main::demo_app app{cipher};
         app.ensure_created(mifare, root_key);
@@ -144,7 +144,7 @@ namespace ut::desfire_files {
         TEST_ASSERT_EQUAL_HEX8_ARRAY(app.aid.data(), mifare.active_app().data(), 3);
         TEST_ASSERT_EQUAL(app.primary_key.key_number(), mifare.active_key_no());
         delete_if_preexisting(mifare);
-        TEST_ASSERT(mifare.create_file(fid(), get_settings()))
+        TEST_ASSERT(mifare.create_file(fid(), get_settings()));
 
         switch (type) {
             case file_type::standard:
@@ -163,25 +163,25 @@ namespace ut::desfire_files {
                 break;
         }
         TEST_ASSERT(mifare.change_file_settings(fid(), get_settings().common_settings(), trust_card));
-        TEST_ASSERT(mifare.delete_file(fid()))
+        TEST_ASSERT(mifare.delete_file(fid()));
     }
 
     void demo_file::test_standard_data_file(tag &mifare, bin_data const &load) const {
-        TEST_ASSERT(mifare.write_data(fid(), load, trust_card))
+        TEST_ASSERT(mifare.write_data(fid(), load, trust_card));
         const auto r_read = mifare.read_data(fid(), trust_card, 0, load.size());
-        TEST_ASSERT(r_read)
+        TEST_ASSERT(r_read);
         TEST_ASSERT_EQUAL(load.size(), r_read->size());
         TEST_ASSERT_EQUAL_HEX8_ARRAY(load.data(), r_read->data(), load.size());
     }
 
     void demo_file::test_backup_data_file(tag &mifare, bin_data const &load) const {
-        TEST_ASSERT(mifare.write_data(fid(), load, trust_card))
+        TEST_ASSERT(mifare.write_data(fid(), load, trust_card));
         const auto r_read_before_commit = mifare.read_data(fid(), trust_card, 0, load.size());
-        TEST_ASSERT(r_read_before_commit)
+        TEST_ASSERT(r_read_before_commit);
         TEST_ASSERT_EACH_EQUAL_HEX8(0x00, r_read_before_commit->data(), r_read_before_commit->size());
-        TEST_ASSERT(mifare.commit_transaction())
+        TEST_ASSERT(mifare.commit_transaction());
         const auto r_read = mifare.read_data(fid(), trust_card, 0, load.size());
-        TEST_ASSERT(r_read)
+        TEST_ASSERT(r_read);
         TEST_ASSERT_EQUAL(load.size(), r_read->size());
         TEST_ASSERT_EQUAL_HEX8_ARRAY(load.data(), r_read->data(), load.size());
     }
@@ -189,17 +189,17 @@ namespace ut::desfire_files {
     void demo_file::test_value_file(tag &mifare) const {
         const auto test_get_value = [&](std::int32_t expected) {
             const auto res_read = mifare.get_value(fid(), trust_card);
-            TEST_ASSERT(res_read)
+            TEST_ASSERT(res_read);
             TEST_ASSERT_EQUAL(expected, *res_read);
         };
 
         test_get_value(0);
-        TEST_ASSERT(mifare.credit(fid(), 2, trust_card))
+        TEST_ASSERT(mifare.credit(fid(), 2, trust_card));
         test_get_value(0);// Did not commit yet
-        TEST_ASSERT(mifare.commit_transaction())
+        TEST_ASSERT(mifare.commit_transaction());
         test_get_value(2);
-        TEST_ASSERT(mifare.debit(fid(), 5, trust_card))
-        TEST_ASSERT(mifare.commit_transaction())
+        TEST_ASSERT(mifare.debit(fid(), 5, trust_card));
+        TEST_ASSERT(mifare.commit_transaction());
         test_get_value(-3);
     }
 
@@ -210,21 +210,21 @@ namespace ut::desfire_files {
 
         const auto test_get_record_count = [&](std::uint32_t expected) {
             const auto res_settings = mifare.get_file_settings(fid());
-            TEST_ASSERT(res_settings)
+            TEST_ASSERT(res_settings);
             TEST_ASSERT_EQUAL(expected, res_settings->record_settings().record_count);
         };
 
         test_get_record_count(0);
-        TEST_ASSERT(mifare.write_record(fid(), nibble, trust_card, 4))
-        TEST_ASSERT(mifare.commit_transaction())
+        TEST_ASSERT(mifare.write_record(fid(), nibble, trust_card, 4));
+        TEST_ASSERT(mifare.commit_transaction());
         test_get_record_count(1);
         const auto res_records = mifare.read_parse_records<record_t>(fid(), trust_card, 0, all_records);
-        TEST_ASSERT(res_records)
+        TEST_ASSERT(res_records);
         TEST_ASSERT_EQUAL(res_records->size(), 1);
         const record_t expected = {0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x02, 0x03};
         TEST_ASSERT_EQUAL_HEX8_ARRAY(expected.data(), res_records->front().data(), 8);
-        TEST_ASSERT(mifare.clear_record_file(fid()))
-        TEST_ASSERT(mifare.commit_transaction())
+        TEST_ASSERT(mifare.clear_record_file(fid()));
+        TEST_ASSERT(mifare.commit_transaction());
     }
 
     void test_file() {

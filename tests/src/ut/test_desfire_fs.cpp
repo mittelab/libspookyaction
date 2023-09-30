@@ -156,7 +156,7 @@ namespace ut::fs {
         TEST_ASSERT(ok_and<true>(does_app_exist(tag, aid)));
 
         // Should be deletable
-        TEST_ASSERT(delete_app_if_exists(tag, aid))
+        TEST_ASSERT(delete_app_if_exists(tag, aid));
         TEST_ASSERT(ok_and<false>(does_app_exist(tag, aid)));
 
         TEST_ASSERT(delete_app_if_exists(tag, aid));

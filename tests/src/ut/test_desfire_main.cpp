@@ -183,9 +183,9 @@ namespace ut::desfire_main {
 
         issue_format_warning();
 
-        TEST_ASSERT(mifare.select_application(root_app))
+        TEST_ASSERT(mifare.select_application(root_app));
         test_auth_attempt(mifare.authenticate(key<cipher_type::des>{}));
-        TEST_ASSERT(mifare.format_picc())
+        TEST_ASSERT(mifare.format_picc());
         TEST_ASSERT(mifare.select_application(root_app));
         TEST_ASSERT(mifare.authenticate(key<cipher_type::des>{}));
         auto r_settings = mifare.get_app_settings();
@@ -194,7 +194,7 @@ namespace ut::desfire_main {
         TEST_ASSERT(mifare.change_app_settings(r_settings->rights));
 
         const auto r_info = mifare.get_info();
-        TEST_ASSERT(r_info)
+        TEST_ASSERT(r_info);
         ESP_LOGI(TEST_TAG, "Card info:");
         ESP_LOGI(TEST_TAG, "    vendor id: %02x", r_info->hardware.vendor_id);
         ESP_LOGI(TEST_TAG, "   hw version: %d.%d", r_info->hardware.version_major, r_info->hardware.version_minor);
@@ -211,7 +211,7 @@ namespace ut::desfire_main {
                  r_info->production_year, r_info->production_year, r_info->production_week);
 
         const auto r_mem = mifare.get_free_mem();
-        TEST_ASSERT(r_mem)
+        TEST_ASSERT(r_mem);
         ESP_LOGI(TEST_TAG, " free mem [B]: %lu", *r_mem);
     }
 
@@ -224,15 +224,15 @@ namespace ut::desfire_main {
         }
         auto &mifare = instance->tag();
 
-        TEST_ASSERT(mifare.select_application(root_app))
+        TEST_ASSERT(mifare.select_application(root_app));
         test_auth_attempt(mifare.authenticate(key<cipher_type::des>{}));
 
         const auto r_info = mifare.get_info();
-        TEST_ASSERT(r_info)
+        TEST_ASSERT(r_info);
         const auto uid = r_info->serial_no;
 
         const auto r_get_uid = mifare.get_card_uid();
-        TEST_ASSERT(r_get_uid)
+        TEST_ASSERT(r_get_uid);
         TEST_ASSERT_EQUAL_HEX8_ARRAY(uid.data(), r_get_uid->data(), uid.size());
     }
 
@@ -251,30 +251,30 @@ namespace ut::desfire_main {
                                    cipher_type::des3_3k, cipher_type::aes128}) {
             const demo_app app{cipher};
             ESP_LOGI(TEST_TAG, "Creating app with cipher %s.", to_string(cipher));
-            TEST_ASSERT(mifare.select_application(root_app))
-            TEST_ASSERT(mifare.authenticate(key<cipher_type::des>{}))
-            TEST_ASSERT(mifare.create_application(app.aid, app_settings{cipher}))
-            TEST_ASSERT(mifare.select_application(app.aid))
+            TEST_ASSERT(mifare.select_application(root_app));
+            TEST_ASSERT(mifare.authenticate(key<cipher_type::des>{}));
+            TEST_ASSERT(mifare.create_application(app.aid, app_settings{cipher}));
+            TEST_ASSERT(mifare.select_application(app.aid));
             test_auth_attempt(mifare.authenticate(app.primary_key));
             // Save this id
             found_ids[app.aid] = false;
         }
 
-        TEST_ASSERT(mifare.select_application(root_app))
+        TEST_ASSERT(mifare.select_application(root_app));
         const auto r_app_ids = mifare.get_application_ids();
-        TEST_ASSERT(r_app_ids)
+        TEST_ASSERT(r_app_ids);
         if (r_app_ids) {
             TEST_ASSERT_GREATER_OR_EQUAL(r_app_ids->size(), 4);
             for (std::size_t i = 0; i < r_app_ids->size(); ++i) {
                 app_id const &aid = r_app_ids->at(i);
                 ESP_LOGI(TEST_TAG, "  %d. AID %02x %02x %02x", i + 1, aid[0], aid[1], aid[2]);
                 if (auto it = found_ids.find(aid); it != std::end(found_ids)) {
-                    TEST_ASSERT_FALSE(it->second)
+                    TEST_ASSERT_FALSE(it->second);
                     it->second = true;
                 }
             }
             const bool got_all_ids = std::all_of(std::begin(found_ids), std::end(found_ids), [](auto kvp) { return kvp.second; });
-            TEST_ASSERT(got_all_ids)
+            TEST_ASSERT(got_all_ids);
         }
     }
 
@@ -302,14 +302,14 @@ namespace ut::desfire_main {
 
         const auto find_current_key = [&]() -> bool {
             ESP_LOGI(TEST_TAG, "Attempt to recover the root key.");
-            TEST_ASSERT(mifare.select_application(root_app))
+            TEST_ASSERT(mifare.select_application(root_app));
             for (auto const &key : keys_to_test) {
                 auto suppress = suppress_log{DESFIRE_LOG_PREFIX};
                 if (mifare.authenticate(key)) {
                     suppress.restore();
                     ESP_LOGI(TEST_TAG, "Found the right key, changing to default.");
-                    TEST_ASSERT(mifare.change_key(default_k))
-                    TEST_ASSERT(mifare.authenticate(default_k))
+                    TEST_ASSERT(mifare.change_key(default_k));
+                    TEST_ASSERT(mifare.authenticate(default_k));
                     return true;
                 }
             }
@@ -323,44 +323,44 @@ namespace ut::desfire_main {
         ESP_LOGW(TEST_TAG, "pieces of code, test them in the context of non-root apps first.");
         issue_format_warning();
 
-        TEST_ASSERT(mifare.select_application(root_app))
-        TEST_ASSERT(find_current_key())
+        TEST_ASSERT(mifare.select_application(root_app));
+        TEST_ASSERT(find_current_key());
 
         const app_id test_app_id = {0x00, 0x7e, 0x57};
 
         ESP_LOGI(TEST_TAG, "Begin key test cycle.");
         for (auto const &key : keys_to_test) {
-            TEST_ASSERT(mifare.change_key(key))
+            TEST_ASSERT(mifare.change_key(key));
             ESP_LOGI(TEST_TAG, "Changed root key to %s, testing root level ops.", to_string(key.type()));
-            TEST_ASSERT(mifare.authenticate(key))
+            TEST_ASSERT(mifare.authenticate(key));
             // Do bunch of operations on applications that can only be done at the root level, so that we can verify the
             // trasmission modes for the root level app
             auto r_list = mifare.get_application_ids();
-            TEST_ASSERT(r_list)
+            TEST_ASSERT(r_list);
             if (std::find(std::begin(*r_list), std::end(*r_list), test_app_id) != std::end(*r_list)) {
                 // Remove preexisting app
-                TEST_ASSERT(mifare.delete_application(test_app_id))
+                TEST_ASSERT(mifare.delete_application(test_app_id));
             }
-            TEST_ASSERT(mifare.create_application(test_app_id, app_settings()))
+            TEST_ASSERT(mifare.create_application(test_app_id, app_settings()));
             r_list = mifare.get_application_ids();
-            TEST_ASSERT(r_list)
+            TEST_ASSERT(r_list);
             TEST_ASSERT_GREATER_OR_EQUAL(1, r_list->size());
-            TEST_ASSERT(std::find(std::begin(*r_list), std::end(*r_list), test_app_id) != std::end(*r_list))
-            TEST_ASSERT(mifare.select_application(test_app_id))
-            TEST_ASSERT(mifare.select_application(root_app))
-            TEST_ASSERT(mifare.authenticate(key))
-            TEST_ASSERT(mifare.delete_application(test_app_id))
+            TEST_ASSERT(std::find(std::begin(*r_list), std::end(*r_list), test_app_id) != std::end(*r_list));
+            TEST_ASSERT(mifare.select_application(test_app_id));
+            TEST_ASSERT(mifare.select_application(root_app));
+            TEST_ASSERT(mifare.authenticate(key));
+            TEST_ASSERT(mifare.delete_application(test_app_id));
             // Also format picc will CMAC
-            TEST_ASSERT(mifare.format_picc())
-            TEST_ASSERT(mifare.select_application(root_app))
+            TEST_ASSERT(mifare.format_picc());
+            TEST_ASSERT(mifare.select_application(root_app));
             // Master key survives format
-            TEST_ASSERT(mifare.authenticate(key))
+            TEST_ASSERT(mifare.authenticate(key));
         }
 
         // Cleanup
-        TEST_ASSERT(mifare.change_key(default_k))
-        TEST_ASSERT(mifare.authenticate(default_k))
-        TEST_ASSERT(mifare.format_picc())
+        TEST_ASSERT(mifare.change_key(default_k));
+        TEST_ASSERT(mifare.authenticate(default_k));
+        TEST_ASSERT(mifare.format_picc());
     }
 
     void test_mifare_change_app_key() {
@@ -377,45 +377,45 @@ namespace ut::desfire_main {
                                    cipher_type::des3_3k, cipher_type::aes128}) {
             const demo_app app{cipher};
             ESP_LOGI(TEST_TAG, "Changing same key of app with cipher %s.", to_string(app.primary_key.type()));
-            TEST_ASSERT(mifare.select_application(app.aid))
+            TEST_ASSERT(mifare.select_application(app.aid));
             if (not mifare.authenticate(app.primary_key)) {
                 ESP_LOGW(TEST_TAG, "Default key not working, attempting secondary key and reset...");
-                TEST_ASSERT(mifare.authenticate(app.secondary_key))
-                TEST_ASSERT(mifare.change_key(app.primary_key))
+                TEST_ASSERT(mifare.authenticate(app.secondary_key));
+                TEST_ASSERT(mifare.change_key(app.primary_key));
                 ESP_LOGI(TEST_TAG, "Reset app key to default, continuing!");
-                TEST_ASSERT(mifare.authenticate(app.primary_key))
+                TEST_ASSERT(mifare.authenticate(app.primary_key));
             }
-            TEST_ASSERT(mifare.change_key(app.secondary_key))
-            TEST_ASSERT(mifare.authenticate(app.secondary_key))
+            TEST_ASSERT(mifare.change_key(app.secondary_key));
+            TEST_ASSERT(mifare.authenticate(app.secondary_key));
             const auto res_key_version = mifare.get_key_version(app.secondary_key.key_number());
-            TEST_ASSERT(res_key_version)
+            TEST_ASSERT(res_key_version);
             TEST_ASSERT_EQUAL(app.secondary_key.version(), *res_key_version);
             auto res_key_settings = mifare.get_app_settings();
-            TEST_ASSERT(res_key_settings)
+            TEST_ASSERT(res_key_settings);
             res_key_settings->rights.dir_access_without_auth = true;
-            TEST_ASSERT(mifare.change_app_settings(res_key_settings->rights))
+            TEST_ASSERT(mifare.change_app_settings(res_key_settings->rights));
             res_key_settings->rights.dir_access_without_auth = false;
-            TEST_ASSERT(mifare.change_app_settings(res_key_settings->rights))
-            TEST_ASSERT(mifare.change_key(app.primary_key))
+            TEST_ASSERT(mifare.change_app_settings(res_key_settings->rights));
+            TEST_ASSERT(mifare.change_key(app.primary_key));
 
             TEST_ASSERT(res_key_settings->max_num_keys > 2);
             res_key_settings->rights.allowed_to_change_keys = 0_b;
             TEST_ASSERT(mifare.authenticate(app.primary_key));
-            TEST_ASSERT(mifare.change_app_settings(res_key_settings->rights))
+            TEST_ASSERT(mifare.change_app_settings(res_key_settings->rights));
             res_key_settings = mifare.get_app_settings();
             TEST_ASSERT(res_key_settings);
             TEST_ASSERT(res_key_settings->rights.allowed_to_change_keys == 0_b);
             TEST_ASSERT(app.primary_key.key_number() == 0);
-            TEST_ASSERT(mifare.authenticate(app.primary_key))
+            TEST_ASSERT(mifare.authenticate(app.primary_key));
             const auto next_key_old = any_key{cipher}.with_key_number(1);
             TEST_ASSERT(next_key_old.key_number() == 1);
             TEST_ASSERT(mifare.authenticate(next_key_old));
-            TEST_ASSERT(mifare.authenticate(app.primary_key))
+            TEST_ASSERT(mifare.authenticate(app.primary_key));
             const auto next_key_new = app.secondary_key.with_key_number(1);
             TEST_ASSERT(next_key_new.key_number() == 1);
             TEST_ASSERT(mifare.change_key(next_key_old, next_key_new));
             TEST_ASSERT(mifare.authenticate(next_key_new));
-            TEST_ASSERT(mifare.authenticate(app.primary_key))
+            TEST_ASSERT(mifare.authenticate(app.primary_key));
             TEST_ASSERT(mifare.change_key(next_key_new, next_key_old));
         }
     }

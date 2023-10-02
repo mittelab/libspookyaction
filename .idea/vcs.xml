@@ -4,6 +4,7 @@
     <mapping directory="$PROJECT_DIR$" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/tests/components/esp-wolfssl" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/tests/components/esp-wolfssl/wolfssl" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/tests/components/unity/Unity" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/tests/lib/_mittelib" vcs="Git" />
   </component>
 </project>

@@ -174,6 +174,13 @@ void unity_perform_all_tests() {
 extern "C" {
 #endif
 
+void setUp() {}
+void tearDown() {}
+void suiteSetUp() {}
+int suiteTearDown(int num_failures) { return num_failures; }
+void resetTest() {}
+void verifyTest() {}
+
 void app_main() {
 
 #ifdef SPOOKY_USE_WOLFSSL

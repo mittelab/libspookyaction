@@ -4,3 +4,6 @@
 [submodule "tests/lib/_mittelib"]
 	path = tests/lib/_mittelib
 	url = https://git.mittelab.org/proj/mittelib.git
+[submodule "tests/components/unity/Unity"]
+	path = tests/components/unity/Unity
+	url = https://github.com/ThrowTheSwitch/Unity.git

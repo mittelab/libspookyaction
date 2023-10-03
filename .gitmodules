@@ -1,9 +1,6 @@
-[submodule "tests/components/esp-wolfssl"]
-	path = tests/components/esp-wolfssl
+[submodule "components/esp-wolfssl"]
+	path = components/esp-wolfssl
 	url = https://github.com/espressif/esp-wolfssl.git
-[submodule "tests/lib/_mittelib"]
-	path = tests/lib/_mittelib
+[submodule "components/mittelib"]
+	path = components/mittelib
 	url = https://git.mittelab.org/proj/mittelib.git
-[submodule "tests/components/unity/Unity"]
-	path = tests/components/unity/Unity
-	url = https://github.com/ThrowTheSwitch/Unity.git

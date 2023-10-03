@@ -1,0 +1,47 @@
+{
+  "name": "mitteLib",
+  "version": "1.0.5",
+  "description": "Nice C++17 goodies made in Mittelab",
+  "license": "LGPL-3.0-only",
+  "keywords": [
+    "cxx17",
+    "c++17",
+    "helper",
+    "stream",
+    "result",
+    "variant",
+    "unique",
+    "observe",
+    "endian"
+  ],
+  "homepage": "https://proj.mittelab.dev/mittelib/",
+  "repository": {
+    "type": "git",
+    "url": "https://git.mittelab.org/proj/mittelib.git"
+  },
+  "authors": [
+    {
+      "name": "Pietro Saccardi",
+      "email": "lizardm4@gmail.com",
+      "maintainer": true
+    },
+    {
+      "name": "Luca Cristaldi",
+      "email": "wifasoi@gmail.com"
+    }
+  ],
+  "export": {
+    "include": [
+      "src/*",
+      "include/*"
+    ]
+  },
+  "frameworks": "espidf",
+  "platforms": "espressif32",
+  "build": {
+    "flags": [
+      "-Wall",
+      "-Wextra"
+    ]
+  }
+}

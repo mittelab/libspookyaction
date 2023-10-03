@@ -1,0 +1,102 @@
+include:
+  - template: 'Workflows/MergeRequest-Pipelines.gitlab-ci.yml'
+
+
+stages:
+  - check
+  - build
+  - deploy
+
+
+variables:
+  PIO_LIB_FOLDER: mittelib
+  PIO_PROJ_FOLDER: tests
+
+
+.pio-cache: &pio-cache
+  cache:
+    key: ${CI_COMMIT_REF_SLUG}
+    paths:
+      - "${PIO_PROJ_FOLDER}/.pio"
+
+.rules-master: &rules-master
+  if: '$CI_COMMIT_BRANCH == "master"'
+  when: always
+
+
+check format:
+  stage: check
+  image: alpine:3.17
+  allow_failure: true
+  before_script:
+    - apk add --update --no-cache git clang clang-extra-tools
+  script:
+    - >
+      find . -not -path '*/\.*' -and \( -name '*.[hc]' -or -name '*.[hc]pp' \) | while read -r FILE; do
+          echo "Formatting $FILE"
+          clang-format --style file -i "$FILE"
+      done
+    - git diff --patch | tee 0001-Clang-format.patch
+    - test ! -s 0001-Clang-format.patch
+  artifacts:
+    paths:
+      - 0001-Clang-format.patch
+    expire_in: 1 week
+    when: on_failure
+  rules:
+    # Run always, on merge request too
+    - when: always
+
+
+build test firmware:
+  stage: build
+  image: ${CI_REGISTRY}/proj/testinator/esp32:latest
+  <<: *pio-cache
+  before_script:
+    - cp cicd/platformio.ini "${PIO_PROJ_FOLDER}/platformio.ini"
+    - cd "${PIO_PROJ_FOLDER}"
+  script:
+    # Remove the cached firmwares to ensure we will rebuild
+    - rm -f .pio/**/firmware.{bin,elf}
+    - pio test -vv --without-uploading --without-testing
+  artifacts:
+    paths:
+      - "${PIO_PROJ_FOLDER}/.pio/**/*.checksum"  # Without this, `pio run` deletes the firmware
+      - "${PIO_PROJ_FOLDER}/.pio/**/firmware.bin"
+      - "${PIO_PROJ_FOLDER}/.pio/**/firmware.elf"
+  rules:
+    - when: always
+
+
+publish library:
+  image: ${CI_REGISTRY}/proj/testinator/esp32:latest
+  stage: deploy
+  before_script:
+    - python3 -m pip install --user gitpython
+  script:
+    - git config --global --add safe.directory $(pwd)
+    - |
+      python3 cicd/check_version.py ${PIO_LIB_FOLDER}/library.json && \
+      pio package publish --owner ${PLATFORMIO_ORG} --non-interactive $(realpath ${PIO_LIB_FOLDER})
+  only:
+    - tags
+  except:
+    - branches
+
+
+pages:
+  stage: deploy
+  image: alpine
+  needs:
+    - check format
+  before_script:
+    - apk add --update --no-cache doxygen graphviz ttf-opensans
+  script:
+    - doxygen ./doxygen.conf
+    - mkdir -p public
+    - cp -r docs/_build/html/* public
+  artifacts:
+    paths:
+      - public
+  rules:
+    - <<: *rules-master

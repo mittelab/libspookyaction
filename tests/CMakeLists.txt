@@ -1,6 +1,12 @@
-cmake_minimum_required(VERSION 3.16)
-include($ENV{IDF_PATH}/tools/cmake/project.cmake)
-project(tests)
+file(GLOB_RECURSE SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp")
 
-idf_create_coverage_report(${CMAKE_CURRENT_BINARY_DIR}/coverage_report)
-idf_clean_coverage_report(${CMAKE_CURRENT_BINARY_DIR}/coverage_report)
+idf_component_register(
+        SRCS ${SOURCES}
+        PRIV_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/ut
+        PRIV_REQUIRES mittelib libspookyaction catch)
+
+target_compile_definitions(${COMPONENT_LIB} PRIVATE
+    SPOOKY_HSU
+    PN532_SERIAL_TX=17
+    PN532_SERIAL_RX=18
+)

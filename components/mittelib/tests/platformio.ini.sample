@@ -1,0 +1,17 @@
+[env:esp32dev]
+platform = espressif32
+framework = espidf
+
+lib_deps = mittelib
+build_flags = -Wall -Wextra
+;    -D LOG_LOCAL_LEVEL=ESP_LOG_DEBUG
+;    -D CORE_DEBUG_LEVEL=5
+
+; These settings allow to compile and run the tests with `pio run`
+test_build_src = yes
+
+;upload_port=/dev/ttyUSB0
+;monitor_port=/dev/ttyUSB0
+;test_port=/dev/ttyUSB0
+;monitor_speed = 115200
+;board = esp32dev

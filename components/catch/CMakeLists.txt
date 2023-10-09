@@ -5,7 +5,7 @@ idf_component_register(
      SRCS "${CATCH_FOLDER}/catch_amalgamated.cpp"
      INCLUDE_DIRS "${CATCH_FOLDER}")
 
-add_compile_definitions(CATCH_CONFIG_NO_POSIX_SIGNALS CATCH_CONFIG_DISABLE_EXCEPTIONS)
+add_compile_definitions(CATCH_CONFIG_NO_POSIX_SIGNALS)
 target_compile_options("${COMPONENT_LIB}" PRIVATE -Wno-unused-function)
 
 # Header and CPP file for Catch must be downloaded

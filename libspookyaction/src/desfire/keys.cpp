@@ -12,7 +12,8 @@ namespace desfire {
         *this = other;
     }
 
-    any_key::any_key(cipher_type cipher) : mlab::any_of<cipher_type, desfire::key, cipher_type::none>{cipher} {
+    any_key::any_key(cipher_type cipher) : mlab::any_of<cipher_type, desfire::key, cipher_type::none> { cipher }
+    {
         switch (cipher) {
             case cipher_type::none:
                 set<cipher_type::none>(key<cipher_type::none>{});
@@ -33,7 +34,8 @@ namespace desfire {
     }
 
     any_key::any_key(cipher_type cipher, mlab::range<std::uint8_t const *> k, std::uint8_t key_no)
-        : mlab::any_of<cipher_type, key, cipher_type::none>{cipher} {
+        : mlab::any_of<cipher_type, key, cipher_type::none> { cipher }
+    {
         switch (cipher) {
             case cipher_type::none:
                 set<cipher_type::none>(key<cipher_type::none>{});
@@ -62,7 +64,8 @@ namespace desfire {
     }
 
     any_key::any_key(cipher_type cipher, mlab::range<std::uint8_t const *> k, std::uint8_t key_no, std::uint8_t v)
-        : mlab::any_of<cipher_type, key, cipher_type::none>{cipher} {
+        : mlab::any_of<cipher_type, key, cipher_type::none> { cipher }
+    {
         switch (cipher) {
             case cipher_type::none:
                 set<cipher_type::none>(key<cipher_type::none>{});
@@ -91,7 +94,8 @@ namespace desfire {
     }
 
     any_key::any_key(cipher_type cipher, random_oracle rng, std::uint8_t key_no)
-        : mlab::any_of<cipher_type, key, cipher_type::none>{cipher} {
+        : mlab::any_of<cipher_type, key, cipher_type::none> { cipher }
+    {
         switch (cipher) {
             case cipher_type::none:
                 set<cipher_type::none>(key<cipher_type::none>{});
@@ -112,7 +116,8 @@ namespace desfire {
     }
 
     any_key::any_key(cipher_type cipher, random_oracle rng, std::uint8_t key_no, std::uint8_t v)
-        : mlab::any_of<cipher_type, key, cipher_type::none>{cipher} {
+        : mlab::any_of<cipher_type, key, cipher_type::none> { cipher }
+    {
         switch (cipher) {
             case cipher_type::none:
                 set<cipher_type::none>(key<cipher_type::none>{});
@@ -385,6 +390,19 @@ namespace desfire {
         }
         return our_data;
     }
+
+
+    bool any_key::operator==(any_key const &other) const {
+        if (other.type() == type() and other.version() == version()) {
+            return std::equal(std::begin(body()), std::end(body()), std::begin(other.body()));
+        }
+        return false;
+    }
+
+    bool any_key::operator!=(any_key const &other) const {
+        return not operator==(other);
+    }
+
 
 }// namespace desfire
 

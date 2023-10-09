@@ -211,6 +211,16 @@ namespace desfire {
          * @return The result of @ref get_packed_key_body, XOR-ed with @p key_to_xor_with and with a version byte appended if necessary.
          */
         [[nodiscard]] bin_data xored_with(any_key const &key_to_xor_with) const;
+
+        /**
+         * @brief Two keys are equal iff they have same cipher type, version and key body.
+         */
+        [[nodiscard]] bool operator==(any_key const &other) const;
+
+        /**
+         * @brief Two keys are equal iff they have same cipher type, version and key body.
+         */
+        [[nodiscard]] bool operator!=(any_key const &other) const;
     };
 
     struct key_tag {};
@@ -722,7 +732,8 @@ namespace desfire {
     }
 
     template <cipher_type Cipher>
-    any_key::any_key(key<Cipher> obj) : mlab::any_of<cipher_type, key, cipher_type::none>{std::move(obj)} {}
+    any_key::any_key(key<Cipher> obj) : mlab::any_of<cipher_type, key, cipher_type::none> { std::move(obj) }
+    {}
 
 }// namespace desfire
 

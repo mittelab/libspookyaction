@@ -4,8 +4,6 @@ build
 .vscode
 .idea
 platformio.ini
-compile_commands.json
 docs/_build
 docs/api
-compile_commands.json.bak
 docs/build.log

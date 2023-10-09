@@ -7,67 +7,31 @@
 
 #include "pn532_pinout.hpp"
 #include "registrar.hpp"
+#include <catch.hpp>
 #include <memory>
 #include <pn532/controller.hpp>
 
-namespace ut {
+namespace ut::pn532 {
+    using namespace ::pn532;
 
-    namespace pn532 {
-        using namespace ::pn532;
+    [[nodiscard]] std::unique_ptr<channel> try_activate_channel(channel_type type);
 
-        static constexpr test_tag_t test_tag = 0x532;
+    template <channel_type CT>
+    struct channel_fixture {
+        std::unique_ptr<channel> chn = try_activate_channel(CT);
+        std::unique_ptr<controller> ctrl = chn ? std::make_unique<controller>(*chn) : nullptr;
 
-        class test_data {
-            std::unique_ptr<pn532::channel> _channel = nullptr;
-            pn532::controller _tag_reader;
-            bool _channel_did_wake;
+        ~channel_fixture() {
+            if (ctrl) {
+                ctrl->power_down({pn532::wakeup_source::hsu, pn532::wakeup_source::i2c, pn532::wakeup_source::spi});
+            }
+        }
 
-        public:
-            explicit test_data(std::unique_ptr<pn532::channel> channel);
-
-            [[nodiscard]] inline bool channel_did_wake() const;
-
-            inline void mark_channel_did_wake();
-
-            [[nodiscard]] pn532::channel &channel();
-            [[nodiscard]] pn532::controller &tag_reader();
-        };
-
-
-    }// namespace pn532
-
-    template <>
-    struct test_instance<pn532::test_tag> : public pn532::test_data {
-        using pn532::test_data::test_data;
+        [[nodiscard]] inline explicit operator bool() const { return chn and ctrl; }
     };
 
-    namespace pn532 {
-        using test_instance = test_instance<test_tag>;
 
-        std::shared_ptr<test_instance> try_activate_channel(channel_type type);
-
-        [[nodiscard]] const char *to_string(channel_type type);
-
-        void test_wake_channel();
-        void test_get_fw();
-        void test_diagnostics();
-        void test_scan_mifare();
-        void test_scan_all();
-        void test_pn532_cycle_rf();
-        void test_data_exchange();
-
-    }// namespace pn532
-}// namespace ut
-
-namespace ut::pn532 {
-
-    bool test_data::channel_did_wake() const {
-        return _channel_did_wake;
-    }
-
-    void test_data::mark_channel_did_wake() {
-        _channel_did_wake = true;
-    }
 }// namespace ut::pn532
+
 
 #endif//SPOOKY_ACTION_TEST_PN532_HPP

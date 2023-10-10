@@ -97,7 +97,15 @@ namespace ut::desfire {
 
     }// namespace
 
-    std::unique_ptr<tag> try_activate_card(pn532::controller &ctrl) {
+    std::unique_ptr<tag> try_activate_card(pn532::channel &chn, pn532::controller &ctrl) {
+        if (not chn.wake()) {
+            ESP_LOGE(TEST_TAG, "Unable to wake channel.");
+            return nullptr;
+        }
+        if (const auto r = ctrl.sam_configuration(pn532::sam_mode::normal, 1s); not r) {
+            ESP_LOGE(TEST_TAG, "Unable to configure SAM, %s", ::pn532::to_string(r.error()));
+            return nullptr;
+        }
         ESP_LOGI(TEST_TAG, "Please bring card close now (searching for one passive 106 kbps target)...");
         if (const auto r_scan = ctrl.initiator_list_passive_kbps106_typea(1); r_scan) {
             if (not r_scan->empty()) {

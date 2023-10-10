@@ -11,14 +11,14 @@
 namespace ut::desfire {
     using namespace ::desfire;
 
-    [[nodiscard]] std::unique_ptr<tag> try_activate_card(pn532::controller &ctrl);
+    [[nodiscard]] std::unique_ptr<tag> try_activate_card(pn532::channel &chn, pn532::controller &ctrl);
 
     template <pn532::channel_type CT>
     struct card_fixture : ut::pn532::channel_fixture<CT> {
         using ut::pn532::channel_fixture<CT>::chn;
         using ut::pn532::channel_fixture<CT>::ctrl;
 
-        std::unique_ptr<tag> mifare = ctrl != nullptr ? try_activate_card(*ctrl) : nullptr;
+        std::unique_ptr<tag> mifare = ctrl != nullptr ? try_activate_card(*chn, *ctrl) : nullptr;
 
         [[nodiscard]] inline explicit operator bool() const override { return chn and ctrl and mifare; }
     };

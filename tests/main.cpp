@@ -1,198 +1,100 @@
-#include "ut/pn532_pinout.hpp"
-#include "ut/test_desfire_ciphers.hpp"
-#include "ut/test_desfire_exchanges.hpp"
-#include "ut/test_desfire_files.hpp"
-#include "ut/test_desfire_fs.hpp"
-#include "ut/test_desfire_main.hpp"
-#include "ut/test_pn532.hpp"
-#include "ut/utils.hpp"
-#include <thread>
-#include <unity.h>
+#include <catch.hpp>
+#include <esp_log.h>
 
-using namespace std::chrono_literals;
+namespace {
 
-#define TEST_TAG "UT"
+    constexpr auto ansi_rst = "\33[0m";
+    constexpr auto ansi_blk = "\33[0;30m";
+    constexpr auto ansi_red = "\33[0;31m";
+    constexpr auto ansi_grn = "\33[0;32m";
+    constexpr auto ansi_yel = "\33[0;33m";
+    constexpr auto ansi_blu = "\33[0;34m";
+    constexpr auto ansi_mag = "\33[0;35m";
+    constexpr auto ansi_cyn = "\33[0;36m";
+    constexpr auto ansi_wht = "\33[0;37m";
 
-void issue_header(std::string const &title) {
-    ESP_LOGI(TEST_TAG, "--------------------------------------------------------------------------------");
-    const std::size_t tail_length = std::max(68u, title.length()) - title.length();
-    const std::string header = "---------- " + title + " " + std::string(tail_length, '-');
-    ESP_LOGI(TEST_TAG, "%s", header.c_str());
-    std::this_thread::sleep_for(2s);
-}
-
-void unity_perform_cipher_tests() {
-    issue_header("MIFARE CIPHER TEST (no card)");
-    RUN_TEST(ut::desfire_ciphers::test_crc16);
-    RUN_TEST(ut::desfire_ciphers::test_crc32);
-    RUN_TEST(ut::desfire_ciphers::test_des);
-    RUN_TEST(ut::desfire_ciphers::test_2k3des);
-    RUN_TEST(ut::desfire_ciphers::test_3k3des);
-    RUN_TEST(ut::desfire_ciphers::test_aes);
-    RUN_TEST(ut::desfire_ciphers::test_2k3des_kdf);
-    RUN_TEST(ut::desfire_ciphers::test_3k3des_kdf);
-    RUN_TEST(ut::desfire_ciphers::test_aes_kdf);
-    RUN_TEST(ut::desfire_exchanges::test_key_actor);
-    RUN_TEST(ut::desfire_exchanges::test_change_key_aes);
-    RUN_TEST(ut::desfire_exchanges::test_change_key_des);
-    RUN_TEST(ut::desfire_exchanges::test_change_key_2k3des);
-    RUN_TEST(ut::desfire_exchanges::test_change_key_2k3des_regression);
-    RUN_TEST(ut::desfire_exchanges::test_create_write_file_rx_cmac);
-    RUN_TEST(ut::desfire_exchanges::test_get_key_version_rx_cmac);
-    RUN_TEST(ut::desfire_exchanges::test_write_data_cmac_des);
-}
-
-std::shared_ptr<ut::pn532::test_instance> unity_perform_pn532_tests(ut::pn532::channel_type channel) {
-    if (not ut::pn532::channel_is_supported(channel)) {
-        ESP_LOG_LEVEL(
-                (ut::pn532::supports_cicd_machine ? ESP_LOG_ERROR : ESP_LOG_WARN),
-                TEST_TAG,
-                "Unsupported channel %s.", ut::pn532::to_string(channel));
-        return nullptr;
-    }
-    auto instance = ut::pn532::try_activate_channel(channel);
-    // Still run the tests so that Unity can read the failure, if this is not the CI/CD machine
-    if (instance != nullptr) {
-        ut::default_registrar().register_instance(instance);
+    extern "C" int vprintf_indent(const char *fmt, va_list argp) {
+        std::string fmt_s = fmt;
+        fmt_s = "     " + fmt_s;
+        return std::vprintf(fmt_s.c_str(), argp);
     }
 
-    issue_header("PN532 TEST AND DIAGNOSTICS (no card)");
-    RUN_TEST(ut::pn532::test_wake_channel);
-    // Just skip this bunch if the channel does not work there is no hope
-    if (instance != nullptr and instance->channel_did_wake()) {
-        RUN_TEST(ut::pn532::test_get_fw);
-        RUN_TEST(ut::pn532::test_diagnostics);
-        issue_header("PN532 SCAN TEST (optionally requires card)");
-        RUN_TEST(ut::pn532::test_scan_mifare);
-        RUN_TEST(ut::pn532::test_pn532_cycle_rf);
-        RUN_TEST(ut::pn532::test_scan_all);
-        RUN_TEST(ut::pn532::test_pn532_cycle_rf);
-        issue_header("PN532 MIFARE COMM TEST (requires card)");
-        RUN_TEST(ut::pn532::test_data_exchange);
-        RUN_TEST(ut::pn532::test_pn532_cycle_rf);
-    } else {
-        ESP_LOGE(TEST_TAG, "Channel %s did not wake.", ut::pn532::to_string(channel));
-    }
-    // Return the instance in case the user wants to do sth else with it
-    return instance;
-}
+    class SpookyReporter : public Catch::StreamingReporterBase {
+    public:
+        using Catch::StreamingReporterBase::StreamingReporterBase;
 
-std::shared_ptr<ut::desfire_main::test_instance> unity_perform_desfire_main_test(std::shared_ptr<ut::pn532::test_instance> pn532_test) {
-    auto instance = ut::desfire_main::try_connect_card(std::move(pn532_test));
-    ut::default_registrar().register_instance(instance);
-    if (instance == nullptr) {
-        ESP_LOGW(TEST_TAG, "Could not find any card.");
-        // Still run the tests so that Unity can read the failure.
-    }
-    RUN_TEST(ut::desfire_main::test_mifare_base);
-    RUN_TEST(ut::desfire_main::test_mifare_uid);
-    RUN_TEST(ut::desfire_main::test_mifare_create_apps);
-    RUN_TEST(ut::desfire_main::test_mifare_change_app_key);
-    // Note: better to first test apps, before fiddling with the root app.
-    RUN_TEST(ut::desfire_main::test_mifare_root_operations);
-    return instance;
-}
+        [[nodiscard]] static std::string getDescription() {
+            return "Custom reporter for libSpookyAction";
+        }
 
-std::shared_ptr<ut::desfire_files::test_instance> unity_perform_desfire_files_test(std::shared_ptr<ut::desfire_main::test_instance> desfire_test) {
-    using desfire::cipher_type;
-    using desfire::file_security;
-    using desfire::file_type;
+        void testCaseStarting(const Catch::TestCaseInfo &testInfo) override {
+            StreamingReporterBase::testCaseStarting(testInfo);
+            std::printf("\n---- %sSTART%s %s\n", ansi_cyn, ansi_rst, testInfo.name.c_str());
+        }
 
-    auto instance = std::make_shared<ut::desfire_files::test_instance>(std::move(desfire_test));
-    ut::default_registrar().register_instance(instance);
-    issue_header("MIFARE TEST (requires card)");
+        void testCaseEnded(const Catch::TestCaseStats &stats) override {
+            auto col = stats.totals.assertions.allPassed() ? ansi_grn : ansi_red;
+            std::printf("%s---- %llu ASSERTIONS, %llu PASS, %llu FAIL, %llu SKIP%s\n",
+                        col,
+                        stats.totals.assertions.total(),
+                        stats.totals.assertions.passed,
+                        stats.totals.assertions.failed,
+                        stats.totals.assertions.failedButOk,
+                        ansi_rst);
 
-    /**
-     * Test file creation, deletion, and read/write cycle.
-     *
-     * @note Since Unity does not allow parms in RUN_TEST, let's store those into a structure and then use them to call
-     * the actual test function. This will generate a separate test entry for each mode.
-     */
-    for (cipher_type cipher : {cipher_type::des, cipher_type::des3_2k,
-                               cipher_type::des3_3k, cipher_type::aes128}) {
-        for (bool free : {false, true}) {
-            for (file_security sec : {file_security::none, file_security::authenticated, file_security::encrypted}) {
-                for (file_type ftype : {file_type::standard, file_type::backup,
-                                        file_type::value, file_type::linear_record,
-                                        file_type::cyclic_record}) {
-                    instance->file().security = sec;
-                    instance->file().cipher = cipher;
-                    instance->file().type = ftype;
-                    instance->file().free_access = free;
-                    const std::string desc = instance->file().get_description();
-                    UnityDefaultTestRun(&ut::desfire_files::test_file, desc.c_str(), __LINE__);
-                }
+            auto log_str = stats.totals.assertions.allPassed() ? "PASS " : "FAIL ";
+            std::printf("---- %s%s%s %s\n\n", col, log_str, ansi_rst, stats.testInfo->name.c_str());
+            StreamingReporterBase::testCaseEnded(stats);
+        }
+
+        void assertionEnded(const Catch::AssertionStats &stats) override {
+            StreamingReporterBase::assertionEnded(stats);
+            auto const &result = stats.assertionResult;
+            if (result.isOk()
+                and result.getResultType() != Catch::ResultWas::Warning
+                and result.getResultType() != Catch::ResultWas::ExplicitSkip)
+            {
+                return;
+            }
+            switch (result.getResultType()) {
+                case Catch::ResultWas::Info:
+                    if (result.hasMessage()) {
+                        std::printf("%s     %s%s\n", ansi_wht, result.getMessage().data(), ansi_rst);
+                    }
+                    break;
+                case Catch::ResultWas::Warning:
+                    if (result.hasMessage()) {
+                        std::printf("%s     %s%s\n", ansi_yel, result.getMessage().data(), ansi_rst);
+                    }
+                    break;
+                case Catch::ResultWas::ExplicitSkip:
+                    if (result.hasMessage()) {
+                        std::printf("%s     SKIP %s%s\n", ansi_yel, result.getMessage().data(), ansi_rst);
+                    } else if (result.hasExpression()) {
+                        std::printf("%s     SKIP %s%s\n", ansi_yel, result.getExpressionInMacro().data(), ansi_rst);
+                    }
+                    break;
+                default:
+                    std::printf("%s     FAIL %s:%d%s\n", ansi_red, result.getSourceInfo().file, result.getSourceInfo().line, ansi_rst);
+                    if (result.hasExpression()) {
+                        std::printf("%s          %s%s\n", ansi_red, result.getExpressionInMacro().data(), ansi_rst);
+                    }
+                    if (result.hasMessage()) {
+                        std::printf("%s          %s%s\n", ansi_red, result.getMessage().data(), ansi_rst);
+                    }
+                    break;
             }
         }
-    }
-    return instance;
+    };
+
+    CATCH_REGISTER_REPORTER("spooky", SpookyReporter);
+}// namespace
+
+extern "C" int app_main() {
+    Catch::Session session;
+    session.configData().runOrder = Catch::TestRunOrder::LexicographicallySorted;
+    session.configData().verbosity = Catch::Verbosity::Quiet;
+    session.configData().reporterSpecifications = {Catch::ReporterSpec{"spooky", {}, {}, {}}};
+    esp_log_set_vprintf(&vprintf_indent);
+    return session.run();
 }
-
-std::shared_ptr<ut::fs::test_instance> unity_perform_fs_test(std::shared_ptr<ut::desfire_main::test_instance> desfire_test) {
-    auto instance = std::make_shared<ut::fs::test_instance>(std::move(desfire_test));
-    ut::default_registrar().register_instance(instance);
-    issue_header("FS TEST (requires card)");
-
-    RUN_TEST(ut::fs::test_app);
-    RUN_TEST(ut::fs::test_file);
-    RUN_TEST(ut::fs::test_ro_app);
-    RUN_TEST(ut::fs::test_ro_data_file);
-    RUN_TEST(ut::fs::test_ro_value_file);
-
-    return instance;
-}
-
-
-void unity_perform_all_tests() {
-    using ut::pn532::channel_type;
-
-    UNITY_BEGIN();
-    esp_log_level_set("*", ESP_LOG_INFO);
-    ut::enable_debug_log(ut::log_nothing);
-
-    // No hardware required for these
-    unity_perform_cipher_tests();
-
-    // Itereate through all available transmission channels. Those that cannot be activated will be skipped
-    for (channel_type channel : {channel_type::hsu, channel_type::i2c, channel_type::i2c_irq, channel_type::spi, channel_type::spi_irq}) {
-        if (auto pn532_instance = unity_perform_pn532_tests(channel); pn532_instance != nullptr) {
-            if (auto mifare_instance = unity_perform_desfire_main_test(pn532_instance); mifare_instance) {
-                unity_perform_fs_test(mifare_instance);
-                unity_perform_desfire_files_test(mifare_instance);
-            }
-        }
-    }
-
-    if constexpr (mlab::track_bin_data_mem) {
-        mlab::mem_stats::instance().print_stats();
-    }
-
-    UNITY_END();
-}
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-void setUp() {}
-void tearDown() {}
-void suiteSetUp() {}
-int suiteTearDown(int num_failures) { return num_failures; }
-void resetTest() {}
-void verifyTest() {}
-
-void app_main() {
-
-#ifdef SPOOKY_USE_WOLFSSL
-    ESP_LOGI("SPOOKY", "WolfSSL is used as a cryptographic backend.");
-#endif//SPOOKY_USE_WOLFSSL
-#ifdef SPOOKY_USE_MBEDTLS
-    ESP_LOGI("SPOOKY", "MbedTLS is used as a cryptographic backend.");
-#endif//SPOOKY_USE_MBEDTLS
-
-    unity_perform_all_tests();
-}
-
-#ifdef __cplusplus
-}
-#endif

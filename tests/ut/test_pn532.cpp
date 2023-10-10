@@ -44,6 +44,7 @@ namespace ut::pn532 {
                 .data7_io_num = -1,
                 .max_transfer_sz = 0,
                 .flags = SPICOMMON_BUSFLAG_MASTER,
+                .isr_cpu_id = ESP_INTR_CPU_AFFINITY_AUTO,
                 .intr_flags = 0};
 
         constexpr spi_device_interface_config_t spi_device_config = {
@@ -51,6 +52,7 @@ namespace ut::pn532 {
                 .address_bits = 0,
                 .dummy_bits = 0,
                 .mode = 0,
+                .clock_source = SPI_CLK_SRC_DEFAULT,
                 .duty_cycle_pos = 0,
                 .cs_ena_pretrans = 0,
                 .cs_ena_posttrans = 0,
@@ -95,8 +97,6 @@ namespace ut::pn532 {
         // Power cycle the pn532
         gpio_set_level(pinout::pn532_cicd_rstn, 0);
         vTaskDelay(pdMS_TO_TICKS(500));
-#else
-        ESP_LOGW(TEST_TAG, "Not running on multi-channel CI/CD machine, the PN532 will not be power-cycled.");
 #endif
 
         // Check which channels are allowed
@@ -153,7 +153,7 @@ namespace ut::pn532 {
     }
 
 
-    TEMPLATE_TEST_CASE_METHOD_SIG(channel_fixture, "Channel, wake and diagnostics", "[pn532]",
+    TEMPLATE_TEST_CASE_METHOD_SIG(channel_fixture, "0020 Channel, wake and diagnostics", "[pn532][channel]",
                                   ((channel_type CT), CT),
                                   channel_type::hsu, channel_type::i2c, channel_type::i2c_irq, channel_type::spi, channel_type::spi_irq) {
         if (not channel_is_supported(CT)) {
@@ -181,7 +181,7 @@ namespace ut::pn532 {
         CHECK(this->ctrl->rf_configuration_field(true, false));
     }
 
-    TEMPLATE_TEST_CASE_METHOD_SIG(channel_fixture, "Scan test", "[pn532]",
+    TEMPLATE_TEST_CASE_METHOD_SIG(channel_fixture, "0021 Scan test", "[pn532]",
                                   ((channel_type CT), CT),
                                   channel_type::hsu, channel_type::i2c, channel_type::i2c_irq, channel_type::spi, channel_type::spi_irq) {
         if (not channel_is_supported(CT)) {
@@ -203,7 +203,7 @@ namespace ut::pn532 {
         }
     }
 
-    TEMPLATE_TEST_CASE_METHOD_SIG(channel_fixture, "Mifare scan test", "[pn532][card]",
+    TEMPLATE_TEST_CASE_METHOD_SIG(channel_fixture, "0022 Mifare scan test", "[pn532][card]",
                                   ((channel_type CT), CT),
                                   channel_type::hsu, channel_type::i2c, channel_type::i2c_irq, channel_type::spi, channel_type::spi_irq) {
         if (not channel_is_supported(CT)) {

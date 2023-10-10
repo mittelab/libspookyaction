@@ -46,7 +46,7 @@ namespace ut::desfire_ciphers {
             desfire::protocol_default, desfire::protocol_default,
             desfire::protocol_default, desfire::protocol_default>;
 
-    TEST_CASE("DES cipher", "[cipher][des]") {
+    TEST_CASE("0010 DES cipher") {
         // Test using examples from https://hack.cert.pl/files/desfire-9f122c71e0057d4f747d2ee295b0f5f6eef8ac32.html
         // The examples from the website use ISO auth also for legacy auth, which means we need to use global IV
         auto c = always_default_cipher_provider{}.protocol_from_key(key<cipher_type::des>{});
@@ -73,7 +73,7 @@ namespace ut::desfire_ciphers {
         }
     }
 
-    TEST_CASE("2K3DES cipher", "[cipher][2k3des]") {
+    TEST_CASE("0011 2K3DES cipher") {
         // Test using examples from https://hack.cert.pl/files/desfire-9f122c71e0057d4f747d2ee295b0f5f6eef8ac32.html
         // The examples from the website use ISO auth also for legacy auth, which means we need to use global IV
         auto c = always_default_cipher_provider{}.protocol_from_key(key<cipher_type::des>{});
@@ -100,7 +100,7 @@ namespace ut::desfire_ciphers {
         }
     }
 
-    TEST_CASE("3K3DES cipher", "[cipher][3k3des]") {
+    TEST_CASE("0012 3K3DES cipher") {
         // Test using examples from https://hack.cert.pl/files/desfire-9f122c71e0057d4f747d2ee295b0f5f6eef8ac32.html
         auto c = desfire::esp32::default_cipher_provider{}.protocol_from_key(key<cipher_type::des3_3k>{});
 
@@ -126,7 +126,7 @@ namespace ut::desfire_ciphers {
         }
     }
 
-    TEST_CASE("AES cipher", "[cipher][aes]") {
+    TEST_CASE("0013 AES cipher") {
         // Test using examples from https://hack.cert.pl/files/desfire-9f122c71e0057d4f747d2ee295b0f5f6eef8ac32.html
         auto c = desfire::esp32::default_cipher_provider{}.protocol_from_key(key<cipher_type::aes128>{});
 
@@ -152,7 +152,7 @@ namespace ut::desfire_ciphers {
         }
     }
 
-    TEST_CASE("DES cipher direction", "[cipher][des]") {
+    TEST_CASE("0014 DES cipher direction") {
         /**
          * @note This test checks that the direction of the protocol matches the odd implementation in Desfire, which
          * requires to de-cipher the data that we are sending. See note on @ref protocol_legacy.
@@ -167,7 +167,7 @@ namespace ut::desfire_ciphers {
         CHECK(enc_data == dec_data);
     }
 
-    TEST_CASE("2K3DES cipher with version", "[cipher][2k3des]") {
+    TEST_CASE("0015 2K3DES cipher with version") {
         /// @note This key has a nonzero version (see k.body()[3] & 0x1 != 0)
         const auto k = key<cipher_type::des3_2k>{0, {0x00, 0x10, 0x20, 0x31, 0x40, 0x50, 0x60, 0x70, 0x80, 0x90, 0xA0, 0xB0, 0xB0, 0xA0, 0x90, 0x80}};
         auto c = always_default_cipher_provider{}.protocol_from_key(k);
@@ -177,7 +177,7 @@ namespace ut::desfire_ciphers {
         CHECK(enc_data == dec_data);
     }
 
-    TEST_CASE("3K3DES cipher with version", "[cipher][3k3des]") {
+    TEST_CASE("0016 3K3DES cipher with version") {
         /// @note This key has a nonzero version (see k.body()[3] & 0x1 != 0)
         const auto k = key<cipher_type::des3_3k>{0, {0x00, 0x10, 0x20, 0x31, 0x40, 0x50, 0x60, 0x70, 0x80, 0x90, 0xA0, 0xB0, 0xB0, 0xA0, 0x90, 0x80, 0x70, 0x60, 0x50, 0x40, 0x30, 0x20, 0x10, 0x00}};
         auto c = desfire::esp32::default_cipher_provider{}.protocol_from_key(k);
@@ -187,7 +187,7 @@ namespace ut::desfire_ciphers {
         CHECK(enc_data == dec_data);
     }
 
-    TEST_CASE("AES KDF", "[kdf][aes]") {
+    TEST_CASE("0017 AES KDF") {
         desfire::esp32::default_cipher_provider cipher_provider{};
         bin_data div_data = {0x04, 0x78, 0x2E, 0x21, 0x80, 0x1D, 0x80, 0x30, 0x42, 0xF5, 0x4E, 0x58, 0x50, 0x20, 0x41, 0x62, 0x75};
 
@@ -199,7 +199,7 @@ namespace ut::desfire_ciphers {
         CHECK(div_key.body() == exp_div_key);
     }
 
-    TEST_CASE("3K3DES KDF", "[kdf][3k3des]") {
+    TEST_CASE("0017 3K3DES KDF") {
         desfire::esp32::default_cipher_provider cipher_provider{};
         bin_data div_data = {0x04, 0x78, 0x2E, 0x21, 0x80, 0x1D, 0x80, 0x30, 0x42, 0xF5, 0x4E, 0x58, 0x50};
 
@@ -211,7 +211,7 @@ namespace ut::desfire_ciphers {
         CHECK(div_key.body() == exp_div_key);
     }
 
-    TEST_CASE("2K3DES KDF", "[kdf][2k3des]") {
+    TEST_CASE("0017 2K3DES KDF") {
         desfire::esp32::default_cipher_provider cipher_provider{};
         bin_data div_data = {0x04, 0x78, 0x2E, 0x21, 0x80, 0x1D, 0x80, 0x30, 0x42, 0xF5, 0x4E, 0x58, 0x50, 0x20, 0x41};
 
@@ -223,7 +223,7 @@ namespace ut::desfire_ciphers {
         CHECK(div_key.body() == exp_div_key);
     }
 
-    TEST_CASE("CRC32", "[crc]") {
+    TEST_CASE("0000 CRC32") {
         SECTION("Short payload") {
             const bin_data payload = {0xC4, 0x00, 0x00, 0x10, 0x20, 0x31, 0x40, 0x50, 0x60, 0x70, 0x80, 0x90, 0xA0, 0xB0, 0xB0, 0xA0, 0x90, 0x80};
             const std::uint32_t expected_crc = 0x5001ffc5;
@@ -238,7 +238,7 @@ namespace ut::desfire_ciphers {
         }
     }
 
-    TEST_CASE("CRC16", "[crc]") {
+    TEST_CASE("0000 CRC16") {
         const bin_data payload = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77};
         const std::uint16_t expected_crc = 0x5530;
         const std::uint16_t computed_crc = compute_crc16(payload);

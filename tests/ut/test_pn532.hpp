@@ -21,13 +21,7 @@ namespace ut::pn532 {
         std::unique_ptr<channel> chn = try_activate_channel(CT);
         std::unique_ptr<controller> ctrl = chn ? std::make_unique<controller>(*chn) : nullptr;
 
-        ~channel_fixture() {
-            if (ctrl) {
-                ctrl->power_down({pn532::wakeup_source::hsu, pn532::wakeup_source::i2c, pn532::wakeup_source::spi});
-            }
-        }
-
-        [[nodiscard]] inline explicit operator bool() const { return chn and ctrl; }
+        [[nodiscard]] virtual inline explicit operator bool() const { return chn and ctrl; }
     };
 
 

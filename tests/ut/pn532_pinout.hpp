@@ -16,6 +16,7 @@ namespace ut::pn532 {
         spi_irq
     };
 
+    [[nodiscard]] const char *to_string(channel_type type);
 
     namespace pinout {
 
@@ -119,12 +120,6 @@ namespace ut::pn532 {
     static constexpr bool supports_hsu = true;
 #else
     static constexpr bool supports_hsu = false;
-#endif
-
-#ifdef SPOOKY_CI_CD_MACHINE
-    static constexpr bool supports_cicd_machine = true;
-#else
-    static constexpr bool supports_cicd_machine = false;
 #endif
 
     constexpr bool channel_is_supported(channel_type type) {

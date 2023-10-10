@@ -187,6 +187,9 @@ namespace ut::desfire {
     TEMPLATE_TEST_CASE_METHOD_SIG(card_fixture, "0030 Mifare base test", "",
                                   ((channel_type CT), CT),
                                   channel_type::hsu, channel_type::i2c, channel_type::i2c_irq, channel_type::spi, channel_type::spi_irq) {
+        if (not channel_is_supported(CT)) {
+            SKIP("Unsupported channel type " << ut::pn532::to_string(CT));
+        }
 
         REQUIRE(*this);
         card_fixture_setup fmt{*this->mifare};
@@ -234,6 +237,9 @@ namespace ut::desfire {
     TEMPLATE_TEST_CASE_METHOD_SIG(card_fixture, "0031 Mifare root-level operations", "",
                                   ((channel_type CT), CT),
                                   channel_type::hsu, channel_type::i2c, channel_type::i2c_irq, channel_type::spi, channel_type::spi_irq) {
+        if (not channel_is_supported(CT)) {
+            SKIP("Unsupported channel type " << ut::pn532::to_string(CT));
+        }
         REQUIRE(*this);
         card_fixture_setup fmt{*this->mifare};
 
@@ -281,6 +287,9 @@ namespace ut::desfire {
     TEMPLATE_TEST_CASE_METHOD_SIG(card_fixture, "0032 Mifare create apps", "",
                                   ((channel_type CT), CT),
                                   channel_type::hsu, channel_type::i2c, channel_type::i2c_irq, channel_type::spi, channel_type::spi_irq) {
+        if (not channel_is_supported(CT)) {
+            SKIP("Unsupported channel type " << ut::pn532::to_string(CT));
+        }
         using namespace mlab_literals;
 
         REQUIRE(*this);

@@ -1,4 +1,5 @@
 .pio
+sdkconfig.old
 cmake-build-*/
 build
 .vscode

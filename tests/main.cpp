@@ -22,6 +22,7 @@ namespace {
     class SpookyReporter : public Catch::StreamingReporterBase {
         vprintf_like_t _orig_vprintf = nullptr;
         std::string _sep = std::string(60llu, '-');
+        std::vector<std::string> _failed_tests;
     public:
         using Catch::StreamingReporterBase::StreamingReporterBase;
 
@@ -36,6 +37,9 @@ namespace {
         }
 
         void testRunEnded(const Catch::TestRunStats &testRunInfo) override {
+            for (auto const &failedTest : _failed_tests) {
+                std::printf("%sTEST%s %sFAIL%s %s\n", ansi_cyn, ansi_rst, ansi_red, ansi_rst, failedTest.c_str());
+            }
             esp_log_set_vprintf(_orig_vprintf);
             StreamingReporterBase::testRunEnded(testRunInfo);
         }
@@ -52,6 +56,7 @@ namespace {
             if (stats.totals.testCases.failed > 0) {
                 log_str = "FAIL";
                 log_str_col = ansi_red;
+                _failed_tests.emplace_back(stats.testInfo->name);
             } else if (stats.totals.testCases.skipped > 0) {
                 log_str = "SKIP";
                 log_str_col = ansi_mag;

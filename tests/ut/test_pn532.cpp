@@ -173,7 +173,7 @@ namespace ut::pn532 {
         CHECK(ok_and_true(this->ctrl->diagnose_self_antenna(low_current_thr::mA_25, high_current_thr::mA_150)));
 
         const auto r_status = this->ctrl->get_general_status();
-        CHECKED_IF(r_status) {
+        CHECKED_IF_FAIL(r_status) {
             for (auto const &target : r_status->targets) {
                 CHECK(this->ctrl->initiator_deselect(target.logical_index));
             }
@@ -196,7 +196,7 @@ namespace ut::pn532 {
         ESP_LOGI(TEST_TAG, "Please bring card close now (searching for any target)...");
         const auto r_scan = this->ctrl->initiator_auto_poll();
         ESP_LOGI(TEST_TAG, "Found %u targets.", r_scan->size());
-        CHECKED_IF(r_scan) {
+        CHECKED_IF_FAIL(r_scan) {
             for (std::size_t i = 0; i < r_scan->size(); ++i) {
                 ESP_LOGI(TEST_TAG, "%u. %s", i + 1, to_string(r_scan->at(i).type()));
             }
@@ -219,17 +219,17 @@ namespace ut::pn532 {
         ESP_LOGI(TEST_TAG, "Please bring card close now (searching for one passive 106 kbps target)...");
         const auto r_scan = this->ctrl->initiator_list_passive_kbps106_typea();
         ESP_LOGI(TEST_TAG, "Found %u targets (passive, 106 kbps, type A).", r_scan->size());
-        CHECKED_IF(r_scan) {
+        CHECKED_IF_FAIL(r_scan) {
             CHECK(not r_scan->empty());
             for (target_kbps106_typea const &target : *r_scan) {
                 ESP_LOGI(TEST_TAG, "Logical index %u; NFC ID:", target.logical_index);
                 ESP_LOG_BUFFER_HEX_LEVEL(TEST_TAG, target.nfcid.data(), target.nfcid.size(), ESP_LOG_INFO);
 
                 const auto r_exchange = this->ctrl->initiator_data_exchange(target.logical_index, {0x5a, 0x00, 0x00, 0x00});
-                CHECKED_IF(r_exchange) {
+                CHECKED_IF_FAIL(r_exchange) {
                     ESP_LOG_BUFFER_HEX_LEVEL(TEST_TAG, r_exchange->second.data(), r_exchange->second.size(), ESP_LOG_INFO);
-                    CHECKED_IF(r_exchange->first.error == internal_error_code::none) {
-                        CHECKED_IF(r_exchange->second.size() == 1) {
+                    CHECKED_IF_FAIL(r_exchange->first.error == internal_error_code::none) {
+                        CHECKED_IF_FAIL(r_exchange->second.size() == 1) {
                             CHECK(r_exchange->second.front() == 0x0);
                         }
                     }

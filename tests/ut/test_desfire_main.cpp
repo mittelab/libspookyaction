@@ -205,7 +205,7 @@ namespace ut::desfire {
         REQUIRE(this->mifare->change_app_settings(r_settings->rights));
 
         const auto r_info = this->mifare->get_info();
-        CHECKED_IF(r_info) {
+        CHECKED_IF_FAIL(r_info) {
             ESP_LOGI(TEST_TAG, "Card info:");
             ESP_LOGI(TEST_TAG, "    vendor id: %02x", r_info->hardware.vendor_id);
             ESP_LOGI(TEST_TAG, "   hw version: %d.%d", r_info->hardware.version_major, r_info->hardware.version_minor);
@@ -222,13 +222,13 @@ namespace ut::desfire {
                      r_info->production_year, r_info->production_year, r_info->production_week);
 
             const auto r_get_uid = this->mifare->get_card_uid();
-            CHECKED_IF(r_get_uid) {
+            CHECKED_IF_FAIL(r_get_uid) {
                 CHECK(r_info->serial_no == *r_get_uid);
             }
         }
 
         const auto r_mem = this->mifare->get_free_mem();
-        CHECKED_IF(r_mem) {
+        CHECKED_IF_FAIL(r_mem) {
             ESP_LOGI(TEST_TAG, " free mem [B]: %lu", *r_mem);
         }
     }
@@ -256,7 +256,7 @@ namespace ut::desfire {
             // Do bunch of operations on applications that can only be done at the root level, so that we can verify the
             // trasmission modes for the root level app
             auto r_list = this->mifare->get_application_ids();
-            CHECKED_IF(r_list) {
+            CHECKED_IF_FAIL(r_list) {
                 if (std::find(std::begin(*r_list), std::end(*r_list), test_app_id) != std::end(*r_list)) {
                     // Remove preexisting app
                     REQUIRE(this->mifare->delete_application(test_app_id));
@@ -264,8 +264,8 @@ namespace ut::desfire {
             }
             REQUIRE(this->mifare->create_application(test_app_id, app_settings()));
             r_list = this->mifare->get_application_ids();
-            CHECKED_IF(r_list) {
-                CHECKED_IF(not r_list->empty()) {
+            CHECKED_IF_FAIL(r_list) {
+                CHECKED_IF_FAIL(not r_list->empty()) {
                     REQUIRE(std::find(std::begin(*r_list), std::end(*r_list), test_app_id) != std::end(*r_list));
                 }
             }
@@ -312,7 +312,7 @@ namespace ut::desfire {
 
         REQUIRE(this->mifare->select_application(root_app));
         const auto r_app_ids = this->mifare->get_application_ids();
-        CHECKED_IF(r_app_ids) {
+        CHECKED_IF_FAIL(r_app_ids) {
             REQUIRE(r_app_ids->size() >= 4);
             for (std::size_t i = 0; i < r_app_ids->size(); ++i) {
                 app_id const &aid = r_app_ids->at(i);
@@ -340,7 +340,7 @@ namespace ut::desfire {
             REQUIRE(this->mifare->change_key(app.secondary_key));
             REQUIRE(this->mifare->authenticate(app.secondary_key));
             const auto res_key_version = this->mifare->get_key_version(app.secondary_key.key_number());
-            CHECKED_IF(res_key_version) {
+            CHECKED_IF_FAIL(res_key_version) {
                 CHECK(app.secondary_key.version() == *res_key_version);
             }
             auto res_key_settings = this->mifare->get_app_settings();

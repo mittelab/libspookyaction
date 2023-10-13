@@ -22,7 +22,7 @@ namespace {
     class SpookyReporter : public Catch::StreamingReporterBase {
         vprintf_like_t _orig_vprintf = nullptr;
         std::string _sep = std::string(60llu, '-');
-        std::vector<std::string> _failed_tests;
+        std::vector<std::pair<std::string, Catch::ResultWas::OfType>> _tests;
     public:
         using Catch::StreamingReporterBase::StreamingReporterBase;
 
@@ -37,10 +37,65 @@ namespace {
         }
 
         void testRunEnded(const Catch::TestRunStats &testRunInfo) override {
-            for (auto const &failedTest : _failed_tests) {
-                std::printf("%sTEST%s %sFAIL%s %s\n", ansi_cyn, ansi_rst, ansi_red, ansi_rst, failedTest.c_str());
-            }
             esp_log_set_vprintf(_orig_vprintf);
+
+            std::printf("%s\n\n", _sep.c_str());
+            std::printf("%sSUMMARY%s\n\n", ansi_cyn, ansi_rst);
+
+            for (std::size_t i = 0; i < _tests.size(); ++i) {
+                auto const &[name, result_was] = _tests[i];
+                switch (result_was) {
+                    case Catch::ResultWas::Ok:
+                        std::printf("%5d. %s%s%s %s\n", i + 1, ansi_grn, "PASS", ansi_rst, name.c_str());
+                        break;
+                    case Catch::ResultWas::ExplicitSkip:
+                        std::printf("%5d. %s%s%s %s\n", i + 1, ansi_mag, "SKIP", ansi_rst, name.c_str());
+                        break;
+                    case Catch::ResultWas::ExplicitFailure:
+                        std::printf("%5d. %s%s%s %s\n", i + 1, ansi_red, "FAIL", ansi_rst, name.c_str());
+                        break;
+                    default:
+                        ESP_LOGE("CATCH", "Invalid result type.");
+                        break;
+                }
+            }
+            std::printf("\n%s\n\n", _sep.c_str());
+
+            auto test_pass_color = testRunInfo.totals.testCases.failed == 0 ? ansi_grn : ansi_rst;
+            auto test_fail_color = testRunInfo.totals.testCases.failed == 0 ? ansi_rst : ansi_red;
+            auto test_skip_color = testRunInfo.totals.testCases.skipped == 0 ? ansi_rst : ansi_mag;
+
+            auto assertion_pass_color = testRunInfo.totals.assertions.failed == 0 ? ansi_grn : ansi_rst;
+            auto assertion_fail_color = testRunInfo.totals.assertions.failed == 0 ? ansi_rst : ansi_red;
+            auto assertion_skip_color = testRunInfo.totals.assertions.skipped == 0 ? ansi_rst : ansi_mag;
+
+            std::printf("%sTOT %s%s %4llu, %s%4llu PASS%s, %s%4llu FAIL%s, %s%4llu SKIP%s\n",
+                        ansi_cyn, "     TESTS", ansi_rst,
+                        testRunInfo.totals.testCases.total(),
+                        test_pass_color, testRunInfo.totals.testCases.passed, ansi_rst,
+                        test_fail_color, testRunInfo.totals.testCases.failed, ansi_rst,
+                        test_skip_color, testRunInfo.totals.testCases.skipped, ansi_rst);
+
+            std::printf("%sTOT %s%s %4llu, %s%4llu PASS%s, %s%4llu FAIL%s, %s%4llu SKIP%s\n",
+                        ansi_cyn, "ASSERTIONS", ansi_rst,
+                        testRunInfo.totals.assertions.total(),
+                        assertion_pass_color, testRunInfo.totals.assertions.passed, ansi_rst,
+                        assertion_fail_color, testRunInfo.totals.assertions.failed, ansi_rst,
+                        assertion_skip_color, testRunInfo.totals.assertions.skipped, ansi_rst);
+
+            auto percent_color = ansi_grn;
+            if (testRunInfo.totals.testCases.skipped > 0) {
+                percent_color = ansi_yel;
+            }
+            if (testRunInfo.totals.testCases.failed > 0) {
+                percent_color = ansi_red;
+            }
+            auto percent = testRunInfo.totals.assertions.total() > 0
+                    ? 100.f * float(testRunInfo.totals.assertions.passed) / float(testRunInfo.totals.assertions.total())
+                    : 100.f;
+
+            std::printf("%sTOT %s%s %s%6.2f%%%s\n\n", ansi_cyn, "   PERCENT", ansi_rst, percent_color, percent, ansi_rst);
+
             StreamingReporterBase::testRunEnded(testRunInfo);
         }
 
@@ -56,10 +111,13 @@ namespace {
             if (stats.totals.testCases.failed > 0) {
                 log_str = "FAIL";
                 log_str_col = ansi_red;
-                _failed_tests.emplace_back(stats.testInfo->name);
+                _tests.emplace_back(stats.testInfo->name, Catch::ResultWas::OfType::ExplicitFailure);
             } else if (stats.totals.testCases.skipped > 0) {
                 log_str = "SKIP";
                 log_str_col = ansi_mag;
+                _tests.emplace_back(stats.testInfo->name, Catch::ResultWas::OfType::ExplicitSkip);
+            } else {
+                _tests.emplace_back(stats.testInfo->name, Catch::ResultWas::OfType::Ok);
             }
 
             std::printf("%sTEST%s %s%s%s  %s\n",

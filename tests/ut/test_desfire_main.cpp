@@ -98,12 +98,24 @@ namespace ut::desfire {
     }// namespace
 
     std::unique_ptr<tag> try_activate_card(pn532::channel &chn, pn532::controller &ctrl) {
-        if (not chn.wake()) {
-            ESP_LOGE(TEST_TAG, "Unable to wake channel.");
-            return nullptr;
+        bool pass = false;
+        for (std::size_t i = 0; i < 3; ++i) {
+            if (chn.wake()) {
+                if (const auto r = ctrl.sam_configuration(pn532::sam_mode::normal, 1s); r) {
+                    pass = true;
+                    break;
+                } else {
+                    ESP_LOGW(TEST_TAG, "Unable to configure SAM, %s. Retrying.", ::pn532::to_string(r.error()));
+                }
+            } else {
+                ESP_LOGW(TEST_TAG, "Unable to wake channel. Retrying.");
+            }
+            // Try to power down and retry
+            ctrl.power_down({pn532::wakeup_source::i2c, pn532::wakeup_source::spi, pn532::wakeup_source::hsu});
+            std::this_thread::sleep_for(50ms);
         }
-        if (const auto r = ctrl.sam_configuration(pn532::sam_mode::normal, 1s); not r) {
-            ESP_LOGE(TEST_TAG, "Unable to configure SAM, %s", ::pn532::to_string(r.error()));
+        if (not pass) {
+            ESP_LOGE(TEST_TAG, "PN532 did not respond.");
             return nullptr;
         }
         ESP_LOGI(TEST_TAG, "Please bring card close now (searching for one passive 106 kbps target)...");

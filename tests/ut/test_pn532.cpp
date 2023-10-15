@@ -152,6 +152,29 @@ namespace ut::pn532 {
         return channel;
     }
 
+    bool try_activate_controller(channel &chn, controller &ctrl) {
+        bool pass = false;
+        for (std::size_t i = 0; i < 3; ++i) {
+            if (chn.wake()) {
+                if (const auto r = ctrl.sam_configuration(pn532::sam_mode::normal, 1s); r) {
+                    pass = true;
+                    break;
+                } else {
+                    ESP_LOGW(TEST_TAG, "Unable to configure SAM, %s. Retrying.", ::pn532::to_string(r.error()));
+                }
+            } else {
+                ESP_LOGW(TEST_TAG, "Unable to wake channel. Retrying.");
+            }
+            // Try to power down and retry
+            ctrl.power_down({pn532::wakeup_source::i2c, pn532::wakeup_source::spi, pn532::wakeup_source::hsu});
+            std::this_thread::sleep_for(50ms);
+        }
+        if (not pass) {
+            ESP_LOGE(TEST_TAG, "PN532 did not respond.");
+        }
+        return pass;
+    }
+
 
     TEMPLATE_TEST_CASE_METHOD_SIG(channel_fixture, "0020 Channel, wake and diagnostics", "[pn532][channel]",
                                   ((channel_type CT), CT),
@@ -160,8 +183,7 @@ namespace ut::pn532 {
             SKIP("Unsupported channel type " << ut::pn532::to_string(CT));
         }
         REQUIRE(*this);
-        REQUIRE(this->chn->wake());
-        REQUIRE(this->ctrl->sam_configuration(sam_mode::normal, 1s));
+        REQUIRE(try_activate_controller(*this->chn, *this->ctrl));
 
         const auto r_fw = this->ctrl->get_firmware_version();
         REQUIRE(r_fw);
@@ -188,8 +210,7 @@ namespace ut::pn532 {
             SKIP("Unsupported channel type " << ut::pn532::to_string(CT));
         }
         REQUIRE(*this);
-        REQUIRE(this->chn->wake());
-        REQUIRE(this->ctrl->sam_configuration(sam_mode::normal, 1s));
+        REQUIRE(try_activate_controller(*this->chn, *this->ctrl));
 
         using ::pn532::to_string;
 
@@ -210,8 +231,7 @@ namespace ut::pn532 {
             SKIP("Unsupported channel type " << ut::pn532::to_string(CT));
         }
         REQUIRE(*this);
-        REQUIRE(this->chn->wake());
-        REQUIRE(this->ctrl->sam_configuration(sam_mode::normal, 1s));
+        REQUIRE(try_activate_controller(*this->chn, *this->ctrl));
 
         using ::pn532::to_string;
 

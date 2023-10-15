@@ -16,6 +16,7 @@ namespace ut::pn532 {
     using namespace ::pn532;
 
     [[nodiscard]] std::unique_ptr<channel> try_activate_channel(channel_type type);
+    [[nodiscard]] bool try_activate_controller(channel &chn, controller &ctrl);
 
     template <channel_type CT>
     struct channel_fixture {

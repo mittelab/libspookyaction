@@ -90,8 +90,9 @@ namespace {
             if (testRunInfo.totals.testCases.failed > 0) {
                 percent_color = ansi_red;
             }
-            auto percent = testRunInfo.totals.assertions.total() > 0
-                    ? 100.f * float(testRunInfo.totals.assertions.passed) / float(testRunInfo.totals.assertions.total())
+            auto tot_non_skipped_assertions = testRunInfo.totals.assertions.total() - testRunInfo.totals.assertions.skipped;
+            auto percent = tot_non_skipped_assertions > 0
+                    ? 100.f * float(testRunInfo.totals.assertions.passed) / float(tot_non_skipped_assertions)
                     : 100.f;
 
             std::printf("%sTOT %s%s %s%6.2f%%%s\n\n", ansi_cyn, "   PERCENT", ansi_rst, percent_color, percent, ansi_rst);

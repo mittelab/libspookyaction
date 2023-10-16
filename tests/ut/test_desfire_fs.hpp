@@ -5,40 +5,25 @@
 #ifndef SPOOKY_ACTION_TEST_DESFIRE_FS_HPP
 #define SPOOKY_ACTION_TEST_DESFIRE_FS_HPP
 
-#include "registrar.hpp"
 #include "test_desfire_main.hpp"
 
-namespace ut {
-    namespace fs {
-        using namespace ::desfire;
+namespace ut::fs {
+    using namespace ::desfire;
 
-        static constexpr test_tag_t test_tag = 0xf5;
+    struct app_fixture_setup : ut::desfire::card_fixture_setup {
+        any_key root_key;
+        app_id aid;
+        any_key master_key;
 
-        class test_data {
-            std::shared_ptr<ut::desfire_main::test_instance> _hold_test_instance;
+        explicit app_fixture_setup(desfire::tag &mifare_,
+                                   any_key root_key_ = key<cipher_type::des>{},
+                                   app_id aid_ = {0x11, 0x22, 0x33},
+                                   cipher_type cipher = cipher_type::aes128);
 
-        public:
-            explicit test_data(std::shared_ptr<ut::desfire_main::test_instance> main_test_instance);
-
-            [[nodiscard]] ::desfire::tag &tag();
-        };
-
-    }// namespace fs
-
-    template <>
-    struct test_instance<fs::test_tag> : public fs::test_data {
-        using fs::test_data::test_data;
+        ~app_fixture_setup();
     };
 
-    namespace fs {
-        using test_instance = test_instance<fs::test_tag>;
+}// namespace ut::fs
 
-        void test_app();
-        void test_ro_app();
-        void test_file();
-        void test_ro_data_file();
-        void test_ro_value_file();
-    }// namespace fs
-}// namespace ut
 
 #endif//SPOOKY_ACTION_TEST_DESFIRE_FS_HPP

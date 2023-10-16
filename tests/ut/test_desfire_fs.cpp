@@ -3,302 +3,263 @@
 //
 
 #include "test_desfire_fs.hpp"
-#include "utils.hpp"
 #include <desfire/esp32/utils.hpp>
 #include <desfire/fs.hpp>
 #include <esp_random.h>
-#include <unity.h>
 
 namespace ut::fs {
+    using namespace ut::desfire;
+    using namespace ut::pn532;
     using namespace desfire::fs;
     using namespace desfire::esp32;
 
-    namespace {
-        constexpr auto missing_instance_msg = "desfire::fs test instance missing";
+    app_fixture_setup::app_fixture_setup(desfire::tag &mifare_, any_key root_key_, app_id aid_, cipher_type cipher)
+        : card_fixture_setup{mifare_},
+          root_key{std::move(root_key_)},
+          aid{aid_},
+          master_key{any_key{cipher, random_oracle{esp_fill_random}}} {
+        REQUIRE(login_app(mifare, root_app, root_key));
+        REQUIRE(delete_app_if_exists(mifare, aid));
+        REQUIRE(create_app(mifare, aid, master_key, key_rights{}, 0));
+    }
 
+    app_fixture_setup::~app_fixture_setup() {
+        REQUIRE(login_app(mifare, root_app, root_key));
+        REQUIRE(delete_app_if_exists(mifare, aid));
+    }
+
+    namespace {
         template <bool B, class R>
         [[nodiscard]] bool ok_and(R const &r) {
             return r and *r == B;
         }
-
-        struct temp_app {
-            desfire::tag &tag;
-            any_key root_key;
-            app_id aid;
-            any_key master_key;
-
-            explicit temp_app(desfire::tag &tag_, any_key root_key_ = key<cipher_type::des>{}, app_id aid_ = {0x11, 0x22, 0x33}, cipher_type cipher = cipher_type::aes128)
-                : tag{tag_},
-                  root_key{std::move(root_key_)},
-                  aid{aid_},
-                  master_key{any_key{cipher, random_oracle{esp_fill_random}}} {
-                TEST_ASSERT(login_app(tag, root_app, root_key));
-                TEST_ASSERT(delete_app_if_exists(tag, aid));
-                TEST_ASSERT(create_app(tag, aid, master_key, key_rights{}, 0));
-            }
-
-            ~temp_app() {
-                TEST_ASSERT(login_app(tag, root_app, root_key));
-                TEST_ASSERT(delete_app_if_exists(tag, aid));
-            }
-        };
     }// namespace
 
-    test_data::test_data(std::shared_ptr<ut::desfire_main::test_instance> main_test_instance)
-        : _hold_test_instance{std::move(main_test_instance)} {}
 
-    tag &test_data::tag() {
-        return _hold_test_instance->tag();
-    }
-
-    void test_ro_app() {
-        UNITY_PATCH_TEST_FILE;
-        auto instance = default_registrar().get<test_instance>();
-        if (instance == nullptr) {
-            TEST_FAIL_MESSAGE(missing_instance_msg);
-            return;
+    TEMPLATE_TEST_CASE_METHOD_SIG(card_fixture, "0051 FS test RO app", "",
+                                  ((channel_type CT), CT),
+                                  channel_type::hsu, channel_type::i2c, channel_type::i2c_irq, channel_type::spi, channel_type::spi_irq) {
+        if (not channel_is_supported(CT)) {
+            SKIP("Unsupported channel type " << ut::pn532::to_string(CT));
         }
-        auto &tag = instance->tag();
 
-        TEST_ASSERT(login_app(tag, root_app, key<cipher_type::des>{}));
+        REQUIRE(*this);
+        card_fixture_setup fmt{*this->mifare};
+
+        REQUIRE(login_app(*this->mifare, root_app, key<cipher_type::des>{}));
         const auto aid = app_id{0x10, 0x20, 0x30};
 
-        const auto r_key = create_app_for_ro(tag, cipher_type::aes128, aid, random_oracle{esp_fill_random});
-        TEST_ASSERT(r_key);
-        if (not r_key) {
-            return;
-        }
+        const auto r_key = create_app_for_ro(*this->mifare, cipher_type::aes128, aid, random_oracle{esp_fill_random});
+        REQUIRE(r_key);
 
-        TEST_ASSERT(tag.active_app() == aid);
-        TEST_ASSERT(tag.active_cipher_type() == r_key->type());
-        TEST_ASSERT(tag.active_key_no() == r_key->key_number());
+        CHECK(this->mifare->active_app() == aid);
+        CHECK(this->mifare->active_cipher_type() == r_key->type());
+        CHECK(this->mifare->active_key_no() == r_key->key_number());
 
-        TEST_ASSERT(tag.create_file(0x00, file_settings<file_type::value>{file_security::none, file_access_rights{}, 0, 0, 0}));
-        TEST_ASSERT(tag.delete_file(0x00));
+        REQUIRE(this->mifare->create_file(0x00, file_settings<file_type::value>{file_security::none, file_access_rights{}, 0, 0, 0}));
+        REQUIRE(this->mifare->delete_file(0x00));
 
-        TEST_ASSERT(tag.authenticate(*r_key));
-        auto r_app_settings = tag.get_app_settings();
+        REQUIRE(this->mifare->authenticate(*r_key));
+        auto r_app_settings = this->mifare->get_app_settings();
 
-        TEST_ASSERT(r_app_settings);
-        if (not r_app_settings) {
-            return;
-        }
+        REQUIRE(r_app_settings);
 
         // An app that must be turned into read only should check these all
-        TEST_ASSERT(r_app_settings->rights.config_changeable);
-        TEST_ASSERT(not r_app_settings->rights.create_delete_without_master_key);
-        TEST_ASSERT(r_app_settings->rights.dir_access_without_auth);
-        TEST_ASSERT(r_app_settings->rights.master_key_changeable);
-        TEST_ASSERT(r_app_settings->rights.allowed_to_change_keys == r_key->key_number());
+        CHECK(r_app_settings->rights.config_changeable);
+        CHECK(not r_app_settings->rights.create_delete_without_master_key);
+        CHECK(r_app_settings->rights.dir_access_without_auth);
+        CHECK(r_app_settings->rights.master_key_changeable);
+        CHECK(r_app_settings->rights.allowed_to_change_keys == r_key->key_number());
 
-        TEST_ASSERT(make_app_ro(tag, true));
+        REQUIRE(make_app_ro(*this->mifare, true));
 
-        TEST_ASSERT(tag.select_application(aid));
-        TEST_ASSERT(tag.get_file_ids());
+        REQUIRE(this->mifare->select_application(aid));
+        REQUIRE(this->mifare->get_file_ids());
 
-        r_app_settings = tag.get_app_settings();
-        TEST_ASSERT(r_app_settings);
-        if (not r_app_settings) {
-            return;
-        }
+        r_app_settings = this->mifare->get_app_settings();
+        REQUIRE(r_app_settings);
 
-        TEST_ASSERT(not r_app_settings->rights.config_changeable);
-        TEST_ASSERT(not r_app_settings->rights.create_delete_without_master_key);
-        TEST_ASSERT(r_app_settings->rights.dir_access_without_auth);
-        TEST_ASSERT(not r_app_settings->rights.master_key_changeable);
-        TEST_ASSERT(r_app_settings->rights.allowed_to_change_keys == no_key);
+        CHECK(not r_app_settings->rights.config_changeable);
+        CHECK(not r_app_settings->rights.create_delete_without_master_key);
+        CHECK(r_app_settings->rights.dir_access_without_auth);
+        CHECK(not r_app_settings->rights.master_key_changeable);
+        CHECK(r_app_settings->rights.allowed_to_change_keys == no_key);
 
         // The key should still work, but once thrashed...
-        TEST_ASSERT(tag.authenticate(*r_key));
+        REQUIRE(this->mifare->authenticate(*r_key));
 
-        TEST_ASSERT(login_app(tag, root_app, key<cipher_type::des>{}));
-        TEST_ASSERT(delete_app_if_exists(tag, aid));
+        REQUIRE(login_app(*this->mifare, root_app, key<cipher_type::des>{}));
+        REQUIRE(delete_app_if_exists(*this->mifare, aid));
     }
 
-    void test_app() {
-        UNITY_PATCH_TEST_FILE;
-        auto instance = default_registrar().get<test_instance>();
-        if (instance == nullptr) {
-            TEST_FAIL_MESSAGE(missing_instance_msg);
-            return;
+    TEMPLATE_TEST_CASE_METHOD_SIG(card_fixture, "0050 FS test app", "",
+                                  ((channel_type CT), CT),
+                                  channel_type::hsu, channel_type::i2c, channel_type::i2c_irq, channel_type::spi, channel_type::spi_irq) {
+        if (not channel_is_supported(CT)) {
+            SKIP("Unsupported channel type " << ut::pn532::to_string(CT));
         }
-        auto &tag = instance->tag();
 
-        TEST_ASSERT(tag.authenticate(key<cipher_type::des>{}));
+        REQUIRE(*this);
+        card_fixture_setup fmt{*this->mifare};
+
+        REQUIRE(this->mifare->authenticate(key<cipher_type::des>{}));
 
         const auto aid = app_id{0x11, 0x22, 0x33};
 
-        TEST_ASSERT(ok_and<false>(does_app_exist(tag, aid)));
+        REQUIRE(ok_and<false>(does_app_exist(*this->mifare, aid)));
         // Root app is not an app!
-        TEST_ASSERT(ok_and<false>(does_app_exist(tag, root_app)));
+        REQUIRE(ok_and<false>(does_app_exist(*this->mifare, root_app)));
 
-        TEST_ASSERT(delete_app_if_exists(tag, aid));
+        REQUIRE(delete_app_if_exists(*this->mifare, aid));
 
         // Generate a random key
         const auto master_key = key<cipher_type::aes128>{0, random_oracle{esp_fill_random}};
 
-        TEST_ASSERT(create_app(tag, aid, master_key, {}));
+        REQUIRE(create_app(*this->mifare, aid, master_key, {}));
 
         // Should fail if the app exists already
         auto suppress = suppress_log{DESFIRE_LOG_PREFIX, "DESFIRE-FS"};
-        TEST_ASSERT_FALSE(create_app(tag, aid, master_key, {}));
+        REQUIRE_FALSE(create_app(*this->mifare, aid, master_key, {}));
         suppress.restore();
         // Should be on the new app
-        TEST_ASSERT(tag.active_app() == aid);
+        CHECK(this->mifare->active_app() == aid);
 
         // So this should fail:
         suppress.suppress();
-        TEST_ASSERT_FALSE(does_app_exist(tag, aid));
+        REQUIRE_FALSE(does_app_exist(*this->mifare, aid));
         suppress.restore();
 
-        TEST_ASSERT(login_app(tag, root_app, key<cipher_type::des>{}));
+        REQUIRE(login_app(*this->mifare, root_app, key<cipher_type::des>{}));
 
-        TEST_ASSERT(ok_and<true>(does_app_exist(tag, aid)));
+        REQUIRE(ok_and<true>(does_app_exist(*this->mifare, aid)));
 
         // Should be deletable
-        TEST_ASSERT(delete_app_if_exists(tag, aid));
-        TEST_ASSERT(ok_and<false>(does_app_exist(tag, aid)));
+        REQUIRE(delete_app_if_exists(*this->mifare, aid));
+        REQUIRE(ok_and<false>(does_app_exist(*this->mifare, aid)));
 
-        TEST_ASSERT(delete_app_if_exists(tag, aid));
+        REQUIRE(delete_app_if_exists(*this->mifare, aid));
     }
 
-    void test_file() {
-        UNITY_PATCH_TEST_FILE;
-        auto instance = default_registrar().get<test_instance>();
-        if (instance == nullptr) {
-            TEST_FAIL_MESSAGE(missing_instance_msg);
-            return;
+    TEMPLATE_TEST_CASE_METHOD_SIG(card_fixture, "0052 FS test file", "",
+                                  ((channel_type CT), CT),
+                                  channel_type::hsu, channel_type::i2c, channel_type::i2c_irq, channel_type::spi, channel_type::spi_irq) {
+        if (not channel_is_supported(CT)) {
+            SKIP("Unsupported channel type " << ut::pn532::to_string(CT));
         }
-        auto &tag = instance->tag();
 
+        REQUIRE(*this);
         // Create a temp app which will auto-delete
-        temp_app app{tag};
+        app_fixture_setup fmt{*this->mifare};
+
         const auto fid = file_id{0x00};
 
-        TEST_ASSERT(ok_and<false>(does_file_exist(tag, fid)));
+        REQUIRE(ok_and<false>(does_file_exist(*this->mifare, fid)));
 
-        TEST_ASSERT(delete_file_if_exists(tag, fid));
+        REQUIRE(delete_file_if_exists(*this->mifare, fid));
 
-        TEST_ASSERT(tag.create_file(fid, file_settings<file_type::standard>{file_security::none, file_access_rights{}, 1}));
+        REQUIRE(this->mifare->create_file(fid, file_settings<file_type::standard>{file_security::none, file_access_rights{}, 1}));
 
-        TEST_ASSERT(ok_and<true>(does_file_exist(tag, fid)));
+        REQUIRE(ok_and<true>(does_file_exist(*this->mifare, fid)));
 
-        TEST_ASSERT(delete_file_if_exists(tag, fid));
+        REQUIRE(delete_file_if_exists(*this->mifare, fid));
 
-        TEST_ASSERT(ok_and<false>(does_file_exist(tag, fid)));
+        REQUIRE(ok_and<false>(does_file_exist(*this->mifare, fid)));
         // Should not fail if run twice
-        TEST_ASSERT(ok_and<false>(does_file_exist(tag, fid)));
+        REQUIRE(ok_and<false>(does_file_exist(*this->mifare, fid)));
 
         // Create several
-        TEST_ASSERT(tag.create_file(fid + 1, file_settings<file_type::standard>{file_security::none, file_access_rights{}, 1}));
-        TEST_ASSERT(tag.create_file(fid + 2, file_settings<file_type::standard>{file_security::none, file_access_rights{}, 1}));
+        REQUIRE(this->mifare->create_file(fid + 1, file_settings<file_type::standard>{file_security::none, file_access_rights{}, 1}));
+        REQUIRE(this->mifare->create_file(fid + 2, file_settings<file_type::standard>{file_security::none, file_access_rights{}, 1}));
 
         // Check which of those exists
-        auto r_exist = which_files_exist(tag, {fid, fid + 1, fid + 3, fid + 2});
-        TEST_ASSERT(r_exist);
-
-        if (r_exist) {
-            TEST_ASSERT_EQUAL(r_exist->size(), 2);
+        auto r_exist = which_files_exist(*this->mifare, {fid, fid + 1, fid + 3, fid + 2});
+        CHECKED_IF_FAIL(r_exist) {
+            CHECK(r_exist->size() == 2);
             if (not r_exist->empty()) {
                 std::sort(std::begin(*r_exist), std::end(*r_exist));
-                TEST_ASSERT_EQUAL(r_exist->front(), fid + 1);
-                TEST_ASSERT_EQUAL(r_exist->back(), fid + 2);
+                CHECK(r_exist->front() == fid + 1);
+                CHECK(r_exist->back() == fid + 2);
             }
         }
     }
 
-    void test_ro_data_file() {
-        UNITY_PATCH_TEST_FILE;
-        auto instance = default_registrar().get<test_instance>();
-        if (instance == nullptr) {
-            TEST_FAIL_MESSAGE(missing_instance_msg);
-            return;
+    TEMPLATE_TEST_CASE_METHOD_SIG(card_fixture, "0053 FS test RO data file", "",
+                                  ((channel_type CT), CT),
+                                  channel_type::hsu, channel_type::i2c, channel_type::i2c_irq, channel_type::spi, channel_type::spi_irq) {
+        if (not channel_is_supported(CT)) {
+            SKIP("Unsupported channel type " << ut::pn532::to_string(CT));
         }
-        auto &tag = instance->tag();
+
+        REQUIRE(*this);
 
         // Create a temp app which will auto-delete
-        temp_app app{tag};
+        app_fixture_setup fmt{*this->mifare};
 
         const auto fid = file_id{0x00};
         const auto expected_data = bin_data{{0xf0, 0xf1, 0xf2}};
 
-        TEST_ASSERT(create_ro_free_data_file(tag, fid, expected_data));
+        REQUIRE(create_ro_free_data_file(*this->mifare, fid, expected_data));
 
-        auto r_file_settings = tag.get_file_settings(fid);
+        auto r_file_settings = this->mifare->get_file_settings(fid);
+        REQUIRE(r_file_settings);
 
-        TEST_ASSERT(r_file_settings);
-        if (not r_file_settings) {
-            return;
-        }
+        CHECK(r_file_settings->common_settings().security == file_security::none);
+        CHECK(r_file_settings->common_settings().rights.is_free(file_access::read));
+        CHECK(r_file_settings->common_settings().rights.write == no_key);
+        CHECK(r_file_settings->common_settings().rights.read_write == no_key);
+        CHECK(r_file_settings->common_settings().rights.change == no_key);
 
-        TEST_ASSERT(r_file_settings->common_settings().security == file_security::none);
-        TEST_ASSERT(r_file_settings->common_settings().rights.is_free(file_access::read));
-        TEST_ASSERT(r_file_settings->common_settings().rights.write == no_key);
-        TEST_ASSERT(r_file_settings->common_settings().rights.read_write == no_key);
-        TEST_ASSERT(r_file_settings->common_settings().rights.change == no_key);
+        REQUIRE(logout_app(*this->mifare));
 
-        TEST_ASSERT(logout_app(tag));
+        const auto r_data = this->mifare->read_data(fid, comm_mode::plain);
+        REQUIRE(r_data);
 
-        const auto r_data = tag.read_data(fid, comm_mode::plain);
-        TEST_ASSERT(r_data);
-
-        if (not r_data) {
-            return;
-        }
-        TEST_ASSERT_EQUAL(r_data->size(), expected_data.size());
-        if (r_data->size() == expected_data.size()) {
-            TEST_ASSERT_EQUAL_HEX8_ARRAY(expected_data.data(), r_data->data(), expected_data.size());
-        }
+        REQUIRE(*r_data == expected_data);
 
         // Should fail without authorization
         auto suppress = suppress_log{"DESFIRE-FS", DESFIRE_LOG_PREFIX};
-        TEST_ASSERT_FALSE(delete_file_if_exists(tag, fid));
+        REQUIRE_FALSE(delete_file_if_exists(*this->mifare, fid));
         suppress.restore();
     }
 
-    void test_ro_value_file() {
-        UNITY_PATCH_TEST_FILE;
-        auto instance = default_registrar().get<test_instance>();
-        if (instance == nullptr) {
-            TEST_FAIL_MESSAGE(missing_instance_msg);
-            return;
-        }
-        auto &tag = instance->tag();
 
+    TEMPLATE_TEST_CASE_METHOD_SIG(card_fixture, "0054 FS test RO value file", "",
+                                  ((channel_type CT), CT),
+                                  channel_type::hsu, channel_type::i2c, channel_type::i2c_irq, channel_type::spi, channel_type::spi_irq) {
+        if (not channel_is_supported(CT)) {
+            SKIP("Unsupported channel type " << ut::pn532::to_string(CT));
+        }
+
+        REQUIRE(*this);
         // Create a temp app which will auto-delete
-        temp_app app{tag};
+        app_fixture_setup fmt{*this->mifare};
 
         const auto fid = file_id{0x00};
         const auto expected_data = std::int32_t{0xbadb007};
 
-        TEST_ASSERT(create_ro_free_value_file(tag, fid, expected_data));
+        REQUIRE(create_ro_free_value_file(*this->mifare, fid, expected_data));
 
-        auto r_file_settings = tag.get_file_settings(fid);
+        auto r_file_settings = this->mifare->get_file_settings(fid);
 
-        TEST_ASSERT(r_file_settings);
-        if (not r_file_settings) {
-            return;
-        }
+        REQUIRE(r_file_settings);
 
-        TEST_ASSERT(r_file_settings->common_settings().security == file_security::none);
-        TEST_ASSERT(r_file_settings->common_settings().rights.is_free(file_access::read));
-        TEST_ASSERT(r_file_settings->common_settings().rights.write == no_key);
-        TEST_ASSERT(r_file_settings->common_settings().rights.read_write == no_key);
-        TEST_ASSERT(r_file_settings->common_settings().rights.change == no_key);
+        CHECK(r_file_settings->common_settings().security == file_security::none);
+        CHECK(r_file_settings->common_settings().rights.is_free(file_access::read));
+        CHECK(r_file_settings->common_settings().rights.write == no_key);
+        CHECK(r_file_settings->common_settings().rights.read_write == no_key);
+        CHECK(r_file_settings->common_settings().rights.change == no_key);
 
-        TEST_ASSERT(logout_app(tag));
+        REQUIRE(logout_app(*this->mifare));
 
-        const auto r_value = tag.get_value(fid, comm_mode::plain);
-        TEST_ASSERT(r_value);
+        const auto r_value = this->mifare->get_value(fid, comm_mode::plain);
+        REQUIRE(r_value);
 
-        if (not r_value) {
-            return;
-        }
-        TEST_ASSERT_EQUAL(*r_value, expected_data);
+        CHECK(*r_value == expected_data);
 
         // Should fail without authorization
         auto suppress = suppress_log{"DESFIRE-FS", DESFIRE_LOG_PREFIX};
-        TEST_ASSERT_FALSE(delete_file_if_exists(tag, fid));
+        REQUIRE_FALSE(delete_file_if_exists(*this->mifare, fid));
         suppress.restore();
     }
+
 }// namespace ut::fs

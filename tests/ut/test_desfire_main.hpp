@@ -30,16 +30,25 @@ namespace ut::desfire {
         ~card_fixture_setup();
     };
 
-    struct demo_app {
-        app_id aid;
+    struct test_app {
         cipher_type cipher;
-        any_key primary_key;
+        app_id aid;
+        any_key master_key;
         any_key secondary_key;
 
-        explicit demo_app(cipher_type c);
+        explicit test_app(cipher_type cipher_);
+    };
 
-        void ensure_selected_and_primary(tag &tag) const;
-        void ensure_created(tag &tag, any_key const &root_key) const;
+    struct app_fixture_setup : card_fixture_setup, test_app {
+        any_key root_key;
+
+        explicit app_fixture_setup(desfire::tag &mifare_,
+                                   cipher_type cipher = cipher_type::aes128,
+                                   any_key root_key_ = key<cipher_type::des>{});
+
+        void select_and_authenticate();
+
+        ~app_fixture_setup();
     };
 }// namespace ut::desfire
 

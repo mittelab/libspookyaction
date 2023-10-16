@@ -2,7 +2,7 @@
 // Created by spak on 1/7/23.
 //
 
-#include "test_desfire_fs.hpp"
+#include "test_desfire_main.hpp"
 #include <desfire/esp32/utils.hpp>
 #include <desfire/fs.hpp>
 #include <esp_random.h>
@@ -12,21 +12,6 @@ namespace ut::fs {
     using namespace ut::pn532;
     using namespace desfire::fs;
     using namespace desfire::esp32;
-
-    app_fixture_setup::app_fixture_setup(desfire::tag &mifare_, any_key root_key_, app_id aid_, cipher_type cipher)
-        : card_fixture_setup{mifare_},
-          root_key{std::move(root_key_)},
-          aid{aid_},
-          master_key{any_key{cipher, random_oracle{esp_fill_random}}} {
-        REQUIRE(login_app(mifare, root_app, root_key));
-        REQUIRE(delete_app_if_exists(mifare, aid));
-        REQUIRE(create_app(mifare, aid, master_key, key_rights{}, 0));
-    }
-
-    app_fixture_setup::~app_fixture_setup() {
-        REQUIRE(login_app(mifare, root_app, root_key));
-        REQUIRE(delete_app_if_exists(mifare, aid));
-    }
 
     namespace {
         template <bool B, class R>

@@ -5,6 +5,7 @@
 #include "test_desfire_main.hpp"
 #include <desfire/esp32/cipher_provider.hpp>
 #include <desfire/esp32/utils.hpp>
+#include <desfire/fs.hpp>
 
 #define TEST_TAG "UT"
 
@@ -19,57 +20,6 @@ namespace ut::desfire {
         constexpr desfire::key_body<24> secondary_des3_3k_key = {0x0, 0x2, 0x4, 0x6, 0x8, 0xa, 0xc, 0xe, 0x10, 0x12, 0x14, 0x16, 0x18, 0x1a, 0x1c, 0x1e, 0x20, 0x22, 0x24, 0x26, 0x28, 0x2a, 0x2c, 0x2e};
         constexpr desfire::key_body<16> secondary_aes_key = {0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf};
 
-        app_id get_default_aid(cipher_type c) {
-            switch (c) {
-                case cipher_type::des:
-                    return {0x00, 0xde, 0x08};
-                case cipher_type::des3_2k:
-                    return {0x00, 0xde, 0x16};
-                case cipher_type::des3_3k:
-                    return {0x00, 0xde, 0x24};
-                case cipher_type::aes128:
-                    return {0x00, 0xae, 0x16};
-                case cipher_type::none:
-                    [[fallthrough]];
-                default:
-                    return {};
-            }
-        }
-
-        any_key get_primary_key(cipher_type c) {
-            switch (c) {
-                case cipher_type::des:
-                    return key<cipher_type::des>{};
-                case cipher_type::des3_2k:
-                    return key<cipher_type::des3_2k>{};
-                case cipher_type::des3_3k:
-                    return key<cipher_type::des3_3k>{};
-                case cipher_type::aes128:
-                    return key<cipher_type::aes128>{};
-                case cipher_type::none:
-                    [[fallthrough]];
-                default:
-                    return {};
-            }
-        }
-
-        any_key get_secondary_key(cipher_type c) {
-            switch (c) {
-                case cipher_type::des:
-                    return key<cipher_type::des>{0, secondary_des_key, secondary_keys_version};
-                case cipher_type::des3_2k:
-                    return key<cipher_type::des3_2k>{0, secondary_des3_2k_key, secondary_keys_version};
-                case cipher_type::des3_3k:
-                    return key<cipher_type::des3_3k>{0, secondary_des3_3k_key, secondary_keys_version};
-                case cipher_type::aes128:
-                    return key<cipher_type::aes128>{0, secondary_aes_key, secondary_keys_version};
-                case cipher_type::none:
-                    [[fallthrough]];
-                default:
-                    return {};
-            }
-        }
-
         [[nodiscard]] any_key const &default_key() {
             static const any_key _retval = key<cipher_type::des>{};
             return _retval;
@@ -81,9 +31,9 @@ namespace ut::desfire {
 
             for (cipher_type cipher : {cipher_type::des, cipher_type::des3_2k,
                                        cipher_type::des3_3k, cipher_type::aes128}) {
-                const demo_app app{cipher};
+                const test_app app{cipher};
                 // Copy the keys from the test apps
-                candidates.emplace_back(app.primary_key);
+                candidates.emplace_back(app.master_key);
                 candidates.emplace_back(app.secondary_key);
             }
 
@@ -96,6 +46,60 @@ namespace ut::desfire {
         }
 
     }// namespace
+
+    test_app::test_app(desfire::cipher_type cipher_)
+        : cipher{cipher_}, aid{}, master_key{}, secondary_key{} {
+        switch (cipher) {
+            case cipher_type::des:
+                aid = {0x00, 0xde, 0x08};
+                master_key = key<cipher_type::des>{};
+                secondary_key = key<cipher_type::des>{0, secondary_des_key, secondary_keys_version};
+                break;
+            case cipher_type::des3_2k:
+                aid = {0x00, 0xde, 0x16};
+                master_key = key<cipher_type::des3_2k>{};
+                secondary_key = key<cipher_type::des3_2k>{0, secondary_des3_2k_key, secondary_keys_version};
+                break;
+            case cipher_type::des3_3k:
+                aid = {0x00, 0xde, 0x24};
+                master_key = key<cipher_type::des3_3k>{};
+                secondary_key = key<cipher_type::des3_3k>{0, secondary_des3_3k_key, secondary_keys_version};
+                break;
+            case cipher_type::aes128:
+                aid = {0x00, 0xae, 0x16};
+                master_key = key<cipher_type::aes128>{};
+                secondary_key = key<cipher_type::aes128>{0, secondary_aes_key, secondary_keys_version};
+                break;
+            case cipher_type::none:
+                break;
+        }
+    }
+
+    app_fixture_setup::app_fixture_setup(desfire::tag &mifare_, cipher_type cipher, any_key root_key_)
+        : card_fixture_setup{mifare_}, test_app{cipher}, root_key{std::move(root_key_)} {
+        REQUIRE(fs::login_app(mifare, root_app, root_key));
+        REQUIRE(fs::delete_app_if_exists(mifare, aid));
+        REQUIRE(fs::create_app(mifare, aid, master_key, key_rights{}, 0));
+    }
+
+    app_fixture_setup::~app_fixture_setup() {
+        REQUIRE(fs::login_app(mifare, root_app, root_key));
+        REQUIRE(fs::delete_app_if_exists(mifare, aid));
+    }
+
+    void app_fixture_setup::select_and_authenticate() {
+        if (mifare.active_app() != aid) {
+            REQUIRE(mifare.select_application(aid));
+        }
+        if (mifare.active_key_no() != master_key.key_number()) {
+            if (not mifare.authenticate(master_key)) {
+                REQUIRE(mifare.authenticate(secondary_key));
+                ESP_LOGI("UT", "Resetting key of app %02x %02x %02x.", aid[0], aid[1], aid[2]);
+                REQUIRE(mifare.change_key(master_key));
+                REQUIRE(mifare.authenticate(master_key));
+            }
+        }
+    }
 
     std::unique_ptr<tag> try_activate_card(pn532::channel &chn, pn532::controller &ctrl) {
         if (not ut::pn532::try_activate_controller(chn, ctrl)) {
@@ -141,40 +145,6 @@ namespace ut::desfire {
         REQUIRE(mifare.authenticate(default_key()));
         ESP_LOGW(TEST_TAG, "Formatting card.");
         REQUIRE(mifare.format_picc());
-    }
-
-    demo_app::demo_app(cipher_type c)
-        : aid{get_default_aid(c)},
-          cipher{c},
-          primary_key{get_primary_key(c)},
-          secondary_key{get_secondary_key(c)} {}
-
-    void demo_app::ensure_selected_and_primary(tag &tag) const {
-        if (tag.active_app() != aid) {
-            REQUIRE(tag.select_application(aid));
-        }
-        if (tag.active_key_no() != primary_key.key_number()) {
-            if (not tag.authenticate(primary_key)) {
-                REQUIRE(tag.authenticate(secondary_key));
-                ESP_LOGI("UT", "Resetting key of app %02x %02x %02x.", aid[0], aid[1], aid[2]);
-                REQUIRE(tag.change_key(primary_key));
-                REQUIRE(tag.authenticate(primary_key));
-            }
-        }
-    }
-
-    void demo_app::ensure_created(tag &tag, any_key const &root_key) const {
-        if (tag.active_app() != root_app) {
-            REQUIRE(tag.select_application(root_app));
-        }
-        if (tag.active_key_no() != root_key.key_number()) {
-            REQUIRE(tag.authenticate(root_key));
-        }
-        const auto r_get_aids = tag.get_application_ids();
-        REQUIRE(r_get_aids);
-        if (std::find(std::begin(*r_get_aids), std::end(*r_get_aids), aid) == std::end(*r_get_aids)) {
-            REQUIRE(tag.create_application(aid, app_settings{cipher}));
-        }
     }
 
     using pn532::channel_type;
@@ -248,7 +218,7 @@ namespace ut::desfire {
             REQUIRE(this->mifare->change_key(key));
             ESP_LOGI(TEST_TAG, "Changed root key to %s, testing root level ops.", to_string(key.type()));
             REQUIRE(this->mifare->authenticate(key));
-            // Do bunch of operations on applications that can only be done at the root level, so that we can verify the
+            // Do a bunch of operations on applications that can only be done at the root level, so that we can verify the
             // trasmission modes for the root level app
             auto r_list = this->mifare->get_application_ids();
             CHECKED_IF_FAIL(r_list) {
@@ -294,13 +264,13 @@ namespace ut::desfire {
 
         for (cipher_type cipher : {cipher_type::des, cipher_type::des3_2k,
                                    cipher_type::des3_3k, cipher_type::aes128}) {
-            const demo_app app{cipher};
+            const test_app app{cipher};
             ESP_LOGI(TEST_TAG, "Creating app with cipher %s.", to_string(cipher));
             REQUIRE(this->mifare->select_application(root_app));
             REQUIRE(this->mifare->authenticate(default_key()));
             REQUIRE(this->mifare->create_application(app.aid, app_settings{cipher}));
             REQUIRE(this->mifare->select_application(app.aid));
-            REQUIRE(this->mifare->authenticate(app.primary_key));
+            REQUIRE(this->mifare->authenticate(app.master_key));
             // Check that get-card-uid is correct with all cipher even when an app is seleted
             REQUIRE(this->mifare->get_card_uid());
             // Save this id
@@ -324,15 +294,15 @@ namespace ut::desfire {
 
         for (cipher_type cipher : {cipher_type::des, cipher_type::des3_2k,
                                    cipher_type::des3_3k, cipher_type::aes128}) {
-            const demo_app app{cipher};
-            ESP_LOGI(TEST_TAG, "Changing same key of app with cipher %s.", to_string(app.primary_key.type()));
+            const test_app app{cipher};
+            ESP_LOGI(TEST_TAG, "Changing same key of app with cipher %s.", to_string(app.master_key.type()));
             REQUIRE(this->mifare->select_application(app.aid));
-            if (not this->mifare->authenticate(app.primary_key)) {
+            if (not this->mifare->authenticate(app.master_key)) {
                 ESP_LOGW(TEST_TAG, "Default key not working, attempting secondary key and reset...");
                 REQUIRE(this->mifare->authenticate(app.secondary_key));
-                REQUIRE(this->mifare->change_key(app.primary_key));
+                REQUIRE(this->mifare->change_key(app.master_key));
                 ESP_LOGI(TEST_TAG, "Reset app key to default, continuing!");
-                REQUIRE(this->mifare->authenticate(app.primary_key));
+                REQUIRE(this->mifare->authenticate(app.master_key));
             }
             REQUIRE(this->mifare->change_key(app.secondary_key));
             REQUIRE(this->mifare->authenticate(app.secondary_key));
@@ -346,26 +316,26 @@ namespace ut::desfire {
             REQUIRE(this->mifare->change_app_settings(res_key_settings->rights));
             res_key_settings->rights.dir_access_without_auth = false;
             REQUIRE(this->mifare->change_app_settings(res_key_settings->rights));
-            REQUIRE(this->mifare->change_key(app.primary_key));
+            REQUIRE(this->mifare->change_key(app.master_key));
 
             REQUIRE(res_key_settings->max_num_keys > 2);
             res_key_settings->rights.allowed_to_change_keys = 0_b;
-            REQUIRE(this->mifare->authenticate(app.primary_key));
+            REQUIRE(this->mifare->authenticate(app.master_key));
             REQUIRE(this->mifare->change_app_settings(res_key_settings->rights));
             res_key_settings = this->mifare->get_app_settings();
             REQUIRE(res_key_settings);
             REQUIRE(res_key_settings->rights.allowed_to_change_keys == 0_b);
-            REQUIRE(app.primary_key.key_number() == 0);
-            REQUIRE(this->mifare->authenticate(app.primary_key));
+            REQUIRE(app.master_key.key_number() == 0);
+            REQUIRE(this->mifare->authenticate(app.master_key));
             const auto next_key_old = any_key{cipher}.with_key_number(1);
             REQUIRE(next_key_old.key_number() == 1);
             REQUIRE(this->mifare->authenticate(next_key_old));
-            REQUIRE(this->mifare->authenticate(app.primary_key));
+            REQUIRE(this->mifare->authenticate(app.master_key));
             const auto next_key_new = app.secondary_key.with_key_number(1);
             REQUIRE(next_key_new.key_number() == 1);
             REQUIRE(this->mifare->change_key(next_key_old, next_key_new));
             REQUIRE(this->mifare->authenticate(next_key_new));
-            REQUIRE(this->mifare->authenticate(app.primary_key));
+            REQUIRE(this->mifare->authenticate(app.master_key));
             REQUIRE(this->mifare->change_key(next_key_new, next_key_old));
         }
     }

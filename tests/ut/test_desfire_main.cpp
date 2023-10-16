@@ -301,6 +301,8 @@ namespace ut::desfire {
             REQUIRE(this->mifare->create_application(app.aid, app_settings{cipher}));
             REQUIRE(this->mifare->select_application(app.aid));
             REQUIRE(this->mifare->authenticate(app.primary_key));
+            // Check that get-card-uid is correct with all cipher even when an app is seleted
+            REQUIRE(this->mifare->get_card_uid());
             // Save this id
             found_ids[app.aid] = false;
         }

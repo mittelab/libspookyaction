@@ -24,7 +24,7 @@ namespace ut::fs {
     TEMPLATE_TEST_CASE_METHOD_SIG(card_fixture, "0051 FS test RO app", "",
                                   ((channel_type CT), CT),
                                   channel_type::hsu, channel_type::i2c, channel_type::i2c_irq, channel_type::spi, channel_type::spi_irq) {
-        if (not channel_is_supported(CT)) {
+        if (not status::instance().supports(CT)) {
             SKIP("Unsupported channel type " << ut::pn532::to_string(CT));
         }
 
@@ -80,7 +80,7 @@ namespace ut::fs {
     TEMPLATE_TEST_CASE_METHOD_SIG(card_fixture, "0050 FS test app", "",
                                   ((channel_type CT), CT),
                                   channel_type::hsu, channel_type::i2c, channel_type::i2c_irq, channel_type::spi, channel_type::spi_irq) {
-        if (not channel_is_supported(CT)) {
+        if (not status::instance().supports(CT)) {
             SKIP("Unsupported channel type " << ut::pn532::to_string(CT));
         }
 
@@ -128,7 +128,7 @@ namespace ut::fs {
     TEMPLATE_TEST_CASE_METHOD_SIG(card_fixture, "0052 FS test file", "",
                                   ((channel_type CT), CT),
                                   channel_type::hsu, channel_type::i2c, channel_type::i2c_irq, channel_type::spi, channel_type::spi_irq) {
-        if (not channel_is_supported(CT)) {
+        if (not status::instance().supports(CT)) {
             SKIP("Unsupported channel type " << ut::pn532::to_string(CT));
         }
 
@@ -171,7 +171,7 @@ namespace ut::fs {
     TEMPLATE_TEST_CASE_METHOD_SIG(card_fixture, "0053 FS test RO data file", "",
                                   ((channel_type CT), CT),
                                   channel_type::hsu, channel_type::i2c, channel_type::i2c_irq, channel_type::spi, channel_type::spi_irq) {
-        if (not channel_is_supported(CT)) {
+        if (not status::instance().supports(CT)) {
             SKIP("Unsupported channel type " << ut::pn532::to_string(CT));
         }
 
@@ -211,7 +211,7 @@ namespace ut::fs {
     TEMPLATE_TEST_CASE_METHOD_SIG(card_fixture, "0054 FS test RO value file", "",
                                   ((channel_type CT), CT),
                                   channel_type::hsu, channel_type::i2c, channel_type::i2c_irq, channel_type::spi, channel_type::spi_irq) {
-        if (not channel_is_supported(CT)) {
+        if (not status::instance().supports(CT)) {
             SKIP("Unsupported channel type " << ut::pn532::to_string(CT));
         }
 

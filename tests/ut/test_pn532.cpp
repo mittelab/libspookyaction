@@ -4,6 +4,7 @@
 
 #include "test_pn532.hpp"
 #include <catch.hpp>
+#include <desfire/esp32/utils.hpp>
 #include <pn532/esp32/hsu.hpp>
 #include <pn532/esp32/i2c.hpp>
 #include <pn532/esp32/spi.hpp>
@@ -14,6 +15,142 @@
 namespace ut::pn532 {
 
     namespace {
+
+        namespace pinout {
+
+#ifndef PN532_SERIAL_RX
+            constexpr gpio_num_t pn532_hsu_rx = GPIO_NUM_NC;
+#else
+            constexpr gpio_num_t pn532_hsu_rx = static_cast<gpio_num_t>(PN532_SERIAL_RX);
+#endif
+
+#ifndef PN532_SERIAL_TX
+            constexpr gpio_num_t pn532_hsu_tx = GPIO_NUM_NC;
+#else
+            constexpr gpio_num_t pn532_hsu_tx = static_cast<gpio_num_t>(PN532_SERIAL_TX);
+#endif
+
+#ifndef PN532_I2C_SCL
+            constexpr gpio_num_t pn532_i2c_scl = GPIO_NUM_NC;
+#else
+            constexpr gpio_num_t pn532_i2c_scl = static_cast<gpio_num_t>(PN532_I2C_SCL);
+#endif
+
+#ifndef PN532_I2C_SDA
+            constexpr gpio_num_t pn532_i2c_sda = GPIO_NUM_NC;
+#else
+            constexpr gpio_num_t pn532_i2c_sda = static_cast<gpio_num_t>(PN532_I2C_SDA);
+#endif
+
+#ifndef PN532_SPI_MISO
+            constexpr gpio_num_t pn532_spi_miso = GPIO_NUM_NC;
+#else
+            constexpr gpio_num_t pn532_spi_miso = static_cast<gpio_num_t>(PN532_SPI_MISO);
+#endif
+
+#ifndef PN532_SPI_MOSI
+            constexpr gpio_num_t pn532_spi_mosi = GPIO_NUM_NC;
+#else
+            constexpr gpio_num_t pn532_spi_mosi = static_cast<gpio_num_t>(PN532_SPI_MOSI);
+#endif
+
+#ifndef PN532_SPI_SCK
+            constexpr gpio_num_t pn532_spi_sck = GPIO_NUM_NC;
+#else
+            constexpr gpio_num_t pn532_spi_sck = static_cast<gpio_num_t>(PN532_SPI_SCK);
+#endif
+
+#ifndef PN532_SPI_SS
+            constexpr gpio_num_t pn532_spi_ss = GPIO_NUM_NC;
+#else
+            constexpr gpio_num_t pn532_spi_ss = static_cast<gpio_num_t>(PN532_SPI_SS);
+#endif
+
+#ifndef PN532_I0
+            constexpr gpio_num_t pn532_cicd_i0 = GPIO_NUM_NC;
+#else
+            constexpr gpio_num_t pn532_cicd_i0 = static_cast<gpio_num_t>(PN532_I0);
+#endif
+
+#ifndef PN532_I1
+            constexpr gpio_num_t pn532_cicd_i1 = GPIO_NUM_NC;
+#else
+            constexpr gpio_num_t pn532_cicd_i1 = static_cast<gpio_num_t>(PN532_I1);
+#endif
+
+#ifndef PN532_RSTN
+            constexpr gpio_num_t pn532_cicd_rstn = GPIO_NUM_NC;
+#else
+            constexpr gpio_num_t pn532_cicd_rstn = static_cast<gpio_num_t>(PN532_RSTN);
+#endif
+
+#ifndef PN532_IRQ
+            constexpr gpio_num_t pn532_irq = GPIO_NUM_NC;
+#else
+            constexpr gpio_num_t pn532_irq = static_cast<gpio_num_t>(PN532_IRQ);
+#endif
+        }// namespace pinout
+
+#ifdef SPOOKY_I2C
+        constexpr bool supports_i2c = true;
+#else
+        constexpr bool supports_i2c = false;
+#endif
+#ifdef SPOOKY_I2C_IRQ
+        constexpr bool supports_i2c_irq = true;
+#else
+        constexpr bool supports_i2c_irq = false;
+#endif
+
+#ifdef SPOOKY_SPI
+        constexpr bool supports_spi = true;
+#else
+        constexpr bool supports_spi = false;
+#endif
+#ifdef SPOOKY_SPI_IRQ
+        constexpr bool supports_spi_irq = true;
+#else
+        constexpr bool supports_spi_irq = false;
+#endif
+
+
+#ifdef SPOOKY_HSU
+        constexpr bool supports_hsu = true;
+#else
+        constexpr bool supports_hsu = false;
+#endif
+
+#define PN532_ASSERT_DEFINED_PIN(PIN_MACRO) \
+    static_assert(PIN_MACRO > GPIO_NUM_NC and PIN_MACRO < GPIO_NUM_MAX, "You did not define macro " #PIN_MACRO " (must be a valid GPIO pin).")
+
+#if defined(SPOOKY_I2C) || defined(SPOOKY_I2C_IRQ)
+        PN532_ASSERT_DEFINED_PIN(PN532_I2C_SCL);
+        PN532_ASSERT_DEFINED_PIN(PN532_I2C_SDA);
+#endif
+
+#if defined(SPOOKY_SPI) || defined(SPOOKY_SPI_IRQ)
+        PN532_ASSERT_DEFINED_PIN(PN532_SPI_MISO);
+        PN532_ASSERT_DEFINED_PIN(PN532_SPI_MOSI);
+        PN532_ASSERT_DEFINED_PIN(PN532_SPI_SCK);
+        PN532_ASSERT_DEFINED_PIN(PN532_SPI_SS);
+#endif
+
+#if defined(SPOOKY_SPI_IRQ) || defined(SPOOKY_I2C_IRQ)
+        PN532_ASSERT_DEFINED_PIN(PN532_IRQ);
+#endif
+
+#if defined(SPOOKY_HSU)
+        PN532_ASSERT_DEFINED_PIN(PN532_SERIAL_TX);
+        PN532_ASSERT_DEFINED_PIN(PN532_SERIAL_RX);
+#endif
+
+#if defined(SPOOKY_CI_CD_MACHINE)
+        PN532_ASSERT_DEFINED_PIN(PN532_I0);
+        PN532_ASSERT_DEFINED_PIN(PN532_I1);
+        PN532_ASSERT_DEFINED_PIN(PN532_RSTN);
+#endif
+
+#undef PN532_ASSERT_DEFINED_PIN
         constexpr uart_config_t uart_config = {
                 .baud_rate = 115200,
                 .data_bits = UART_DATA_8_BITS,
@@ -72,6 +209,171 @@ namespace ut::pn532 {
 
     }// namespace
 
+    status::status()
+        : _channel{nullptr},
+          _controller{nullptr},
+          _active_channel{channel_type::none} {
+#ifdef SPOOKY_CI_CD_MACHINE
+        gpio_set_direction(pinout::pn532_cicd_rstn, GPIO_MODE_OUTPUT);
+        gpio_set_direction(pinout::pn532_cicd_i0, GPIO_MODE_OUTPUT);
+        gpio_set_direction(pinout::pn532_cicd_i1, GPIO_MODE_OUTPUT);
+        gpio_set_level(pinout::pn532_cicd_rstn, 0);
+#endif
+    }
+
+    status::~status() {
+        deactivate();
+    }
+
+    void status::power_down() {
+        if (_controller) {
+            desfire::esp32::suppress_log suppress{PN532_TAG};
+            _controller->power_down({wakeup_source::i2c, wakeup_source::hsu, wakeup_source::spi});
+        }
+#ifdef SPOOKY_CI_CD_MACHINE
+        gpio_set_level(pinout::pn532_cicd_rstn, 0);
+#endif
+        std::this_thread::sleep_for(200ms);
+    }
+
+    void status::power_up() {
+#ifdef SPOOKY_CI_CD_MACHINE
+        gpio_set_level(pinout::pn532_cicd_rstn, 1);
+#endif
+        std::this_thread::sleep_for(200ms);
+    }
+
+    bool status::try_wake_and_sam_configure() {
+        if (_channel == nullptr) {
+            return false;
+        }
+        _controller = std::make_shared<controller>(*_channel);
+        for (std::size_t i = 0; i < 3; ++i) {
+            power_up();
+            if (_channel->wake()) {
+                if (const auto r = _controller->sam_configuration(pn532::sam_mode::normal, 1s); r) {
+                    return true;
+                } else {
+                    ESP_LOGW(TEST_TAG, "SAM not responding over %s, retrying...", to_string(active_channel()));
+                }
+            } else {
+                ESP_LOGW(TEST_TAG, "Unable to wake channel %s, retrying...", to_string(active_channel()));
+            }
+            // Try to power down and retry
+            power_down();
+        }
+        ESP_LOGE(TEST_TAG, "Failed contacting PN532.");
+        _controller = nullptr;
+        return false;
+    }
+
+    channel_type status::active_channel() const {
+        return _active_channel;
+    }
+
+    std::shared_ptr<controller> status::ctrl() const {
+        return _controller;
+    }
+
+    status &status::instance() {
+        static status _instance{};
+        return _instance;
+    }
+
+    bool status::activate_internal(ut::pn532::channel_type ct) {
+#ifdef SPOOKY_CI_CD_MACHINE
+        // Configure I0/I1 for the selected mode
+        switch (type) {
+            case channel_type::hsu:
+                gpio_set_level(pinout::pn532_cicd_i0, 0);
+                gpio_set_level(pinout::pn532_cicd_i1, 0);
+                break;
+            case channel_type::i2c:
+                [[fallthrough]];
+            case channel_type::i2c_irq:
+                gpio_set_level(pinout::pn532_cicd_i0, 1);
+                gpio_set_level(pinout::pn532_cicd_i1, 0);
+                break;
+            case channel_type::spi:
+                [[fallthrough]];
+            case channel_type::spi_irq:
+                gpio_set_level(pinout::pn532_cicd_i0, 0);
+                gpio_set_level(pinout::pn532_cicd_i1, 1);
+                break;
+            case channel_type::none:
+                return true;
+                break;
+        }
+#endif
+
+        switch (ct) {
+            case channel_type::hsu:
+                _channel = std::make_unique<pn532::esp32::hsu_channel>(UART_NUM_1, uart_config, pinout::pn532_hsu_tx, pinout::pn532_hsu_rx);
+                break;
+            case channel_type::i2c:
+                _channel = std::make_unique<pn532::esp32::i2c_channel>(I2C_NUM_0, i2c_config);
+                break;
+            case channel_type::i2c_irq:
+                _channel = std::make_unique<pn532::esp32::i2c_channel>(I2C_NUM_0, i2c_config, pinout::pn532_irq, true);
+                break;
+            case channel_type::spi:
+                _channel = std::make_unique<pn532::esp32::spi_channel>(SPI2_HOST, spi_bus_config, spi_device_config, SPI_DMA_CH_AUTO);
+                break;
+            case channel_type::spi_irq:
+                _channel = std::make_unique<pn532::esp32::spi_channel>(SPI2_HOST, spi_bus_config, spi_device_config, SPI_DMA_CH_AUTO, pinout::pn532_irq, true);
+                break;
+            case channel_type::none:
+                break;
+        }
+
+        if (try_wake_and_sam_configure()) {
+            _active_channel = ct;
+            return true;
+        }
+
+        _channel = nullptr;
+        return false;
+    }
+
+    bool status::supports(channel_type ct) const {
+        switch (ct) {
+            case channel_type::i2c_irq:
+                return supports_i2c_irq;
+            case channel_type::i2c:
+                return supports_i2c;
+            case channel_type::hsu:
+                return supports_hsu;
+            case channel_type::spi:
+                return supports_spi;
+            case channel_type::spi_irq:
+                return supports_spi_irq;
+            case channel_type::none:
+                return true;
+        }
+        return false;
+    }
+
+    bool status::activate(ut::pn532::channel_type ct) {
+        if (active_channel() == ct) {
+            return true;
+        }
+        if (not supports(ct)) {
+            return false;
+        }
+        deactivate();
+        return activate_internal(ct);
+    }
+
+    void status::deactivate() {
+        if (active_channel() == channel_type::none) {
+            return;
+        }
+        power_down();
+        _channel = nullptr;
+        _controller = nullptr;
+        _active_channel = channel_type::none;
+    }
+
     const char *to_string(channel_type type) {
         switch (type) {
             case channel_type::i2c:
@@ -100,7 +402,7 @@ namespace ut::pn532 {
 #endif
 
         // Check which channels are allowed
-        if (not channel_is_supported(type)) {
+        if (not status::instance().supports(type)) {
             return nullptr;
         }
         ESP_LOGI(TEST_TAG, "Activating channel %s...", to_string(type));
@@ -147,6 +449,8 @@ namespace ut::pn532 {
             case channel_type::spi_irq:
                 channel = std::make_unique<pn532::esp32::spi_channel>(SPI2_HOST, spi_bus_config, spi_device_config, SPI_DMA_CH_AUTO, pinout::pn532_irq, true);
                 break;
+            case channel_type::none:
+                break;
         }
         ESP_LOGI(TEST_TAG, "Channel %s ready.", to_string(type));
         return channel;
@@ -179,7 +483,7 @@ namespace ut::pn532 {
     TEMPLATE_TEST_CASE_METHOD_SIG(channel_fixture, "0020 Channel, wake and diagnostics", "[pn532][channel]",
                                   ((channel_type CT), CT),
                                   channel_type::hsu, channel_type::i2c, channel_type::i2c_irq, channel_type::spi, channel_type::spi_irq) {
-        if (not channel_is_supported(CT)) {
+        if (not status::instance().supports(CT)) {
             SKIP("Unsupported channel type " << ut::pn532::to_string(CT));
         }
         REQUIRE(*this);
@@ -206,7 +510,7 @@ namespace ut::pn532 {
     TEMPLATE_TEST_CASE_METHOD_SIG(channel_fixture, "0021 Scan test", "[pn532]",
                                   ((channel_type CT), CT),
                                   channel_type::hsu, channel_type::i2c, channel_type::i2c_irq, channel_type::spi, channel_type::spi_irq) {
-        if (not channel_is_supported(CT)) {
+        if (not status::instance().supports(CT)) {
             SKIP("Unsupported channel type " << ut::pn532::to_string(CT));
         }
         REQUIRE(*this);
@@ -227,7 +531,7 @@ namespace ut::pn532 {
     TEMPLATE_TEST_CASE_METHOD_SIG(channel_fixture, "0022 Mifare scan test", "[pn532][card]",
                                   ((channel_type CT), CT),
                                   channel_type::hsu, channel_type::i2c, channel_type::i2c_irq, channel_type::spi, channel_type::spi_irq) {
-        if (not channel_is_supported(CT)) {
+        if (not status::instance().supports(CT)) {
             SKIP("Unsupported channel type " << ut::pn532::to_string(CT));
         }
         REQUIRE(*this);

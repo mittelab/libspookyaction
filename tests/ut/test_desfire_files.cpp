@@ -13,7 +13,7 @@ namespace ut::desfire_files {
     TEMPLATE_TEST_CASE_METHOD_SIG(card_fixture, "0040 Desfire files", "",
                                   ((channel_type CT), CT),
                                   channel_type::hsu, channel_type::i2c, channel_type::i2c_irq, channel_type::spi, channel_type::spi_irq) {
-        if (not channel_is_supported(CT)) {
+        if (not status::instance().supports(CT)) {
             SKIP("Unsupported channel type " << ut::pn532::to_string(CT));
         }
 

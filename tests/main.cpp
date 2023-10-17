@@ -1,5 +1,6 @@
 #include <catch.hpp>
 #include <esp_log.h>
+#include <mlab/strutils.hpp>
 
 namespace {
 
@@ -23,6 +24,7 @@ namespace {
         vprintf_like_t _orig_vprintf = nullptr;
         std::string _sep = std::string(60llu, '-');
         std::vector<std::pair<std::string, Catch::ResultWas::OfType>> _tests;
+        std::vector<std::string> _sections;
     public:
         using Catch::StreamingReporterBase::StreamingReporterBase;
 
@@ -98,6 +100,23 @@ namespace {
             std::printf("%sTOT %s%s %s%6.2f%%%s\n\n", ansi_cyn, "   PERCENT", ansi_rst, percent_color, percent, ansi_rst);
 
             StreamingReporterBase::testRunEnded(testRunInfo);
+        }
+
+        void sectionStarting(const Catch::SectionInfo &sectionInfo) override {
+            StreamingReporterBase::sectionStarting(sectionInfo);
+            _sections.emplace_back(sectionInfo.name);
+            if (_sections.size() > 1) {
+                const auto full_section_name = mlab::concatenate_s(_sections, " > ");
+                std::printf("%sSECT START%s %s\n", ansi_blu, ansi_rst, full_section_name.c_str());
+            }
+        }
+
+        void sectionEnded(const Catch::SectionStats &sectionInfo) override {
+            StreamingReporterBase::sectionEnded(sectionInfo);
+            if (_sections.size() > 1) {
+                std::printf("%s\n", _sep.c_str());
+            }
+            _sections.pop_back();
         }
 
         void testCaseStarting(const Catch::TestCaseInfo &testInfo) override {

@@ -5,6 +5,7 @@
 #include "test_pn532.hpp"
 #include <catch.hpp>
 #include <desfire/esp32/utils.hpp>
+#include <mlab/strutils.hpp>
 #include <pn532/esp32/hsu.hpp>
 #include <pn532/esp32/i2c.hpp>
 #include <pn532/esp32/spi.hpp>
@@ -479,82 +480,63 @@ namespace ut::pn532 {
         return pass;
     }
 
-
-    TEMPLATE_TEST_CASE_METHOD_SIG(channel_fixture, "0020 Channel, wake and diagnostics", "[pn532][channel]",
-                                  ((channel_type CT), CT),
-                                  channel_type::hsu, channel_type::i2c, channel_type::i2c_irq, channel_type::spi, channel_type::spi_irq) {
-        if (not status::instance().supports(CT)) {
-            SKIP("Unsupported channel type " << ut::pn532::to_string(CT));
-        }
-        REQUIRE(*this);
-        REQUIRE(try_activate_controller(*this->chn, *this->ctrl));
-
-        const auto r_fw = this->ctrl->get_firmware_version();
-        REQUIRE(r_fw);
-        ESP_LOGI(TEST_TAG, "IC version %u, version: %u.%u", r_fw->ic, r_fw->version, r_fw->revision);
-
-        CHECK(ok_and_true(this->ctrl->diagnose_rom()));
-        CHECK(ok_and_true(this->ctrl->diagnose_ram()));
-        CHECK(ok_and_true(this->ctrl->diagnose_comm_line()));
-        CHECK(ok_and_true(this->ctrl->diagnose_self_antenna(low_current_thr::mA_25, high_current_thr::mA_150)));
-
-        const auto r_status = this->ctrl->get_general_status();
-        CHECKED_IF_FAIL(r_status) {
-            for (auto const &target : r_status->targets) {
-                CHECK(this->ctrl->initiator_deselect(target.logical_index));
+    TEST_CASE("0020 PN532") {
+        const auto chn = GENERATE(channel_type::hsu, channel_type::i2c, channel_type::i2c_irq, channel_type::spi, channel_type::spi_irq);
+        SECTION(to_string(chn)) {
+            if (not status::instance().supports(chn)) {
+                SKIP();
             }
-        }
-        CHECK(this->ctrl->rf_configuration_field(true, false));
-    }
+            REQUIRE(status::instance().activate(chn));
+            auto &ctrl = *status::instance().ctrl();
 
-    TEMPLATE_TEST_CASE_METHOD_SIG(channel_fixture, "0021 Scan test", "[pn532]",
-                                  ((channel_type CT), CT),
-                                  channel_type::hsu, channel_type::i2c, channel_type::i2c_irq, channel_type::spi, channel_type::spi_irq) {
-        if (not status::instance().supports(CT)) {
-            SKIP("Unsupported channel type " << ut::pn532::to_string(CT));
-        }
-        REQUIRE(*this);
-        REQUIRE(try_activate_controller(*this->chn, *this->ctrl));
+            SECTION("Diagnostics") {
+                const auto r_fw = ctrl.get_firmware_version();
+                REQUIRE(r_fw);
+                ESP_LOGI(TEST_TAG, "IC version %u, version: %u.%u", r_fw->ic, r_fw->version, r_fw->revision);
 
-        using ::pn532::to_string;
+                CHECK(ok_and_true(ctrl.diagnose_rom()));
+                CHECK(ok_and_true(ctrl.diagnose_ram()));
+                CHECK(ok_and_true(ctrl.diagnose_comm_line()));
+                CHECK(ok_and_true(ctrl.diagnose_self_antenna(low_current_thr::mA_25, high_current_thr::mA_150)));
 
-        ESP_LOGI(TEST_TAG, "Please bring card close now (searching for any target)...");
-        const auto r_scan = this->ctrl->initiator_auto_poll();
-        ESP_LOGI(TEST_TAG, "Found %u targets.", r_scan->size());
-        CHECKED_IF_FAIL(r_scan) {
-            for (std::size_t i = 0; i < r_scan->size(); ++i) {
-                ESP_LOGI(TEST_TAG, "%u. %s", i + 1, to_string(r_scan->at(i).type()));
+                const auto r_status = ctrl.get_general_status();
+                CHECKED_IF_FAIL(r_status) {
+                    for (auto const &target : r_status->targets) {
+                        CHECK(ctrl.initiator_deselect(target.logical_index));
+                    }
+                }
+                CHECK(ctrl.rf_configuration_field(true, false));
             }
-        }
-    }
 
-    TEMPLATE_TEST_CASE_METHOD_SIG(channel_fixture, "0022 Mifare scan test", "[pn532][card]",
-                                  ((channel_type CT), CT),
-                                  channel_type::hsu, channel_type::i2c, channel_type::i2c_irq, channel_type::spi, channel_type::spi_irq) {
-        if (not status::instance().supports(CT)) {
-            SKIP("Unsupported channel type " << ut::pn532::to_string(CT));
-        }
-        REQUIRE(*this);
-        REQUIRE(try_activate_controller(*this->chn, *this->ctrl));
+            SECTION("Scan for any target") {
+                ESP_LOGI(TEST_TAG, "Please bring card close now (searching for %s)...", "any target");
+                const auto r_scan = ctrl.initiator_auto_poll();
+                ESP_LOGI(TEST_TAG, "Found %u targets.", r_scan->size());
+                CHECKED_IF_FAIL(r_scan) {
+                    for (std::size_t i = 0; i < r_scan->size(); ++i) {
+                        ESP_LOGI(TEST_TAG, "%u. %s", i + 1, to_string(r_scan->at(i).type()));
+                    }
+                }
+            }
 
-        using ::pn532::to_string;
+            SECTION("Mifare scan and communicate") {
+                ESP_LOGI(TEST_TAG, "Please bring card close now (searching for %s)...", "one passive 106 kbps target");
+                const auto r_scan = ctrl.initiator_list_passive_kbps106_typea();
+                ESP_LOGI(TEST_TAG, "Found %u targets (passive, 106 kbps, type A).", r_scan->size());
+                CHECKED_IF_FAIL(r_scan) {
+                    CHECK(not r_scan->empty());
+                    for (target_kbps106_typea const &target : *r_scan) {
+                        ESP_LOGI(TEST_TAG, "Logical index %u; NFC ID:", target.logical_index);
+                        ESP_LOG_BUFFER_HEX_LEVEL(TEST_TAG, target.nfcid.data(), target.nfcid.size(), ESP_LOG_INFO);
 
-
-        ESP_LOGI(TEST_TAG, "Please bring card close now (searching for one passive 106 kbps target)...");
-        const auto r_scan = this->ctrl->initiator_list_passive_kbps106_typea();
-        ESP_LOGI(TEST_TAG, "Found %u targets (passive, 106 kbps, type A).", r_scan->size());
-        CHECKED_IF_FAIL(r_scan) {
-            CHECK(not r_scan->empty());
-            for (target_kbps106_typea const &target : *r_scan) {
-                ESP_LOGI(TEST_TAG, "Logical index %u; NFC ID:", target.logical_index);
-                ESP_LOG_BUFFER_HEX_LEVEL(TEST_TAG, target.nfcid.data(), target.nfcid.size(), ESP_LOG_INFO);
-
-                const auto r_exchange = this->ctrl->initiator_data_exchange(target.logical_index, {0x5a, 0x00, 0x00, 0x00});
-                CHECKED_IF_FAIL(r_exchange) {
-                    ESP_LOG_BUFFER_HEX_LEVEL(TEST_TAG, r_exchange->second.data(), r_exchange->second.size(), ESP_LOG_INFO);
-                    CHECKED_IF_FAIL(r_exchange->first.error == internal_error_code::none) {
-                        CHECKED_IF_FAIL(r_exchange->second.size() == 1) {
-                            CHECK(r_exchange->second.front() == 0x0);
+                        const auto r_exchange = ctrl.initiator_data_exchange(target.logical_index, {0x5a, 0x00, 0x00, 0x00});
+                        CHECKED_IF_FAIL(r_exchange) {
+                            ESP_LOG_BUFFER_HEX_LEVEL(TEST_TAG, r_exchange->second.data(), r_exchange->second.size(), ESP_LOG_INFO);
+                            CHECKED_IF_FAIL(r_exchange->first.error == internal_error_code::none) {
+                                CHECKED_IF_FAIL(r_exchange->second.size() == 1) {
+                                    CHECK(r_exchange->second.front() == 0x0);
+                                }
+                            }
                         }
                     }
                 }

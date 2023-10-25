@@ -4,7 +4,9 @@
 
 #include "test_pn532.hpp"
 #include <catch.hpp>
+#include <desfire/esp32/cipher_provider.hpp>
 #include <desfire/esp32/utils.hpp>
+#include <mlab/result_macro.hpp>
 #include <mlab/strutils.hpp>
 #include <pn532/esp32/hsu.hpp>
 #include <pn532/esp32/i2c.hpp>
@@ -336,6 +338,29 @@ namespace ut::pn532 {
         return false;
     }
 
+    std::shared_ptr<desfire::tag> status::get_card() {
+        if (_tag) {
+            return _tag;
+        }
+        if (active_channel() == channel_type::none) {
+            ESP_LOGE(TEST_TAG, "No channel is active.");
+            return nullptr;
+        }
+        ESP_LOGI(TEST_TAG, "Please bring close a Mifare card…");
+        if (const auto r = ctrl()->initiator_list_passive_kbps106_typea(1); r) {
+            if (not r->empty()) {
+                _tag = std::make_shared<desfire::tag>(
+                        std::make_shared<pn532::desfire_pcd>(*ctrl(), r->front().logical_index),
+                        std::make_unique<desfire::esp32::default_cipher_provider>());
+                return _tag;
+            }
+            ESP_LOGE(TEST_TAG, "No target found.");
+        } else {
+            ESP_LOGE(TEST_TAG, "Unable to scan, %s", to_string(r.error()));
+        }
+        return nullptr;
+    }
+
     bool status::supports(channel_type ct) const {
         switch (ct) {
             case channel_type::i2c_irq:
@@ -370,8 +395,9 @@ namespace ut::pn532 {
             return;
         }
         power_down();
-        _channel = nullptr;
+        _tag = nullptr;
         _controller = nullptr;
+        _channel = nullptr;
         _active_channel = channel_type::none;
     }
 

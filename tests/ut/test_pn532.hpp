@@ -6,8 +6,10 @@
 #define SPOOKY_ACTION_TEST_PN532_HPP
 
 #include <catch.hpp>
+#include <desfire/tag.hpp>
 #include <memory>
 #include <pn532/controller.hpp>
+#include <pn532/desfire_pcd.hpp>
 #include <thread>
 
 namespace ut::pn532 {
@@ -26,6 +28,7 @@ namespace ut::pn532 {
     class status {
         std::unique_ptr<channel> _channel;
         std::shared_ptr<controller> _controller;
+        std::shared_ptr<desfire::tag> _tag;
         channel_type _active_channel;
 
         /**
@@ -55,6 +58,11 @@ namespace ut::pn532 {
         [[nodiscard]] std::shared_ptr<controller> ctrl() const;
 
         [[nodiscard]] bool supports(channel_type ct) const;
+
+        /**
+         * @return The logical index of the card target, or 0xff for any kind of other failure.
+         */
+        [[nodiscard]] std::shared_ptr<desfire::tag> get_card();
 
         /**
          * Nilpotent.

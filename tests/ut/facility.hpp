@@ -1,19 +1,16 @@
 //
-// Created by spak on 3/17/21.
+// Created by spak on 26/10/23.
 //
 
-#ifndef SPOOKY_ACTION_TEST_PN532_HPP
-#define SPOOKY_ACTION_TEST_PN532_HPP
+#ifndef TESTS_FACILITY_HPP
+#define TESTS_FACILITY_HPP
 
-#include <catch.hpp>
-#include <desfire/tag.hpp>
 #include <memory>
+#include <pn532/channel.hpp>
 #include <pn532/controller.hpp>
-#include <pn532/desfire_pcd.hpp>
-#include <thread>
+#include <desfire/tag.hpp>
 
-namespace ut::pn532 {
-    using namespace ::pn532;
+namespace ut {
     enum struct channel_type {
         none,
         hsu,
@@ -25,9 +22,9 @@ namespace ut::pn532 {
 
     [[nodiscard]] const char *to_string(channel_type type);
 
-    class status {
-        std::unique_ptr<channel> _channel;
-        std::shared_ptr<controller> _controller;
+    class facility {
+        std::unique_ptr<pn532::channel> _channel;
+        std::shared_ptr<pn532::controller> _controller;
         std::shared_ptr<desfire::tag> _tag;
         channel_type _active_channel;
 
@@ -48,14 +45,12 @@ namespace ut::pn532 {
          */
         [[nodiscard]] bool try_wake_and_sam_configure();
 
-        status();
-        ~status();
+        facility();
+        ~facility();
 
         [[nodiscard]] bool activate_internal(channel_type ct);
     public:
         [[nodiscard]] channel_type active_channel() const;
-
-        [[nodiscard]] std::shared_ptr<controller> ctrl() const;
 
         [[nodiscard]] bool supports(channel_type ct) const;
 
@@ -67,29 +62,16 @@ namespace ut::pn532 {
         /**
          * Nilpotent.
          */
-        [[nodiscard]] bool activate(channel_type ct);
+        [[nodiscard]] std::shared_ptr<pn532::controller> activate_channel(channel_type ct);
 
         /**
          * Nilpotent.
          */
         void deactivate();
 
-        [[nodiscard]] static status &instance();
+        [[nodiscard]] static facility &instance();
     };
 
-    [[nodiscard]] std::unique_ptr<channel> try_activate_channel(channel_type type);
-    [[nodiscard]] bool try_activate_controller(channel &chn, controller &ctrl);
+}
 
-    template <channel_type CT>
-    struct channel_fixture {
-        std::unique_ptr<channel> chn = try_activate_channel(CT);
-        std::unique_ptr<controller> ctrl = chn ? std::make_unique<controller>(*chn) : nullptr;
-
-        [[nodiscard]] virtual inline explicit operator bool() const { return chn and ctrl; }
-    };
-
-
-}// namespace ut::pn532
-
-
-#endif//SPOOKY_ACTION_TEST_PN532_HPP
+#endif//TESTS_FACILITY_HPP

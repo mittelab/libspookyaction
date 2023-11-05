@@ -7,8 +7,6 @@ menu "libSpookyAction tests"
         default SPOOKY_SINGLE_CHANNEL_HSU
         config SPOOKY_SINGLE_CHANNEL_HSU
             bool "HSU only, needs 2 pins"
-        config SPOOKY_SINGLE_CHANNEL_HSU_IRQ
-            bool "HSU + IRQ only, needs 3 pins"
         config SPOOKY_SINGLE_CHANNEL_I2C
             bool "I2C only, needs 2 pins"
         config SPOOKY_SINGLE_CHANNEL_I2C_IRQ
@@ -26,10 +24,6 @@ menu "libSpookyAction tests"
             config SPOOKY_MULTI_CHANNEL_HSU
                 bool "Test channel HSU"
                 default y
-
-            config SPOOKY_MULTI_CHANNEL_HSU_IRQ
-                bool "Test channel HSU + IRQ"
-                default n
 
             config SPOOKY_MULTI_CHANNEL_I2C
                 bool "Test channel I2C"
@@ -132,7 +126,7 @@ menu "libSpookyAction tests"
                 default 2 if IDF_TARGET_ESP32C2 || IDF_TARGET_ESP32C3 || IDF_TARGET_ESP32H2
         endif
 
-        if SPOOKY_SINGLE_CHANNEL_HSU_IRQ || SPOOKY_SINGLE_CHANNEL_I2C_IRQ || SPOOKY_SINGLE_CHANNEL_SPI_IRQ || SPOOKY_MULTI_CHANNEL_HSU_IRQ || SPOOKY_MULTI_CHANNEL_I2C_IRQ || SPOOKY_MULTI_CHANNEL_SPI_IRQ
+        if SPOOKY_SINGLE_CHANNEL_I2C_IRQ || SPOOKY_SINGLE_CHANNEL_SPI_IRQ || SPOOKY_MULTI_CHANNEL_I2C_IRQ || SPOOKY_MULTI_CHANNEL_SPI_IRQ
             config PN532_IRQ
                 int "GPIO connected to PN532 IRQ line"
                 range 0 39 if IDF_TARGET_ESP32

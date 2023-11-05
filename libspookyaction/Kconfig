@@ -1,6 +1,8 @@
 menu "libSpookyAction"
     config LIBSPOOKY_COVERAGE_ENABLE
         bool "Enable code coverage"
+        depends on APPTRACE_ENABLE && !APPTRACE_SV_ENABLE
+        select APPTRACE_GCOV_ENABLE
         help
             Enables coverage of the relevant libSpookyAction files.
 endmenu

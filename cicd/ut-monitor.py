@@ -16,6 +16,8 @@ ADDRESS_RE = re.compile(r'0x[0-9a-f]{8}', re.IGNORECASE)
 VERSION_RE = re.compile(r'\d+\.\d+\.\d+')
 BACKTRACE_RE = re.compile(r'^Backtrace:(\s+0x[a-f0-9]{8}:0x[a-f0-9]{8})*', re.IGNORECASE)
 SUCCESS_RE = re.compile(r':\s+Returned from app_main\(\)', re.IGNORECASE)
+ANSI_RE = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
+TEST_RESULT_RE = re.compile(r'^\s*assertions:\s*(\d+\s*\|\s*\d+)\s*', re.IGNORECASE)
 
 
 # Guru Meditation Error: Core  0 panic'ed (StoreProhibited). Exception was unhandled. Adapted from
@@ -95,6 +97,7 @@ class TTYReader:
         self.tty = serial.Serial(port=port, timeout=timeout)
         self.addr_translator = PCAddrTranslator(elf_path)
         self.expect_eof = False
+        self.test_result = None
 
     def convert_addresses(self, line: bytes):
         # Does it have any address in it?
@@ -118,6 +121,10 @@ class TTYReader:
         self.convert_addresses(line)
         if SUCCESS_RE.search(line.decode(errors='ignore')) is not None:
             self.expect_eof = True
+        line_str_noansi = ANSI_RE.sub('', line.decode(errors='ignore'))
+        if (m := TEST_RESULT_RE.match(line_str_noansi)) is not None:
+            success, total = map(int, map(str.strip, m.group(1).split('|')))
+            print(f'GREPME test percentage: {success/total:%}', file=sys.stderr)
 
     def pulse(self):
         self.tty.setDTR(False)

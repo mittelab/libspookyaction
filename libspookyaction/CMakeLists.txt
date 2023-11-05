@@ -7,5 +7,4 @@ idf_component_register(
 
 if(CONFIG_LIBSPOOKY_COVERAGE_ENABLE)
     target_compile_options(${COMPONENT_LIB} PRIVATE --coverage)
-    target_link_libraries(${COMPONENT_LIB} PUBLIC gcov)
 endif()

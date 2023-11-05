@@ -1,0 +1,6 @@
+menu "libSpookyAction"
+    config LIBSPOOKY_COVERAGE_ENABLE
+        bool "Enable code coverage"
+        help
+            Enables coverage of the relevant libSpookyAction files.
+endmenu

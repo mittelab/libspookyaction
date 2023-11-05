@@ -1800,6 +1800,31 @@ CONFIG_WIFI_PROV_STA_ALL_CHANNEL_SCAN=y
 # end of Wi-Fi Provisioning Manager
 
 #
+# libSpookyAction
+#
+# CONFIG_LIBSPOOKY_COVERAGE_ENABLE is not set
+# end of libSpookyAction
+
+#
+# libSpookyAction tests
+#
+CONFIG_SPOOKY_SINGLE_CHANNEL_HSU=y
+# CONFIG_SPOOKY_SINGLE_CHANNEL_HSU_IRQ is not set
+# CONFIG_SPOOKY_SINGLE_CHANNEL_I2C is not set
+# CONFIG_SPOOKY_SINGLE_CHANNEL_I2C_IRQ is not set
+# CONFIG_SPOOKY_SINGLE_CHANNEL_SPI is not set
+# CONFIG_SPOOKY_SINGLE_CHANNEL_SPI_IRQ is not set
+# CONFIG_SPOOKY_MULTI_CHANNEL is not set
+
+#
+# Pin configuration
+#
+CONFIG_PN532_HSU_TX_I2C_SDA=17
+CONFIG_PN532_HSU_RX_I2C_SCL=18
+# end of Pin configuration
+# end of libSpookyAction tests
+
+#
 # wolfSSL
 #
 CONFIG_TLS_STACK_WOLFSSL=y

@@ -1,0 +1,191 @@
+menu "libSpookyAction tests"
+    choice SPOOKY_CHANNEL
+        prompt "Test channels"
+        help
+            You can test the PN532 over HSU, I2C, SPI, with or without an additional IRQ line, or any combination of
+            these. To select multiple channels, you must also control the lines I0, I1 and RSTN.
+        default SPOOKY_SINGLE_CHANNEL_HSU
+        config SPOOKY_SINGLE_CHANNEL_HSU
+            bool "HSU only, needs 2 pins"
+        config SPOOKY_SINGLE_CHANNEL_HSU_IRQ
+            bool "HSU + IRQ only, needs 3 pins"
+        config SPOOKY_SINGLE_CHANNEL_I2C
+            bool "I2C only, needs 2 pins"
+        config SPOOKY_SINGLE_CHANNEL_I2C_IRQ
+            bool "I2C + IRQ only, needs 3 pins"
+        config SPOOKY_SINGLE_CHANNEL_SPI
+            bool "SPI only, needs 4 pins"
+        config SPOOKY_SINGLE_CHANNEL_SPI_IRQ
+            bool "SPI + IRQ only, needs 5 pins"
+        config SPOOKY_MULTI_CHANNEL
+            bool "Multiple channels, needs 5+ pins"
+    endchoice
+
+    if SPOOKY_MULTI_CHANNEL
+        menu "Multiple test channels selection"
+            config SPOOKY_MULTI_CHANNEL_HSU
+                bool "Test channel HSU"
+                default y
+
+            config SPOOKY_MULTI_CHANNEL_HSU_IRQ
+                bool "Test channel HSU + IRQ"
+                default n
+
+            config SPOOKY_MULTI_CHANNEL_I2C
+                bool "Test channel I2C"
+                default n
+
+            config SPOOKY_MULTI_CHANNEL_I2C_IRQ
+                bool "Test channel I2C + IRQ"
+                default n
+
+            config SPOOKY_MULTI_CHANNEL_SPI
+                bool "Test channel SPI"
+                default n
+
+            config SPOOKY_MULTI_CHANNEL_SPI_IRQ
+                bool "Test channel SPI + IRQ"
+                default n
+        endmenu
+    endif
+
+    menu "Pin configuration"
+        if SPOOKY_SINGLE_CHANNEL_HSU || SPOOKY_SINGLE_CHANNEL_HSU_IRQ || SPOOKY_SINGLE_CHANNEL_I2C || SPOOKY_SINGLE_CHANNEL_I2C_IRQ || SPOOKY_MULTI_CHANNEL_HSU || SPOOKY_MULTI_CHANNEL_HSU_IRQ || SPOOKY_MULTI_CHANNEL_I2C || SPOOKY_MULTI_CHANNEL_I2C_IRQ
+            config PN532_HSU_TX_I2C_SDA
+                int "GPIO connected to PN532 UART TX/I2C SDA line"
+                range 0 39 if IDF_TARGET_ESP32
+                range 0 20 if IDF_TARGET_ESP32C2
+                range 0 21 if IDF_TARGET_ESP32C3
+                range 0 30 if IDF_TARGET_ESP32C6
+                range 0 27 if IDF_TARGET_ESP32H2
+                range 0 56 if IDF_TARGET_ESP32P4
+                range 0 46 if IDF_TARGET_ESP32S2
+                range 0 48 if IDF_TARGET_ESP32S3
+                default 32 if IDF_TARGET_ESP32 || IDF_TARGET_ESP32C6 || IDF_TARGET_ESP32P4 || IDF_TARGET_ESP32S2 || IDF_TARGET_ESP32S3
+                default 21 if IDF_TARGET_ESP32C2 || IDF_TARGET_ESP32C3 || IDF_TARGET_ESP32H2
+
+            config PN532_HSU_RX_I2C_SCL
+                int "GPIO connected to PN532 UART RX/I2C SCL line"
+                range 0 39 if IDF_TARGET_ESP32
+                range 0 20 if IDF_TARGET_ESP32C2
+                range 0 21 if IDF_TARGET_ESP32C3
+                range 0 30 if IDF_TARGET_ESP32C6
+                range 0 27 if IDF_TARGET_ESP32H2
+                range 0 56 if IDF_TARGET_ESP32P4
+                range 0 46 if IDF_TARGET_ESP32S2
+                range 0 48 if IDF_TARGET_ESP32S3
+                default 33 if IDF_TARGET_ESP32 || IDF_TARGET_ESP32C6 || IDF_TARGET_ESP32P4 || IDF_TARGET_ESP32S2 || IDF_TARGET_ESP32S3
+                default 20 if IDF_TARGET_ESP32C2 || IDF_TARGET_ESP32C3 || IDF_TARGET_ESP32H2
+        endif
+
+        if SPOOKY_SINGLE_CHANNEL_SPI || SPOOKY_SINGLE_CHANNEL_SPI_IRQ || SPOOKY_MULTI_CHANNEL_SPI || SPOOKY_MULTI_CHANNEL_SPI_IRQ
+            config PN532_SPI_MISO
+                int "GPIO connected to PN532 SPI MISO line"
+                range 0 39 if IDF_TARGET_ESP32
+                range 0 20 if IDF_TARGET_ESP32C2
+                range 0 21 if IDF_TARGET_ESP32C3
+                range 0 30 if IDF_TARGET_ESP32C6
+                range 0 27 if IDF_TARGET_ESP32H2
+                range 0 56 if IDF_TARGET_ESP32P4
+                range 0 46 if IDF_TARGET_ESP32S2
+                range 0 48 if IDF_TARGET_ESP32S3
+                default 5 if IDF_TARGET_ESP32 || IDF_TARGET_ESP32C6 || IDF_TARGET_ESP32P4 || IDF_TARGET_ESP32S2 || IDF_TARGET_ESP32S3
+                default 9 if IDF_TARGET_ESP32C2 || IDF_TARGET_ESP32C3 || IDF_TARGET_ESP32H2
+
+            config PN532_SPI_MOSI
+                int "GPIO connected to PN532 SPI MOSI line"
+                range 0 39 if IDF_TARGET_ESP32
+                range 0 20 if IDF_TARGET_ESP32C2
+                range 0 21 if IDF_TARGET_ESP32C3
+                range 0 30 if IDF_TARGET_ESP32C6
+                range 0 27 if IDF_TARGET_ESP32H2
+                range 0 56 if IDF_TARGET_ESP32P4
+                range 0 46 if IDF_TARGET_ESP32S2
+                range 0 48 if IDF_TARGET_ESP32S3
+                default 17 if IDF_TARGET_ESP32 || IDF_TARGET_ESP32C6 || IDF_TARGET_ESP32P4 || IDF_TARGET_ESP32S2 || IDF_TARGET_ESP32S3
+                default 10 if IDF_TARGET_ESP32C2 || IDF_TARGET_ESP32C3 || IDF_TARGET_ESP32H2
+
+            config PN532_SPI_SCK
+                int "GPIO connected to PN532 SPI SCK line"
+                range 0 39 if IDF_TARGET_ESP32
+                range 0 20 if IDF_TARGET_ESP32C2
+                range 0 21 if IDF_TARGET_ESP32C3
+                range 0 30 if IDF_TARGET_ESP32C6
+                range 0 27 if IDF_TARGET_ESP32H2
+                range 0 56 if IDF_TARGET_ESP32P4
+                range 0 46 if IDF_TARGET_ESP32S2
+                range 0 48 if IDF_TARGET_ESP32S3
+                default 18 if IDF_TARGET_ESP32 || IDF_TARGET_ESP32C6 || IDF_TARGET_ESP32P4 || IDF_TARGET_ESP32S2 || IDF_TARGET_ESP32S3
+                default 8 if IDF_TARGET_ESP32C2 || IDF_TARGET_ESP32C3 || IDF_TARGET_ESP32H2
+
+            config PN532_SPI_SS
+                int "GPIO connected to PN532 SPI SS line"
+                range 0 39 if IDF_TARGET_ESP32
+                range 0 20 if IDF_TARGET_ESP32C2
+                range 0 21 if IDF_TARGET_ESP32C3
+                range 0 30 if IDF_TARGET_ESP32C6
+                range 0 27 if IDF_TARGET_ESP32H2
+                range 0 56 if IDF_TARGET_ESP32P4
+                range 0 46 if IDF_TARGET_ESP32S2
+                range 0 48 if IDF_TARGET_ESP32S3
+                default 16 if IDF_TARGET_ESP32 || IDF_TARGET_ESP32C6 || IDF_TARGET_ESP32P4 || IDF_TARGET_ESP32S2 || IDF_TARGET_ESP32S3
+                default 2 if IDF_TARGET_ESP32C2 || IDF_TARGET_ESP32C3 || IDF_TARGET_ESP32H2
+        endif
+
+        if SPOOKY_SINGLE_CHANNEL_HSU_IRQ || SPOOKY_SINGLE_CHANNEL_I2C_IRQ || SPOOKY_SINGLE_CHANNEL_SPI_IRQ || SPOOKY_MULTI_CHANNEL_HSU_IRQ || SPOOKY_MULTI_CHANNEL_I2C_IRQ || SPOOKY_MULTI_CHANNEL_SPI_IRQ
+            config PN532_IRQ
+                int "GPIO connected to PN532 IRQ line"
+                range 0 39 if IDF_TARGET_ESP32
+                range 0 20 if IDF_TARGET_ESP32C2
+                range 0 21 if IDF_TARGET_ESP32C3
+                range 0 30 if IDF_TARGET_ESP32C6
+                range 0 27 if IDF_TARGET_ESP32H2
+                range 0 56 if IDF_TARGET_ESP32P4
+                range 0 46 if IDF_TARGET_ESP32S2
+                range 0 48 if IDF_TARGET_ESP32S3
+                default 4 if IDF_TARGET_ESP32 || IDF_TARGET_ESP32C6 || IDF_TARGET_ESP32P4 || IDF_TARGET_ESP32S2 || IDF_TARGET_ESP32S3
+                default 3 if IDF_TARGET_ESP32C2 || IDF_TARGET_ESP32C3 || IDF_TARGET_ESP32H2
+        endif
+
+        if SPOOKY_MULTI_CHANNEL
+            config PN532_I0
+                int "GPIO connected to PN532 I0 pin (channel selection)"
+                range 0 39 if IDF_TARGET_ESP32
+                range 0 20 if IDF_TARGET_ESP32C2
+                range 0 21 if IDF_TARGET_ESP32C3
+                range 0 30 if IDF_TARGET_ESP32C6
+                range 0 27 if IDF_TARGET_ESP32H2
+                range 0 56 if IDF_TARGET_ESP32P4
+                range 0 46 if IDF_TARGET_ESP32S2
+                range 0 48 if IDF_TARGET_ESP32S3
+                default 23 if IDF_TARGET_ESP32 || IDF_TARGET_ESP32C6 || IDF_TARGET_ESP32P4 || IDF_TARGET_ESP32S2 || IDF_TARGET_ESP32S3
+                default 4 if IDF_TARGET_ESP32C2 || IDF_TARGET_ESP32C3 || IDF_TARGET_ESP32H2
+
+            config PN532_I1
+                int "GPIO connected to PN532 I0 pin (channel selection)"
+                range 0 39 if IDF_TARGET_ESP32
+                range 0 20 if IDF_TARGET_ESP32C2
+                range 0 21 if IDF_TARGET_ESP32C3
+                range 0 30 if IDF_TARGET_ESP32C6
+                range 0 27 if IDF_TARGET_ESP32H2
+                range 0 56 if IDF_TARGET_ESP32P4
+                range 0 46 if IDF_TARGET_ESP32S2
+                range 0 48 if IDF_TARGET_ESP32S3
+                default 22 if IDF_TARGET_ESP32 || IDF_TARGET_ESP32C6 || IDF_TARGET_ESP32P4 || IDF_TARGET_ESP32S2 || IDF_TARGET_ESP32S3
+                default 5 if IDF_TARGET_ESP32C2 || IDF_TARGET_ESP32C3 || IDF_TARGET_ESP32H2
+
+            config PN532_RSTN
+                int "GPIO connected to PN532 RST pin (reset)"
+                range 0 39 if IDF_TARGET_ESP32
+                range 0 20 if IDF_TARGET_ESP32C2
+                range 0 21 if IDF_TARGET_ESP32C3
+                range 0 30 if IDF_TARGET_ESP32C6
+                range 0 27 if IDF_TARGET_ESP32H2
+                range 0 56 if IDF_TARGET_ESP32P4
+                range 0 46 if IDF_TARGET_ESP32S2
+                range 0 48 if IDF_TARGET_ESP32S3
+                default 19 if IDF_TARGET_ESP32 || IDF_TARGET_ESP32C6 || IDF_TARGET_ESP32P4 || IDF_TARGET_ESP32S2 || IDF_TARGET_ESP32S3
+                default 6 if IDF_TARGET_ESP32C2 || IDF_TARGET_ESP32C3 || IDF_TARGET_ESP32H2
+        endif
+    endmenu
+endmenu

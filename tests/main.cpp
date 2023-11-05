@@ -1,5 +1,4 @@
 #include <catch.hpp>
-#include <mlab/strutils.hpp>
 
 extern "C" int app_main() {
     Catch::Session session;

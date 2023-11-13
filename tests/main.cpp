@@ -6,5 +6,7 @@ extern "C" int app_main() {
     session.configData().runOrder = Catch::TestRunOrder::LexicographicallySorted;
     session.configData().verbosity = Catch::Verbosity::Quiet;
     session.configData().noThrow = true;
-    return session.run();
+    const auto result = session.run();
+    std::printf("GREPME done\n");
+    return result;
 }

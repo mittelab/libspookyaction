@@ -1,16 +1,22 @@
+#!/usr/bin/env python
 import glob
 import os.path
 import subprocess
 import shutil
 import sys
+import typer
 
 import serial
 import time
 from typing import List, Tuple, Optional
 import re
+from contextlib import nullcontext
 
 from elftools.elf.constants import SH_FLAGS
 from elftools.elf.elffile import ELFFile
+from pytest_embedded_idf import IdfApp
+
+from telnetlib import Telnet
 
 ADDRESS_RE = re.compile(r'0x[0-9a-f]{8}', re.IGNORECASE)
 VERSION_RE = re.compile(r'\d+\.\d+\.\d+')
@@ -92,12 +98,37 @@ class PCAddrTranslator:
         return None
 
 
+class OpenOCD:
+    def __init__(self):
+        self._telnet = Telnet('localhost', 4444)
+
+    def __enter__(self):
+        self._telnet.__enter__()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self._telnet.__exit__(exc_type, exc_val, exc_tb)
+
+    def write(self, s: str) -> str:
+        # read all output already sent
+        self._telnet.read_very_eager()
+        self._telnet.write((s + '\n').encode())
+        return self._telnet.read_until(b'>').decode()
+
+
 class TTYReader:
     def __init__(self, port: str, elf_path: Optional[str] = None, timeout: float = 0.5):
         self.tty = serial.Serial(port=port, timeout=timeout)
         self.addr_translator = PCAddrTranslator(elf_path)
         self.expect_eof = False
         self.test_result = None
+
+    def __enter__(self):
+        self.tty.__enter__()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.tty.__exit__(exc_type, exc_val, exc_tb)
 
     def convert_addresses(self, line: bytes):
         # Does it have any address in it?
@@ -124,7 +155,7 @@ class TTYReader:
         line_str_noansi = ANSI_RE.sub('', line.decode(errors='ignore'))
         if (m := TEST_RESULT_RE.match(line_str_noansi)) is not None:
             success, total = map(int, map(str.strip, m.group(1).split('|')))
-            print(f'GREPME test percentage: {success/total:%}', file=sys.stderr)
+            print(f'GREPME test percentage: {success / total:%}', file=sys.stderr)
 
     def pulse(self):
         self.tty.setDTR(False)
@@ -156,10 +187,42 @@ class TTYReader:
                 break
 
 
-if __name__ == '__main__':
-    tty = TTYReader('/dev/ttyACM0', '/home/spak/Development/Mittelab/libspookyaction/build/tests.elf')
-    try:
+def main(app_path: Optional[str] = None, build_dir: Optional[str] = 'build', start_openocd: bool = True,
+         use_openocd: bool = True, tty_port: str = '/dev/ttyACM0', dump_coverage: bool = True):
+
+    elf_path: Optional[str] = None
+    if build_dir:
+        app = IdfApp(app_path=app_path, build_dir=build_dir)
+        # Fallback in case the build dir does not exist
+        elf_path = getattr(app, 'elf_file', None)
+
+    openocd_process: nullcontext | subprocess.Popen = nullcontext()
+    if start_openocd and use_openocd:
+        idf_py = shutil.which('idf.py')
+        if idf_py is not None:
+            openocd_process = subprocess.Popen([idf_py, 'openocd'], shell=False)
+
+    openocd: nullcontext | OpenOCD = nullcontext()
+    tty: TTYReader
+    if use_openocd:
+        openocd = OpenOCD()
+        openocd.write('reset')
+        tty = TTYReader(tty_port, elf_path)
+    else:
+        tty = TTYReader(tty_port, elf_path)
         tty.pulse()
-        tty.main()
+
+    try:
+        with openocd_process:
+            with openocd:
+                with tty:
+                    tty.main()
+                    if use_openocd and dump_coverage:
+                        print('Dumping converage...')
+                        openocd.write('esp gcov')
     except KeyboardInterrupt:
         pass
+
+
+if __name__ == '__main__':
+    typer.run(main)

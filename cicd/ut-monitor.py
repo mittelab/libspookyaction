@@ -99,8 +99,16 @@ class PCAddrTranslator:
 
 
 class OpenOCD:
-    def __init__(self):
-        self._telnet = Telnet('localhost', 4444)
+    def __init__(self, host: str = 'localhost', port: int = 4444):
+        for i in range(10):
+            try:
+                self._telnet = Telnet(host, port)
+                return
+            except ConnectionRefusedError:
+                if i > 1:
+                    print('OpenOCD is not yet ready, retrying...', file=sys.stderr)
+                time.sleep(1.)
+        raise ConnectionRefusedError
 
     def __enter__(self):
         self._telnet.__enter__()
@@ -188,40 +196,47 @@ class TTYReader:
 
 
 def main(app_path: Optional[str] = None, build_dir: Optional[str] = 'build', start_openocd: bool = True,
-         use_openocd: bool = True, tty_port: str = '/dev/ttyACM0', dump_coverage: bool = True):
-
+         use_openocd: bool = True, tty_port: str = '/dev/ttyACM0', dump_coverage: bool = True,
+         openocd_host: str = 'localhost', openocd_port: int = 4444):
     elf_path: Optional[str] = None
     if build_dir:
         app = IdfApp(app_path=app_path, build_dir=build_dir)
         # Fallback in case the build dir does not exist
         elf_path = getattr(app, 'elf_file', None)
+        if elf_path is None:
+            print(f'Unable to find ELF, is this the app folder? {app.app_path}', file=sys.stderr)
 
     openocd_process: nullcontext | subprocess.Popen = nullcontext()
     if start_openocd and use_openocd:
         idf_py = shutil.which('idf.py')
         if idf_py is not None:
             openocd_process = subprocess.Popen([idf_py, 'openocd'], shell=False)
-
-    openocd: nullcontext | OpenOCD = nullcontext()
-    tty: TTYReader
-    if use_openocd:
-        openocd = OpenOCD()
-        openocd.write('reset')
-        tty = TTYReader(tty_port, elf_path)
-    else:
-        tty = TTYReader(tty_port, elf_path)
-        tty.pulse()
-
+        else:
+            print(f'Unable to find idf.py, did you activate ESP-IDF?', file=sys.stderr)
+            if use_openocd:
+                sys.exit(1)
     try:
         with openocd_process:
+            openocd: nullcontext | OpenOCD = nullcontext()
+            if use_openocd:
+                try:
+                    openocd = OpenOCD(openocd_host, openocd_port)
+                except ConnectionRefusedError:
+                    sys.exit(1)
+                openocd.write('reset')
+                tty = TTYReader(tty_port, elf_path)
+            else:
+                tty = TTYReader(tty_port, elf_path)
+                tty.pulse()
+
             with openocd:
                 with tty:
                     tty.main()
                     if use_openocd and dump_coverage:
-                        print('Dumping converage...')
+                        print('Dumping converage...', file=sys.stderr)
                         openocd.write('esp gcov')
     except KeyboardInterrupt:
-        pass
+        sys.exit(1)
 
 
 if __name__ == '__main__':

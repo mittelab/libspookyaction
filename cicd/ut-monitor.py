@@ -4,6 +4,8 @@ import os.path
 import subprocess
 import shutil
 import sys
+from signal import SIGINT
+
 import typer
 
 import serial
@@ -97,6 +99,11 @@ class PCAddrTranslator:
             pass
         return None
 
+
+class AutoJoinPopen(subprocess.Popen):
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.send_signal(SIGINT)
+        super().__exit__(exc_type, exc_val, exc_tb)
 
 class OpenOCD:
     def __init__(self, host: str = 'localhost', port: int = 4444):
@@ -206,11 +213,11 @@ def main(app_path: Optional[str] = None, build_dir: Optional[str] = 'build', sta
         if elf_path is None:
             print(f'Unable to find ELF, is this the app folder? {app.app_path}', file=sys.stderr)
 
-    openocd_process: nullcontext | subprocess.Popen = nullcontext()
+    openocd_process: nullcontext | AutoJoinPopen = nullcontext()
     if start_openocd and use_openocd:
         idf_py = shutil.which('idf.py')
         if idf_py is not None:
-            openocd_process = subprocess.Popen([idf_py, 'openocd'], shell=False)
+            openocd_process = AutoJoinPopen([idf_py, 'openocd'], shell=False)
         else:
             print(f'Unable to find idf.py, did you activate ESP-IDF?', file=sys.stderr)
             if use_openocd:

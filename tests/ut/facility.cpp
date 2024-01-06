@@ -380,9 +380,11 @@ namespace ut {
                 break;
         }
 
+        _active_channel = ct;
         if (try_wake_and_sam_configure()) {
-            _active_channel = ct;
             return true;
+        } else {
+            _active_channel = channel_type::none;
         }
 
         _channel = nullptr;

@@ -223,14 +223,16 @@ namespace ut {
                 .rx_flow_ctrl_thresh = 122,
                 .source_clk = UART_SCLK_DEFAULT};
 
-        constexpr i2c_config_t i2c_config = {
-                .mode = I2C_MODE_MASTER,
+        constexpr i2c_master_bus_config_t i2c_config = {
+                .i2c_port = -1 /* autoselect */,
                 .sda_io_num = pinout::pn532_hsu_tx_i2c_sda,
                 .scl_io_num = pinout::pn532_hsu_rx_i2c_scl,
-                .sda_pullup_en = GPIO_PULLUP_ENABLE,
-                .scl_pullup_en = GPIO_PULLUP_ENABLE,
-                .master = {.clk_speed = 400000},
-                .clk_flags = I2C_SCLK_SRC_FLAG_FOR_NOMAL};
+                .clk_source = I2C_CLK_SRC_DEFAULT,
+                .glitch_ignore_cnt = 7 /* typical */,
+                .intr_priority = 0 /* default */,
+                .trans_queue_depth = 2 /* 1 should be enough, but make it 2 */,
+                .flags = {
+                        .enable_internal_pullup = true}};
 
         constexpr spi_bus_config_t spi_bus_config = {
                 .mosi_io_num = pinout::pn532_spi_mosi,
@@ -365,10 +367,10 @@ namespace ut {
                 _channel = std::make_unique<pn532::esp32::hsu_channel>(UART_NUM_1, uart_config, pinout::pn532_hsu_tx_i2c_sda, pinout::pn532_hsu_rx_i2c_scl);
                 break;
             case channel_type::i2c:
-                _channel = std::make_unique<pn532::esp32::i2c_channel>(I2C_NUM_0, i2c_config);
+                _channel = std::make_unique<pn532::esp32::i2c_channel>(i2c_config);
                 break;
             case channel_type::i2c_irq:
-                _channel = std::make_unique<pn532::esp32::i2c_channel>(I2C_NUM_0, i2c_config, pinout::pn532_irq, true);
+                _channel = std::make_unique<pn532::esp32::i2c_channel>(i2c_config, pinout::pn532_irq, true);
                 break;
             case channel_type::spi:
                 _channel = std::make_unique<pn532::esp32::spi_channel>(SPI2_HOST, spi_bus_config, spi_device_config, SPI_DMA_CH_AUTO);

@@ -21,7 +21,7 @@ namespace pn532::esp32 {
         }
 
         constexpr std::size_t i2c_driver_buffer_size = 384;
-        constexpr std::size_t i2c_driver_timeout = 200000 /* apx 2.5ms */;
+        constexpr std::size_t i2c_driver_timeout = 0x1f /* apparently max value */;
     }// namespace
 
     namespace i2c {

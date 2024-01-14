@@ -52,7 +52,7 @@ namespace pn532::esp32 {
          */
         static constexpr i2c_device_config_t default_device_config{
                 .dev_addr_length = I2C_ADDR_BIT_LEN_7,
-                .device_address = 0x48,
+                .device_address = 0x24,
                 .scl_speed_hz = 400'000};
 
         i2c_channel(i2c_channel const &) = delete;

@@ -40,6 +40,8 @@ namespace pn532::esp32 {
             _bus_handle = nullptr;
             return;
         }
+
+        _dev_addr = dev_config.device_address;
     }
 
     i2c_channel::i2c_channel(i2c_master_bus_config_t bus_config, gpio_num_t response_irq_line, bool manage_isr_service, i2c_device_config_t dev_config)

@@ -54,7 +54,7 @@ check format:
     - apk add --update --no-cache git clang clang-extra-tools
   script:
     - >
-      find . -not -path '*/\.*' -and -not -path './tests/components/*' -and -not -path './tests/lib/_*' -and \( -name '*.[hc]' -or -name '*.[hc]pp' \) | while read -r FILE; do
+      find . \( -path './libspookyaction/*' -or -path './tests/*' \) -and \( -name '*.[hc]' -or -name '*.[hc]pp' \) | while read -r FILE; do
           echo "Formatting $FILE"
           clang-format --style file -i "$FILE"
       done
@@ -72,7 +72,7 @@ check format:
 
 .build-test-firmare-template: &build-test-firmware-template
   stage: build
-  image: espressif/idf:release-5.1.2
+  image: espressif/idf:v5.1.2
   before_script:
     - rm sdkconfig
     - cp cicd/sdkconfig.defaults ./

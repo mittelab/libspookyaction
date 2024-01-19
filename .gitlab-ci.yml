@@ -22,15 +22,8 @@ variables:
 
 .rules-changes-sources: &rules-changes-sources
   changes:
-    - ${PIO_LIB_FOLDER}/src/**/*
-    - ${PIO_LIB_FOLDER}/include/**/*
-    - ${PIO_LIB_FOLDER}/examples/**/*
-    - ${PIO_PROJ_FOLDER}/src/**/*
-    - ${PIO_PROJ_FOLDER}/test/**/*
-    - ${PIO_PROJ_FOLDER}/sdkconfig*
-    - ${PIO_PROJ_FOLDER}/include/**/*
-    - ${PIO_PROJ_FOLDER}/lib/**/*
-    - cicd/platformio.ini
+    - libspookyaction/**/*
+    - tests/**/*
 
 .rules-changes-cicd: &rules-changes-cicd
   changes:
@@ -85,8 +78,12 @@ check format:
   artifacts:
     paths:
       - build/*.bin
+      - build/*.elf
       - build/*/*.bin
       - build/flash_args
+      - build/flash_project_args
+      - build/flasher_args.json
+      - build/config/sdkconfig.json
   needs: []
 
 build test firmware mbedtls:
@@ -116,23 +113,22 @@ build test firmware mbedtls:
     - <<: *rules-changes-sources
     - <<: *rules-changes-cicd
 
-#
 #build examples:
 #  image: ${CI_REGISTRY}/proj/testinator/esp32:latest
 #  stage: build
 #  <<: *example-build-rules
 #  script:
 #    # Note that we need to set sdkconfig.defaults up in beforehand, so we make our own folder and manage it ourselves
-#    # Afterwards we save the firmware so that we can use it as artifact to signal that the example has been built
+#    # Afterward we save the firmware so that we can use it as artifact to signal that the example has been built
 #    - BUILD_DIR="$(mktemp -d)"
-#    - cp ${PIO_LIB_FOLDER}/examples/sdkconfig.defaults "${BUILD_DIR}"
+#    - cp libspookyaction/examples/sdkconfig.defaults "${BUILD_DIR}"
 #    - pio ci
 #      --build-dir="${BUILD_DIR}"
 #      --project-conf=cicd/platformio.ini
-#      --lib=${PIO_LIB_FOLDER}
-#      --lib=tests/lib/mittelib
+#      --lib=libspookyaction
+#      --lib=components/mittelib/mittelib
 #      --keep-build-dir
-#      "${PIO_LIB_FOLDER}/examples/${EXAMPLE_FILE}"
+#      "libspookyaction/examples/${EXAMPLE_FILE}"
 #    - find "${BUILD_DIR}/.pio" -name firmware.bin -exec cp {} "${PIO_LIB_FOLDER}/examples/${EXAMPLE_FILE}.bin" \;
 #    - rm -rf "${BUILD_DIR}"
 #  parallel:
@@ -149,16 +145,16 @@ build test firmware mbedtls:
 #      - "${PIO_LIB_FOLDER}/examples/*.bin"
 #    expire_in: 1 week
 #  needs: []
-
-
+#
+#
 #test all examples have been built:
-#  # This job will make sure that the .gitlab-ci is up to date and all examples have been built
+#  # This job will make sure that the .gitlab-ci is up-to-date and all examples have been built
 #  image: alpine:3.17
 #  stage: test
 #  <<: *example-build-rules
 #  script:
 #    - >
-#      for file in ${PIO_LIB_FOLDER}/examples/*.cpp; do
+#      for file in libspookyaction/examples/*.cpp; do
 #        echo "Testing that $file was included in the hardcoded list of build examples..."
 #        test -e "$file.bin"
 #      done

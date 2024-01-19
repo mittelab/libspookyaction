@@ -1,10 +1,19 @@
+# Platformio stuff
 .pio
-sdkconfig.old
-cmake-build-*/
-build
-.vscode
-.idea
 platformio.ini
+
+# Docs
 docs/_build
 docs/api
 docs/build.log
+
+
+# Projects file formats
+.idea
+.vscode
+
+# Specific files for esp-idf
+sdkconfig
+sdkconfig.old
+__pycache__
+build

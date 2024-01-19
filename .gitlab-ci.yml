@@ -74,16 +74,25 @@ check format:
   stage: build
   image: espressif/idf:v5.1.2
   before_script:
-    - rm sdkconfig
-    - cp cicd/sdkconfig.defaults ./
+    - cp cicd/sdkconfig ./
   script:
     - idf.py build
   rules:
     - when: always
+  cache:
+    paths:
+      - build
+  artifacts:
+    paths:
+      - build/*.bin
+      - build/*/*.bin
+      - build/flash_args
   needs: []
 
 build test firmware mbedtls:
   <<: *build-test-firmware-template
+  cache:
+    key: $CI_JOB_NAME
 
 #build test firmware wolfssl:
 #  <<: *build-test-firmware-template
@@ -159,27 +168,12 @@ build test firmware mbedtls:
 
 .test-hardware-template: &test-hardware-template
   stage: test
-  image: ${CI_REGISTRY}/proj/testinator/esp32:latest
+  image: espressif/idf:v5.1.2
   tags:
     - pn532
-  before_script:
-    - cp cicd/platformio.ini "${PIO_PROJ_FOLDER}/platformio.ini"
-    - cd "${PIO_PROJ_FOLDER}"
   script:
-    # Make several attempts at uploading.
-    - UPLOADED=0
-    - >
-      for i in $(seq 1 5); do
-        if pio test --without-building --without-testing -vv; then
-          UPLOADED=1
-          break
-        else
-          echo "Failed uploading attempt $i/5. Sleeping a bit before retrying."
-          sleep $(( i * 2 ))
-        fi
-      done
-    - test $UPLOADED -ne 0
-    - pio test --without-building --without-uploading -vv
+    - cd build
+    - esptool.py --chip esp32s3 write_flash @flash_args
   rules:
     # Run always, on merge request too
     - <<: *rules-merge-to-master
@@ -188,11 +182,11 @@ build test firmware mbedtls:
     - <<: *rules-changes-cicd
 
 
-#test hardware mbedtls:
-#  <<: *test-hardware-template
-#  needs:
-#    - build test firmware mbedtls
-#
+test hardware mbedtls:
+  <<: *test-hardware-template
+  needs:
+    - build test firmware mbedtls
+
 #test hardware wolfssl:
 #  <<: *test-hardware-template
 #  needs:

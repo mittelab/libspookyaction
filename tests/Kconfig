@@ -156,7 +156,7 @@ menu "libSpookyAction tests"
                 default 4 if IDF_TARGET_ESP32C2 || IDF_TARGET_ESP32C3 || IDF_TARGET_ESP32H2
 
             config PN532_I1
-                int "GPIO connected to PN532 I0 pin (channel selection)"
+                int "GPIO connected to PN532 I1 pin (channel selection)"
                 range 0 39 if IDF_TARGET_ESP32
                 range 0 20 if IDF_TARGET_ESP32C2
                 range 0 21 if IDF_TARGET_ESP32C3

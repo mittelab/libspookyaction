@@ -47,6 +47,7 @@ namespace ut {
 
         explicit ensure_demo_app(std::shared_ptr<desfire::tag> card_, demo_app app_, desfire::any_key root_key_ = desfire::key<desfire::cipher_type::des>{});
         ~ensure_demo_app();
+
     private:
         bool delete_if_exists();
     };

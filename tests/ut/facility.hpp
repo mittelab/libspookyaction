@@ -5,10 +5,10 @@
 #ifndef TESTS_FACILITY_HPP
 #define TESTS_FACILITY_HPP
 
+#include <desfire/tag.hpp>
 #include <memory>
 #include <pn532/channel.hpp>
 #include <pn532/controller.hpp>
-#include <desfire/tag.hpp>
 
 namespace ut {
     enum struct channel_type {
@@ -49,6 +49,7 @@ namespace ut {
         ~facility();
 
         [[nodiscard]] bool activate_internal(channel_type ct);
+
     public:
         [[nodiscard]] channel_type active_channel() const;
 
@@ -72,6 +73,6 @@ namespace ut {
         [[nodiscard]] static facility &instance();
     };
 
-}
+}// namespace ut
 
 #endif//TESTS_FACILITY_HPP

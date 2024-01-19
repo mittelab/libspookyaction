@@ -732,8 +732,7 @@ namespace desfire {
     }
 
     template <cipher_type Cipher>
-    any_key::any_key(key<Cipher> obj) : mlab::any_of<cipher_type, key, cipher_type::none> { std::move(obj) }
-    {}
+    any_key::any_key(key<Cipher> obj) : mlab::any_of<cipher_type, key, cipher_type::none>{std::move(obj)} {}
 
 }// namespace desfire
 

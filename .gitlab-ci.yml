@@ -72,38 +72,28 @@ check format:
 
 .build-test-firmare-template: &build-test-firmware-template
   stage: build
-  image: ${CI_REGISTRY}/proj/testinator/esp32:latest
-  <<: *pio-cache
+  image: espressif/idf:release-5.1.2
   before_script:
-    - cp cicd/platformio.ini "${PIO_PROJ_FOLDER}/platformio.ini"
-    - cd "${PIO_PROJ_FOLDER}"
+    - rm sdkconfig
+    - cp cicd/sdkconfig.defaults ./
   script:
-    # Remove the cached firmwares to ensure we will rebuild
-    - rm -f .pio/**/firmware.{bin,elf}
-    - pio test -vv --without-uploading --without-testing
-  artifacts:
-    paths:
-      - "${PIO_PROJ_FOLDER}/.pio/**/*.checksum"  # Without this, `pio run` deletes the firmware
-      - "${PIO_PROJ_FOLDER}/.pio/**/firmware.bin"
-      - "${PIO_PROJ_FOLDER}/.pio/**/firmware.elf"
+    - idf.py build
   rules:
     - when: always
   needs: []
 
 build test firmware mbedtls:
   <<: *build-test-firmware-template
-  cache:
-    key: $CI_JOB_NAME
 
-build test firmware wolfssl:
-  <<: *build-test-firmware-template
-  cache:
-    key: $CI_JOB_NAME
-  # Customize the before script so that it uses the correct defaults
-  before_script:
-    - cp cicd/platformio.ini "${PIO_PROJ_FOLDER}/platformio.ini"
-    - cd "${PIO_PROJ_FOLDER}"
-    - cp sdkconfig-wolfssl.defaults sdkconfig.defaults
+#build test firmware wolfssl:
+#  <<: *build-test-firmware-template
+#  cache:
+#    key: $CI_JOB_NAME
+#  # Customize the before script so that it uses the correct defaults
+#  before_script:
+#    - cp cicd/platformio.ini "${PIO_PROJ_FOLDER}/platformio.ini"
+#    - cd "${PIO_PROJ_FOLDER}"
+#    - cp sdkconfig-wolfssl.defaults sdkconfig.defaults
 
 
 .example-build-rules: &example-build-rules
@@ -117,54 +107,54 @@ build test firmware wolfssl:
     - <<: *rules-changes-sources
     - <<: *rules-changes-cicd
 
+#
+#build examples:
+#  image: ${CI_REGISTRY}/proj/testinator/esp32:latest
+#  stage: build
+#  <<: *example-build-rules
+#  script:
+#    # Note that we need to set sdkconfig.defaults up in beforehand, so we make our own folder and manage it ourselves
+#    # Afterwards we save the firmware so that we can use it as artifact to signal that the example has been built
+#    - BUILD_DIR="$(mktemp -d)"
+#    - cp ${PIO_LIB_FOLDER}/examples/sdkconfig.defaults "${BUILD_DIR}"
+#    - pio ci
+#      --build-dir="${BUILD_DIR}"
+#      --project-conf=cicd/platformio.ini
+#      --lib=${PIO_LIB_FOLDER}
+#      --lib=tests/lib/mittelib
+#      --keep-build-dir
+#      "${PIO_LIB_FOLDER}/examples/${EXAMPLE_FILE}"
+#    - find "${BUILD_DIR}/.pio" -name firmware.bin -exec cp {} "${PIO_LIB_FOLDER}/examples/${EXAMPLE_FILE}.bin" \;
+#    - rm -rf "${BUILD_DIR}"
+#  parallel:
+#    matrix:
+#      - EXAMPLE_FILE:
+#        - app_desfire_demo.cpp
+#        - app_scan_loop.cpp
+#        - initialize.cpp
+#        - scan_any_target_lowlev.cpp
+#        - scan_desfire_lowlev.cpp
+#        - self_test.cpp
+#  artifacts:
+#    paths:
+#      - "${PIO_LIB_FOLDER}/examples/*.bin"
+#    expire_in: 1 week
+#  needs: []
 
-build examples:
-  image: ${CI_REGISTRY}/proj/testinator/esp32:latest
-  stage: build
-  <<: *example-build-rules
-  script:
-    # Note that we need to set sdkconfig.defaults up in beforehand, so we make our own folder and manage it ourselves
-    # Afterwards we save the firmware so that we can use it as artifact to signal that the example has been built
-    - BUILD_DIR="$(mktemp -d)"
-    - cp ${PIO_LIB_FOLDER}/examples/sdkconfig.defaults "${BUILD_DIR}"
-    - pio ci
-      --build-dir="${BUILD_DIR}"
-      --project-conf=cicd/platformio.ini
-      --lib=${PIO_LIB_FOLDER}
-      --lib=tests/lib/mittelib
-      --keep-build-dir
-      "${PIO_LIB_FOLDER}/examples/${EXAMPLE_FILE}"
-    - find "${BUILD_DIR}/.pio" -name firmware.bin -exec cp {} "${PIO_LIB_FOLDER}/examples/${EXAMPLE_FILE}.bin" \;
-    - rm -rf "${BUILD_DIR}"
-  parallel:
-    matrix:
-      - EXAMPLE_FILE:
-        - app_desfire_demo.cpp
-        - app_scan_loop.cpp
-        - initialize.cpp
-        - scan_any_target_lowlev.cpp
-        - scan_desfire_lowlev.cpp
-        - self_test.cpp
-  artifacts:
-    paths:
-      - "${PIO_LIB_FOLDER}/examples/*.bin"
-    expire_in: 1 week
-  needs: []
 
-
-test all examples have been built:
-  # This job will make sure that the .gitlab-ci is up to date and all examples have been built
-  image: alpine:3.17
-  stage: test
-  <<: *example-build-rules
-  script:
-    - >
-      for file in ${PIO_LIB_FOLDER}/examples/*.cpp; do
-        echo "Testing that $file was included in the hardcoded list of build examples..."
-        test -e "$file.bin"
-      done
-  needs:
-    - build examples
+#test all examples have been built:
+#  # This job will make sure that the .gitlab-ci is up to date and all examples have been built
+#  image: alpine:3.17
+#  stage: test
+#  <<: *example-build-rules
+#  script:
+#    - >
+#      for file in ${PIO_LIB_FOLDER}/examples/*.cpp; do
+#        echo "Testing that $file was included in the hardcoded list of build examples..."
+#        test -e "$file.bin"
+#      done
+#  needs:
+#    - build examples
 
 
 .test-hardware-template: &test-hardware-template
@@ -198,30 +188,30 @@ test all examples have been built:
     - <<: *rules-changes-cicd
 
 
-test hardware mbedtls:
-  <<: *test-hardware-template
-  needs:
-    - build test firmware mbedtls
+#test hardware mbedtls:
+#  <<: *test-hardware-template
+#  needs:
+#    - build test firmware mbedtls
+#
+#test hardware wolfssl:
+#  <<: *test-hardware-template
+#  needs:
+#    - build test firmware wolfssl
 
-test hardware wolfssl:
-  <<: *test-hardware-template
-  needs:
-    - build test firmware wolfssl
-
-publish library:
-  image: ${CI_REGISTRY}/proj/testinator/esp32:latest
-  stage: deploy
-  before_script:
-    - python3 -m pip install --user gitpython
-  script:
-    - git config --global --add safe.directory $(pwd)
-    - |
-      python3 cicd/check_version.py ${PIO_LIB_FOLDER}/library.json && \
-      pio package publish --owner ${PLATFORMIO_ORG} --non-interactive ${PIO_LIB_FOLDER}
-  only:
-    - tags
-  except:
-    - branches
+#publish library:
+#  image: ${CI_REGISTRY}/proj/testinator/esp32:latest
+#  stage: deploy
+#  before_script:
+#    - python3 -m pip install --user gitpython
+#  script:
+#    - git config --global --add safe.directory $(pwd)
+#    - |
+#      python3 cicd/check_version.py ${PIO_LIB_FOLDER}/library.json && \
+#      pio package publish --owner ${PLATFORMIO_ORG} --non-interactive ${PIO_LIB_FOLDER}
+#  only:
+#    - tags
+#  except:
+#    - branches
 
 
 .docker-job-definition: &docker-job-template

@@ -117,7 +117,7 @@ namespace pn532::esp32 {
          * @see raw_poll_status.
          */
         bool on_receive_prepare(ms timeout) override;
-
+        void on_receive_complete(result<> const &outcome) override;
         /**
          * @return For @ref spi_channel, this is always @ref comm_rx_mode::stream.
          */

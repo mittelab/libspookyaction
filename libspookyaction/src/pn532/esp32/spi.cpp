@@ -41,9 +41,18 @@ namespace pn532::esp32 {
 
     result<> spi_channel::perform_transaction(capable_buffer &buffer, spi_command cmd, comm_dir mode, ms timeout) {
         reduce_timeout rt{timeout};
+
+        uint32_t transaction_flags = 0;
+        if (cmd == spi_command::none)
+            transaction_flags |= SPI_TRANS_VARIABLE_CMD;
+        if (_recv_op_status == recv_op_status::data_read) {
+            if ((cmd == spi_command::data_read) || (cmd == spi_command::none))
+                transaction_flags |= SPI_TRANS_CS_KEEP_ACTIVE;
+        }
+
         spi_transaction_ext_t transaction{
                 .base = {
-                        .flags = (cmd == spi_command::none ? SPI_TRANS_VARIABLE_CMD : 0u),
+                        .flags = transaction_flags,
                         .cmd = static_cast<std::uint8_t>(cmd),
                         .addr = 0,
                         .length = buffer.size() * 8,
@@ -123,6 +132,7 @@ namespace pn532::esp32 {
     }
 
     bool spi_channel::on_receive_prepare(ms timeout) {
+        spi_device_acquire_bus(_device, portMAX_DELAY);
         if (_irq_assert.pin() == GPIO_NUM_NC) {
             // This is a dummy IRQ assert, so we will need to poll
             _recv_op_status = recv_op_status::init;
@@ -134,6 +144,26 @@ namespace pn532::esp32 {
             _recv_op_status = recv_op_status::did_poll;
         }
         return true;
+    }
+
+    void spi_channel::on_receive_complete(result<> const &outcome) {
+        // Read a dummy byte so we can unassert the CS pin
+        spi_transaction_ext_t transaction{
+                .base = {
+                        .flags = SPI_TRANS_VARIABLE_CMD | SPI_TRANS_USE_RXDATA,
+                        .cmd = 0,
+                        .addr = 0,
+                        .length = 8,
+                        .rxlength = 8,
+                        .user = const_cast<spi_channel *>(this),
+                        .tx_buffer = nullptr,
+                        .rx_buffer = nullptr},
+                .command_bits = 0,
+                .address_bits = 0,
+                .dummy_bits = 0};
+
+        spi_device_transmit(_device, reinterpret_cast<spi_transaction_t *>(&transaction));
+        spi_device_release_bus(_device);
     }
 
     spi_channel::spi_channel(spi_host_device_t host, spi_bus_config_t const &bus_config, spi_device_interface_config_t device_cfg, spi_dma_chan_t dma_chan)

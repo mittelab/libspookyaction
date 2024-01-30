@@ -170,6 +170,7 @@ build test firmware mbedtls:
   script:
     - cd build
     - esptool.py --chip esp32s3 write_flash @flash_args
+    - pytest -s pytest_gcov.py --target esp32s3 --openocd-cli-args "-f board/esp32s3-builtin.cfg"
   rules:
     # Run always, on merge request too
     - <<: *rules-merge-to-master

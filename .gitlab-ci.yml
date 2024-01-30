@@ -167,6 +167,8 @@ build test firmware mbedtls:
   image: espressif/idf:v5.1.2
   tags:
     - pn532
+  before_script:
+    - python /opt/esp/idf/tools/idf_tools.py install-python-env --features=+pytest
   script:
     - cd build
     - esptool.py --chip esp32s3 write_flash @flash_args

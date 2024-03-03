@@ -54,6 +54,9 @@ namespace ut {
                     ESP_LOGI(TAG, "   production: %02x %02x -> year %02u, week %u", r_info->production_week,
                              r_info->production_year, r_info->production_year, r_info->production_week);
 
+                    // Re-login before requesting the card UID
+                    REQUIRE(desfire::fs::login_app(*tag, desfire::root_app, ensure_card_formatted::default_root_key()));
+
                     const auto r_get_uid = tag->get_card_uid();
                     CHECKED_IF_FAIL(r_get_uid) {
                         CHECK(r_info->serial_no == *r_get_uid);

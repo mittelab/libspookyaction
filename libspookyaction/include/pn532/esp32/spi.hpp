@@ -117,7 +117,14 @@ namespace pn532::esp32 {
          * @see raw_poll_status.
          */
         bool on_receive_prepare(ms timeout) override;
-        void on_receive_complete(result<> const &outcome) override;
+
+        /**
+         * @brief Close the communications by unasserting the CS line.
+         *
+         * But there is no good way to end the transaction, so this method just reads an empty byte and releases the bus.
+         */
+        void on_receive_complete(result<> const &) override;
+
         /**
          * @return For @ref spi_channel, this is always @ref comm_rx_mode::stream.
          */

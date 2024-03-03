@@ -155,8 +155,8 @@ namespace pn532::esp32 {
         return true;
     }
 
-    void spi_channel::on_receive_complete(result<> const &outcome) {
-        // Read a dummy byte so we can unassert the CS pin
+    void spi_channel::on_receive_complete(result<> const &) {
+        // Read a dummy byte, so we can unassert the CS pin
         spi_transaction_ext_t transaction{
                 .base = {
                         .flags = SPI_TRANS_VARIABLE_CMD | SPI_TRANS_USE_RXDATA,
@@ -171,7 +171,7 @@ namespace pn532::esp32 {
                 .address_bits = 0,
                 .dummy_bits = 0};
 
-        spi_device_transmit(_device, reinterpret_cast<spi_transaction_t *>(&transaction));
+        ESP_ERROR_CHECK_WITHOUT_ABORT(spi_device_transmit(_device, reinterpret_cast<spi_transaction_t *>(&transaction)));
         spi_device_release_bus(_device);
     }
 

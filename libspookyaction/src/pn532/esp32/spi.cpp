@@ -22,6 +22,24 @@ namespace pn532::esp32 {
                     return channel_error::hw_error;
             }
         }
+
+        [[nodiscard]] constexpr std::uint32_t transaction_flags_for(spi_command cmd) {
+            uint32_t retval = 0;
+            switch (cmd) {
+                case spi_command::none:
+                    retval |= SPI_TRANS_VARIABLE_CMD;
+                    [[fallthrough]];
+                case spi_command::data_read:
+                    retval |= SPI_TRANS_CS_KEEP_ACTIVE;
+                    break;
+                case spi_command::data_write:
+                    [[fallthrough]];
+                case spi_command::status_read:
+                    break;
+            }
+            return retval;
+        }
+
     }// namespace
 
     bool spi_channel::wake() {
@@ -41,18 +59,9 @@ namespace pn532::esp32 {
 
     result<> spi_channel::perform_transaction(capable_buffer &buffer, spi_command cmd, comm_dir mode, ms timeout) {
         reduce_timeout rt{timeout};
-
-        uint32_t transaction_flags = 0;
-        if (cmd == spi_command::none)
-            transaction_flags |= SPI_TRANS_VARIABLE_CMD;
-        if (_recv_op_status == recv_op_status::data_read) {
-            if ((cmd == spi_command::data_read) || (cmd == spi_command::none))
-                transaction_flags |= SPI_TRANS_CS_KEEP_ACTIVE;
-        }
-
         spi_transaction_ext_t transaction{
                 .base = {
-                        .flags = transaction_flags,
+                        .flags = transaction_flags_for(cmd),
                         .cmd = static_cast<std::uint8_t>(cmd),
                         .addr = 0,
                         .length = buffer.size() * 8,

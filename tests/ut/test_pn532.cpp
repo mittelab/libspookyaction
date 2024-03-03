@@ -32,11 +32,11 @@ namespace ut {
                 REQUIRE(r_fw);
                 ESP_LOGI(TAG, "IC version %u, version: %u.%u", r_fw->ic, r_fw->version, r_fw->revision);
 
-                CHECK(ok_and_true(ctrl->diagnose_rom()));
-                if (const auto r = ctrl->diagnose_ram(); not r or not *r) {
+                if (const auto r = ctrl->diagnose_rom(); not r or not *r) {
                     ESP_LOGW(TAG, "ROM diagnose fail (%s), is it a genuine PN532?",
                              r ? "false" : pn532::to_string(r.error()));
                 }
+                CHECK(ok_and_true(ctrl->diagnose_ram()));
                 CHECK(ok_and_true(ctrl->diagnose_comm_line()));
                 CHECK(ok_and_true(ctrl->diagnose_self_antenna(pn532::low_current_thr::mA_25, pn532::high_current_thr::mA_150)));
 

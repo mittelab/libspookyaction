@@ -39,6 +39,26 @@ def collect_testcase(ts: TestSuite, name: str, result: TestResult):
         ts.attrs['skipped'] += 1
 
 
+def _dump_coverage(openocd: OpenOcd, cmd: str) -> None:
+    response = openocd.write(cmd)
+
+    expect_lines = [
+        'Targets connected.',
+        'Targets disconnected.',
+    ]
+
+    for line in response.splitlines():
+        for expect in expect_lines[:]:
+            if expect in line:
+                if expect.endswith('.gcda'):  # check file exists
+                    file_path = line.split()[3].strip("'")
+                    assert os.path.isfile(file_path)
+
+                expect_lines.remove(expect)
+
+    assert len(expect_lines) == 0
+
+
 @pytest.mark.parametrize(
     'embedded_services, no_gdb',
     [
@@ -68,24 +88,5 @@ def test_gcov(dut: IdfDut, openocd: OpenOcd, embedded_services, no_gdb) -> None:
         elif b'main_task: Returned from app_main()' in line:
             break
 
-    def dump_coverage(cmd: str) -> None:
-        response = openocd.write(cmd)
-
-        expect_lines = [
-            'Targets connected.',
-            'Targets disconnected.',
-        ]
-
-        for line in response.splitlines():
-            for expect in expect_lines[:]:
-                if expect in line:
-                    if expect.endswith('.gcda'):  # check file exists
-                        file_path = line.split()[3].strip("'")
-                        assert os.path.isfile(file_path)
-
-                    expect_lines.remove(expect)
-
-        assert len(expect_lines) == 0
-
     # Test two hard-coded dumps
-    dump_coverage('esp gcov')
+    _dump_coverage(openocd, 'esp gcov')

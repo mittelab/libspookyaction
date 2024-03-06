@@ -2,6 +2,7 @@
 *A library for interfacing with Desfire tags through a PN532*
 
 [![pipeline status](https://git.mittelab.org/proj/libspookyaction/badges/master/pipeline.svg)](https://git.mittelab.org/proj/libspookyaction/-/commits/master)
+![code coverage](https://git.mittelab.org/proj/libspookyaction/badges/master/coverage.svg)
 
 **Repo:** https://git.mittelab.org/proj/libspookyaction  
 **Documentation:** https://proj.mittelab.dev/libspookyaction/  

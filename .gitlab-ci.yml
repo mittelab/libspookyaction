@@ -7,6 +7,7 @@ stages:
   - docker
   - build
   - test
+  - report
   - deploy
 
 
@@ -84,6 +85,7 @@ check format:
       - build/flash_project_args
       - build/flasher_args.json
       - build/config/sdkconfig.json
+      - build/**/*.gcno  # Coverage files
   needs: []
 
 build test firmware mbedtls:
@@ -174,10 +176,9 @@ build test firmware mbedtls:
     - esptool.py --chip esp32s3 write_flash @flash_args
     - cd ..
     - pytest -s pytest_gcov.py --target esp32s3 --openocd-cli-args "-f board/esp32s3-builtin.cfg"
-    - cmake --build build/ --target gcovr-report
   artifacts:
     paths:
-      - build/coverage_report/html
+      - build/**/*.gcda
   rules:
     # Run always, on merge request too
     - <<: *rules-merge-to-master
@@ -190,6 +191,35 @@ test hardware mbedtls:
   <<: *test-hardware-template
   needs:
     - build test firmware mbedtls
+
+
+
+coverage report:
+  stage: report
+  image: espressif/idf:v5.1.2
+  before_script:
+    - apt-get update
+    - apt-get install -y gcovr
+  needs:
+    - build test firmware mbedtls
+    - test hardware mbedtls
+  script:
+    - >
+      gcovr --xml-pretty --exclude-unreachable-branches --gcov-executable xtensa-esp32s3-elf-gcov 
+            --print-summary --output build/coverage.xml --root ${CI_PROJECT_DIR}
+  coverage: /^\s*lines:\s*\d+.\d+\%/
+  artifacts:
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: build/coverage.xml
+  rules:
+    # Run always, on merge request too
+    - <<: *rules-merge-to-master
+    # But skip by default if the sources did not change
+    - <<: *rules-changes-sources
+    - <<: *rules-changes-cicd
+
 
 #test hardware wolfssl:
 #  <<: *test-hardware-template

@@ -19,3 +19,4 @@ sdkconfig.old
 __pycache__
 build
 
+coverage_report

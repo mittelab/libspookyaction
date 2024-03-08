@@ -203,14 +203,10 @@ coverage report:
     - build test firmware mbedtls
     - test hardware mbedtls
   script:
-    - |
-      gcovr --xml-pretty --exclude-unreachable-branches --gcov-executable xtensa-esp32s3-elf-gcov \
-            --print-summary --output build/coverage.xml --root ${CI_PROJECT_DIR}
+    - gcovr --xml-pretty --exclude-unreachable-branches --gcov-executable xtensa-esp32s3-elf-gcov --print-summary --output build/coverage.xml --root ${CI_PROJECT_DIR}
     - mkdir -p coverage_report
     - cp build/coverage.xml coverage_report/
-    - |
-      gcovr --exclude-unreachable-branches --gcov-executable xtensa-esp32s3-elf-gcov \ 
-            --html-theme github.green --html-details coverage_report/index.html --root ${CI_PROJECT_DIR}
+    - gcovr --exclude-unreachable-branches --gcov-executable xtensa-esp32s3-elf-gcov --html-theme github.green --html-details coverage_report/index.html --root ${CI_PROJECT_DIR}
   coverage: /^\s*lines:\s*\d+.\d+\%/
   artifacts:
     reports:
